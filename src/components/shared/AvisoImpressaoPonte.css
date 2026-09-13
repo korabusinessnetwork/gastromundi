@@ -30,6 +30,14 @@
   text-align: left;
 }
 
+/* Dois avisos podem existir ao mesmo tempo no PC do caixa: a fila da Ponte
+   travada e um pedido do realtime que não saiu. No mesmo `bottom` um cobriria
+   o outro, e o escondido seria justamente a comanda que ninguém sabe que está
+   faltando (princípio nº 1, estados sempre visíveis). O segundo sobe. */
+.aviso-impressao-ponte--empilhado {
+  bottom: 148px;
+}
+
 .aviso-impressao-ponte__icone {
   flex-shrink: 0;
 }

@@ -83,7 +83,7 @@ function montar(pending) {
 
 /** Entra na comanda 7 e abre a modal de transferência. */
 function abrirModalDeTransferencia() {
-  fireEvent.change(screen.getByPlaceholderText("Buscar comanda..."), { target: { value: "7" } });
+  fireEvent.change(screen.getByPlaceholderText(/Buscar comanda/), { target: { value: "7" } });
   fireEvent.click(screen.getByRole("button", { name: /Comanda 7/ }));
   fireEvent.click(screen.getByRole("button", { name: "Transferir" }));
 }

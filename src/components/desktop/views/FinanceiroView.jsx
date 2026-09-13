@@ -1,20 +1,28 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
 import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
 import { round2 } from "@/lib/vendas";
 import { diaLocalISO, rotuloDiaBR } from "@/utils/datas";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, useAgora } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
-import { intervaloDoMes } from "@/lib/periodos";
+import { intervaloDoMes, PRESETS_PERIODO, detectarPreset } from "@/lib/periodos";
 import ResumoCards from "./financeiro/ResumoCards";
 import LancamentosList from "./financeiro/LancamentosList";
 import PeriodoSelector from "./financeiro/PeriodoSelector";
 import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
 import "./FinanceiroView.css";
+
+
+
+/** Primeiro dia (YYYY-MM-DD, fuso local) coberto por `sales`. */
+function inicioJanelaVendas(hoje = new Date()) {
+  return diaLocalISO(new Date(hoje.getTime() - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000));
+}
 
 /**
  * Módulo Financeiro — fase 1 (docs/03_REGRAS_DE_NEGOCIO/FINANCEIRO.md).
@@ -27,7 +35,17 @@ export default function FinanceiroView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
-  const [periodo, setPeriodo]   = useState(() => intervaloDoMes(new Date()));
+  // O período nascia congelado (`useState(() => intervaloDoMes(new Date()))`) e
+  // a aba do PDV não recarrega nunca: uma tela montada em 30 de agosto seguia
+  // no Financeiro de agosto durante todo setembro, e nenhum chip aparecia
+  // destacado, porque o PeriodoSelector recalcula o próprio "hoje" a cada
+  // render e o intervalo guardado já não casava com "Este mês". Agora o que
+  // fica guardado é a CHAVE do atalho, e o intervalo é derivado no render.
+  // "personalizado" é o único caso em que o intervalo guardado vale, porque
+  // aí as datas foram escolhidas à mão.
+  const [presetPeriodo, setPresetPeriodo] = useState("mes");
+  const [periodoEscolhido, setPeriodoEscolhido] = useState(() => intervaloDoMes(new Date()));
+
   const [lancamentos, setLancamentos] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filtroTipo, setFiltroTipo]     = useState("todos");
@@ -36,6 +54,25 @@ export default function FinanceiroView() {
   const [fichas, setFichas] = useState([]);
   const [erroCarregar, setErroCarregar] = useState(false);
   const [aviso, setAviso] = useState("");
+
+  // O relógio que anda vive em `useAgora` (src/utils/hooks.js): a aba do PDV
+  // atravessa a meia-noite sem recarregar, e os recortes por período dependem
+  // de que hora é agora.
+  const agora = useAgora();
+
+  const periodo = useMemo(() => {
+    const preset = PRESETS_PERIODO.find((p) => p.chave === presetPeriodo);
+    return preset ? preset.intervalo(new Date(agora)) : periodoEscolhido;
+  }, [presetPeriodo, periodoEscolhido, agora]);
+
+  // O seletor devolve sempre `{de, ate}`, tanto no clique do atalho quanto no
+  // De/Até manual. `detectarPreset` diz qual dos dois foi: batendo com um
+  // atalho, o período passa a acompanhar o calendário; não batendo, fica
+  // exatamente nas datas que o usuário escolheu.
+  const escolherPeriodo = (novo) => {
+    setPeriodoEscolhido(novo);
+    setPresetPeriodo(detectarPreset(novo, new Date()));
+  };
 
   // Leva 15.6 — fichas técnicas para o custo dos produtos vendidos (lucro).
   useEffect(() => {
@@ -50,7 +87,11 @@ export default function FinanceiroView() {
   const carregar = useCallback(async () => {
     setLoading(true);
     setAviso("");
-    const { data, error } = await listarLancamentos({});
+    // O período vai na CONSULTA, não só no recorte em memória: pedindo a
+    // tabela inteira, ao passar do teto de linhas do PostgREST (1000 por
+    // padrão) os lançamentos mais antigos simplesmente paravam de chegar e o
+    // mês antigo aparecia zerado, sem nenhum aviso.
+    const { data, error } = await listarLancamentos({ de: periodo.de, ate: periodo.ate });
     if (error) {
       // Falha de leitura NÃO é "não tem lançamento": antes a tela caía no
       // estado vazio e o dono lia "Nenhum lançamento no período" com R$ 0,00
@@ -64,7 +105,7 @@ export default function FinanceiroView() {
     const comVencidosProcessados = await processarVencidos(data ?? []);
     setLancamentos(comVencidosProcessados);
     setLoading(false);
-  }, []);
+  }, [periodo.de, periodo.ate]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -86,6 +127,14 @@ export default function FinanceiroView() {
   //      vendas e a receita só a já recebida, então uma noite de fiado
   //      subtraía o custo sem somar a venda — e o card mostrava prejuízo.
   const lucro = useMemo(() => {
+    // Período que começa antes da janela de `sales`: a receita e o custo
+    // chegariam zerados e só as saídas pagas seriam subtraídas, inventando um
+    // prejuízo em vermelho num mês que pode ter sido o melhor do ano. Aqui o
+    // card não calcula e diz que o lucro daquele período não está disponível.
+    const inicio = inicioJanelaVendas();
+    if (inicio && periodo.de < inicio) {
+      return { indisponivel: true, diasJanela: DIAS_JANELA_BOOTSTRAP };
+    }
     const vendasDoPeriodo = (sales ?? []).filter((s) => {
       if (!s || s.cancelada || !s.at) return false;
       const dia = diaLocalISO(s.at);
@@ -158,7 +207,7 @@ export default function FinanceiroView() {
       </div>
 
       <div className="financeiro-view__toolbar" style={{ padding: `${sz.padSm}px ${sz.pad}px 0` }}>
-        <PeriodoSelector periodo={periodo} onChange={setPeriodo} />
+        <PeriodoSelector periodo={periodo} onChange={escolherPeriodo} />
       </div>
 
       {aviso && (

@@ -55,7 +55,8 @@ vi.mock("@/lib/tenant", () => ({
 }));
 
 import { AppProvider, useApp } from "./AppContext";
-import { saveSession, loadSession, lerSessao, SESSION_MS, IDLE_MS, MAX_ATTEMPTS, getAttempts } from "@/utils/session";
+import { saveSession, loadSession, lerSessao, SESSION_MS, MAX_ATTEMPTS, getAttempts } from "@/utils/session";
+import { PRAZO_BLOQUEIO_MS } from "@/lib/bloqueioTela";
 
 function capturarApp(alvo) {
   return function Sonda() {
@@ -321,7 +322,12 @@ describe("AppContext, relógio da sessão e inatividade (Run 5, levas 4 e 5)", (
     expect(app.current.loading).toBe(false);
   });
 
-  it("o teto de 8 horas vence com a aba aberta, sem precisar de F5", async () => {
+  it("o teto de 8 horas TRANCA a tela com a aba aberta, sem derrubar o que está nela", async () => {
+    // Mudança de 2026-09-12, decisão do dono: o PDV não fecha nunca, e vencer o
+    // teto deslogava, o que desmonta a árvore e leva o carrinho montado e ainda
+    // não lançado. Agora tranca: a sessão continua, o cadeado aparece por cima,
+    // e quem volta digita a senha. Trocar de operador segue existindo, no
+    // próprio cadeado, para a troca de turno.
     const T0 = new Date("2026-07-29T12:00:00-03:00").getTime();
     vi.useFakeTimers();
     vi.setSystemTime(T0);
@@ -337,8 +343,10 @@ describe("AppContext, relógio da sessão e inatividade (Run 5, levas 4 e 5)", (
       await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 10);
     });
 
-    expect(app.current.currentUser).toBeNull();
-    expect(window.sessionStorage.getItem("kora_session")).toBeNull();
+    expect(document.querySelector(".bloqueio-tela")).not.toBeNull();
+    expect(app.current.currentUser).toMatchObject({ id: 7 });
+    expect(window.sessionStorage.getItem("kora_session")).not.toBeNull();
+    expect(mockSupabase.auth.signOut).not.toHaveBeenCalled();
   });
 
   it("refresh da lista de usuários não zera a contagem de inatividade", async () => {
@@ -366,10 +374,14 @@ describe("AppContext, relógio da sessão e inatividade (Run 5, levas 4 e 5)", (
     });
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(IDLE_MS - 25 * 60 * 1000 + 10);
+      await vi.advanceTimersByTimeAsync(PRAZO_BLOQUEIO_MS - 25 * 60 * 1000 + 10);
     });
 
-    expect(app.current.currentUser).toBeNull();
+    // O prazo vencido TRANCA a tela (decisão de 2026-09-12), e é isso que prova
+    // que a contagem não foi zerada pelo refresh da lista: sem o defeito, ela
+    // chegou ao fim.
+    expect(document.querySelector(".bloqueio-tela")).not.toBeNull();
+    expect(app.current.currentUser).toMatchObject({ id: 7 });
   });
 });
 

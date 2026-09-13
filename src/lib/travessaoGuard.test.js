@@ -40,6 +40,8 @@ import { parse } from "@babel/parser";
  */
 
 const RAIZ = join(__dirname, "..");
+/** Raiz do projeto: o front da Ponte mora fora do `src/` e fora do bundle. */
+const RAIZ_PROJETO = join(__dirname, "..", "..");
 
 /** Origem do texto que o usuário lê. Teste e mock ficam de fora. */
 const IGNORAR = [/\.test\.(jsx|js)$/, /[/\\]test[/\\]/];
@@ -59,9 +61,41 @@ function arquivos(dir, saida = []) {
   return saida;
 }
 
-/** `"—"` é marcador de vazio; `" — "` é separador, e separador é pontuação. */
-function marcadorDeVazio(texto, tipo) {
-  return tipo === "JSXText" ? texto.trim() === "—" : texto === "—";
+/**
+ * `"—"` é marcador de vazio; `" — "` é separador, e separador é pontuação.
+ *
+ * Em JSX o marcador nasce como `<td>{valor ?? "—"}</td>` (string literal, a
+ * comparação é exata) ou como o símbolo escrito direto no corpo do elemento,
+ * `<td>\n  —\n</td>`, e aí o texto vem com a indentação em volta. O `trim` é
+ * para esse segundo caso, e é por isso que ele não pode valer sozinho: o
+ * separador `<span> — {obs}</span>` também fica igual ao marcador depois do
+ * trim, e ele é exatamente a forma que a regra proíbe. O que separa os dois é
+ * estar SOZINHO no elemento: marcador é todo o conteúdo da célula, separador
+ * tem uma expressão do lado.
+ */
+function marcadorDeVazio(texto, tipo, sozinhoNoElemento = false) {
+  if (tipo !== "JSXText") return texto === "—";
+  return sozinhoNoElemento && texto.trim() === "—";
+}
+
+/**
+ * Filho de JSX que é o único TEXTO do elemento, ignorando indentação.
+ *
+ * Pontuação separa dois pedaços de texto, então o que desqualifica o marcador é
+ * um irmão que também produz texto: outro `JSXText` com conteúdo, ou uma
+ * expressão (`{item.obs}`). Ícone irmão (`<LuClock />`) não produz texto e não
+ * desqualifica: `<span><LuClock /> —</span>` continua sendo "não há valor", e
+ * escrever vírgula ali daria "🕐 ,".
+ */
+function textoMarcadorDoElemento(no) {
+  if (no.type !== "JSXElement" && no.type !== "JSXFragment") return null;
+  const textuais = (no.children ?? []).filter(
+    (c) =>
+      (c.type === "JSXText" && c.value.trim() !== "") ||
+      c.type === "JSXExpressionContainer",
+  );
+  if (textuais.length !== 1) return null;
+  return textuais[0].type === "JSXText" ? textuais[0] : null;
 }
 
 /** "clique no “—” da coluna": a frase fala DO símbolo, não usa o símbolo. */
@@ -83,13 +117,20 @@ function varrer(caminho) {
   const ast = parse(fonte, { sourceType: "module", plugins: ["jsx"] });
   const achados = [];
 
+  // Nós de texto que são o conteúdo inteiro do elemento pai. A travessia é de
+  // cima para baixo, então o pai sempre carimba antes de o filho ser visitado.
+  const sozinhos = new Set();
+
   const visitar = (no) => {
     if (!no || typeof no !== "object") return;
     if (Array.isArray(no)) return no.forEach(visitar);
     if (!no.type) return;
 
+    const marcador = textoMarcadorDoElemento(no);
+    if (marcador) sozinhos.add(marcador);
+
     const texto = textoDeTela(no);
-    if (texto?.includes("—") && !marcadorDeVazio(texto, no.type) && !citaOSimbolo(texto)) {
+    if (texto?.includes("—") && !marcadorDeVazio(texto, no.type, sozinhos.has(no)) && !citaOSimbolo(texto)) {
       achados.push({
         linha: no.loc.start.line,
         trecho: texto.replace(/\s+/g, " ").trim().slice(0, 90),
@@ -135,14 +176,150 @@ describe("regra absoluta: travessão não entra em texto de tela", () => {
     // Sem isto, alguém "consertaria" o guard achando que ele deveria pegar tudo,
     // e a tabela passaria a mostrar vírgula onde não há valor.
     expect(marcadorDeVazio("—", "StringLiteral")).toBe(true);
-    expect(marcadorDeVazio("\n  —\n", "JSXText")).toBe(true);
+    // Símbolo escrito no corpo da célula, com a indentação em volta e sozinho.
+    expect(marcadorDeVazio("\n  —\n", "JSXText", true)).toBe(true);
     // O separador NÃO é marcador, e esta é a linha que separa os dois casos.
     expect(marcadorDeVazio(" — ", "StringLiteral")).toBe(false);
     expect(marcadorDeVazio("Centro — R$ 5,00", "StringLiteral")).toBe(false);
+    // O furo que existia: em JSX o separador vem sempre com espaço em volta, e
+    // com `trim` sozinho ele passava por marcador. O que o desempata é ter uma
+    // expressão do lado, ou seja, não estar sozinho no elemento.
+    expect(marcadorDeVazio(" — ", "JSXText", false)).toBe(false);
+    expect(marcadorDeVazio("\n  —\n", "JSXText", false)).toBe(false);
+  });
+
+  it("separador tem texto do lado; marcador, no máximo um ícone", () => {
+    const jsx = (fonte) =>
+      parse(`const a = ${fonte};`, { sourceType: "module", plugins: ["jsx"] })
+        .program.body[0].declarations[0].init;
+
+    // `<span> — {item.obs}</span>` na tela é "Coca-Cola — sem gelo": travessão
+    // como pontuação, o caso que a regra proíbe.
+    expect(textoMarcadorDoElemento(jsx("<span> — {obs}</span>"))).toBeNull();
+    // Texto dos dois lados no MESMO nó: aqui quem desqualifica é o conteúdo, o
+    // marcador é só o símbolo e nada mais.
+    expect(marcadorDeVazio("Centro — Zona Sul", "JSXText", true)).toBe(false);
+
+    // `<td>\n  —\n</td>` é o marcador de célula vazia: nada do lado.
+    expect(textoMarcadorDoElemento(jsx("<td>\n  —\n</td>"))).not.toBeNull();
+    // Marcador ao lado de um ÍCONE segue marcador: o ícone não produz texto, e
+    // vírgula ali ("🕐 ,") não quereria dizer nada.
+    expect(textoMarcadorDoElemento(jsx("<span><LuClock /> —</span>"))).not.toBeNull();
   });
 
   it("frase que cita o símbolo continua permitida", () => {
     expect(citaOSimbolo('Clique no “—” da coluna Mensalidade')).toBe(true);
     expect(citaOSimbolo("Escreva o motivo — ele fica gravado")).toBe(false);
+  });
+});
+
+
+/**
+ * O front da Ponte (`ponte/*.html`) é tela de verdade, em português, que o dono
+ * e o garçom leem: a página de pedido do celular e o painel de status no
+ * computador do caixa. Ela escapava da regra por um detalhe de caminho, não por
+ * decisão: o guard acima varre `src/`, e a Ponte é servida fora do bundle. A
+ * primeira varredura desta pasta achou oito frases com travessão.
+ *
+ * Aqui não dá para usar a árvore de sintaxe do JS, porque o arquivo é HTML com
+ * script dentro. Então o texto é limpo primeiro: comentário HTML, bloco de
+ * estilo e comentário de JavaScript saem (comentário não é front, mesma isenção
+ * do guard de cima), e o que sobra é o que chega aos olhos de alguém.
+ */
+function textoVisivelDoHtml(fonte) {
+  const linhas = fonte.split("\n");
+  const limpas = linhas.map((l) => l);
+
+  // Comentário HTML e bloco de estilo, que podem atravessar várias linhas:
+  // apaga o conteúdo preservando a contagem de linhas, para o número relatado
+  // continuar sendo o número que a pessoa abre no editor.
+  const apagarBlocos = (texto, abre, fecha) => {
+    let dentro = false;
+    return texto.map((l) => {
+      let saida = "";
+      let resto = l;
+      while (resto.length > 0) {
+        if (!dentro) {
+          const i = resto.indexOf(abre);
+          if (i === -1) { saida += resto; break; }
+          saida += resto.slice(0, i);
+          resto = resto.slice(i + abre.length);
+          dentro = true;
+        } else {
+          const f = resto.indexOf(fecha);
+          if (f === -1) { resto = ""; break; }
+          resto = resto.slice(f + fecha.length);
+          dentro = false;
+        }
+      }
+      return saida;
+    });
+  };
+
+  let saida = apagarBlocos(limpas, "<!--", "-->");
+  saida = apagarBlocos(saida, "<style", "</style>");
+  saida = apagarBlocos(saida, "/*", "*/");
+  // Comentário de linha do JavaScript. O `(^|[^:])` evita cortar a partir do
+  // "//" de uma URL (`http://`), que não é comentário.
+  saida = saida.map((l) => l.replace(/(^|[^:])\/\/.*$/, "$1"));
+  return saida;
+}
+
+/** `>—<` e `"—"` são marcador de vazio; no meio de uma frase é pontuação. */
+function separadorNoHtml(linha) {
+  if (!linha.includes("—")) return false;
+  const semMarcador = linha
+    .replace(/>\s*—\s*</g, "><")
+    .replace(/(["'])\s*—\s*\1/g, "$1$1");
+  return semMarcador.includes("—");
+}
+
+describe("a mesma regra vale no front da Ponte", () => {
+  it("nenhuma tela da Ponte usa travessão como pontuação", () => {
+    const pasta = join(RAIZ_PROJETO, "ponte");
+    const htmls = readdirSync(pasta).filter((n) => n.endsWith(".html"));
+    // Se a Ponte deixar de ter tela, isto avisa em vez de passar vazio.
+    expect(htmls.length).toBeGreaterThan(0);
+
+    const problemas = [];
+    for (const nome of htmls) {
+      const fonte = readFileSync(join(pasta, nome), "utf8");
+      textoVisivelDoHtml(fonte).forEach((linha, i) => {
+        if (separadorNoHtml(linha)) {
+          problemas.push(`ponte/${nome}:${i + 1}  ${linha.replace(/\s+/g, " ").trim().slice(0, 90)}`);
+        }
+      });
+    }
+
+    expect(
+      problemas,
+      problemas.length
+        ? `Travessão em texto de tela da Ponte. Troque por vírgula:\n\n${problemas.join("\n")}`
+        : undefined,
+    ).toEqual([]);
+  });
+
+  it("comentário de código e marcador de vazio continuam de fora", () => {
+    const fonte = [
+      "<!-- Ponte KORA — comentário de topo, não é tela -->",
+      "<p>Sem valor por enquanto</p>",
+      '<p id="x">—</p>',
+      "<script>",
+      "  // reenvio — não duplica",
+      "  var url = 'http://192.168.0.2/api';",
+      "</" + "script>",
+    ].join("\n");
+    expect(textoVisivelDoHtml(fonte).filter(separadorNoHtml)).toEqual([]);
+  });
+
+  it("frase de tela com travessão é pega, na linha certa", () => {
+    const fonte = [
+      "<p>Primeira linha</p>",
+      "<p>Informe seu nome — sai impresso na cozinha.</p>",
+    ].join("\n");
+    const pegas = textoVisivelDoHtml(fonte)
+      .map((l, i) => (separadorNoHtml(l) ? i + 1 : null))
+      .filter(Boolean);
+    expect(pegas).toEqual([2]);
   });
 });

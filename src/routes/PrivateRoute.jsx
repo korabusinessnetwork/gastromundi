@@ -5,6 +5,7 @@ import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
 import UpgradeNecessario from "@/components/desktop/UpgradeNecessario";
 import AssinaturaBloqueada from "@/components/desktop/AssinaturaBloqueada";
 import SemAcesso from "@/components/desktop/SemAcesso";
+import CarregandoSessao from "./CarregandoSessao";
 
 /**
  * PrivateRoute — redireciona para /login se não autenticado.
@@ -29,6 +30,17 @@ import SemAcesso from "@/components/desktop/SemAcesso";
 export default function PrivateRoute({ children, requiredPermission, requiredModulo, moduloLabel }) {
   const { currentUser, moduloHabilitado, assinatura, loading } = useApp();
   const location = useLocation();
+
+  // Sessão ainda sendo restaurada: espera, não manda para o login. O
+  // `currentUser` nasce do `sessionStorage`, que é por aba, então numa aba
+  // nova aberta direto numa rota do app (link colado, favorito, janela
+  // restaurada) ele é nulo enquanto o `getSession()` está no ar. Redirecionar
+  // aí jogava para o login quem tinha token válido, e segundos depois a pessoa
+  // voltava sozinha ao destino, com duas telas piscando no meio. Só depois que
+  // a restauração termina é que "sem usuário" quer dizer "não está logado".
+  if (!currentUser && loading) {
+    return <CarregandoSessao />;
+  }
 
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;

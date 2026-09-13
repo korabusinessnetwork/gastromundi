@@ -581,3 +581,38 @@
   font-size: var(--fs-sm);   /* role: nota de rodapé (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
 }
+
+/* Falha ao ler os logs de operadores: mesmo padrão visual do estado de
+   leitura não concluída do Financeiro, para o dono reconhecer de cara. */
+.relatorio-view__erro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-red);
+  background: var(--gm-surface);
+}
+
+.relatorio-view__erro-texto {
+  color: var(--gm-text);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.relatorio-view__btn-tentar {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}

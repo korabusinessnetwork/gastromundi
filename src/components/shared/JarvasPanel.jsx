@@ -8,7 +8,8 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { novoUid } from "@/lib/uidLista";
-import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
+import { tratarStatusCanal } from "@/utils/hooks";
+import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend, LuTriangleAlert, LuRefreshCw } from "react-icons/lu";
 import "./JarvasPanel.css";
 
 /**
@@ -43,6 +44,12 @@ export default function JarvasPanel() {
   const [aberto, setAberto] = useState(false);
   const [insights, setInsights] = useState([]);
   const [carregando, setCarregando] = useState(false);
+  // Busca que falhou e "não há insight" eram a MESMA tela, no painel que o
+  // gestor abre justamente para saber se há algo errado. São dois estados
+  // separados desde agora: `erroCarga` (leitura) e `erroEscrita` (o cartão que
+  // voltou porque o banco recusou a mudança de status).
+  const [erroCarga, setErroCarga] = useState(null);
+  const [erroEscrita, setErroEscrita] = useState("");
 
   // ── Assistente conversacional (fase 5 — só admin/gerente) ──
   const [aba, setAba] = useState("insights");
@@ -74,8 +81,15 @@ export default function JarvasPanel() {
 
   const carregar = useCallback(async () => {
     setCarregando(true);
-    const { data } = await buscarInsights({ status: ["novo", "lido"], limite: 50 });
-    setInsights(data ?? []);
+    const { data, error } = await buscarInsights({ status: ["novo", "lido"], limite: 50 });
+    if (error) {
+      // Mantém na tela os insights que já estavam: melhor a lista de um minuto
+      // atrás do que um painel limpo que não corresponde a nada.
+      setErroCarga(error);
+    } else {
+      setErroCarga(null);
+      setInsights(data ?? []);
+    }
     setCarregando(false);
   }, []);
 
@@ -93,6 +107,7 @@ export default function JarvasPanel() {
   // Requer Realtime habilitado na tabela `jarvas_insights` (Database → Replication).
   useEffect(() => {
     if (!currentUser) return;
+    let vivo = true;
     const channel = supabase
       .channel("jarvas-insights-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "jarvas_insights" }, (payload) => {
@@ -106,27 +121,48 @@ export default function JarvasPanel() {
             : prev.map(i => (i.id === atualizado.id ? atualizado : i)),
         );
       })
-      .subscribe();
+      // Canal que morre (RLS, token recusado, servidor reiniciando, Wi-Fi
+      // trocado numa aba de 24 horas) deixava o painel parado sem avisar: o
+      // gestor lia silêncio como "nenhum alerta novo". Ler o status recarrega
+      // a lista quando o canal cai e outra vez quando ele volta, porque o que
+      // aconteceu durante a queda não é reenviado. Aqui não há faixa na tela
+      // de propósito: o painel é consultivo, a recarga já o mantém verdadeiro,
+      // e um aviso técnico num painel secundário só faria ruído.
+      .subscribe(tratarStatusCanal("jarvas-insights-realtime", {
+        recarregar: carregar, estaVivo: () => vivo,
+      }));
 
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUser]);
+    return () => { vivo = false; supabase.removeChannel(channel); };
+  }, [currentUser, carregar]);
 
   if (!currentUser) return null;
 
   const naoLidos = insights.filter((i) => i.status === "novo").length;
 
   const mudarStatus = async (id, status) => {
+    // Lista de antes da remoção otimista: se o banco recusar a escrita, o
+    // cartão volta na hora em vez de ressuscitar sozinho na próxima carga.
+    const anteriores = insights;
     setInsights((prev) =>
       status === "descartado" || status === "executado"
         ? prev.filter((i) => i.id !== id)
         : prev.map((i) => (i.id === id ? { ...i, status } : i)),
     );
-    await atualizarStatusInsight(id, status, currentUser.username);
+    setErroEscrita("");
+    const { error } = await atualizarStatusInsight(id, status, currentUser.username);
+    if (error) {
+      setInsights(anteriores);
+      setErroEscrita("Não conseguimos salvar essa mudança, o aviso voltou para a lista. Tente de novo.");
+    }
+    return { error: error ?? null };
   };
 
   const executarAcao = async (insight) => {
     const rota = ROTA_ACAO[insight?.acao?.tipo];
-    await mudarStatus(insight.id, "executado");
+    const { error } = await mudarStatus(insight.id, "executado");
+    // Escrita recusada: o cartão voltou para a lista e o aviso está na tela,
+    // então fechar o painel esconderia justamente a explicação.
+    if (error) return;
     setAberto(false);
     if (rota) navigate(rota, { state: { ts: Date.now(), jarvas: insight.acao?.params ?? {} } });
   };
@@ -137,8 +173,9 @@ export default function JarvasPanel() {
       <button
         onClick={() => setAberto((v) => !v)}
         title="Jarvas, insights e alertas"
+        className="jarvas-bell"
         style={{
-          position: "fixed", right: 18, bottom: 18, zIndex: 400,
+          zIndex: 400,
           width: 52, height: 52, borderRadius: "50%",
           background: naoLidos > 0 ? varColor(C.accent) : varColor(C.card),
           border: `1px solid ${naoLidos > 0 ? varColor(C.accent) : varColor(C.border)}`,
@@ -283,10 +320,45 @@ export default function JarvasPanel() {
             {/* Lista */}
             {(aba === "insights" || !podeConversar) && (
             <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
-              {carregando && insights.length === 0 && (
+              {carregando && insights.length === 0 && !erroCarga && (
                 <div className="jarvas-list__loading" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>Carregando…</div>
               )}
-              {!carregando && insights.length === 0 && (
+              {erroCarga && (
+                <div className="jarvas-list__erro" role="alert" style={{
+                  display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10,
+                  background: alfa(C.red, "1a"), border: `1px solid ${alfa(C.red, "59")}`,
+                  color: varColor(C.red), borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+                  fontWeight: 600,
+                }}>
+                  <LuTriangleAlert size={16} aria-hidden />
+                  <span>Não conseguimos buscar os avisos do Jarvas agora.</span>
+                  <button
+                    onClick={carregar}
+                    disabled={carregando}
+                    className="jarvas-list__tentar"
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6, marginLeft: "auto",
+                      background: "none", border: `1px solid ${alfa(C.red, "59")}`,
+                      color: varColor(C.red), borderRadius: 8, padding: "6px 11px",
+                      fontWeight: 700, cursor: carregando ? "default" : "pointer",
+                    }}
+                  >
+                    <LuRefreshCw size={14} aria-hidden /> Tentar de novo
+                  </button>
+                </div>
+              )}
+              {erroEscrita && (
+                <div className="jarvas-list__erro" role="alert" style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: alfa(C.red, "1a"), border: `1px solid ${alfa(C.red, "59")}`,
+                  color: varColor(C.red), borderRadius: 10, padding: "12px 14px", marginBottom: 10,
+                  fontWeight: 600,
+                }}>
+                  <LuTriangleAlert size={16} aria-hidden />
+                  <span>{erroEscrita}</span>
+                </div>
+              )}
+              {!carregando && !erroCarga && insights.length === 0 && (
                 <div className="jarvas-list__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
                   Tudo em ordem por aqui. O Jarvas avisa quando algo merecer atenção.
                 </div>

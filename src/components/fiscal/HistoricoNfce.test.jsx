@@ -3,8 +3,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 
 const listarNfceEmitidas = vi.fn();
+const contarAlertasNfce = vi.fn();
 vi.mock("@/lib/nfceEmitidasRepo", () => ({
   listarNfceEmitidas: (...a) => listarNfceEmitidas(...a),
+  contarAlertasNfce: (...a) => contarAlertasNfce(...a),
   buscarNfcePorVenda: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
@@ -52,6 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   pendenciasNaFila = 0;
   assinantes.clear();
+  contarAlertasNfce.mockResolvedValue({ rejeitada: 0, pendente: 0, error: null });
 });
 
 describe("<HistoricoNfce>, histórico de NFC-e (Leva 12)", () => {
@@ -134,5 +137,54 @@ describe("<HistoricoNfce>, histórico de NFC-e (Leva 12)", () => {
     await waitFor(() => expect(listarNfceEmitidas).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: "autorizada" }),
     ));
+  });
+});
+
+/**
+ * D06, nota que CHEGOU à SEFAZ e voltou rejeitada, ou ficou pendente.
+ *
+ * A tela avisava bem sobre a fila offline (nota que nunca chegou à SEFAZ), mas
+ * não havia sinal nenhum para essas. Para descobrir era preciso suspeitar e
+ * clicar no chip "Rejeitadas", e uma venda sem nota válida ficava invisível por
+ * tempo indeterminado.
+ */
+describe("<HistoricoNfce>, os chips avisam sem precisar clicar (D06)", () => {
+  beforeEach(() => {
+    listarNfceEmitidas.mockResolvedValue({ data: [], error: null, temMais: false });
+  });
+
+  it("mostra a contagem de rejeitadas e pendentes no próprio chip", async () => {
+    contarAlertasNfce.mockResolvedValue({ rejeitada: 2, pendente: 1, error: null });
+    render(<HistoricoNfce />);
+
+    expect(await screen.findByRole("button", { name: "Rejeitadas 2" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pendentes 1" })).toBeTruthy();
+  });
+
+  it("o chip com nota esperando ação se destaca, os outros não", async () => {
+    contarAlertasNfce.mockResolvedValue({ rejeitada: 2, pendente: 0, error: null });
+    render(<HistoricoNfce />);
+
+    const rejeitadas = await screen.findByRole("button", { name: "Rejeitadas 2" });
+    expect(rejeitadas.className).toContain("historico-nfce__chip--alerta");
+    expect(screen.getByRole("button", { name: "Canceladas" }).className)
+      .not.toContain("historico-nfce__chip--alerta");
+  });
+
+  it("sem nota esperando ação, nenhum chip ganha número nem destaque", async () => {
+    render(<HistoricoNfce />);
+
+    expect(await screen.findByRole("button", { name: "Rejeitadas" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pendentes" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Rejeitadas" }).className)
+      .not.toContain("historico-nfce__chip--alerta");
+  });
+
+  it("falha na contagem não atrapalha a lista, os chips só ficam sem número", async () => {
+    contarAlertasNfce.mockResolvedValue({ rejeitada: 0, pendente: 0, error: new Error("boom") });
+    render(<HistoricoNfce />);
+
+    expect(await screen.findByRole("button", { name: "Rejeitadas" })).toBeTruthy();
+    expect(screen.getByText(/Nenhuma nota fiscal por aqui ainda/i)).toBeTruthy();
   });
 });

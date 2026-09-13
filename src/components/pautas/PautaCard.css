@@ -195,6 +195,17 @@
   background: var(--pautas-finalizado-tenue, transparent);
 }
 
+/* Falha ao mudar a situação: o card fica onde está e diz por quê. */
+.pauta-card__erro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gm-red);
+}
+
 /* ── No celular ────────────────────────────────────────────────── */
 /* 26px é alvo de mouse, não de dedo: no toque os três atalhos crescem para
    o mínimo confortável sem mudar nada no desktop. */

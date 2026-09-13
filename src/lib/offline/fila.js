@@ -50,6 +50,11 @@ export function criarFila({ storage, chave = CHAVE_FILA_PENDING }) {
 //   erro definitivo→ sai da fila (repetir não resolve) e volta em `falhas`
 //                    para o chamador dar visibilidade.
 //
+// Devolve `parouPorRede` para o chamador saber POR QUE a fila não esvaziou.
+// Sem isso a tela só vê "ainda tem N pendências" e não consegue separar
+// "estou enviando agora" de "a última tentativa bateu na parede", que é a
+// diferença entre um aviso verdadeiro e um aviso que mente para o operador.
+//
 // ISOLAMENTO MULTI-TENANT (hardening): `tenantAtual` (tenant_id do JWT da
 // sessão atual). Uma op carimbada com `__tenant` de OUTRO tenant nunca é
 // executada na sessão atual — é PULADA e MANTIDA na fila (sem executar, sem
@@ -63,6 +68,7 @@ export async function drenarFila({ fila, executar, isErroDeRede, tenantAtual = u
   const processadas = new Set();
   const falhas = [];
   let enviadas = 0;
+  let parouPorRede = false;
 
   for (const op of ops) {
     if (tenantAtual !== undefined && op.__tenant != null && op.__tenant !== tenantAtual) {
@@ -74,11 +80,14 @@ export async function drenarFila({ fila, executar, isErroDeRede, tenantAtual = u
       enviadas += 1;
       continue;
     }
-    if (isErroDeRede(error)) break;
+    if (isErroDeRede(error)) {
+      parouPorRede = true;
+      break;
+    }
     processadas.add(op.uid);
     falhas.push({ op, error });
   }
 
   fila.removerPorUid(processadas);
-  return { enviadas, falhas, restantes: fila.tamanho() };
+  return { enviadas, falhas, restantes: fila.tamanho(), parouPorRede };
 }

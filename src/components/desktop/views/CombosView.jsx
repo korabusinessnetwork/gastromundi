@@ -33,6 +33,11 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
   const [carregandoGrupos, setCarregandoGrupos] = useState(isEdit);
   const [salvando, setSalvando] = useState(false);
   const [erro,     setErro]     = useState("");
+  // A leitura dos grupos deste combo falhou. Salvar assim apagaria os grupos
+  // que existem no banco e inseriria só o que a tela conseguiu montar, ou
+  // seja, o cliente perderia escolhas que o combo tem. Enquanto isto estiver
+  // ligado o Salvar fica travado.
+  const [erroLeitura, setErroLeitura] = useState(false);
 
   // ao editar — carrega os grupos de escolha do combo
   useEffect(() => {
@@ -40,14 +45,17 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
     let vivo = true;
     carregarGruposDoCombo(combo.id).then(({ data, error }) => {
       if (!vivo) return;
-      if (error) setErro("Não deu para carregar os grupos deste combo.");
-      else setGrupos(data);
+      if (error) {
+        setErroLeitura(true);
+        setErro("Não deu para carregar tudo o que este combo tem dentro. Feche e abra de novo antes de salvar.");
+      } else setGrupos(data);
       setCarregandoGrupos(false);
     });
     return () => { vivo = false; };
   }, [combo]);
 
   const salvar = async () => {
+    if (erroLeitura) return;
     if (!nome.trim()) { setErro("Informe o nome do combo."); return; }
     const precoNum = parseFloat(String(preco).replace(",", ".")) || 0;
     if (precoNum <= 0) { setErro("Informe o preço do combo."); return; }
@@ -140,7 +148,7 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
 
         <div className="combos-view__modal-botoes">
           <button onClick={onClose} className="combos-view__btn-cancelar">Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+          <button onClick={salvar} disabled={salvando || erroLeitura} className="combos-view__btn-salvar" style={{ background: (salvando || erroLeitura) ? varColor(C.faint) : varColor(C.accent), cursor: (salvando || erroLeitura) ? "not-allowed" : "pointer" }}>
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>

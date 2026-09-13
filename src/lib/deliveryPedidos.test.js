@@ -31,6 +31,9 @@ import {
   formatarReais,
   tempoDecorrido,
   atualizarStatusPedido,
+  inicioDoDiaISO,
+  inicioDoRecorteISO,
+  listarPedidosDelivery,
 } from "./deliveryPedidos";
 import { supabase } from "./supabase";
 
@@ -476,5 +479,125 @@ describe("linkConfirmacaoWhatsApp", () => {
   it("sem telefone utilizável devolve null — o botão some em vez de abrir aba morta", () => {
     expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "" })).toBeNull();
     expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "123" })).toBeNull();
+  });
+});
+
+// D02 — antes disso listarPedidosDelivery puxava TODO pedido de delivery do
+// tenant, sem limite e sem recorte de data, a cada montagem e a cada evento de
+// realtime. Acima do teto de linhas do PostgREST a resposta é cortada em
+// silêncio e o contador da coluna passa a mentir.
+describe("listarPedidosDelivery, recorte das colunas terminais (D02)", () => {
+  beforeEach(() => {
+    supabase.reset();
+  });
+
+  const acharOr = () => supabase.calls.find((c) => c.table === "delivery_pedidos" && c.method === "or");
+
+  it("inicioDoDiaISO zera o relógio do dia local", () => {
+    const inicio = new Date(inicioDoDiaISO(new Date(2026, 8, 12, 15, 47, 3)));
+    expect(inicio.getHours()).toBe(0);
+    expect(inicio.getMinutes()).toBe(0);
+    expect(inicio.getSeconds()).toBe(0);
+    expect(inicio.getDate()).toBe(12);
+  });
+
+  it("recorta entregue e cancelado ao dia corrente na própria consulta", async () => {
+    const agora = new Date(2026, 8, 12, 15, 47, 3);
+    await listarPedidosDelivery({ agora });
+
+    const filtro = acharOr();
+    expect(filtro).toBeDefined();
+    const expressao = String(filtro.args[0]);
+    expect(expressao).toContain("entregue");
+    expect(expressao).toContain(STATUS_CANCELADO);
+    expect(expressao).toContain(`created_at.gte.${inicioDoDiaISO(agora)}`);
+  });
+
+  it("não terminal continua sempre visível: o recorte de data é alternativa, não condição", async () => {
+    await listarPedidosDelivery({ agora: new Date(2026, 8, 12, 15, 47, 3) });
+
+    const expressao = String(acharOr().args[0]);
+    // `or` = qualquer uma das duas basta, então pedido em andamento antigo
+    // entra pelo lado do status, sem depender da data.
+    expect(expressao).toMatch(/status\.not\.in\./);
+    expect(expressao.split(",created_at.gte.")).toHaveLength(2);
+  });
+
+  it("erro do Supabase vira data vazia com o erro, sem lançar", async () => {
+    supabase.setTableError("delivery_pedidos", { message: "falhou" });
+    const { data, error } = await listarPedidosDelivery();
+    expect(data).toEqual([]);
+    expect(error).toBeTruthy();
+  });
+});
+
+// D06 — o recorte do D02 era pelo início do DIA DO CALENDÁRIO, e o delivery
+// atravessa a meia-noite: o pedido entregue às 23h50 desaparecia da coluna
+// "Entregue" na primeira busca depois da meia-noite (e as buscas acontecem
+// sozinhas, a cada avançar, cancelar ou pedido novo). O operador via a coluna
+// esvaziar e o contador cair a zero com o entregador ainda na rua. O corte
+// passa a ser a abertura do caixa, que é o turno de verdade.
+describe("listarPedidosDelivery, recorte pelo TURNO e não pelo dia (D06)", () => {
+  beforeEach(() => {
+    supabase.reset();
+  });
+
+  const acharOr = () => supabase.calls.find((c) => c.table === "delivery_pedidos" && c.method === "or");
+
+  // Caixa aberto às 18h de ontem, agora é 00h30 de hoje: o turno é o mesmo.
+  const ABERTURA = new Date(2026, 8, 11, 18, 0, 0);
+  const MADRUGADA = new Date(2026, 8, 12, 0, 30, 0);
+
+  it("corta pela abertura do caixa quando há sessão", () => {
+    expect(inicioDoRecorteISO({ sessaoAbertaEm: ABERTURA.toISOString(), agora: MADRUGADA }))
+      .toBe(ABERTURA.toISOString());
+  });
+
+  it("o pedido entregue às 23h50 continua dentro do recorte depois da meia-noite", () => {
+    const entregue = new Date(2026, 8, 11, 23, 50, 0);
+    const corte = new Date(inicioDoRecorteISO({ sessaoAbertaEm: ABERTURA.toISOString(), agora: MADRUGADA }));
+    expect(entregue.getTime()).toBeGreaterThanOrEqual(corte.getTime());
+    // Era aqui que o furo aparecia: o início do dia já é DEPOIS da entrega.
+    expect(entregue.getTime()).toBeLessThan(new Date(inicioDoDiaISO(MADRUGADA)).getTime());
+  });
+
+  it("sem sessão, cai no início do dia (delivery standalone, sem caixa)", () => {
+    const agora = new Date(2026, 8, 12, 15, 47, 3);
+    expect(inicioDoRecorteISO({ sessaoAbertaEm: null, agora })).toBe(inicioDoDiaISO(agora));
+    expect(inicioDoRecorteISO({ sessaoAbertaEm: "", agora })).toBe(inicioDoDiaISO(agora));
+    expect(inicioDoRecorteISO({ agora })).toBe(inicioDoDiaISO(agora));
+  });
+
+  it("sessão ilegível cai no início do dia, e não numa data inválida", () => {
+    const agora = new Date(2026, 8, 12, 15, 47, 3);
+    // Formato brasileiro já foi gravado em config.sessao_aberta_em antes.
+    expect(inicioDoRecorteISO({ sessaoAbertaEm: "31/07/2026 08:00", agora })).toBe(inicioDoDiaISO(agora));
+    expect(inicioDoRecorteISO({ sessaoAbertaEm: "qualquer coisa", agora })).toBe(inicioDoDiaISO(agora));
+  });
+
+  it("caixa esquecido aberto há dias não traz a base inteira: o corte tem teto", () => {
+    const agora = new Date(2026, 8, 12, 15, 0, 0);
+    const abertoHaUmMes = new Date(2026, 7, 12, 18, 0, 0).toISOString();
+    const corte = new Date(inicioDoRecorteISO({ sessaoAbertaEm: abertoHaUmMes, agora }));
+    const horasAtras = (agora.getTime() - corte.getTime()) / 3600000;
+    expect(horasAtras).toBeLessThanOrEqual(48);
+    expect(horasAtras).toBeGreaterThan(24);
+  });
+
+  it("a consulta usa o corte do turno, não o do dia", async () => {
+    await listarPedidosDelivery({ agora: MADRUGADA, sessaoAbertaEm: ABERTURA.toISOString() });
+
+    const expressao = String(acharOr().args[0]);
+    expect(expressao).toContain(`created_at.gte.${ABERTURA.toISOString()}`);
+    expect(expressao).not.toContain(inicioDoDiaISO(MADRUGADA));
+  });
+
+  it("sem sessão a consulta segue cortando pelo dia, com a proteção intacta", async () => {
+    const agora = new Date(2026, 8, 12, 15, 47, 3);
+    await listarPedidosDelivery({ agora });
+
+    const expressao = String(acharOr().args[0]);
+    expect(expressao).toMatch(/status\.not\.in\./);
+    expect(expressao).toContain(`created_at.gte.${inicioDoDiaISO(agora)}`);
   });
 });

@@ -460,7 +460,7 @@ export default function NovoEstabelecimentoModal({ planos, slugsEmUso = [], inic
                 <span className="nem-dica nem-forca--forte">Senha forte.</span>
               ) : forcaSenha.nivel ? (
                 <span className={`nem-dica nem-forca--${forcaSenha.nivel}`}>
-                  {forcaSenha.nivel === "fraca" ? "Senha fraca" : "Senha razoável"} — {forcaSenha.motivo}
+                  {forcaSenha.nivel === "fraca" ? "Senha fraca" : "Senha razoável"}, {forcaSenha.motivo}
                 </span>
               ) : (
                 <span className="nem-dica">

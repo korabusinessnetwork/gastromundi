@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LuCalendarCheck, LuWrench, LuCircleCheck, LuSearch, LuX, LuTriangleAlert } from "react-icons/lu";
+import { LuCalendarCheck, LuWrench, LuCircleCheck, LuSearch, LuX, LuTriangleAlert, LuRefreshCw } from "react-icons/lu";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
@@ -20,6 +20,11 @@ import "./MesaReservasView.css";
  *   cor mudar na hora; se o banco falhar, desfaz e avisa.
  * - Prevenção de erro: "Manutenção" fica desabilitada em mesa com
  *   comanda aberta, porque manutenção esconderia o pedido no mapa.
+ * - Salão sem mesa e salão que não foi lido são telas DIFERENTES: a primeira
+ *   convida a cadastrar, a segunda avisa que a leitura falhou e oferece
+ *   "Tentar de novo" (props `erroCarga` e `recarregar`, do useMesas). Antes as
+ *   duas mostravam "Nenhuma mesa cadastrada", e o operador ia cadastrar de
+ *   novo mesas que já existem.
  */
 const OPCOES = [
   { valor: "livre",      label: "Livre",      Icon: LuCircleCheck },
@@ -27,7 +32,7 @@ const OPCOES = [
   { valor: "manutencao", label: "Manutenção", Icon: LuWrench },
 ];
 
-export default function MesaReservasView({ mesas, loading, abertas, atualizarStatus }) {
+export default function MesaReservasView({ mesas, loading, abertas, atualizarStatus, erroCarga = null, recarregar = null }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const [busca, setBusca] = useState("");
@@ -38,6 +43,26 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
     return (
       <div className="reservas-view__loading" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted) }}>
         Carregando mesas...
+      </div>
+    );
+  }
+
+  if (erroCarga && !mesas.length) {
+    return (
+      <div className="reservas-view__vazio" role="alert">
+        <div className="reservas-view__vazio-emoji">📡</div>
+        <div className="reservas-view__vazio-titulo" style={{ color: varColor(C.red) }}>
+          Não conseguimos ler as mesas
+        </div>
+        <div className="reservas-view__vazio-texto" style={{ color: varColor(C.muted) }}>
+          As mesas cadastradas continuam salvas, só não chegaram até aqui agora.
+          Confira a conexão e tente de novo.
+        </div>
+        {recarregar && (
+          <button type="button" className="reservas-view__tentar" onClick={recarregar}>
+            <LuRefreshCw size={15} /> Tentar de novo
+          </button>
+        )}
       </div>
     );
   }
@@ -111,8 +136,19 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
         )}
       </div>
 
+      {erroCarga && (
+        <div className="reservas-view__erro" role="alert" style={{ color: varColor(C.red) }}>
+          <LuTriangleAlert size={15} /> Esta lista pode estar desatualizada, não conseguimos ler as mesas agora.
+          {recarregar && (
+            <button type="button" className="reservas-view__tentar is-inline" onClick={recarregar}>
+              <LuRefreshCw size={14} /> Tentar de novo
+            </button>
+          )}
+        </div>
+      )}
+
       {erro && (
-        <div className="reservas-view__erro" style={{ color: varColor(C.red) }}>
+        <div className="reservas-view__erro" role="alert" style={{ color: varColor(C.red) }}>
           <LuTriangleAlert size={15} /> {erro}
         </div>
       )}

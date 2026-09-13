@@ -38,6 +38,7 @@ import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -46,7 +47,7 @@ export default function PDVView({ notify }) {
   const {
     pending, products, estoque, estoqueMinimos,
     addPending, updatePending, removePending,
-    caixaAberto, currentUser, sales, users, metodosCustom,
+    caixaAberto, currentUser, sales, users, metodosCustom, sessaoAbertaEm,
     lancadas, addLancada, diasAlertaValidade,
     loading: bootstrapLoading,
   } = useApp();
@@ -61,7 +62,11 @@ export default function PDVView({ notify }) {
   // em vez de usar o grid de 3 colunas do desktop, que espremia o título
   // ("Frente / de / Caixa") e cortava o botão "Nova Comanda" fora da tela.
   const isCel = width < 768;
-  const { mesas, loading: mesasLoading, atualizarStatusMesa } = useMesas();
+  // `erro` e `recarregar` vêm do hook desde que ele parou de transformar falha
+  // de leitura em salão vazio: sem repassá-los, a aba Reservas continuaria sem
+  // ter como dizer "não conseguimos ler as mesas" e sem caminho de nova
+  // tentativa, que é a metade da correção que aparece para quem opera.
+  const { mesas, loading: mesasLoading, erro: mesasErro, recarregar: recarregarMesas, atualizarStatusMesa } = useMesas();
   const location = useLocation();
 
   // Reset to lista whenever the sidebar navigates to this page
@@ -103,6 +108,7 @@ export default function PDVView({ notify }) {
   // modal nova comanda
   const [showNova,          setShowNova]          = useState(false);
   const [nomeComanda,       setNomeComanda]       = useState("");
+  const [novaComandaErro,   setNovaComandaErro]   = useState("");
   const [criando,           setCriando]           = useState(false);
   const [confirmCancelar,        setConfirmCancelar]        = useState(false);
   const [confirmCancelarMotivo,  setConfirmCancelarMotivo]  = useState("");
@@ -147,9 +153,11 @@ export default function PDVView({ notify }) {
   // O pedido de delivery NÃO é comanda do salão: ninguém vai servi-lo na
   // mesa, e desde 20261002 quem fecha a venda dele é a própria aba
   // Delivery. O espelho continua em `pending` porque é ele que a Cozinha
-  // lê e a impressora imprime — só deixou de aparecer aqui, onde não
+  // lê e a impressora imprime, só deixou de aparecer aqui, onde não
   // havia o que fazer com ele além de confundir quem atende.
   const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
+  const nomeComandaEmUso = !!nomeComanda.trim()
+    && abertas.some(o => String(o.comanda ?? "").trim() === nomeComanda.trim());
 
   // ── Combos e grupos de escolha — vendáveis no PDV ─────────────
   // Carrega uma vez por entrada na tela. O combo flexível é nome + preço +
@@ -249,6 +257,10 @@ export default function PDVView({ notify }) {
 
   const handleConfirmarMesa = async () => {
     if (!mesaPendingOrder || salvandoMesa) return;
+    // Mesa é obrigatória: a tela já mostra "Campo obrigatório." e desabilita o
+    // botão Entrar. Sem esta guarda o Enter no campo vazio entrava mesmo assim,
+    // e comanda sem mesa não aparece no mapa do salão.
+    if (!mesaInput.trim()) return;
     // Trava de edição (Leva 14): alguém abriu a comanda enquanto a modal estava na tela.
     if (!mesaPendingOrder._virtual) {
       const fresca = pending.find(o => o.id === mesaPendingOrder.id) ?? mesaPendingOrder;
@@ -749,11 +761,20 @@ export default function PDVView({ notify }) {
 
   // ── Nova comanda com nome personalizado ───────────────────────
   const handleNovaComanda = async () => {
-    if (!nomeComanda.trim() || criando) return;
+    const nome = nomeComanda.trim();
+    if (!nome || criando) return;
+    // Nome/número repetido cria DUAS comandas com o mesmo rótulo. No Palm o mapa
+    // de comandas é indexado pelo nome, então só uma delas recebe os lançamentos
+    // e a busca da transferência sempre acha a primeira. Mesma checagem que a
+    // transferência já faz ao criar comanda nova.
+    if (nomeComandaEmUso) {
+      setNovaComandaErro(`${fmtComanda(nome)} já existe. Escolha outro nome ou número.`);
+      return;
+    }
     setCriando(true);
     const order = {
       id:         crypto.randomUUID(),
-      comanda:    nomeComanda.trim(),
+      comanda:    nome,
       items:      [],
       status:     "open",
       total:      0,
@@ -873,7 +894,7 @@ export default function PDVView({ notify }) {
           )}
           {emPainel && (
             <button
-              onClick={() => { setShowNova(true); setNomeComanda(""); }}
+              onClick={() => { setShowNova(true); setNomeComanda(""); setNovaComandaErro(""); }}
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
               style={{
@@ -1114,11 +1135,18 @@ export default function PDVView({ notify }) {
               size={18}
               className={`pdv__busca-icone${buscaComanda ? " pdv__busca-icone--ativo" : ""}`}
             />
+            {/* O campo aceitava só dígito, e a grade abaixo sempre soube
+                filtrar por nome da comanda e por garçom: digitar "Balcão" não
+                escrevia nada na tela e não dava retorno nenhum, justamente o
+                nome que o modal de nova comanda sugere ("Ex: Mesa 1, Balcão,
+                Delivery..."). `maxLength` acompanha o limite do nome da
+                comanda, e o teclado do tablet volta a ser o normal. */}
             <input
               value={buscaComanda}
-              onChange={e => { if (e.target.value === "" || /^\d+$/.test(e.target.value)) setBuscaComanda(e.target.value); }}
-              placeholder="Buscar comanda..."
-              inputMode="numeric"
+              onChange={e => setBuscaComanda(e.target.value)}
+              placeholder="Buscar comanda, nome ou garçom"
+              aria-label="Buscar comanda por número, nome ou garçom"
+              maxLength={30}
               className={`pdv__busca-input${buscaComanda ? " pdv__busca-input--preenchido" : ""}`}
             />
             {buscaComanda && (
@@ -1134,7 +1162,7 @@ export default function PDVView({ notify }) {
       )}
 
       {/* ── Body ────────────────────────────────────────────────── */}
-      <div className="pdv__body">
+      <div className={`pdv__body${isMob ? " pdv__body--empilhado" : ""}`}>
 
         {mode === "mapa" && (
           <MesaMapView
@@ -1150,6 +1178,8 @@ export default function PDVView({ notify }) {
           <MesaReservasView
             mesas={mesas}
             loading={mesasLoading}
+            erroCarga={mesasErro}
+            recarregar={recarregarMesas}
             abertas={abertas}
             atualizarStatus={atualizarStatusMesa}
           />
@@ -1228,10 +1258,17 @@ export default function PDVView({ notify }) {
                     if (i !== idx) return it;
                     const novaQty = (it.qty ?? 1) - qty;
                     if (novaQty > 0) {
-                      // cancela parcialmente: divide em ativo + cancelado
+                      // Cancela parcialmente: divide em ativo + cancelado. A
+                      // metade cancelada é uma LINHA NOVA e precisa de `uid`
+                      // próprio, pelo mesmo motivo detalhado no cancelamento do
+                      // fechamento (`handleRemoverItemCheckout`): herdando o uid
+                      // da metade ativa, `mesclarItensComanda` a conta como já
+                      // conhecida e a descarta no primeiro lançamento vindo do
+                      // Palm, então o item volta inteiro e o cliente paga o que
+                      // foi cancelado.
                       return [
                         { ...it, qty: novaQty },
-                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" },
+                        { ...it, qty, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "", uid: crypto.randomUUID() },
                       ];
                     }
                     return { ...it, cancelado: true, motivoCancelamento: motivo || "", canceladoPor: currentUser?.name || "" };
@@ -1293,12 +1330,18 @@ export default function PDVView({ notify }) {
             <input
               autoFocus
               value={nomeComanda}
-              onChange={e => setNomeComanda(e.target.value)}
+              onChange={e => { setNomeComanda(e.target.value); setNovaComandaErro(""); }}
               onKeyDown={e => e.key === "Enter" && handleNovaComanda()}
               placeholder="Ex: Mesa 1, Balcão, Delivery..."
               maxLength={30}
+              aria-invalid={nomeComandaEmUso}
               className="pdv__modal-input pdv__nova-input"
             />
+            {(nomeComandaEmUso || novaComandaErro) && (
+              <div role="alert" className="pdv__modal-erro">
+                {novaComandaErro || `${fmtComanda(nomeComanda.trim())} já está aberta. Escolha outro nome ou número.`}
+              </div>
+            )}
 
             <div className="pdv__nova-acoes">
               <button
@@ -1309,7 +1352,7 @@ export default function PDVView({ notify }) {
               </button>
               <button
                 onClick={handleNovaComanda}
-                disabled={!nomeComanda.trim() || criando}
+                disabled={!nomeComanda.trim() || nomeComandaEmUso || criando}
                 className={`pdv__modal-btn pdv__modal-btn--primario pdv__nova-btn pdv__nova-btn-abrir${nomeComanda.trim() ? " pdv__nova-btn-abrir--ativo" : ""}`}
               >
                 {criando ? "Abrindo..." : "Abrir"}
@@ -1759,7 +1802,7 @@ export default function PDVView({ notify }) {
       {/* ── Popup: Mesa ──────────────────────────────────────────── */}
       {showMesa && mesaPendingOrder && createPortal(
         <div
-          {...fecharAoClicarFora(() => { handleConfirmarMesa(); })}
+          {...fecharAoClicarFora(() => { setShowMesa(false); setMesaPendingOrder(null); }, !salvandoMesa)}
           className="pdv__mesa-overlay"
         >
           <div className="pdv__mesa-card">
@@ -1872,6 +1915,7 @@ export default function PDVView({ notify }) {
           sales={sales}
           pending={pending}
           metodosCustom={metodosCustom}
+          sessaoAbertaEm={sessaoAbertaEm}
         />,
         document.body
       )}
@@ -1881,27 +1925,63 @@ export default function PDVView({ notify }) {
 }
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
-function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom, sessaoAbertaEm }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const isNarrow = width < 540;
-  const hoje = new Date().toDateString();
+  // O corte do Saldo do Dia é a abertura do caixa, o mesmo critério do
+  // fechamento (`inicioSessao`) e da lista de vendas fechadas. Com o dia do
+  // calendário, um bar que abriu às 18h via a noite inteira desaparecer daqui
+  // à 00h10, enquanto o fechamento, às 4h, mostrava o total certo: dois
+  // números para o mesmo dinheiro, e este é o que o gerente consulta antes de
+  // confiar no caixa. Sem sessão aberta, ou com valor ilegível na config, cai
+  // no início do dia local.
+  const inicio = inicioSessao(sessaoAbertaEm);
   const [logsComandaCancelada, setLogsComandaCancelada] = useState([]);
+  const [logsCarregando, setLogsCarregando] = useState(false);
+  const [logsErro, setLogsErro] = useState(false);
   const [showCancelList, setShowCancelList] = useState(false);
 
+  // As comandas canceladas inteiras vêm dos logs. Sem olhar o `error`, uma
+  // falha na consulta fazia o card "Cancelamentos do Dia" mostrar menos do que
+  // o real sem nada na tela dizendo isso, e o gerente lia um número errado
+  // como se fosse certo.
   useEffect(() => {
     if (!autorizado) return;
-    const inicioDia = new Date(new Date().toDateString()).toISOString();
+    let vivo = true;
+    // Mesmo corte das vendas. Antes, este lado era o dia do calendário e era
+    // calculado uma vez, quando a senha era aceita, enquanto o outro lado
+    // recalculava a cada render: com o modal aberto atravessando a meia-noite,
+    // as vendas saltavam para o dia novo e os cancelamentos continuavam sendo
+    // os de ontem, e a mesma tela mostrava "Saldo do Dia" em R$ 0,00 ao lado
+    // de "Cancelamentos do Dia" listando a noite anterior.
+    const desdeAbertura = new Date(inicio).toISOString();
+    setLogsCarregando(true);
+    setLogsErro(false);
     supabase
       .from("operator_logs")
       .select("payload, created_at")
       .eq("action_type", "comanda:cancelar")
-      .gte("created_at", inicioDia)
-      .then(({ data }) => setLogsComandaCancelada(data ?? []));
-  }, [autorizado]);
+      .gte("created_at", desdeAbertura)
+      .then(
+        ({ data, error }) => {
+          if (!vivo) return;
+          if (error) { setLogsErro(true); setLogsComandaCancelada([]); }
+          else       { setLogsComandaCancelada(data ?? []); }
+          setLogsCarregando(false);
+        },
+        () => {
+          if (!vivo) return;
+          setLogsErro(true);
+          setLogsComandaCancelada([]);
+          setLogsCarregando(false);
+        },
+      );
+    return () => { vivo = false; };
+  }, [autorizado, inicio]);
 
   // Leva 15.3 — vendas canceladas não contam no saldo do dia
-  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).toDateString() === hoje);
+  const vendasHoje = (sales ?? []).filter(s => s.at && !s.cancelada && new Date(s.at).getTime() >= inicio);
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
@@ -2048,6 +2128,16 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                     {qtdCancelados} {qtdCancelados === 1 ? "item cancelado" : "itens cancelados"}
                   </div>
                   <div className="pdv__saldo-pills">
+                    {logsCarregando && (
+                      <span className="pdv__saldo-pill">
+                        Carregando comandas canceladas...
+                      </span>
+                    )}
+                    {logsErro && (
+                      <span role="alert" className="pdv__saldo-pill pdv__saldo-pill--erro">
+                        Não foi possível carregar as comandas canceladas, o total pode estar incompleto.
+                      </span>
+                    )}
                     {canceladosAbertos.length > 0 && (
                       <span className="pdv__saldo-pill">
                         {canceladosAbertos.reduce((s,i)=>s+(i.qty??1),0)} em aberto

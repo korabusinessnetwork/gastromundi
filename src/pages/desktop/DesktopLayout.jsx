@@ -1,5 +1,5 @@
-import { Outlet } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
@@ -21,6 +21,7 @@ import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
+import { tituloDaAba } from "@/lib/tituloAba";
 
 export default function DesktopLayout() {
   const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria } = useApp();
@@ -33,6 +34,20 @@ export default function DesktopLayout() {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const { notif, notify } = useNotification();
+
+  // Aba do navegador por tela. Quem trabalha com a frente de caixa, a cozinha e
+  // o relatório abertos ao mesmo tempo (o normal no balcão) via três abas
+  // idênticas dizendo "KORA", e tinha de clicar em cada uma para achar a certa.
+  // Aqui e não no provider de propósito: o efeito do pai roda DEPOIS do do
+  // filho no mesmo commit, então o provider sobrescrevia o nome da tela no
+  // mesmo instante. Ele deixou de escrever o título dentro de `/app`, e este é
+  // o dono. O nome do estabelecimento sai da mesma resolução do cabeçalho, então
+  // aba e sidebar nunca discordam.
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.title = tituloDaAba(pathname, nomeEstabelecimento);
+  }, [pathname, nomeEstabelecimento]);
 
   const [showFechamento, setShowFechamento] = useState(false);
   const [showAbertura,   setShowAbertura]   = useState(false);

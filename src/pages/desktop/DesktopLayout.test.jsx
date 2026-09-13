@@ -113,3 +113,37 @@ describe("DesktopLayout, marca no topo (Run 5, leva 11)", () => {
     expect(topo()).not.toContain("GASTROMUNDI");
   });
 });
+
+/**
+ * Aba do navegador por tela.
+ *
+ * A aba dizia "KORA" em todas as telas do estabelecimento: quem trabalha com a
+ * frente de caixa, a cozinha e o relatório abertos ao mesmo tempo, que é o
+ * normal no balcão, via três abas idênticas e clicava em cada uma para achar a
+ * certa. E o nome do estabelecimento não aparecia ali, o que num produto
+ * white-label é a marca da plataforma na aba de um cliente.
+ */
+describe("DesktopLayout, título da aba", () => {
+  const naTela = (rota, tenant) => {
+    setAppMock({ tenant, caixaAberto: true, pending: [], sales: [] });
+    renderWithProviders(<DesktopLayout />, { route: rota });
+  };
+
+  it("a aba diz a tela e o estabelecimento", () => {
+    naTela("/app/pdv", { id: "t1", nome: "Casa Coffee", tema: {} });
+
+    expect(document.title).toBe("Frente de caixa, Casa Coffee");
+  });
+
+  it("cada tela abre uma aba distinguível da outra", () => {
+    naTela("/app/cozinha", { id: "t1", nome: "Casa Coffee", tema: {} });
+
+    expect(document.title).toBe("Cozinha, Casa Coffee");
+  });
+
+  it("sem estabelecimento resolvido, cai na marca da plataforma, nunca na de outro cliente", () => {
+    naTela("/app/estoque", null);
+
+    expect(document.title).toBe("Estoque, Kora");
+  });
+});

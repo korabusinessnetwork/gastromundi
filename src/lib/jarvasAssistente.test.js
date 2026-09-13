@@ -102,4 +102,31 @@ describe("perguntarAoJarvas", () => {
     expect(await perguntarAoJarvas("Oi")).toEqual({ error: "Não autorizado." });
     expect(chamadaFetch().headers.Authorization).toBe("Bearer undefined");
   });
+
+  /**
+   * A Edge Function tem teto diário de uso por estabelecimento, como a função
+   * irmã que lê cardápio por IA: sem ele, qualquer gerente autenticado podia
+   * chamar o Jarvas em laço e queimar cota paga, e o Jarvas custa mais por
+   * chamada porque manda todo o contexto do negócio junto. Na recusa a `dica` é
+   * a metade útil: diz quantas perguntas são por dia e quando volta a valer.
+   */
+  it("no teto diário, junta a dica à recusa para o operador saber o que fazer", async () => {
+    fetch.mockResolvedValueOnce(resposta({
+      ok: false,
+      json: {
+        error: "O Jarvas já respondeu o máximo de perguntas de hoje.",
+        dica: "São até 50 perguntas por dia neste estabelecimento. Tente de novo amanhã.",
+      },
+    }));
+
+    const { error } = await perguntarAoJarvas("e hoje?");
+    expect(error).toBe(
+      "O Jarvas já respondeu o máximo de perguntas de hoje. " +
+      "São até 50 perguntas por dia neste estabelecimento. Tente de novo amanhã.",
+    );
+  });
+
+  it("recusa sem dica continua mostrando só o motivo", async () => {
+    fetch.mockResolvedValueOnce(resposta({ ok: false, json: { error: "Sem permissão." } }));
+    expect(await perguntarAoJarvas("e hoje?")).toEqual({ error: "Sem permissão." });  });
 });

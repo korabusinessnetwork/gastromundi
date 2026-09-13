@@ -145,3 +145,37 @@ são uma chave e um object store, e dependência em runtime é peso no bundle do
 
 O que a decisão não fecha: a janela entre enfileirar e o banco confirmar. Fechar a aba
 dentro dela ainda perde a última op. Está registrado como pendência residual no ADR-013.
+
+---
+
+# Decisões da varredura de refino, 2026-09-12
+
+## D-R01 O ciclo de cada item foi feito no loop principal, não pela skill `/ciclo`
+- **Contexto:** a skill de refino manda rodar toda tarefa pela `/ciclo` (especificar, construir, revisar). O `CLAUDE.md` deste projeto manda o contrário na seção Operação: não adicionar passo separado de verificação, não revisar duas vezes por precaução, e ser frugal com subagentes porque o custo se concentra em turnos.
+- **Decisão:** cada item da rodada tem critério de pronto escrito antes (a coluna do `TAREFAS.md` é a especificação), é construído com teste, e é verificado contra o critério mais o baseline inteiro. O ciclo aconteceu, a orquestração de três skills por item não.
+- **Por quê:** o `CLAUDE.md` do projeto é fonte de verdade e prevalece sobre a skill quando as duas divergem. Oito itens vezes três skills seriam 24 rodadas de contexto para mudanças que somam poucas linhas cada.
+- **Como reverter:** rodar `/spec`, `/build` e `/review` por item nas próximas rodadas.
+
+## D-R02 Os fluxos que exigem sessão foram verificados sem navegar
+- **Contexto:** não há `.env.local`, instância Supabase alcançável, nem Supabase CLI neste ambiente. Subir Postgres em Docker para a varredura custaria a maior parte da sessão.
+- **Decisão:** as superfícies anônimas foram abertas de verdade no navegador (raiz, login, cardápio público, rotas protegidas sem sessão, rota inexistente, em 1280x800 e em 390x844). Os fluxos autenticados foram verificados por leitura de código, pelos testes de componente e pelos guards da suíte.
+- **Por quê:** o limite está declarado no `BASELINE.md` em vez de virar uma aprovação que eu não medi.
+- **Como reverter:** com credenciais de um projeto Supabase de teste no `.env.local`, a varredura de navegação cobre os fluxos autenticados também.
+
+## D-R03 Um `.env.local` de valores falsos ficou no diretório de trabalho
+- **Contexto:** o dev server não sobe sem `VITE_SUPABASE_URL`.
+- **Decisão:** criei `.env.local` apontando para um host morto (`127.0.0.1:54321`), o que também rendeu o achado N01: com o servidor inalcançável, o login acusa "Usuário ou senha incorretos" e gasta tentativa.
+- **Por quê:** o arquivo está no `.gitignore` (linha 4), então não vai para o repositório.
+- **Como reverter:** apagar o arquivo.
+
+## D-R04 Os merges da rodada 2 foram acumulados, com a verificação completa no fim
+- **Contexto:** a skill manda rodar a verificação completa depois de cada merge. Na rodada 2 as seis trilhas rodam ao mesmo tempo, e a suíte inteira passou de 76 s para mais de 7 minutos com a CPU disputada por elas.
+- **Decisão:** os merges de trilhas com arquivos disjuntos são acumulados, e a verificação completa roda quando a leva chega, mais uma vez no fechamento da rodada.
+- **Por quê:** os conjuntos de arquivos foram desenhados sem interseção, cada trilha já rodou a suíte inteira verde na worktree dela, e uma falha depois do merge se isola por trilha em um comando. O ganho é não gastar meia hora de relógio em verificações que testam a mesma coisa.
+- **Como reverter:** rodar `npm test` entre cada merge, quando não houver frentes concorrendo por CPU.
+
+## D-R05 A recarga automática continua mostrando "Conectando ao caixa"
+- **Contexto:** toda recarga automática (volta de rede, volta do sono, canal de tempo real ruim) passa pelo `bootstrap`, que liga o `loading`, então a tela pisca "Conectando ao caixa" por um instante. A alternativa era um modo silencioso, que troca o conteúdo só quando o dado chega.
+- **Decisão:** fica como está, confirmado pelo dono em 12/09/2026.
+- **Por quê:** mostra que o sistema está buscando o que perdeu, em vez de fingir estar em dia, e é o mesmo comportamento do botão "Recarregar a tela", que a equipe já conhece.
+- **Como reverter:** fazer o `bootstrap` aceitar um modo que não mexe no `loading`, e usá-lo nos três caminhos automáticos.

@@ -363,7 +363,7 @@
     var erroEl = $("erroEnvio");
     erroEl.style.display = "none";
     if (!comanda) { erroEl.textContent = "Informe o número ou nome da comanda."; erroEl.style.display = "block"; $("comanda").focus(); return; }
-    if (!garcom) { erroEl.textContent = "Informe seu nome — sai impresso na cozinha."; erroEl.style.display = "block"; $("garcom").focus(); return; }
+    if (!garcom) { erroEl.textContent = "Informe seu nome, sai impresso na cozinha."; erroEl.style.display = "block"; $("garcom").focus(); return; }
     try { localStorage.setItem("kora.palm.garcom", garcom); } catch (e) { /* sem storage, segue */ }
 
     if (!idPedido) idPedido = gerarId(); // reaproveitado no reenvio — não duplica
@@ -397,7 +397,7 @@
         }
       })
       .catch(function () {
-        erroEl.textContent = "Não deu para falar com o caixa. Confira o Wi-Fi e toque em Enviar de novo — o pedido não se perde nem duplica.";
+        erroEl.textContent = "Não deu para falar com o caixa. Confira o Wi-Fi e toque em Enviar de novo, o pedido não se perde nem duplica.";
         erroEl.style.display = "block";
         atualizarBarra();
       });

@@ -171,4 +171,59 @@ describe("CozinhaView", () => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
   });
+  // D01 — antes disso a falha virava console.error: o botão voltava ao normal,
+  // o cartão ficava na mesma coluna e a cozinha não lia uma palavra. E o caso
+  // mais comum é justamente o guard otimista pegando duas estações na mesma
+  // comanda, que devolve "0 rows".
+  describe("falha ao avançar o pedido (D01)", () => {
+    it("diz que outra estação já avançou quando o guard otimista não acha linha", async () => {
+      mockSupabase.current.setTableResult("pending", { data: [pedidoAguardando], error: null });
+      mockSupabase.current.setTableHandler("pending", ({ method }) =>
+        method === "update"
+          ? { data: null, error: { code: "PGRST116", details: "The result contains 0 rows" } }
+          : undefined,
+      );
+      const user = userEvent.setup();
+
+      renderWithProviders(<CozinhaView />);
+      await waitFor(() => expect(screen.getByText("Comanda 5")).toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: /iniciar preparo/i }));
+
+      const alerta = await screen.findByRole("alert");
+      expect(alerta).toHaveTextContent(/outra estação já avançou esta comanda/i);
+    });
+
+    it("diz que não deu para salvar quando a falha é de verdade", async () => {
+      mockSupabase.current.setTableResult("pending", { data: [pedidoEmPreparo], error: null });
+      mockSupabase.current.setTableHandler("pending", ({ method }) =>
+        method === "update" ? { data: null, error: { message: "network error" } } : undefined,
+      );
+      const user = userEvent.setup();
+
+      renderWithProviders(<CozinhaView />);
+      await waitFor(() => expect(screen.getByText("Comanda 7")).toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: /marcar pronto/i }));
+
+      const alerta = await screen.findByRole("alert");
+      expect(alerta).toHaveTextContent(/não deu para salvar, tente de novo/i);
+      expect(alerta).not.toHaveTextContent(/outra estação/i);
+    });
+
+    it("ação que dá certo não deixa aviso nenhum no cartão", async () => {
+      mockSupabase.current.setTableResult("pending", { data: [pedidoAguardando], error: null });
+      const user = userEvent.setup();
+
+      renderWithProviders(<CozinhaView />);
+      await waitFor(() => expect(screen.getByText("Comanda 5")).toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: /iniciar preparo/i }));
+
+      await waitFor(() => {
+        expect(mockSupabase.current.calls.some((c) => c.table === "pending" && c.method === "update")).toBe(true);
+      });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+  });
 });

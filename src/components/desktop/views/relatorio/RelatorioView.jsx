@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, Fragment } from "react";
+﻿import { useState, useMemo, useEffect, useCallback, Fragment } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
@@ -6,9 +6,10 @@ import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
 import { supabase } from "@/lib/supabase";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
-import { useResponsive } from "@/utils/hooks";
+import { useResponsive, useAgora } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -16,6 +17,7 @@ import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import BotaoReimprimirComprovante from "./BotaoReimprimirComprovante";
 import "./RelatorioView.css";
+import { formatarDinheiro } from "@/lib/dinheiro";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
@@ -25,13 +27,31 @@ import {
 const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 // "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
+// Janela que o bootstrap carrega: `sales`, fechamentos e comandas chegam só
+// dos últimos 90 dias (ver AppContext.jsx:340, "Bootstrap limitado a 90 dias").
+// O número está duplicado aqui porque o AppContext não o exporta; pedido de
+// virar constante exportada registrado no relatório da rodada.
+
 const PERIODOS = [
   { id: "hoje",    label: "Hoje"    },
   { id: "semana",  label: "7 dias"  },
   { id: "mes",     label: "30 dias" },
-  { id: "tudo",    label: "Tudo"    },
+  // Era "Tudo", mas o atalho não recorta uma lista que já vem recortada em 90
+  // dias: o chip prometia um histórico inteiro que a tela nunca teve.
+  { id: "tudo",    label: `${DIAS_JANELA_BOOTSTRAP} dias` },
   { id: "custom",  label: "Período" },
 ];
+
+/**
+ * Rótulo do período impresso no cabeçalho do PDF e da planilha. O `exportReport`
+ * traduz "tudo" como "Todo o período", e era isso que ia carimbado no arquivo
+ * que vai para o contador, sobre dados de 90 dias. Mandando o rótulo pronto,
+ * o arquivo passa a dizer a janela real (chaves desconhecidas são impressas
+ * como vieram).
+ */
+function rotuloPeriodoExport(periodo) {
+  return periodo === "tudo" ? `Últimos ${DIAS_JANELA_BOOTSTRAP} dias` : periodo;
+}
 
 const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
 const ACTION_TYPE_META = {
@@ -49,7 +69,12 @@ function tipoLog(actionType) {
 
 const SALE_PREFIXES = new Set(["comanda", "itens", "produto"]);
 
-function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim) {
+// O instante de referência entra por parâmetro (e não como `Date.now()` lido
+// aqui dentro) porque a tela do PDV fica aberta 24 horas por dia: sem um valor
+// que muda com o relógio, o `useMemo` que chama esta função não tinha nenhuma
+// dependência ligada ao tempo e o recorte "Hoje" continuava preso ao dia em que
+// rodou por último, virando só quando entrava uma venda nova.
+function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim, agora = Date.now()) {
   if (periodo === "tudo") return list;
   if (periodo === "custom") {
     if (!customInicio && !customFim) return list;
@@ -60,9 +85,9 @@ function filtrarPorPeriodo(list, campo, periodo, customInicio, customFim) {
       return t >= ini && t <= fim;
     });
   }
-  const hojeInicio = new Date(new Date().toDateString()).getTime();
+  const hojeInicio = new Date(new Date(agora).toDateString()).getTime();
   const dias  = periodo === "semana" ? 7 : 30;
-  const desde = Date.now() - dias * 24 * 60 * 60 * 1000;
+  const desde = agora - dias * 24 * 60 * 60 * 1000;
   return list.filter(r => {
     const t = r[campo] ? new Date(r[campo]).getTime() : 0;
     return periodo === "hoje" ? t >= hojeInicio : t >= desde;
@@ -76,7 +101,7 @@ function fmtData(dateStr) {
     + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
+const fmtR = formatarDinheiro;
 
 // ── Componentes auxiliares ────────────────────────────────────────
 
@@ -323,15 +348,20 @@ export default function RelatorioView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
 
+  // O relógio que anda vive em `useAgora` (src/utils/hooks.js): a aba do PDV
+  // atravessa a meia-noite sem recarregar, e os recortes por período dependem
+  // de que hora é agora.
+  const agora = useAgora();
+
   // Cabeçalho dos exports com a identidade do tenant (white-label,
   // decisão 017); "by Kora" é a assinatura da plataforma. Sem tema custom
   // cai no nome CADASTRADO do estabelecimento — antes caía na marca de um
   // cliente específico, que ia impressa no PDF e na planilha de todo mundo.
   const empresaExport = marcaComAssinatura(nomeExibicaoTenant(tenant?.tema, tenant?.nome));
   const exportToPDF  = (titulo, headers, rows, periodo, opts = {}) =>
-    exportToPDFBase(titulo, headers, rows, periodo, { empresa: empresaExport, ...opts });
+    exportToPDFBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport, ...opts });
   const exportToXLSX = (titulo, headers, rows, periodo) =>
-    exportToXLSXBase(titulo, headers, rows, periodo, { empresa: empresaExport });
+    exportToXLSXBase(titulo, headers, rows, rotuloPeriodoExport(periodo), { empresa: empresaExport });
 
   const [aba,           setAba]           = useState("Vendas");
   const [periodo,       setPeriodo]       = useState("hoje");
@@ -344,20 +374,37 @@ export default function RelatorioView() {
   const [subVendas,  setSubVendas]  = useState("resumido");
   const [opLogs,     setOpLogs]     = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [erroLogs,   setErroLogs]   = useState("");
 
-  useEffect(() => {
-    if (aba !== "Logs") return;
+  // A falha de leitura era ignorada: a aba ficava vazia, igualzinha a "não
+  // houve atividade no período". E é justamente quando o dono desconfia de
+  // algo que ele abre esta aba, então vazio por engano é o pior resultado
+  // possível. Agora o motivo aparece e dá para tentar de novo.
+  const carregarLogs = useCallback(() => {
     setLoadingLogs(true);
+    setErroLogs("");
     supabase
       .from("operator_logs")
       .select("id, operator_id, action_type, payload, created_at")
       .order("created_at", { ascending: false })
       .limit(2000)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("[relatorio] erro ao carregar logs de operadores:", error);
+          setErroLogs(error.message || "falha na leitura");
+          setOpLogs([]);
+          setLoadingLogs(false);
+          return;
+        }
         setOpLogs(data ?? []);
         setLoadingLogs(false);
       });
-  }, [aba]);
+  }, []);
+
+  useEffect(() => {
+    if (aba !== "Logs") return;
+    carregarLogs();
+  }, [aba, carregarLogs]);
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
   // Visão administrativa consolidada (B3): só role admin — gerente/caixa não veem.
@@ -366,13 +413,13 @@ export default function RelatorioView() {
 
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
-    let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
+    let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim, agora);
     if (metodoFilt !== "todos") l = l.filter(s => Object.keys(totalPorMetodo(s)).includes(metodoFilt));
     // Leva 15.5 — busca por número/nome da comanda
     const busca = buscaComanda.trim().toLowerCase();
     if (busca) l = l.filter(s => String(s.comanda ?? "").toLowerCase().includes(busca));
     return l;
-  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim]);
+  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim, agora]);
 
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -397,7 +444,7 @@ export default function RelatorioView() {
   //    mesma duração, ticket médio e faturamento por operador. Calculado a
   //    partir de `sales` (janela de bootstrap) pelos limites do período.
   const adminConsolidado = useMemo(() => {
-    const { ini, fim } = intervaloPeriodo(periodo, customInicio, customFim);
+    const { ini, fim } = intervaloPeriodo(periodo, customInicio, customFim, agora);
     const atMs = (v) => (v.at ? new Date(v.at).getTime() : 0);
     const atuais = (ini == null && fim == null)
       ? sales
@@ -423,19 +470,19 @@ export default function RelatorioView() {
       porOperador: agruparVendasPorOperador(atuais),
       porMetodo,
     };
-  }, [sales, periodo, customInicio, customFim]);
+  }, [sales, periodo, customInicio, customFim, agora]);
 
   // ── Fechamentos ───────────────────────────────────────────────
   const fechsFiltrados = useMemo(() =>
-    filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim),
-  [fechamentos, periodo, customInicio, customFim]);
+    filtrarPorPeriodo(fechamentos, "at", periodo, customInicio, customFim, agora),
+  [fechamentos, periodo, customInicio, customFim, agora]);
 
   // ── Cancelamentos ─────────────────────────────────────────────
   const cancelamentos = useMemo(() => {
     const linhas = [];
 
     // vendas finalizadas — itens cancelados dentro delas
-    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
+    const vendasPeriodo = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim, agora);
     vendasPeriodo.forEach(v => {
       (Array.isArray(v.items) ? v.items : [])
         .filter(it => it.cancelado)
@@ -455,7 +502,7 @@ export default function RelatorioView() {
     });
 
     // comandas em aberto — itens cancelados
-    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo, customInicio, customFim);
+    const pendingPeriodo = filtrarPorPeriodo(pending ?? [], "created_at", periodo, customInicio, customFim, agora);
     pendingPeriodo.forEach(p => {
       (Array.isArray(p.items) ? p.items : [])
         .filter(it => it.cancelado)
@@ -475,7 +522,7 @@ export default function RelatorioView() {
     });
 
     return linhas.sort((a, b) => new Date(b.at) - new Date(a.at));
-  }, [sales, pending, periodo, customInicio, customFim]);
+  }, [sales, pending, periodo, customInicio, customFim, agora]);
 
   const kpisCancelamentos = useMemo(() => {
     const total    = cancelamentos.length;
@@ -489,11 +536,11 @@ export default function RelatorioView() {
 
   // ── Logs ──────────────────────────────────────────────────────
   const logsFiltrados = useMemo(() => {
-    let l = filtrarPorPeriodo(opLogs, "created_at", periodo, customInicio, customFim);
+    let l = filtrarPorPeriodo(opLogs, "created_at", periodo, customInicio, customFim, agora);
     if (logTipo === "venda")       l = l.filter(x => SALE_PREFIXES.has((x.action_type ?? "").split(":")[0]));
     else if (logTipo !== "todos")  l = l.filter(x => (x.action_type ?? "").startsWith(logTipo + ":"));
     return l;
-  }, [opLogs, periodo, logTipo, customInicio, customFim]);
+  }, [opLogs, periodo, logTipo, customInicio, customFim, agora]);
 
   // ── Handlers de exportação ────────────────────────────────────
   const totalItens = (v) => Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : 0;
@@ -529,16 +576,19 @@ export default function RelatorioView() {
       else               exportToXLSX("Vendas Resumido", headers, rows, periodo);
     } else {
       const headers = ["Comanda", "Caixa", "Método", "Produto", "Qtd", "Unit. (R$)", "Subtotal (R$)", "Data/Hora"];
-      const rows = vendasFiltradas.flatMap(v =>
-        (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
+      const rows = vendasFiltradas.flatMap(v => {
+        // Mesmo motivo do detalhado na tela: item cancelado não foi cobrado e
+        // não entra no arquivo que vai para conferência.
+        const itens = (Array.isArray(v.items) ? v.items : []).filter(it => !it.cancelado);
+        return (itens.length > 0 ? itens : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
           normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
           fmtData(v.at),
-        ])
-      );
+        ]);
+      });
       if (fmt === "pdf") exportToPDF("Vendas Detalhado", headers, rows, periodo);
       else               exportToXLSX("Vendas Detalhado", headers, rows, periodo);
     }
@@ -892,7 +942,14 @@ export default function RelatorioView() {
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                     {vendasFiltradas.map((v, i) => {
-                      const itens = Array.isArray(v.items) ? v.items : [];
+                      // Item cancelado dentro de venda válida fica fora daqui, do
+                      // mesmo jeito que a venda cancelada fica fora de todos os
+                      // relatórios (Leva 15.3). Ele não foi cobrado: o total da
+                      // comanda é calculado sem ele, então listá-lo aqui fazia a
+                      // soma dos subtotais não fechar com o total mostrado ao
+                      // lado. Quem precisa ver o que foi cancelado, com motivo e
+                      // responsável, tem a aba Cancelamentos.
+                      const itens = (Array.isArray(v.items) ? v.items : []).filter(it => !it.cancelado);
                       const qtdTotal = itens.reduce((s, it) => s + (it.qty ?? 1), 0);
                       return (
                         <div
@@ -1335,15 +1392,7 @@ export default function RelatorioView() {
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
                 <button
-                  onClick={() => {
-                    setLoadingLogs(true);
-                    supabase
-                      .from("operator_logs")
-                      .select("id, operator_id, action_type, payload, created_at")
-                      .order("created_at", { ascending: false })
-                      .limit(2000)
-                      .then(({ data }) => { setOpLogs(data ?? []); setLoadingLogs(false); });
-                  }}
+                  onClick={carregarLogs}
                   className="relatorio-view__log-refresh"
                   style={{
                     padding: "6px 14px", borderRadius: 8,
@@ -1361,6 +1410,13 @@ export default function RelatorioView() {
             <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
               {loadingLogs ? (
                 <div style={{ color: varColor(C.muted), textAlign: "center", padding: 40 }}>Carregando logs…</div>
+              ) : erroLogs ? (
+                <div className="relatorio-view__erro" role="alert">
+                  <div className="relatorio-view__erro-texto">
+                    Não foi possível carregar os logs. Motivo: {erroLogs}
+                  </div>
+                  <button onClick={carregarLogs} className="relatorio-view__btn-tentar">Tentar de novo</button>
+                </div>
               ) : logsFiltrados.length === 0 ? (
                 <Empty icon={LuClipboardList} msg="Nenhum evento no período selecionado" sz={sz} />
               ) : (

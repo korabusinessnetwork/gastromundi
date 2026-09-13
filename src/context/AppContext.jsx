@@ -20,6 +20,10 @@ import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
+import { DIAS_JANELA_BOOTSTRAP } from "@/constants/janelaDados";
+import { PRAZO_BLOQUEIO_MS } from "@/lib/bloqueioTela";
+import BloqueioTela from "@/components/shared/BloqueioTela";
+import { ehRotaDoApp } from "@/lib/tituloAba";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
@@ -31,13 +35,40 @@ import { drenarFila } from "@/lib/offline/fila";
 // real) e pela tela de notas emitidas, que conta as pendências fiscais
 // guardadas nela. O banco responde depois do primeiro render, por isso o
 // contador reassina em `assinarFilaOffline`.
-import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
+import { filaOffline, contarPendenciasFiscais, assinarFilaOffline, prontoOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
+// Intervalo entre tentativas de esvaziar a fila offline.
+//
+// O dreno só era disparado por MUDANÇA de sinal: rede, fim da carga, ou o
+// contador de pendências. Quando ele parava num erro de rede com o navegador
+// ainda se dizendo online (Wi-Fi conectado sem saída, portal cativo de hotel,
+// Supabase fora do ar), nenhum sinal mudava mais e nada tentava de novo: a
+// venda ficava guardada até alguém enfileirar outra operação ou recarregar a
+// página. 45 s é o meio do caminho: curto o bastante para a fila esvaziar
+// sozinha antes de o operador fechar o caixa, e longo o bastante para não
+// queimar bateria e requisição batendo num link que não volta.
+const INTERVALO_REENVIO_OFFLINE_MS = 45_000;
+// Intervalo entre reagendamentos da análise do Jarvas. Justificativa no efeito
+// que o usa (a aba do PDV nunca recarrega, e o throttle de 6 h do motor é quem
+// define a frequência efetiva).
+const INTERVALO_ANALISE_JARVAS_MS = 30 * 60 * 1000;
+// Intervalo mínimo entre duas recargas automáticas de dados. A volta da rede
+// chega em rajada (o evento `online`, o status do canal de realtime, a aba
+// voltando a ficar visível), e sem um piso dessas o mesmo link oscilando viraria
+// uma enxurrada de leituras. 15 s é curto o bastante para quem está no caixa não
+// perceber, e longo o bastante para uma rajada inteira virar uma carga só.
+const INTERVALO_MIN_RECARGA_MS = 15_000;
+// Estados que o supabase-js entrega no callback do `subscribe` quando o canal
+// NÃO está recebendo eventos. `CLOSED` entra na lista porque canal fechado pelo
+// servidor é tão cego quanto canal com erro; o fechamento normal, o do desmonte
+// do provider, é descartado antes de chegar aqui.
+const STATUS_CANAL_SEM_EVENTO = ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"];
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
 import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
 import ImpressaoLancamentosBridge from "@/components/shared/ImpressaoLancamentosBridge";
+
 import {
   saveSession, loadSession, clearSession,
   lerSessao, atualizarUsuarioSessao, msRestantesDaSessao, esquecerTokenAuthLocal,
@@ -51,6 +82,30 @@ const AppContext = createContext(null);
 // Código Postgres de coluna inexistente: o app pediu uma coluna que a
 // migration correspondente ainda não criou no banco.
 const PG_COLUNA_INEXISTENTE = "42703";
+
+
+// Deixa em `sales` só o que cabe na janela que o bootstrap carregou.
+//
+// A carga inicial traz os últimos DIAS_JANELA_BOOTSTRAP dias e resolve esse
+// recorte UMA vez, no instante em que a aba abriu. Depois disso a lista só
+// crescia: cada INSERT do realtime empilhava a venda na frente e nada nunca
+// podava. Na aba do balcão, que fica semanas aberta, o array acabava com os 90
+// dias da abertura MAIS tudo o que foi vendido desde então, cada venda com o
+// blob de itens dentro, e Saldo do Dia, sidebar, relatório e fechamento varrem
+// essa lista inteira a cada render. É a lentidão que "melhora quando reiniciam
+// o computador", porque reiniciar é o único momento em que a janela volta a
+// valer.
+//
+// Só sai o que é comprovadamente antigo: venda sem data legível fica, porque
+// não dá para afirmar que ela está fora da janela, e sumir com venda por
+// dúvida seria trocar um problema de memória por um buraco no relatório.
+function podarJanelaVendas(lista, agora = Date.now()) {
+  const corte = agora - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000;
+  return (lista ?? []).filter((venda) => {
+    const instante = Date.parse(venda?.at ?? "");
+    return Number.isNaN(instante) ? true : instante >= corte;
+  });
+}
 
 
 // Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
@@ -137,6 +192,17 @@ export function AppProvider({ children }) {
   // quando este computador reconecta (efeito do evento `online`, mais abaixo).
   const [abriuSemInternet, setAbriuSemInternet] = useState(false);
   const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
+  // A última tentativa de envio parou num erro de rede. Existe para o indicador
+  // não afirmar "Enviando..." quando não está enviando nada: com o navegador se
+  // dizendo online e o servidor fora de alcance, o operador precisa ler que a
+  // fila está PARADA, não que ela está saindo.
+  const [envioOfflineFalhou, setEnvioOfflineFalhou] = useState(false);
+  // O banco local não abriu (aba anônima, dados de site bloqueados, outra aba
+  // segurando uma versão antiga do banco). A fila continua funcionando, mas só
+  // na memória desta aba: fechar o navegador apaga venda que já saiu para o
+  // cliente. O sinal existia desde a fatia 2 do F021 e ninguém o lia, então a
+  // tela seguia prometendo "pedidos guardados" sem ter onde guardar.
+  const [semArmazenamentoOffline, setSemArmazenamentoOffline] = useState(false);
   const drenandoRef = useRef(false);
   // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
   // para o admin/contador em "Notas emitidas" — pendência fiscal não pode
@@ -150,6 +216,15 @@ export function AppProvider({ children }) {
   // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
   // traz o que ficou da sessão anterior, o número chega por aqui.
   useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
+  // A hidratação do banco local diz se há banco. `prontoOffline` nunca rejeita
+  // (ver `storageIdb.js`): ambiente sem IndexedDB resolve com `{ idb: false }`.
+  useEffect(() => {
+    let vivo = true;
+    void Promise.resolve(prontoOffline).then((resultado) => {
+      if (vivo && resultado?.idb === false) setSemArmazenamentoOffline(true);
+    });
+    return () => { vivo = false; };
+  }, []);
   // Leva 13 — endereço da página do Palm servida pela Ponte KORA
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.
@@ -182,13 +257,34 @@ export function AppProvider({ children }) {
   // turno movimentado os 30 minutos de inatividade nunca chegavam ao fim.
   // O ref sempre aponta para o `logout` da última renderização.
   const logoutRef = useRef(null);
-  const logoutCallback = useCallback(() => { logoutRef.current?.(); }, []);
-  // Aviso 2 minutos antes de a inatividade derrubar a sessão. O callback é
-  // estável pela mesma razão do `logoutCallback`: se mudar de identidade, o
-  // cronômetro reinicia e ninguém nunca chega aos 30 minutos.
+
+  // ── Cadeado da tela, no lugar do logout por tempo ─────────────
+  //
+  // O PDV não fecha nunca: a aba do balcão fica aberta 24 horas. Enquanto o
+  // prazo de inatividade e o teto de sessão chamavam o logout, vencer o prazo
+  // desmontava a árvore do app, e com ela ia o carrinho montado e ainda não
+  // lançado, a comanda selecionada e os campos digitados, sem trilha nenhuma.
+  // Numa operação contínua isso acontecia três vezes por dia pelo teto, mais uma
+  // vez a cada período parado.
+  //
+  // Agora vencer o prazo TRANCA a tela: nada é desmontado, o caixa segue aberto,
+  // a comanda segue atrás do cadeado, e quem volta digita a senha e continua.
+  // Quem está de fato trocando de turno usa "trocar de operador" no próprio
+  // cadeado, que é o logout de verdade.
+  const [telaBloqueada, setTelaBloqueada] = useState(false);
+  const bloquearTela = useCallback(() => setTelaBloqueada(true), []);
+
+  // Aviso 2 minutos antes de a tela trancar. O callback é estável porque, se
+  // mudar de identidade, o cronômetro reinicia e ninguém nunca chega ao prazo.
   const [avisoSessaoVisivel, setAvisoSessaoVisivel] = useState(false);
   const aoAvisarSessao = useCallback((visivel) => setAvisoSessaoVisivel(visivel), []);
-  useIdleTimer(logoutCallback, IDLE_MS, !!currentUser, aoAvisarSessao, AVISO_INATIVIDADE_MS);
+  // `PRAZO_BLOQUEIO_MS` é de 2 horas, decisão do dono de 2026-09-12, e substitui
+  // os 30 minutos de `IDLE_MS`: com o cadeado o prazo passou a custar uma senha
+  // em vez do trabalho da tela, e meia hora num balcão de madrugada significava
+  // trancar quatro vezes por turno.
+  const reavaliarInatividade = useIdleTimer(
+    bloquearTela, PRAZO_BLOQUEIO_MS, !!currentUser && !telaBloqueada, aoAvisarSessao, AVISO_INATIVIDADE_MS,
+  );
 
   // Teto absoluto da sessão: 8 horas contadas do login. O `lerSessao` só é
   // consultado ao carregar a página, então numa aba aberta o turno inteiro — o
@@ -199,10 +295,10 @@ export function AppProvider({ children }) {
     if (!currentUser) return;
     const restante = msRestantesDaSessao();
     if (restante === null) return;
-    if (restante === 0) { logoutRef.current?.(); return; }
-    const t = setTimeout(() => logoutRef.current?.(), restante);
+    if (restante === 0) { bloquearTela(); return; }
+    const t = setTimeout(bloquearTela, restante);
     return () => clearTimeout(t);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, bloquearTela]);
 
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
   useEffect(() => {
@@ -337,7 +433,7 @@ export function AppProvider({ children }) {
   // recebe mais escrita nenhuma; a query antiga fica só como fallback de
   // resiliência, e cobre o período anterior ao corte.
   async function buscarSalesData() {
-    const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const desde = new Date(Date.now() - DIAS_JANELA_BOOTSTRAP * 24 * 60 * 60 * 1000).toISOString();
     try {
       const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at";
       const lerVendas = (colunas) => supabase
@@ -738,11 +834,22 @@ export function AppProvider({ children }) {
     // index.html / LoginPage) — limpar aqui apagaria essa pintura e faria a
     // tela piscar o visual default até o bootstrap responder.
     if (!tenant) return;
-    // No host do Console (plataforma), a marca é SEMPRE neutra da KORA: nunca
-    // aplicar tema/título/cache de tenant aqui — senão a marca de um
-    // estabelecimento (ex.: "GASTROMUNDI by Kora") vaza na aba/visual do
-    // console. Limpa qualquer token --gm-* órfão e fixa o título neutro.
-    if (ehConsoleHost()) {
+    // Marca SEMPRE neutra da KORA em duas situações, nunca tema, título ou
+    // cache de tenant aqui, senão a marca de um estabelecimento (ex.:
+    // "GASTROMUNDI by Kora") vaza na aba e no visual do console:
+    //
+    //  1. no host dedicado do Console;
+    //  2. em QUALQUER host, quando quem está logado é a plataforma. O super
+    //     admin não opera estabelecimento, mas o bootstrap dele cai em
+    //     `buscarTenantAtual()`, e a policy de `tenants` tem o ramo
+    //     `is_super_admin()`: o `limit(1)` devolve o estabelecimento mais
+    //     antigo, que é um cliente real. Sem esta guarda, com o switch de
+    //     console em subdomínio desligado (que é o default), o Console era
+    //     pintado com a paleta desse cliente, a aba recebia o nome dele e,
+    //     pior, a marca ia para o cache POR ORIGEM: o próximo funcionário que
+    //     abrisse o login naquele endereço veria a marca de outro
+    //     estabelecimento na primeira pintura. Decisão 017.
+    if (ehConsoleHost() || currentUser?.role === "plataforma") {
       limparVariaveisTema();
       if (typeof document !== "undefined") document.title = "KORA · Console";
       return;
@@ -756,13 +863,24 @@ export function AppProvider({ children }) {
     // não pode herdar tokens órfãos) e aplica o merge da vez.
     limparVariaveisTema();
     aplicarVariaveisTema(variaveis);
-    // Aba do navegador com a marca do tenant (white-label).
+    // Aba do navegador com a marca do tenant (white-label), EXCETO nas telas de
+    // `/app`, que têm título próprio por tela (`useTituloDaAba`, no
+    // DesktopLayout). Sem esta ressalva os dois brigariam e o provider ganharia
+    // sempre: efeito de pai roda depois do de filho no mesmo commit, então o
+    // nome da tela era escrito e sobrescrito no mesmo instante. Quem decide é o
+    // caminho atual, lido uma vez, porque o provider não re-renderiza a cada
+    // navegação e não precisa: dentro de `/app` o dono do título é o layout.
     const nome = nomeExibicaoTenant(tenant.tema, tenant.nome);
-    aplicarTituloDocumento(nome);
+    if (!ehRotaDoApp(typeof window !== "undefined" ? window.location.pathname : "")) {
+      aplicarTituloDocumento(nome);
+    }
     // Cache por origem (anti-flash): a próxima abertura deste endereço
     // já pinta com esta marca antes do bootstrap (script do index.html).
     salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
-  }, [tenant?.tema, varianteLayout]);
+    // `currentUser?.role` entra nas dependências por causa da guarda acima: o
+    // papel é conhecido depois do primeiro tema em alguns caminhos de login, e
+    // sem ele o efeito não repintaria ao descobrir que é a plataforma.
+  }, [tenant?.tema, varianteLayout, currentUser?.role]);
 
   // ── Timer dia/noite dos layouts adaptativos (marca, casa): arma um
   //    despertar para a próxima fronteira (06:00/19:00). Ao disparar, a
@@ -776,16 +894,97 @@ export function AppProvider({ children }) {
     return () => clearTimeout(timer);
   }, [tenant?.tema, varianteLayout]);
 
-  // ── Jarvas: análise pós-carregamento (fire-and-forget; motor só
-  //    roda para gerente/admin e tem throttle interno de 6h) ──────
+  // ── Jarvas: análise periódica (fire-and-forget; motor só roda para
+  //    gerente/admin e tem throttle interno de 6h) ─────────────────
+  //
+  // Antes isto era só um efeito com dependências [loading, currentUser?.id], o
+  // que basta quando alguém abre a página de manhã e fecha à noite. O PDV do
+  // balcão não faz isso: a aba fica aberta 24 horas por dia, ninguém recarrega
+  // e ninguém desloga, então a análise rodava UMA VEZ na vida da aba e depois
+  // nunca mais. As chaves de deduplicação do motor são por dia, ou seja, o
+  // alerta de hoje seria gerado sem problema, só que ninguém chamava o motor:
+  // ruptura de estoque, divergência de caixa, conta vencida e cancelamento
+  // recorrente paravam de aparecer a partir do segundo dia de aba aberta.
+  //
+  // O ritmo é de 30 minutos, e não menor, porque quem decide a frequência real
+  // é o throttle de 6 horas do próprio motor (jarvasEngine.js): o tique só
+  // custa uma leitura de localStorage nas vezes em que o throttle recusa, e
+  // garante que a análise saia no máximo meia hora depois de a janela de 6
+  // horas abrir. Menos que isso gastaria tique sem antecipar nada; mais que
+  // isso atrasaria o alerta da manhã, que é quando o gestor olha.
+  //
+  // Os dados vão por ref porque o temporizador não pode reassinar: `sales` e
+  // `estoque` mudam a cada venda, e um efeito que dependesse deles reiniciaria
+  // a contagem sem parar num balcão movimentado, o que é o mesmo defeito por
+  // outro caminho.
+  const dadosAnaliseJarvasRef = useRef(null);
   useEffect(() => {
-    if (loading || !currentUser) return;
-    void executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser });
+    dadosAnaliseJarvasRef.current = { products, estoque, estoqueMinimos, sales, fechamentos, currentUser };
+  });
+
+  useEffect(() => {
+    if (loading || !currentUser) return undefined;
+    const analisar = () => {
+      if (dadosAnaliseJarvasRef.current) void executarAnaliseJarvas(dadosAnaliseJarvasRef.current);
+    };
+    analisar();
+    // Um único temporizador por execução do efeito: o cleanup abaixo limpa o da
+    // execução anterior (e o do desmonte), então nada empilha.
+    const id = setInterval(analisar, INTERVALO_ANALISE_JARVAS_MS);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentUser?.id]);
 
+  // ── Realtime: canal que morre em silêncio ────────────────────
+  //
+  // Os três `subscribe` abaixo não liam status nenhum. O supabase-js entrega
+  // SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT e CLOSED nesse callback, e ninguém
+  // lia: canal derrubado por erro de servidor, por RLS ou por token recusado
+  // não produzia log, aviso nem sinal de tela.
+  //
+  // É grave por causa do que depende desses canais: `pending` só é alimentado
+  // pelo realtime depois do bootstrap, e a impressão automática da cozinha
+  // reage a esse mesmo `pending`. Canal morto em silêncio significa pedido do
+  // garçom que não aparece no caixa e comanda que não sai no papel, tendo o
+  // cliente reclamando como único sinal. Numa aba que nunca recarrega, isso não
+  // se resolve sozinho no dia seguinte.
+  //
+  // Um estado ruim fica registrado (console e observabilidade) e refaz a carga:
+  // é a mesma lacuna da queda de rede, o canal não estava lá para entregar o
+  // que aconteceu. A trava da recarga é que impede o canal batendo e voltando
+  // de virar uma enxurrada de leituras.
+  //
+  // Na TELA não desenho nada, de propósito. Quem fala de conexão com quem opera
+  // é o IndicadorRede, e um segundo aviso inventado aqui criaria dois recados
+  // competindo pelo mesmo assunto, que é pior para o caixa do que um recado só
+  // no lugar certo. O sinal sai no contexto como `realtimeInstavel`, para o
+  // indicador adotá-lo sem que o provider passe a desenhar tela.
+  const canaisInstaveisRef = useRef(new Set());
+  const [realtimeInstavel, setRealtimeInstavel] = useState(false);
+
+  const tratarStatusCanal = (nome, status) => {
+    const instaveis = canaisInstaveisRef.current;
+    if (status === "SUBSCRIBED") {
+      instaveis.delete(nome);
+      setRealtimeInstavel(instaveis.size > 0);
+      return;
+    }
+    if (!STATUS_CANAL_SEM_EVENTO.includes(status)) return;
+    instaveis.add(nome);
+    setRealtimeInstavel(true);
+    console.error(`[realtime] o canal de ${nome} parou de receber eventos (${status})`);
+    reportarFalha(new Error(`canal de realtime sem eventos: ${nome} (${status})`), {
+      acao: "statusCanalRealtime", canal: nome, status,
+    });
+    void recarregarAposLacuna(`o canal de ${nome} parou de receber eventos (${status})`);
+  };
+
   // ── Realtime: pedidos pendentes (palm ↔ caixa) ───────────────
   useEffect(() => {
+    // `ativo` separa o fechamento normal do anormal: `removeChannel` no
+    // desmonte também entrega CLOSED, e tratá-lo como falha faria o provider
+    // pedir carga ao morrer.
+    let ativo = true;
     const channel = supabase
       .channel("pending-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
@@ -799,14 +998,15 @@ export function AppProvider({ children }) {
           setPendingLocal(prev => prev.filter(p => p.id !== payload.old.id));
         }
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("pedidos", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Realtime: estoque (sincroniza saldo/mínimo entre dispositivos) ──
   // Requer Realtime habilitado na tabela `estoque` (Database → Replication).
   useEffect(() => {
+    let ativo = true;
     const channel = supabase
       .channel("estoque-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, (payload) => {
@@ -822,9 +1022,9 @@ export function AppProvider({ children }) {
         setEstoqueLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.quantidade));
         setEstoqueMinimosLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.minimo));
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("estoque", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Realtime: vendas fechadas (saldo do dia entre dispositivos) ──
@@ -832,13 +1032,16 @@ export function AppProvider({ children }) {
   // Saldo do Dia / fechamento divergiam entre dispositivos (bug A4/TD010).
   // Requer Realtime habilitado na tabela `sales` (Database → Replication).
   useEffect(() => {
+    let ativo = true;
     const channel = supabase
       .channel("sales-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, (payload) => {
         if (payload.eventType === "INSERT") {
           const venda = payload.new?.data;
           if (!venda?.id) return;
-          setSalesLocal(prev => prev.find(s => s && s.id === venda.id) ? prev : [venda, ...prev]);
+          setSalesLocal(prev => (
+            prev.find(s => s && s.id === venda.id) ? prev : podarJanelaVendas([venda, ...prev])
+          ));
         } else if (payload.eventType === "UPDATE") {
           // Cancelamento (15.3) e outras edições do blob propagam na hora.
           const venda = payload.new?.data;
@@ -849,9 +1052,9 @@ export function AppProvider({ children }) {
           if (id) setSalesLocal(prev => prev.filter(s => !s || s.id !== id));
         }
       })
-      .subscribe();
+      .subscribe((status) => { if (ativo) tratarStatusCanal("vendas", status); });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { ativo = false; supabase.removeChannel(channel); };
   }, []);
 
   // ── Offline-first (Leva 11): reenvio da fila local ───────────
@@ -959,7 +1162,8 @@ export function AppProvider({ children }) {
     if (drenandoRef.current || filaOffline.tamanho() === 0) return;
     drenandoRef.current = true;
     try {
-      const { falhas } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
+      const { falhas, parouPorRede } = await drenarFila({ fila: filaOffline, executar: executarOpOffline, isErroDeRede, tenantAtual: tenantIdRef.current });
+      setEnvioOfflineFalhou(parouPorRede);
       // Um drain que descarta várias baixas de uma vez é a cara da falha
       // sistêmica: o lote junta tudo num alerta só em vez de encher o painel
       // do Jarvas com um cartão por produto da fila.
@@ -997,10 +1201,73 @@ export function AppProvider({ children }) {
     }
   };
 
+  // Enquanto houver pendência e este aparelho se disser online, o dreno é
+  // tentado de novo a cada `INTERVALO_REENVIO_OFFLINE_MS`. Sem isso um erro de
+  // rede era o fim da linha, porque nenhum dos três sinais abaixo volta a
+  // mudar quando o navegador continua "online" e só o servidor está fora.
+  //
+  // O temporizador não empilha: este efeito só tem um `setInterval` vivo por
+  // execução, e cada nova execução (ou o desmonte do provider) limpa o da
+  // execução anterior no cleanup.
+  //
+  // E o dreno EXIGE sessão. Sem esta guarda, um PDV que ficou sem internet com
+  // vendas na fila e depois foi deslogado (teto de sessão, inatividade, turno
+  // trocado) drenava a fila sem token quando a rede voltava: cada operação
+  // batia na RLS, e recusa da RLS não é erro de rede, então a fila tratava como
+  // falha definitiva, tirava a operação da lista e a venda era descartada de
+  // vez. Numa operação de 24 horas esse encontro é rotina, não exceção: a rede
+  // cai de madrugada e a sessão vence no meio. Sem sessão a fila espera, que é
+  // o que ela existe para fazer.
   useEffect(() => {
-    if (redeOnline && !loading) drenarPendenciasOffline();
+    if (!redeOnline || loading || !currentUser) return undefined;
+    drenarPendenciasOffline();
+    if (pendenciasOffline === 0) return undefined;
+    const id = setInterval(() => { void drenarPendenciasOffline(); }, INTERVALO_REENVIO_OFFLINE_MS);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [redeOnline, loading, pendenciasOffline]);
+  }, [redeOnline, loading, pendenciasOffline, currentUser?.id]);
+
+  // ── Volta da conexão: repor a lacuna (Leva 11) ───────────────
+  //
+  // A reconexão do websocket é da biblioteca, e ela cuida disso. A LACUNA não:
+  // o que aconteceu no banco enquanto o socket esteve fora nunca era reposto, e
+  // nada refazia a carga na volta. Um Wi-Fi que troca de canal por 40 segundos
+  // às 19h30 significa que os pedidos lançados nesses 40 segundos não existem
+  // para a tela do caixa, e numa aba que nunca recarrega isso podia durar para
+  // sempre, porque a única reposição possível era alguém apertar F5.
+  //
+  // A carga é o `bootstrap` de sempre, que já é idempotente e é o mesmo caminho
+  // do botão "Recarregar a tela". Ele liga o `loading` enquanto lê, o que é o
+  // comportamento certo aqui: quem está no caixa vê que o sistema está buscando
+  // o que perdeu, em vez de olhar para uma tela que finge estar em dia.
+  //
+  // A trava tem duas partes porque a volta da rede chega em rajada: carga em voo
+  // não é reiniciada, e duas cargas seguidas respeitam `INTERVALO_MIN_RECARGA_MS`.
+  const recarregandoRef = useRef(false);
+  const ultimaRecargaRef = useRef(0);
+  // Espelho do usuário logado para os ouvintes de vida longa (evento de rede,
+  // ciclo de vida da aba, status de canal), que não podem reassinar a cada
+  // render só para saber se ainda existe sessão. Sem sessão não há o que
+  // recarregar: a RLS devolveria tudo vazio.
+  const currentUserRef = useRef(null);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+
+  const recarregarAposLacuna = async (motivo) => {
+    if (!currentUserRef.current || recarregandoRef.current) return;
+    if (Date.now() - ultimaRecargaRef.current < INTERVALO_MIN_RECARGA_MS) return;
+    recarregandoRef.current = true;
+    ultimaRecargaRef.current = Date.now();
+    try {
+      await bootstrap();
+    } catch (err) {
+      // `bootstrap` já trata o que sabe tratar e sempre desliga o `loading` no
+      // finally; este catch existe para a recarga automática nunca virar uma
+      // promessa rejeitada sem dono no meio da operação.
+      console.error(`[recarga] falha ao repor os dados (${motivo}):`, err);
+    } finally {
+      recarregandoRef.current = false;
+    }
+  };
 
   // O carimbo conta o que aconteceu na ÚLTIMA carga, e nada relê os dados
   // sozinho depois. Se ele nunca se apagasse, a tela seguiria afirmando no
@@ -1015,9 +1282,82 @@ export function AppProvider({ children }) {
   // novo pela tela (`recarregarDadosDoEstabelecimento`, exposto no contexto).
   // Nada aqui tenta sozinho de tempos em tempos.
   useEffect(() => {
-    const aoVoltarAConexao = () => setAbriuSemInternet(false);
+    const aoVoltarAConexao = () => {
+      setAbriuSemInternet(false);
+      // Apagar o carimbo dizia que a rede voltou, mas os dados continuavam os
+      // de antes da queda. Quem repõe o que se perdeu no meio é a carga.
+      void recarregarAposLacuna("a conexão deste computador voltou");
+    };
     window.addEventListener("online", aoVoltarAConexao);
     return () => window.removeEventListener("online", aoVoltarAConexao);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Ciclo de vida da aba: o computador do balcão dorme ───────
+  //
+  // O PC do caixa não é desligado, ele dorme, e a aba continua aberta do outro
+  // lado do sono. Enquanto isso nenhum `setTimeout` corre: na volta todos
+  // disparam atrasados e em bloco. O aviso de inatividade de 2 minutos aparecia
+  // colado no logout, o dreno da fila só tentava no tique seguinte, a fronteira
+  // de horário do layout podia ter passado sem ninguém notar e o carimbo de
+  // rede seguia afirmando o que valia antes do sono.
+  //
+  // Este é o ÚNICO ponto que, ao voltar, reavalia por RELÓGIO o que depende de
+  // tempo (`Date.now()` contra o carimbo guardado) em vez de confiar no
+  // temporizador que não correu. É o mesmo raciocínio do `AvisoSessao`, que
+  // conta o tempo restante a partir do instante em que apareceu justamente
+  // porque aba em segundo plano atrasa timer.
+  //
+  // O dreno vai por ref para o ouvinte não reassinar a cada mudança de estado e
+  // mesmo assim chamar sempre a versão mais nova, que é a que conhece a lista
+  // de produtos atual (o alerta de baixa recusada usa o nome do produto).
+  const drenarPendenciasOfflineRef = useRef(null);
+  useEffect(() => { drenarPendenciasOfflineRef.current = drenarPendenciasOffline; });
+  const bloquearTelaRef = useRef(null);
+  useEffect(() => { bloquearTelaRef.current = bloquearTela; });
+  const reavaliarInatividadeRef = useRef(null);
+  useEffect(() => { reavaliarInatividadeRef.current = reavaliarInatividade; });
+
+  useEffect(() => {
+    const aoVoltarAAba = () => {
+      if (document.visibilityState !== "visible") return;
+
+      // 1. Teto de 8 horas da sessão, por relógio. O `setTimeout` armado no
+      //    login pode estar atrasado pelo tempo de sono; quem manda é a hora do
+      //    login guardada na sessão. Sessão que passou do teto durante o sono
+      //    já se declara "expirada", e o zero é o teto batendo exatamente
+      //    agora. Storage indisponível (estado "vazia") NÃO derruba ninguém,
+      //    mesma política do cronômetro do teto mais acima.
+      if (currentUserRef.current) {
+        const { estado } = lerSessao();
+        if (estado === "expirada" || msRestantesDaSessao() === 0) {
+          // Tranca, não desloga: dormir a noite com a tela aberta não é motivo
+          // para jogar fora o que estava montado nela.
+          bloquearTelaRef.current?.();
+          return;
+        }
+      }
+
+      // 1b. A inatividade também é recalculada por relógio. Sem isto, o aviso
+      //     de 2 minutos e o bloqueio saíam juntos no instante do retorno,
+      //     porque os dois temporizadores ficaram congelados durante o sono.
+      reavaliarInatividadeRef.current?.();
+
+      // 2. Variante dia/noite do layout: a fronteira das 06:00/19:00 pode ter
+      //    passado durante o sono, e o temporizador dela também não correu.
+      setVarianteLayout(varianteDoHorario(new Date().getHours()));
+
+      // 3. A fila não precisa esperar o próximo tique de 45 segundos para
+      //    tentar de novo o que ficou guardado.
+      void drenarPendenciasOfflineRef.current?.();
+
+      // 4. E a carga é refeita pelo mesmo caminho da volta da conexão: dormir
+      //    abre a mesma lacuna que uma queda de rede, o socket não estava lá.
+      void recarregarAposLacuna("a aba voltou a ficar visível");
+    };
+    document.addEventListener("visibilitychange", aoVoltarAAba);
+    return () => document.removeEventListener("visibilitychange", aoVoltarAAba);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Actions: Auth ─────────────────────────────────────────────
@@ -1061,6 +1401,16 @@ export function AppProvider({ children }) {
     });
 
     if (authError) {
+      // Servidor inalcançável (fetch que nem chegou a ter resposta, aparelho
+      // offline) NÃO é senha errada. Isso vinha para a tela como "usuário ou
+      // senha incorretos, N tentativa(s) restante(s)" e ainda gastava uma
+      // tentativa: no meio do serviço, com a internet do salão caída, o
+      // operador trocava a senha certa por chute e se bloqueava sozinho. Aqui
+      // nada é contado, nem no navegador nem no banco, e a mensagem fala do
+      // que realmente aconteceu.
+      if (isErroDeRede(authError)) {
+        return { error: "Não foi possível falar com o servidor. Confira a internet e tente de novo em alguns segundos." };
+      }
       // Quem conta é o servidor; o local só guarda o que ele respondeu, para os
       // pips da tela terem o número certo antes da próxima ida ao banco.
       const servidor = await registrarFalha(email);
@@ -2183,6 +2533,11 @@ export function AppProvider({ children }) {
     // respondeu). Vale junto com o `redeOnline`, nunca no lugar dele: o
     // navegador se diz online com o link do provedor caído.
     redeOnline, abriuSemInternet, pendenciasOffline, enfileirarOffline, pendenciasFiscais,
+    // Algum canal de realtime parou de receber eventos. Diferente dos dois
+    // sinais acima: a internet deste computador pode estar perfeita e o canal,
+    // morto (RLS, token recusado, servidor derrubando a inscrição). Quem
+    // mostrar isso na tela mostra que pedido do garçom pode estar atrasando.
+    realtimeInstavel,
     // Refaz a carga do estabelecimento a pedido de uma pessoa — é o mesmo
     // caminho da abertura do sistema. Serve para quando o link do provedor
     // volta sem este computador ter perdido a rede: o navegador não avisa
@@ -2195,10 +2550,45 @@ export function AppProvider({ children }) {
     ponteLocalAtiva, setPonteLocalAtiva,
   };
 
+  /**
+   * Destravou. `verificado` é falso quando a senha não pôde ser conferida por
+   * falta de internet, e nesse caso a liberação vai para o log de atividade: é
+   * a contrapartida combinada com o dono para o cadeado não travar um PDV
+   * offline. O relógio da sessão é renovado, senão o teto que acabou de vencer
+   * trancaria a tela outra vez no próximo segundo.
+   */
+  const destravarTela = ({ verificado } = {}) => {
+    if (currentUser) {
+      saveSession(currentUser);
+      if (!verificado) {
+        logAction(currentUser.username, "sessao:destravar-sem-rede", {
+          msg: "Tela destravada sem conferir a senha, sem internet no momento",
+          name: currentUser.name, role: currentUser.role,
+        });
+      }
+    }
+    setAvisoSessaoVisivel(false);
+    setTelaBloqueada(false);
+  };
+
   return (
     <AppContext.Provider value={value}>
       {children}
-      <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
+      {telaBloqueada && !!currentUser && (
+        <BloqueioTela
+          operador={currentUser}
+          aoDestravar={destravarTela}
+          aoTrocarOperador={() => { setTelaBloqueada(false); void logout(); }}
+        />
+      )}
+      <IndicadorRede
+        online={redeOnline}
+        pendencias={pendenciasOffline}
+        falhaEnvio={envioOfflineFalhou}
+        semArmazenamento={semArmazenamentoOffline}
+        realtimeInstavel={realtimeInstavel}
+        visivel={!!currentUser}
+      />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
           `click` na captura, o que zera a contagem); esconder aqui é só para o
           aviso sumir na hora, sem depender da propagação do evento. */}

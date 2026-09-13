@@ -229,3 +229,22 @@
   font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontSm + 1) */
   line-height: var(--lh-base);
 }
+
+/**
+ * Falha da última ação do cartão (iniciar preparo / marcar pronto).
+ * Fica dentro do cartão, colada no botão que falhou, porque a cozinha
+ * olha o cartão e não o topo da tela.
+ */
+.pedido-card__erro {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--gm-red);
+  color: var(--gm-text);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}

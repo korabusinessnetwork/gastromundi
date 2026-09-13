@@ -62,6 +62,9 @@ vi.mock("@/lib/offline/filaApp", () => ({
     fila.assinantes.add(fn);
     return () => fila.assinantes.delete(fn);
   },
+  // Este arquivo é o caminho com banco: quem cobre a queda para memória é o
+  // `AppContext.semArmazenamento.test.jsx`.
+  prontoOffline: Promise.resolve({ idb: true }),
 }));
 
 import { AppProvider, useApp } from "./AppContext";

@@ -3,7 +3,7 @@ import {
   LuReceipt, LuSearch, LuCircleCheck, LuClock, LuCircleX, LuBan,
   LuLoaderCircle, LuTriangleAlert, LuRotateCw, LuInbox,
 } from "react-icons/lu";
-import { listarNfceEmitidas } from "@/lib/nfceEmitidasRepo";
+import { listarNfceEmitidas, contarAlertasNfce } from "@/lib/nfceEmitidasRepo";
 import { buscarEmitenteFiscal } from "@/lib/fiscal";
 import { contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
@@ -55,6 +55,10 @@ export default function HistoricoNfce() {
   // nfce_emitidas, então não apareceriam em lugar nenhum desta tela. Sem este
   // aviso a pendência fiscal fica invisível — que foi exatamente o problema.
   const [naFila, setNaFila]       = useState(() => contarPendenciasFiscais());
+  // Nota que CHEGOU à SEFAZ e voltou rejeitada, ou ficou pendente, não tinha
+  // sinal nenhum: era preciso desconfiar e clicar no chip "Rejeitadas" para
+  // descobrir, e uma venda sem nota válida ficava invisível.
+  const [alertas, setAlertas]     = useState({ rejeitada: 0, pendente: 0 });
 
   // A fila mora no IndexedDB (F021 fatia 2): no primeiro render o espelho
   // ainda está vazio, e a pendência fiscal da sessão anterior só aparece
@@ -91,6 +95,23 @@ export default function HistoricoNfce() {
     setCarregando(false);
   }, [filtroStatus, buscaAtiva, de, ate]);
 
+  // Contagem por situação, independente do chip escolhido: é justamente para
+  // avisar do que o operador NÃO está olhando. Falha aqui não atrapalha a
+  // lista, os chips só ficam sem número.
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { rejeitada, pendente, error } = await contarAlertasNfce({
+        busca: buscaAtiva,
+        de: de ? new Date(`${de}T00:00:00`).toISOString() : null,
+        ate: ate ? new Date(`${ate}T23:59:59`).toISOString() : null,
+      });
+      if (!ativo || error) return;
+      setAlertas({ rejeitada, pendente });
+    })();
+    return () => { ativo = false; };
+  }, [buscaAtiva, de, ate]);
+
   // Recarrega do zero quando qualquer filtro muda.
   useEffect(() => { carregarPagina(0, { anexar: false }); }, [carregarPagina]);
 
@@ -110,17 +131,23 @@ export default function HistoricoNfce() {
 
         <div className="historico-nfce__filtros">
           <div className="historico-nfce__chips" role="group" aria-label="Filtrar por situação">
-            {STATUS_FILTROS.map((f) => (
-              <button
-                key={f.valor}
-                type="button"
-                className={`historico-nfce__chip ${filtroStatus === f.valor ? "historico-nfce__chip--ativo" : ""}`}
-                aria-pressed={filtroStatus === f.valor}
-                onClick={() => setFiltroStatus(f.valor)}
-              >
-                {f.label}
-              </button>
-            ))}
+            {STATUS_FILTROS.map((f) => {
+              const quantas = alertas[f.valor] ?? 0;
+              return (
+                <button
+                  key={f.valor}
+                  type="button"
+                  className={`historico-nfce__chip ${filtroStatus === f.valor ? "historico-nfce__chip--ativo" : ""} ${quantas > 0 ? "historico-nfce__chip--alerta" : ""}`}
+                  aria-pressed={filtroStatus === f.valor}
+                  onClick={() => setFiltroStatus(f.valor)}
+                >
+                  {f.label}
+                  {quantas > 0 && (
+                    <>{" "}<span className="historico-nfce__chip-contagem">{quantas}</span></>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <form className="historico-nfce__busca" onSubmit={submeterBusca}>

@@ -136,3 +136,11 @@
   line-height: var(--lh-sm);
   font-variant-numeric: tabular-nums;
 }
+
+.fechamento-modal__obs-aviso {
+  /* role: motivo de o botão Confirmar estar travado, ao lado dos botões */
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-red);
+  font-weight: 600;
+}

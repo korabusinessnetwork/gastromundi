@@ -1,17 +1,44 @@
-# TAREFAS
+# TAREFAS, rodada 3 do refino (frentes paralelas)
 
 Legenda: `[ ]` pendente, `[~]` em andamento, `[x]` concluída e verificada, `[!]` travada com diagnóstico.
 
-Base verificada em 2026-09-10: suíte `npm test` com 229 arquivos e 4067 testes verdes, commit `8513a1c2`.
+Rodada 1: 8 de 8. Rodada 2: 32 de 32. Nada revertido por quebra.
+Baseline no início da rodada 3, medido com a máquina livre: 252 arquivos, 4334
+testes, build limpo.
 
-Toda tarefa roda pela skill `/ciclo`. Critério de pronto sempre inclui a suíte verde.
+O que sobrou da varredura são achados de infraestrutura invisível: coisas que
+falham calado, longe dos olhos de quem opera. Três trilhas mais a minha parte.
 
-| # | Tarefa | Critério de pronto | trilha | depende |
-|---|--------|--------------------|--------|---------|
-| [x] T01 | F021, escrever o ADR do PDV offline-first (outbox, replay da cascata, idempotência, limites conhecidos) e atualizar a linha do F021 no backlog | `docs/08_DECISOES/adr-013.md` existe, está listado no `overview.md`, o F021 no `features.md` deixa de dizer "sem o ADR", suíte verde | docs | , |
-| [x] T02 | TD009 etapa 3, encerrar a escrita dupla de venda no `AppContext.jsx` (`from("sales")` mais `persistirVendaNormalizada`), deixando só o caminho normalizado | nenhuma escrita direta em `sales` no `AppContext.jsx`, testes do fluxo de venda cobrindo o caminho único, suíte verde, TD009 marcado resolvido | contexto | , |
-| [x] T03 | TD008, mover o bloqueio de tentativas de login para o servidor, no padrão do `senha_admin_tentativas`, mantendo o contador local só como feedback | migration nova com a RPC de tentativas, `LoginPage`/`AppContext` consultando o servidor, teste da regra, suíte verde, pendência de aplicar a migration registrada | auth | , |
-| [x] T04 | TD015, trocar `key={i}` por chave estável nas listas React (40 ocorrências) | nenhuma ocorrência de `key={i}`/`key={index}` sobrando sem justificativa escrita, suíte verde, TD015 marcado resolvido | ui | , |
-| [x] T05 | F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB com storage injetável preservado | `src/lib/offline/fila.js` gravando em IndexedDB, fallback para memória em ambiente sem IDB, testes da fila verdes, suíte verde | offline | T01 |
-| [x] T06 | F018 fatia, extrair o CSS inline dos arquivos com mais `style={{`, começando pelos 5 maiores | contagem de `style={{` medida antes e depois, queda registrada no F018, nenhum teste de componente quebrado, suíte verde | ui | T04 |
-| [x] T07 | Console do dev, próxima fatia da fila do dono: analytics operacional | aba nova no console lendo por RPC agregada, testes da tela, suíte verde | console | , |
+## Trilha `offline-contexto`
+Dono de: `src/context/AppContext.jsx`, `src/lib/offline/`, `src/components/shared/IndicadorRede.jsx`
+
+| # | id | eixo | Tarefa |
+|---|----|------|--------|
+| [x] O01 | V102 | robustez | O dreno da fila offline volta a tentar sozinho, e o indicador para de afirmar que está enviando o que não está |
+| [x] O02 | V106 | robustez | Quando o IndexedDB não abre, a tela diz que os pedidos estão guardados só naquela aba |
+
+## Trilha `impressao`
+Dono de: `src/hooks/useImpressaoLancamentos.js`, `src/components/shared/ImpressaoLancamentosBridge.jsx`, `src/components/shared/AvisoImpressaoPonte.jsx`
+
+| # | id | eixo | Tarefa |
+|---|----|------|--------|
+| [x] I01 | V101 | robustez | Falha na impressão automática do pedido do Palm chega ao humano, como já chega no caminho da Ponte |
+| [x] I02 | V108 | qualidade | O hook da impressão automática ganha teste, cobrindo semeadura, lançamento novo e eco do realtime |
+
+## Trilha `telas-menores`
+Dono de: `src/components/pautas/`, `src/components/shared/Notification.jsx`, `src/components/shared/JarvasPanel.jsx`, `src/utils/hooks.js`, `src/components/desktop/views/PDVView/MesaReservasView.jsx`
+
+| # | id | eixo | Tarefa |
+|---|----|------|--------|
+| [x] T01 | V105 | robustez | Falha ao ler as mesas deixa de virar "nenhuma mesa cadastrada" |
+| [x] T02 | V110 | robustez | O painel do Jarvas distingue busca que falhou de "não há insight", e desfaz a remoção que o banco recusou |
+| [x] T03 | V107 | ux | Mudar o status de uma pauta que o banco recusou avisa, em vez de fingir que nada aconteceu |
+| [x] T04 | V109 | robustez | O aviso compartilhado para de apagar a mensagem nova antes da hora |
+
+## Do maestro
+| # | id | eixo | Tarefa |
+|---|----|------|--------|
+| [x] M01 | V103 | ux | O PWA para de recarregar a aba do caixa sem avisar, e passa a oferecer a atualização |
+| [x] M02 | N04 | ux | Título de aba por tela, com o nome do estabelecimento. Feito depois do merge que liberou o `AppContext`: o provider deixou de escrever o título dentro de `/app` e o layout passou a ser o dono, porque efeito de pai roda depois do de filho no mesmo commit |
+| [x] M03 | - | qualidade | Dependência de produção com zero vulnerabilidade, via overrides, porque `npm audit fix` quebra neste projeto |
+| [x] M04 | N05 | qualidade | Medido por origem, somando os bytes do sourcemap por pacote. O Console (201 kB de fonte) e o Leaflet (440 kB) saíram do chunk principal: gzip de 706,29 kB para 639,46 kB. Sobraram `xlsx` (984 kB) e `react-icons` (778 kB), que pedem import dinâmico no ponto de uso e entram na fila com os números na mão |

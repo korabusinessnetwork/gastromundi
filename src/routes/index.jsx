@@ -40,8 +40,13 @@ import AdminPage          from "@/pages/desktop/AdminPage";
 import ClientesPage       from "@/pages/desktop/ClientesPage";
 import HistoricoNfcePage  from "@/pages/desktop/HistoricoNfcePage";
 import PainelFiscalPage   from "@/pages/desktop/PainelFiscalPage";
-import ConsolePage        from "@/pages/console/ConsolePage";
-import ConsoleLoginPage   from "@/pages/console/ConsoleLoginPage";
+// Console da plataforma, lazy pelo mesmo motivo da institucional e do cardápio:
+// quem opera o PDV nunca abre estas telas. Medido no chunk principal antes desta
+// mudança, o Console pesava 201 kB de fonte (123 em `components/console`, 78 em
+// `pages/console`) no bundle de TODO estabelecimento, para servir só o
+// super-admin. O `Suspense` do roteador já cobre a espera.
+const ConsolePage      = lazy(() => import("@/pages/console/ConsolePage"));
+const ConsoleLoginPage = lazy(() => import("@/pages/console/ConsoleLoginPage"));
 import MODULOS from "@/constants/modulos";
 
 // Recurso "Console em subdomínio próprio" (Task #18). Calculado UMA vez no
@@ -59,16 +64,16 @@ const consoleForaDoHost = consoleLigado && !naHostDoConsole;
 // de app de estabelecimento, apex ou demo. Sem marca de tenant, sem porta
 // de login do estabelecimento — qualquer outra rota volta pra raiz.
 const rotasHostConsole = [
-  { path: "/login",   element: <ConsoleLoginPage /> },
+  { path: "/login",   element: <Suspense fallback={<CarregandoApex />}><ConsoleLoginPage /></Suspense> },
   {
     path: "/console",
     element: (
       <ConsoleRoute>
-        <ConsolePage />
+        <Suspense fallback={<CarregandoApex />}><ConsolePage /></Suspense>
       </ConsoleRoute>
     ),
   },
-  { path: "/",  element: <ConsoleLoginPage /> },
+  { path: "/",  element: <Suspense fallback={<CarregandoApex />}><ConsoleLoginPage /></Suspense> },
   { path: "*",  element: <Navigate to="/" replace /> },
 ];
 
@@ -143,7 +148,7 @@ const rotasApp = [
       ? <Navigate to="/login" replace />
       : (
         <ConsoleRoute>
-          <ConsolePage />
+          <Suspense fallback={<CarregandoApex />}><ConsolePage /></Suspense>
         </ConsoleRoute>
       ),
   },

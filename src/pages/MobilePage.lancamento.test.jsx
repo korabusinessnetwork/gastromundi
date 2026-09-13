@@ -30,6 +30,7 @@ vi.mock("@/hooks/useTravaComanda", () => ({
 }));
 
 import { setAppMock } from "@/test/mockApp";
+import { logAction } from "@/lib/logger";
 import MobilePage from "./MobilePage";
 
 const CERVEJA = { id: 1, name: "Cerveja", price: 16.1, category: "Bebidas" };
@@ -42,6 +43,9 @@ let updatePending, addPending, addLancada;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // A fila em espera do Palm agora é guardada no aparelho: sem limpar, a
+  // espera de um teste reaparece no próximo e muda o botão de lançar.
+  window.localStorage.clear();
   // O caminho de erro loga com console.error de propósito; só não polui a saída.
   vi.spyOn(console, "error").mockImplementation(() => {});
   updatePending = vi.fn(() => Promise.resolve({ error: null }));
@@ -61,6 +65,7 @@ const comandaSete = (items) => ({
 function montar(pending) {
   setAppMock({
     caixaAberto: true, loading: false, pending, products: [CERVEJA], sales: [],
+    currentUser: { username: "bruno", name: "Bruno", role: "garcom" },
     updatePending, addPending, addLancada,
   });
   render(<MemoryRouter><MobilePage /></MemoryRouter>);
@@ -141,5 +146,50 @@ describe("MobilePage, lançamento pelo Palm", () => {
     // 16.1 × 3 = 48.300000000000004 sem arredondar; o Rodízio cancelado de
     // R$ 99 não entra; e `qty` sempre vale ao menos 1.
     expect(mudancas.total).toBe(48.3);
+  });
+});
+
+/**
+ * Trilha de auditoria do Palm.
+ *
+ * As duas chamadas de `logAction` do Palm passavam o tipo da ação na posição do
+ * usuário. A assinatura é `logAction(operatorId, actionType, payload)`, então o
+ * banco recebia `operator_id: "comanda:abrir"`, `action_type: "[object Object]"`
+ * e `payload: null`: toda comanda aberta e todo lançamento do garçom entravam na
+ * trilha sem dono e fora de qualquer filtro por tipo de ação.
+ */
+describe("MobilePage, trilha de auditoria do Palm", () => {
+  const chamada = (tipo) => logAction.mock.calls.find(([, actionType]) => actionType === tipo);
+
+  it("lançar itens registra o garçom como operador e o tipo no lugar do tipo", async () => {
+    montar([comandaSete([])]);
+
+    adicionarAoCarrinho(1);
+    abrirLancamento();
+    digitarComanda("7");
+    await clicar("Adicionar à Comanda");
+
+    const registro = chamada("itens:lancar");
+    expect(registro).toBeTruthy();
+    const [operador, , payload] = registro;
+    expect(operador).toBe("bruno");
+    expect(payload).toMatchObject({ comanda: "7", qtd: 1, name: "Bruno", role: "garcom" });
+  });
+
+  it("abrir comanda nova registra o garçom como operador", async () => {
+    montar([]);
+
+    adicionarAoCarrinho(1);
+    abrirLancamento();
+    digitarComanda("9");
+    // Comanda que ainda não existe: o botão é o de criar.
+    await clicar("Criar e Lançar");
+
+    expect(addPending).toHaveBeenCalled();
+    const registro = chamada("comanda:abrir");
+    expect(registro).toBeTruthy();
+    const [operador, , payload] = registro;
+    expect(operador).toBe("bruno");
+    expect(payload).toMatchObject({ comanda: "9", name: "Bruno", role: "garcom" });
   });
 });

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -17,6 +17,7 @@ vi.mock("@/lib/supabase", async () => {
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import FinanceiroView from "./FinanceiroView";
+import { intervaloDoMes } from "@/lib/periodos";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -135,6 +136,9 @@ async function montar({ sales = [], ...banco } = {}) {
 
   fireEvent.change(screen.getByLabelText("Data final do período"),   { target: { value: "2026-07-31" } });
   fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: "2026-07-01" } });
+  // O período agora vai na consulta (refino R02), então trocar as datas refaz
+  // a busca: esperar a nova carga antes de olhar a tela.
+  await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
   return utils;
 }
 
@@ -159,11 +163,11 @@ describe("FinanceiroView, conta atrasada (Run 2)", () => {
   });
 
   it("o dinheiro da conta vencida continua no card de a pagar", async () => {
-    // Antes: "R$ 0.00 / R$ 0.00" — R$ 2.500 de aluguel atrasado sumiam do
+    // Antes: "R$ 0,00 / R$ 0,00" — R$ 2,500 de aluguel atrasado sumiam do
     // resumo no mesmo instante em que a tela marcava a conta como vencida.
     await montar({ linhas: [ALUGUEL] });
 
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("conta já paga não oferece o botão de baixar de novo", async () => {
@@ -172,7 +176,7 @@ describe("FinanceiroView, conta atrasada (Run 2)", () => {
     const linha = linhaCom("Aluguel de julho");
     expect(within(linha).getByText("Pago")).toBeInTheDocument();
     expect(within(linha).queryByText("Baixar")).not.toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
   });
 });
 
@@ -195,7 +199,7 @@ describe("FinanceiroView, leitura do financeiro falhou (Run 2)", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText("Aluguel de julho")).toBeInTheDocument();
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("mês de verdade sem lançamento nenhum continua dizendo que está vazio", async () => {
@@ -231,7 +235,7 @@ describe("FinanceiroView, baixar conta (Run 2)", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(/não foi possível baixar a conta/i);
     expect(linhaCom("Aluguel de julho")).toBeInTheDocument();
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 2500.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 2.500,00");
   });
 
   it("baixa bem-sucedida move o valor de a pagar para saída realizada", async () => {
@@ -241,13 +245,23 @@ describe("FinanceiroView, baixar conta (Run 2)", () => {
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(within(linhaCom("Aluguel de julho")).getByText("Pago")).toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0.00 / R$ 0.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 0,00 / R$ 0,00");
   });
 });
 
 describe("FinanceiroView, lucro do período (Run 2)", () => {
   const LUCRO = "Lucro (vendas − custo das fichas − saídas pagas)";
+
+  // Estes testes usam julho de 2026 como mês fixo. Desde o refino R01 o card
+  // Lucro depende de "hoje": período que começa antes da janela de 90 dias de
+  // `sales` deixa de ser calculado. Sem parar o relógio em julho, eles
+  // quebrariam sozinhos assim que julho de 2026 ficasse velho demais.
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-07-20T15:00:00.000Z"));
+  });
+  afterEach(() => { vi.useRealTimers(); });
 
   it("a venda das 21h30 do dia 31 conta no mês em que foi vendida", async () => {
     // 2026-08-01T00:30:00Z = 31/07 às 21h30 em São Paulo. Lendo o dia UTC
@@ -255,7 +269,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
     // lucro do último dia do mês simplesmente não existia.
     await montar({ sales: [venda("2026-08-01T00:30:00.000Z")], fichas: [FICHA_PRATO] });
 
-    expect(card(LUCRO)).toBe("R$ 70.00"); // 100 de venda − 30 de custo
+    expect(card(LUCRO)).toBe("R$ 70,00"); // 100 de venda − 30 de custo
   });
 
   it("essa mesma venda não é contada de novo em agosto", async () => {
@@ -265,15 +279,16 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
 
     fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: "2026-08-01" } });
     fireEvent.change(screen.getByLabelText("Data final do período"),   { target: { value: "2026-08-31" } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
 
-    expect(card(LUCRO)).toBe("R$ 0.00");
+    expect(card(LUCRO)).toBe("R$ 0,00");
   });
 
   it("noite de fiado não vira prejuízo: receita e custo saem das mesmas vendas", async () => {
     // A venda foi feita e o prato saiu da cozinha, mas o cliente pagou no
     // fiado — a receita fica 'previsto'. Antes a receita do lucro vinha só do
     // realizado (R$ 0) enquanto o custo vinha de todas as vendas (R$ 30): o
-    // card mostrava "-R$ 30.00" num dia que na verdade deu R$ 70 de lucro.
+    // card mostrava "-R$ 30,00" num dia que na verdade deu R$ 70 de lucro.
     await montar({
       linhas: [{
         id: "fiado", tipo: "receita", categoria: "vendas", descricao: "Fiado do 12",
@@ -283,10 +298,10 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 70.00");
+    expect(card(LUCRO)).toBe("R$ 70,00");
     // E o fiado continua sendo dinheiro a receber, não dinheiro recebido.
-    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 100.00 / R$ 0.00");
-    expect(card("Entradas realizadas")).toBe("R$ 0.00");
+    expect(card("Previsto (a receber / a pagar)")).toBe("R$ 100,00 / R$ 0,00");
+    expect(card("Entradas realizadas")).toBe("R$ 0,00");
   });
 
   it("desconta do lucro as despesas já pagas", async () => {
@@ -299,7 +314,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 50.00"); // 100 − 30 de ficha − 20 de gás
+    expect(card(LUCRO)).toBe("R$ 50,00"); // 100 − 30 de ficha − 20 de gás
   });
 
   it("venda cancelada não entra na receita nem no custo", async () => {
@@ -311,12 +326,12 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       fichas: [FICHA_PRATO],
     });
 
-    expect(card(LUCRO)).toBe("R$ 70.00");
+    expect(card(LUCRO)).toBe("R$ 70,00");
   });
 
   it("lucro exatamente zerado não sai negativo em vermelho", async () => {
     // 39,90 + 8,70 de vendas contra 48,60 de despesa paga: em float o
-    // resultado cru é -7.1e-15, e o card imprimia "-R$ 0.00" em vermelho
+    // resultado cru é -7.1e-15, e o card imprimia "-R$ 0,00" em vermelho
     // num dia que fechou empatado.
     await montar({
       linhas: [{
@@ -329,7 +344,7 @@ describe("FinanceiroView, lucro do período (Run 2)", () => {
       ],
     });
 
-    expect(card(LUCRO)).toBe("R$ 0.00");
+    expect(card(LUCRO)).toBe("R$ 0,00");
   });
 });
 
@@ -375,6 +390,180 @@ describe("FinanceiroView, lançamento salvo fora do período visível (Run 2)", 
     await salvarDespesaPaga("2026-07-20");
 
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(card("Saídas realizadas")).toBe("R$ 2500.00");
+    expect(card("Saídas realizadas")).toBe("R$ 2.500,00");
+  });
+});
+
+// ── Refino, robustez do Financeiro ────────────────────────────────────
+//
+// R01: a receita do card Lucro vem de `sales`, que o bootstrap carrega só dos
+// últimos 90 dias (AppContext.jsx:340), enquanto as saídas vêm de
+// `lancamentos`, sem recorte. Escolhendo um mês mais antigo que isso, a receita
+// entrava como zero, o custo como zero, e as despesas pagas daquele mês
+// continuavam sendo subtraídas: prejuízo inventado, em vermelho, num mês que
+// pode ter sido o melhor do ano.
+//
+// R02: a tela pedia TODOS os lançamentos e recortava o período na memória.
+// Passando do teto de linhas do PostgREST (1000 por padrão), os mais antigos
+// paravam de chegar e o mês antigo aparecia zerado, sem aviso nenhum.
+
+/** Dia de calendário local, n dias atrás, no formato do <input type="date">. */
+function diasAtras(n) {
+  const d = new Date(Date.now() - n * 24 * 60 * 60 * 1000);
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+const HOJE = diasAtras(0);
+const DIA_ANTIGO = diasAtras(200); // bem antes da janela de 90 dias
+
+/**
+ * Monta a tela SEM mexer no período: fica valendo o mês corrente, que é o que
+ * estes testes precisam comparar com a janela de vendas carregada.
+ */
+async function montarNoMesCorrente({ sales = [], ...banco } = {}) {
+  servirBanco(banco);
+  setAppMock({ currentUser: { name: "Gerente Teste", username: "gerente1", role: "gerente" }, sales });
+
+  const utils = renderWithProviders(<FinanceiroView />);
+  await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  return utils;
+}
+
+/** Uma despesa já paga na competência pedida. */
+const despesaPaga = (competencia) => ({
+  id: "hortifruti", tipo: "despesa", categoria: "insumos", descricao: "Hortifruti",
+  valor: 30, competencia, status: "pago",
+});
+
+describe("FinanceiroView, lucro de período fora da janela de vendas (R01)", () => {
+  const LUCRO = "Lucro (vendas − custo das fichas − saídas pagas)";
+
+  it("dentro da janela, o card segue calculando o lucro normalmente", async () => {
+    await montarNoMesCorrente({
+      linhas: [despesaPaga(HOJE)],
+      sales: [venda(new Date().toISOString())],
+      fichas: [FICHA_PRATO],
+    });
+
+    // 100 de venda, menos 30 de ficha técnica, menos 30 de despesa paga.
+    expect(card(LUCRO)).toBe("R$ 40,00");
+  });
+
+  it("período que começa antes da janela, o card diz que o lucro não está disponível", async () => {
+    await montarNoMesCorrente({
+      linhas: [despesaPaga(DIA_ANTIGO)],
+      sales: [venda(new Date().toISOString())],
+      fichas: [FICHA_PRATO],
+    });
+
+    // Puxar o "Até" para trás arrasta o "De" junto: o período inteiro fica
+    // antes da janela de vendas carregada.
+    fireEvent.change(screen.getByLabelText("Data final do período"), { target: { value: DIA_ANTIGO } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    // Antes: "-R$ 30,00", só a despesa paga, sem nenhuma receita para comparar.
+    expect(card(/as vendas carregadas cobrem os últimos 90 dias/)).toBe("Não disponível");
+    expect(screen.queryByText(LUCRO)).not.toBeInTheDocument();
+  });
+});
+
+describe("FinanceiroView, período vai na consulta de lançamentos (R02)", () => {
+  const filtrosDeCompetencia = () =>
+    mockSupabase.current.calls
+      .filter((c) => c.table === "lancamentos" && (c.method === "gte" || c.method === "lte"))
+      .map((c) => `${c.method}:${c.args[0]}:${c.args[1]}`);
+
+  it("a primeira carga já filtra pelo período na consulta, não na memória", async () => {
+    const { de, ate } = intervaloDoMes(new Date());
+    await montarNoMesCorrente({ linhas: [despesaPaga(HOJE)] });
+
+    expect(filtrosDeCompetencia()).toEqual([
+      `gte:competencia:${de}`,
+      `lte:competencia:${ate}`,
+    ]);
+  });
+
+  it("mudar o período refaz a consulta com as novas datas", async () => {
+    await montarNoMesCorrente({ linhas: [] });
+    mockSupabase.current.calls.length = 0;
+
+    fireEvent.change(screen.getByLabelText("Data inicial do período"), { target: { value: DIA_ANTIGO } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    expect(filtrosDeCompetencia()).toContain(`gte:competencia:${DIA_ANTIGO}`);
+  });
+});
+
+// ── Refino: a aba que atravessa a virada do mês ───────────────────────
+//
+// O PDV nunca fecha. O período nascia congelado (`useState(() =>
+// intervaloDoMes(new Date()))`), então uma aba montada em 30 de agosto seguia
+// no Financeiro de agosto durante todo setembro, e nenhum chip aparecia
+// destacado: o PeriodoSelector recalcula o próprio "hoje" a cada render e o
+// intervalo congelado já não casava com "Este mês". O dono via um período
+// antigo e nenhuma pista de qual atalho estava ativo.
+
+describe("FinanceiroView, virada do mês com a aba aberta (refino)", () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  const chipEsteMes = () => screen.getByRole("button", { name: "Este mês" });
+  const de = () => screen.getByLabelText("Data inicial do período");
+  const ate = () => screen.getByLabelText("Data final do período");
+  const competenciasConsultadas = () =>
+    mockSupabase.current.calls
+      .filter((c) => c.table === "lancamentos" && (c.method === "gte" || c.method === "lte"))
+      .map((c) => `${c.method}:${c.args[1]}`);
+
+  /** Monta a tela com o relógio parado em 30/08/2026, 22h. */
+  async function montarNaViradaDeAgosto() {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(2026, 7, 30, 22, 0));
+    servirBanco({ linhas: [] });
+    setAppMock({ currentUser: { name: "Gerente Teste", username: "gerente1", role: "gerente" }, sales: [] });
+    renderWithProviders(<FinanceiroView />);
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  }
+
+  /** Passa para 1º de setembro, 00h05, e deixa o tique do relógio bater. */
+  async function passarParaSetembro() {
+    await act(async () => {
+      vi.setSystemTime(new Date(2026, 8, 1, 0, 5));
+      vi.advanceTimersByTime(30000);
+    });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+  }
+
+  it("o período vai para setembro e o chip Este mês continua destacado", async () => {
+    await montarNaViradaDeAgosto();
+
+    expect(de()).toHaveValue("2026-08-01");
+    expect(ate()).toHaveValue("2026-08-31");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "true");
+
+    mockSupabase.current.calls.length = 0;
+    await passarParaSetembro();
+
+    // Antes: continuava 01/08 a 31/08, com "personalizado" e nenhum chip aceso.
+    expect(de()).toHaveValue("2026-09-01");
+    expect(ate()).toHaveValue("2026-09-30");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "true");
+    // E os lançamentos do mês novo foram buscados, não os de agosto.
+    expect(competenciasConsultadas()).toContain("gte:2026-09-01");
+  });
+
+  it("datas escolhidas à mão não são arrastadas pela virada do mês", async () => {
+    await montarNaViradaDeAgosto();
+
+    fireEvent.change(de(), { target: { value: "2026-08-10" } });
+    fireEvent.change(ate(), { target: { value: "2026-08-20" } });
+    await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
+
+    await passarParaSetembro();
+
+    expect(de()).toHaveValue("2026-08-10");
+    expect(ate()).toHaveValue("2026-08-20");
+    expect(chipEsteMes()).toHaveAttribute("aria-pressed", "false");
   });
 });

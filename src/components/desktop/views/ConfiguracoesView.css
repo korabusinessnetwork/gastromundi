@@ -216,6 +216,15 @@
   line-height: var(--lh-sm);
 }
 
+/* Ocupa o lugar da contagem para quem não é administrador: a lista que o
+   banco devolve nesse caso é só a própria linha, então número nenhum ali
+   seria verdade. */
+.usuarios-tab__aviso-admin {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .usuarios-tab__btn-novo {
   /* alvo de toque generoso */
   padding: 12px 20px;
@@ -700,6 +709,14 @@
 }
 
 /* Falha de carga/gravação nas unidades — a tela nunca deve seguir em silêncio. */
+/* Explica a aba só de leitura para quem não é administrador, mesmo papel do
+   .meios-pagamento-tab__ajuda da aba vizinha. */
+.unidades-medida-tab__ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
 .unidades-medida-tab__erro {
   padding: 10px 14px;
   border: 1px solid var(--gm-red);

@@ -161,3 +161,60 @@ describe("CombosView, editar combo (B2)", () => {
     expect(ordem).toEqual(["delete", "insert"]);
   });
 });
+
+describe("CombosView, leitura falha da composição ao editar", () => {
+  async function abrirModal(user) {
+    await user.click(screen.getByTitle("Editar combo"));
+    await screen.findByText("Editar Combo");
+  }
+
+  /** Só as chamadas que MEXEM no banco, para provar que nada foi gravado. */
+  function gravacoes() {
+    return mockSupabase.current.calls.filter(
+      (c) => c.method === "insert" || c.method === "update" || c.method === "delete" || c.method === "upsert",
+    );
+  }
+
+  it("falha ao ler os grupos bloqueia o Salvar e não grava nada", async () => {
+    // Este é o caso perigoso: salvar recria a composição apagando os grupos
+    // antigos primeiro. Com a leitura falhada, o delete limparia o que existe
+    // e só o que a tela montou voltaria no lugar, ou seja, o combo perderia
+    // escolhas sem ninguém pedir.
+    // A LISTA lê `grupos_escolha` primeiro (é dela que sai a contagem no
+    // card), e é a leitura seguinte, a do modal, que precisa falhar. Por isso
+    // a primeira passa e as outras não.
+    mockSupabase.current.setTableResult("combos", { data: [COMBO], error: null });
+    let leituras = 0;
+    mockSupabase.current.setTableHandler("grupos_escolha", ({ method }) => {
+      if (method !== "select") return undefined;
+      leituras += 1;
+      return leituras === 1
+        ? { data: [GRUPO_ROW], error: null }
+        : { data: null, error: { message: "permission denied" } };
+    });
+    renderWithProviders(<CombosView sz={sz} />);
+    await waitFor(() => expect(screen.getByText("Combo X")).toBeInTheDocument());
+
+    const user = userEvent.setup();
+    await abrirModal(user);
+
+    expect(await screen.findByText(/não deu para carregar tudo o que este combo tem dentro/i)).toBeInTheDocument();
+    const botao = screen.getByRole("button", { name: /salvar/i });
+    expect(botao).toBeDisabled();
+
+    await user.click(botao);
+    expect(gravacoes()).toHaveLength(0);
+  });
+
+  it("leitura boa não mostra aviso e deixa o Salvar liberado", async () => {
+    await montarComCombo();
+    const user = userEvent.setup();
+    await abrirModal(user);
+    // O nome do grupo chega num campo de texto, não como texto solto: esperar
+    // por ele é o que garante que a leitura terminou antes das asserções.
+    await screen.findByDisplayValue(GRUPO_ROW.nome);
+
+    expect(screen.queryByText(/não deu para carregar tudo o que este combo tem dentro/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /salvar/i })).toBeEnabled();
+  });
+});

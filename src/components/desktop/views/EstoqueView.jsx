@@ -1,5 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
@@ -172,10 +172,20 @@ export default function EstoqueView() {
   const limparRascunho = (setter, id) =>
     setter(prev => { const proximo = { ...prev }; delete proximo[id]; return proximo; });
 
+  // Trava de gravação em voo, por produto. O botão Adicionar já se desabilita
+  // com `salvando`, mas state de React só chega no render seguinte: dois Enter
+  // seguidos no mesmo campo viam os dois que não havia nada gravando e
+  // disparavam duas entradas com a mesma quantidade, que o banco soma. O ref
+  // muda na hora, então a segunda tecla não dispara nada.
+  const gravandoRef = useRef(new Set());
+
   /** Grava e diz na tela o que aconteceu. Devolve true quando salvou de verdade. */
   const gravar = async (productId, oQue, escrever) => {
+    if (gravandoRef.current.has(productId)) return false;
+    gravandoRef.current.add(productId);
     setSalvando(prev => ({ ...prev, [productId]: true }));
     const { error } = (await escrever()) ?? {};
+    gravandoRef.current.delete(productId);
     setSalvando(prev => ({ ...prev, [productId]: false }));
     if (error) {
       setErro(`Não foi possível salvar ${oQue}. Confira a conexão e tente de novo.`);
