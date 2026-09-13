@@ -25,10 +25,13 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery } = vi.hoisted(() => ({
+const {
+  usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarProdutoDelivery,
+} = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
+  salvarProdutoDelivery: vi.fn(),
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -42,6 +45,7 @@ vi.mock("@/lib/deliveryAdmin", async (importOriginal) => ({
   ...(await importOriginal()),
   listarProdutosDelivery,
   carregarConfigDelivery,
+  salvarProdutoDelivery,
 }));
 
 // O mapa arrasta Leaflet inteiro para o jsdom e não tem nada a ver com pedidos.
@@ -88,6 +92,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   setAppMock();
   listarProdutosDelivery.mockResolvedValue({ data: [], error: null });
+  salvarProdutoDelivery.mockResolvedValue({ data: null, error: null });
   carregarConfigDelivery.mockResolvedValue({
     data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
     error: null,
@@ -212,5 +217,81 @@ describe("DeliveryView, a prévia abre a loja DESTE estabelecimento", () => {
       "_blank",
       "noopener,noreferrer",
     );
+  });
+});
+
+describe("DeliveryView, tirar um item do ar é um clique na grade", () => {
+  // Tirar do ar é a coisa mais frequente do dia (acabou o ingrediente).
+  // Ficava dentro do "Editar": abrir modal, achar a chave, salvar, fechar.
+  // Pior, lá dentro era rascunho — só valia depois do "Salvar".
+  const ITEM = {
+    id: "pd1",
+    produto_id: 7,
+    disponivel: true,
+    ordem: 0,
+    descricao: "Pão, hambúrguer e queijo",
+    foto_url: null,
+    produto: { id: 7, name: "X-Burguer", price: 30, emoji: "🍔" },
+  };
+
+  // O nome e o preço do card vêm do catálogo do PDV (AppContext), não da
+  // linha de produto_delivery — ela só guarda a camada de delivery.
+  const irParaCardapio = async (user, item = ITEM) => {
+    setAppMock({ products: [{ id: 7, name: "X-Burguer", price: 30, emoji: "🍔", category: "Lanches" }] });
+    listarProdutosDelivery.mockResolvedValue({ data: [item], error: null });
+    await montar();
+    await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
+    return screen.findByText("X-Burguer");
+  };
+
+  const chave = () => screen.getByRole("switch", { name: /Oferecer X-Burguer no cardápio online/ });
+
+  it("o botão está na grade, sem abrir nada", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio(user);
+    expect(chave()).toHaveAttribute("aria-checked", "true");
+    // No card a chave é só trilho e bolinha (o nome do produto precisa da
+    // largura), então o estado por extenso vive no title — é o que o dono
+    // lê ao passar o mouse e o que o leitor de tela anuncia.
+    expect(chave()).toHaveAttribute("title", expect.stringMatching(/Está no cardápio online/));
+  });
+
+  it("um clique grava a virada na hora, sem passar pelo Salvar", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio(user);
+    await user.click(chave());
+
+    expect(salvarProdutoDelivery).toHaveBeenCalledTimes(1);
+    expect(salvarProdutoDelivery.mock.calls[0][0]).toMatchObject({
+      id: "pd1", produto_id: 7, disponivel: false,
+    });
+  });
+
+  it("item fora do ar aparece com a chave desligada", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio(user, { ...ITEM, disponivel: false });
+    expect(chave()).toHaveAttribute("aria-checked", "false");
+    expect(chave()).toHaveAttribute("title", expect.stringMatching(/Fora do cardápio online/));
+  });
+
+  it("a chave não existe mais dentro do Editar", async () => {
+    const user = userEvent.setup();
+    await irParaCardapio(user);
+    await user.click(screen.getByRole("button", { name: /Editar/ }));
+    await screen.findByText("Editar produto do delivery");
+    expect(screen.queryByText("Disponível no cardápio")).toBeNull();
+  });
+
+  it("salvar o Editar preserva o indisponível marcado na grade", async () => {
+    // O payload de salvarProdutoDelivery é a linha INTEIRA. Se o modal
+    // deixasse de mandar `disponivel`, ou mandasse um padrão, editar a
+    // descrição devolveria ao ar um item que o dono acabou de tirar.
+    const user = userEvent.setup();
+    await irParaCardapio(user, { ...ITEM, disponivel: false });
+    await user.click(screen.getByRole("button", { name: /Editar/ }));
+    await screen.findByText("Editar produto do delivery");
+    await user.click(screen.getByRole("button", { name: /^Salvar/ }));
+
+    expect(salvarProdutoDelivery.mock.calls.at(-1)[0]).toMatchObject({ disponivel: false });
   });
 });

@@ -1240,7 +1240,35 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
           <div className="delivery-view__card-emoji">{emoji}</div>
         )}
         <div className="delivery-view__card-corpo">
-          <div className="delivery-view__card-nome">{nome}</div>
+          {/* Disponibilidade fica AQUI, ao lado do nome, e não dentro do
+              "Editar". Tirar um item do ar é a coisa mais frequente do dia
+              (acabou o ingrediente) e precisa ser um clique na grade, não
+              abrir modal, achar a chave, salvar e fechar. Dentro do editar
+              ela também virava rascunho: só valia depois do "Salvar". */}
+          <div className="delivery-view__card-nome-linha">
+            <div className="delivery-view__card-nome">{nome}</div>
+            <button
+              onClick={onToggle}
+              disabled={!isAdmin}
+              role="switch"
+              aria-checked={!!item.disponivel}
+              aria-label={`Oferecer ${nome} no cardápio online`}
+              title={item.disponivel
+                ? "Está no cardápio online. Clique para tirar do ar."
+                : "Fora do cardápio online. Clique para voltar a oferecer."}
+              className={`delivery-view__disp delivery-view__disp--compacto delivery-view__disp--${item.disponivel ? "on" : "off"}`}
+            >
+              {/* Só o trilho e a bolinha, sem a palavra. Aqui o card tem
+                  300px e a chave com texto comia 130 deles: "Hmaburguer de
+                  cheedar" virava "Hmabur…", e cardápio em que não se lê o
+                  nome do produto não serve. O estado continua dito por
+                  extenso no title e no aria-label; na tabela de Produtos,
+                  que tem coluna própria, a palavra aparece. */}
+              <span className="delivery-view__disp-trilho" aria-hidden="true">
+                <span className="delivery-view__disp-bola" />
+              </span>
+            </button>
+          </div>
           {item.descricao ? (
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
@@ -1257,15 +1285,6 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
         <span className="delivery-view__card-preco">
           {preco != null ? formatarReais(preco) : "—"}
         </span>
-        <button
-          onClick={onToggle}
-          disabled={!isAdmin}
-          className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
-          title="Ligar/desligar no cardápio"
-        >
-          <span className="delivery-view__card-dot" />
-          {item.disponivel ? "Disponível" : "Indisponível"}
-        </button>
       </div>
 
       {isAdmin && (
@@ -1333,7 +1352,12 @@ function ModalProduto({
   const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
   const fotoInputRef = useRef(null);
   const fotoAlvoRef = useRef(null);
-  const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
+  // Disponibilidade NÃO se edita aqui — o botão mora no card, na grade.
+  // O valor de agora é carregado só para o salvar não zerá-lo: o payload de
+  // `salvarProdutoDelivery` é a linha inteira, então omitir o campo apagaria
+  // o "indisponível" que o dono acabou de marcar na grade. Produto novo
+  // nasce disponível.
+  const disponivel = item?.disponivel ?? true;
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -1629,16 +1653,6 @@ function ModalProduto({
           <label className="delivery-view__label">Descrição</label>
           <textarea className="delivery-view__textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
         </div>
-        <label className="delivery-view__switch">
-          <span>Disponível no cardápio</span>
-          <span className="delivery-view__toggle">
-            <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} />
-            <span className="delivery-view__toggle-trilho" aria-hidden="true">
-              <span className="delivery-view__toggle-botao" />
-            </span>
-          </span>
-        </label>
-
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro">
             ⚠️ {erro}
