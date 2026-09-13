@@ -395,11 +395,26 @@
   flex: 1;
   min-width: 0;
 }
+/* Nome à esquerda, selo de disponibilidade à direita, na mesma linha.
+   O selo não encolhe (`flex: none`) — quem tem nome comprido perde letra
+   do nome, nunca a palavra que diz se o item está no ar. */
+.delivery-view__card-nome-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .delivery-view__card-nome {
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.delivery-view__card-nome-linha .delivery-view__pill {
+  flex: none;
 }
 .delivery-view__card-desc {
   opacity: 0.75;
