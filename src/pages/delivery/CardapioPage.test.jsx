@@ -26,12 +26,14 @@ const {
   mockViaCep,
   mockGeocodificar,
   mockEnviarPedido,
+  mockMeusPedidos,
 } = vi.hoisted(() => ({
   mockCarregarCardapio: vi.fn(),
   mockCalcularTaxa: vi.fn(),
   mockViaCep: vi.fn(),
   mockGeocodificar: vi.fn(),
   mockEnviarPedido: vi.fn(),
+  mockMeusPedidos: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase", async () => {
@@ -51,6 +53,7 @@ vi.mock("@/lib/delivery", async () => {
     buscarEnderecoViaCep: mockViaCep,
     geocodificarEndereco: mockGeocodificar,
     enviarPedido: mockEnviarPedido,
+    meusPedidos: mockMeusPedidos,
   };
 });
 
@@ -65,6 +68,7 @@ vi.mock("@/lib/tenantSlug", () => ({
   slugDaVitrine: () => ({ slug: SLUG, origem: "subdominio" }),
 }));
 
+import { idDoDispositivo } from "@/lib/deliveryDispositivo";
 import CardapioPage from "./CardapioPage";
 
 const CARDAPIO = {
@@ -76,6 +80,8 @@ const CARDAPIO = {
   ],
   combos: [],
 };
+
+const TELEFONE = "11912345678";
 
 /** Uma linha na sacola, no formato que o useCarrinho persiste. */
 const ITEM_NA_SACOLA = {
@@ -105,8 +111,11 @@ async function irAtePagamento(user) {
   await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
 
   await user.type(screen.getByLabelText("Seu nome"), "Ana");
+  // Telefone é obrigatório: é o único caminho do estabelecimento até o
+  // cliente quando o pedido trava.
+  await user.type(screen.getByLabelText("Telefone"), TELEFONE);
   await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
-  await user.type(screen.getByLabelText("CEP"), "90000000");
+  await user.type(screen.getByLabelText(/^CEP/), "90000000");
   await assentar();
 
   await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
@@ -118,6 +127,11 @@ const botaoConfirmar = () =>
 beforeEach(async () => {
   vi.clearAllMocks();
   sessionStorage.clear();
+  // localStorage guarda a identidade do aparelho e os dados da última
+  // entrega. Sem limpar, um teste herda o endereço que o anterior gravou e
+  // o campo nasce preenchido — que é o comportamento certo do produto e o
+  // errado para uma prova isolada.
+  localStorage.clear();
   sessionStorage.setItem(
     `kora.delivery.sacola.${SLUG}`,
     JSON.stringify([ITEM_NA_SACOLA])
@@ -127,12 +141,14 @@ beforeEach(async () => {
   mockGeocodificar.mockResolvedValue({ data: null, error: null });
   mockCalcularTaxa.mockResolvedValue({ data: { ok: true, taxa: 7.5 }, error: null });
   mockEnviarPedido.mockResolvedValue({ data: { ok: true, numero: "260730-001" }, error: null });
+  mockMeusPedidos.mockResolvedValue({ data: [], error: null });
   vi.useFakeTimers({ shouldAdvanceTime: true });
 });
 
 afterEach(() => {
   vi.useRealTimers();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 async function abrirVitrine() {
@@ -494,8 +510,9 @@ describe("CardapioPage, sacola velha contra cardápio novo (Run 6, leva 4)", () 
 
     await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
     await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
     await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
-    await user.type(screen.getByLabelText("CEP"), "90000000");
+    await user.type(screen.getByLabelText(/^CEP/), "90000000");
     await assentar();
     await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
 
@@ -693,5 +710,240 @@ describe("CardapioPage, a vitrine que não carregou tem saída (Run 6, leva 10)"
       screen.getByText(/Este endereço ainda não tem delivery disponível/)
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tentar de novo" })).toBeNull();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Retirada no local — o caminho inteiro, do selo no cabeçalho ao
+// payload que chega no servidor.
+//
+// O que isto protege: que a escolha do cliente atravesse a página
+// INTEIRA. Antes de existir retirada, cada tela dava por certo que
+// alguém sairia para entregar — e é fácil ligar a opção na primeira
+// tela e ela se perder no caminho, fazendo o cliente pagar taxa de uma
+// entrega que ele mesmo dispensou.
+// ══════════════════════════════════════════════════════════════════
+describe("CardapioPage — retirar no local", () => {
+  const CARDAPIO_COM_RETIRADA = {
+    ...CARDAPIO,
+    permite_retirada: true,
+    endereco_retirada: "Rua da Praia, 100 — Centro",
+  };
+
+  it("sem retirada configurada, a vitrine não promete o que a loja não faz", async () => {
+    await abrirVitrine();
+
+    expect(screen.queryByText("Retirada no local")).toBeNull();
+  });
+
+  it("o selo no cabeçalho avisa antes de a sacola ser montada", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+
+    await abrirVitrine();
+
+    // Descobrir só no checkout é descobrir tarde: quem prefere buscar
+    // decide isso antes de escolher o que vai comer.
+    expect(screen.getByText("Retirada no local")).toBeInTheDocument();
+  });
+
+  it("o pedido de retirada chega ao servidor sem endereço e sem taxa", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+    mockEnviarPedido.mockResolvedValue({
+      data: {
+        ok: true,
+        numero: "260730-002",
+        total: 25,
+        tipo: "retirada",
+        endereco_retirada: "Rua da Praia, 100 — Centro",
+      },
+      error: null,
+    });
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Ver a sacola" }));
+    await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
+
+    await user.click(screen.getByRole("button", { name: /Retirar no local/ }));
+    await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
+    await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
+
+    // O resumo não inventa uma taxa grátis para um pedido que ninguém entrega.
+    expect(screen.getByText("Sem taxa")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Pix na retirada"));
+    await act(async () => {
+      botaoConfirmar().click();
+    });
+
+    const [, payload] = mockEnviarPedido.mock.calls.at(-1);
+    expect(payload.entrega).toEqual({ tipo: "retirada" });
+
+    // E a tela de sucesso diz para onde ir — o número do pedido sozinho
+    // não serve para quem ainda precisa sair de casa.
+    expect(screen.getByText("Pedido enviado!")).toBeInTheDocument();
+    expect(screen.getByText(/Rua da Praia, 100/)).toBeInTheDocument();
+  });
+
+  it("a taxa da entrega não sobrevive à troca para retirada", async () => {
+    mockCarregarCardapio.mockResolvedValue({ data: CARDAPIO_COM_RETIRADA, error: null });
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Ver a sacola" }));
+    await user.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
+
+    // Preenche a entrega inteira, com taxa calculada…
+    await user.type(screen.getByLabelText("Seu nome"), "Ana");
+    await user.type(screen.getByLabelText("Telefone"), TELEFONE);
+    await user.type(screen.getByLabelText("Endereço (rua, número)"), "Rua X, 10");
+    await user.type(screen.getByLabelText(/^CEP/), "90000000");
+    await assentar();
+    expect(screen.getByText("R$ 7,50")).toBeInTheDocument();
+
+    // …e então muda de ideia.
+    await user.click(screen.getByRole("button", { name: /Retirar no local/ }));
+    await user.click(screen.getByRole("button", { name: "Ir para o pagamento" }));
+
+    // O total é só o da comida: cobrar os R$ 7,50 seria cobrar uma corrida
+    // que o cliente acabou de dispensar.
+    expect(screen.getByText("Sem taxa")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 32,50")).toBeNull();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Acompanhar o pedido sem criar conta.
+//
+// Depois de "Pedido enviado!" o cliente não tinha mais nada: nem status,
+// nem histórico, nem o número do pedido se fechasse a aba. Exigir
+// cadastro para isso é barreira na única tela que um desconhecido vê, e
+// conta por SMS custa por mensagem — fora da fase de bootstrap. Então o
+// aparelho guarda uma identidade anônima e o pedido nasce carimbado com
+// ela.
+// ══════════════════════════════════════════════════════════════════
+describe("CardapioPage — meus pedidos sem cadastro", () => {
+  const PEDIDO = {
+    numero: "260730-001",
+    status: "saiu_entrega",
+    total: 32.5,
+    taxa_entrega: 7.5,
+    tipo_entrega: "entrega",
+    endereco: "Rua X, 10",
+    created_at: new Date().toISOString(),
+    itens: [{ nome: "Pizza Calabresa", qtd: 1 }],
+  };
+
+  it("quem nunca pediu não vê a porta de uma tela vazia", async () => {
+    await abrirVitrine();
+
+    expect(screen.queryByRole("button", { name: "Meus pedidos" })).toBeNull();
+  });
+
+  it("com pedido no aparelho, o cabeçalho oferece o acompanhamento", async () => {
+    mockMeusPedidos.mockResolvedValue({ data: [PEDIDO], error: null });
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Meus pedidos" }));
+
+    // O estado em português de gente, não o código do banco. Ele aparece
+    // duas vezes de propósito — em destaque e como passo aceso da trilha —,
+    // então a prova mira o destaque, que é o que a pessoa lê primeiro.
+    expect(document.querySelector(".meu-pedido__status")).toHaveTextContent(
+      "Saiu para entrega"
+    );
+    expect(screen.getByText("Pedido 260730-001")).toBeInTheDocument();
+    expect(screen.getByText(/1× Pizza Calabresa/)).toBeInTheDocument();
+    // E a verdade sobre o que isso é.
+    expect(screen.getByText(/ficam guardados neste aparelho/)).toBeInTheDocument();
+  });
+
+  it("o pedido leva a identidade do aparelho — sem ela o histórico nasceria vazio", async () => {
+    const user = await abrirVitrine();
+    await irAtePagamento(user);
+    await user.click(screen.getByText("Pix na entrega"));
+    await act(async () => {
+      botaoConfirmar().click();
+    });
+
+    const [, payload] = mockEnviarPedido.mock.calls.at(-1);
+    expect(payload.dispositivo_id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    );
+    // E é o MESMO id que a consulta do histórico usa — se divergissem, o
+    // pedido entraria numa gaveta que a tela nunca abre.
+    const [, dispositivoConsultado] = mockMeusPedidos.mock.calls.at(-1);
+    expect(dispositivoConsultado).toBe(payload.dispositivo_id);
+  });
+
+  it("depois do pedido, o endereço volta preenchido na visita seguinte", async () => {
+    const user = await abrirVitrine();
+    await irAtePagamento(user);
+    await user.click(screen.getByText("Pix na entrega"));
+    await act(async () => {
+      botaoConfirmar().click();
+    });
+
+    // Segunda visita, de verdade: a sacola morre no aceite do pedido, então
+    // a pessoa volta outro dia, escolhe de novo o que quer, e é AÍ que o
+    // endereço precisa já estar lá.
+    cleanup();
+    sessionStorage.setItem(
+      `kora.delivery.sacola.${SLUG}`,
+      JSON.stringify([ITEM_NA_SACOLA])
+    );
+    const user2 = await abrirVitrine();
+    await user2.click(screen.getByRole("button", { name: "Ver a sacola" }));
+    await user2.click(screen.getByRole("button", { name: /Ir para a entrega/ }));
+
+    // Redigitar nome e endereço a cada pedido é o atrito que faz desistir no
+    // meio — e é justamente o que uma conta resolveria.
+    expect(screen.getByLabelText("Seu nome")).toHaveValue("Ana");
+    expect(screen.getByLabelText("Endereço (rua, número)")).toHaveValue("Rua X, 10");
+  });
+
+  it("endereço recusado pelo servidor não é lembrado", async () => {
+    mockEnviarPedido.mockResolvedValue({
+      data: null,
+      error: { code: "P0001", message: "Endereço fora da área de entrega." },
+    });
+
+    const user = await abrirVitrine();
+    await irAtePagamento(user);
+    await user.click(screen.getByText("Pix na entrega"));
+    await act(async () => {
+      botaoConfirmar().click();
+    });
+
+    // Guardar o que foi recusado faria o próximo pedido nascer com o erro
+    // já preenchido, e a pessoa repetiria a recusa sem entender.
+    expect(localStorage.getItem("kora.delivery.entrega")).toBeNull();
+  });
+
+  it("'não é você' apaga o histórico e a identidade deste aparelho", async () => {
+    // O dublê responde por APARELHO, como o servidor: identidade nova não
+    // herda o histórico da anterior — que é o ponto inteiro desta saída.
+    const idAntigo = idDoDispositivo();
+    mockMeusPedidos.mockImplementation((_slug, id) =>
+      Promise.resolve({ data: id === idAntigo ? [PEDIDO] : [], error: null })
+    );
+
+    const user = await abrirVitrine();
+    await user.click(screen.getByRole("button", { name: "Meus pedidos" }));
+    await user.click(screen.getByRole("button", { name: /Limpar deste aparelho/ }));
+
+    // Sem esta saída, os pedidos de quem pediu no celular de outra pessoa
+    // ficariam visíveis ali para sempre.
+    expect(screen.queryByRole("button", { name: "Meus pedidos" })).toBeNull();
+    expect(localStorage.getItem("kora.delivery.dispositivo")).not.toBe(idAntigo);
+  });
+
+  it("falha ao carregar o histórico não atrapalha quem só quer pedir", async () => {
+    mockMeusPedidos.mockResolvedValue({ data: [], error: { message: "rede caiu" } });
+
+    await abrirVitrine();
+
+    // A vitrine continua inteira: o cardápio está lá e nada de erro na cara.
+    expect(screen.getByText("Pizza Calabresa")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

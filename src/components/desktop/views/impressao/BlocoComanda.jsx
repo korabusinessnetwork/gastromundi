@@ -1,8 +1,13 @@
-import { TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj } from "@/lib/impressao/layoutComanda";
+import {
+  TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj, largurasVisiveis,
+  MIN_TAMANHO_PX, MAX_TAMANHO_PX, TAMANHO_PADRAO_PX,
+} from "@/lib/impressao/layoutComanda";
 import {
   LuGripVertical, LuEye, LuEyeOff, LuChevronUp, LuChevronDown, LuTrash2,
   LuAlignLeft, LuAlignCenter, LuAlignRight, LuBold, LuCaseUpper, LuCircleAlert,
 } from "react-icons/lu";
+import LarguraColunas from "./LarguraColunas";
+import "@/styles/chave.css";
 import "./BlocoComanda.css";
 
 /**
@@ -22,15 +27,10 @@ const ALINHAMENTOS = [
   { valor: "direita", rotulo: "À direita", Icone: LuAlignRight },
 ];
 
-const TAMANHOS = [
-  { valor: "pequeno", rotulo: "Pequena" },
-  { valor: "normal", rotulo: "Média" },
-  { valor: "grande", rotulo: "Grande" },
-];
-
 const OPCOES_ITENS = [
   { chave: "unitario", rotulo: "Preço de cada unidade", ajuda: "Só na impressão pelo navegador, na térmica sai só o total do item." },
   { chave: "observacoes", rotulo: "Observações do pedido", ajuda: "“sem cebola”, “ponto da carne”." },
+  { chave: "escolhas", rotulo: "O que veio no combo", ajuda: "Lista embaixo do item o que o cliente escolheu, “2x Cheddar”, “1x Coca”." },
   { chave: "emoji", rotulo: "Emoji do produto", ajuda: "Impressora térmica não imprime emoji; no navegador, sim." },
 ];
 
@@ -69,8 +69,9 @@ function Segmentado({ legenda, opcoes, valor, onEscolher }) {
 }
 
 export default function BlocoComanda({
-  bloco, selecionado, primeiro, ultimo, removivel,
-  onSelecionar, onAlterar, onMover, onRemover, onArrastarInicio, onSoltarAqui,
+  bloco, selecionado, primeiro, ultimo, removivel, arrastavel, alvo, arrastado,
+  onSelecionar, onAlterar, onMover, onRemover,
+  onArrastarInicio, onArrastarFim, onArrastarSobre, onSoltarAqui, onPegar, onLargar,
 }) {
   const meta = TIPOS_BLOCO[bloco.tipo];
   if (!meta) return null;
@@ -78,18 +79,48 @@ export default function BlocoComanda({
   const aceita = (prop) => meta.props.includes(prop);
   const visivel = bloco.visivel !== false;
   const idCampo = `bloco-${bloco.id}-texto`;
+  const idTamanho = `bloco-${bloco.id}-tamanho`;
   const digitosCnpj = bloco.tipo === "cnpj" ? String(bloco.texto ?? "").replace(/\D/g, "").length : 0;
+  const opcoesItens = bloco.opcoes ?? {};
+  const mostrarUnitario = opcoesItens.unitario !== false;
+  const largurasDoBloco = aceita("opcoesItens") ? largurasVisiveis(opcoesItens.larguras, mostrarUnitario) : null;
+
+  // Metade de cima da linha = cai ANTES dela, metade de baixo = DEPOIS.
+  // É a leitura natural do gesto, e é o que a marca de destino desenha.
+  const posicaoNaLinha = (e) => {
+    const caixa = e.currentTarget.getBoundingClientRect();
+    return e.clientY - caixa.top < caixa.height / 2 ? "antes" : "depois";
+  };
+
+  const classes = [
+    "bloco-comanda",
+    selecionado ? "bloco-comanda--selecionado" : "",
+    visivel ? "" : "bloco-comanda--desligado",
+    arrastado ? "bloco-comanda--arrastado" : "",
+    alvo ? `bloco-comanda--alvo-${alvo}` : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <li
-      className={`bloco-comanda${selecionado ? " bloco-comanda--selecionado" : ""}${visivel ? "" : " bloco-comanda--desligado"}`}
-      draggable={!selecionado}
+      className={classes}
+      // Só a alça arrasta: com a linha inteira arrastável, começar o
+      // gesto em cima do olho ou da lixeira virava arrasto em vez de
+      // clique. `arrastavel` só fica ligado enquanto o dedo está na alça.
+      draggable={arrastavel}
       onDragStart={onArrastarInicio}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => { e.preventDefault(); onSoltarAqui(); }}
+      onDragEnd={onArrastarFim}
+      onDragOver={(e) => { e.preventDefault(); onArrastarSobre(posicaoNaLinha(e)); }}
+      onDrop={(e) => { e.preventDefault(); onSoltarAqui(posicaoNaLinha(e)); }}
     >
       <div className="bloco-comanda__linha">
-        <span className="bloco-comanda__pegador" aria-hidden="true"><LuGripVertical size={16} /></span>
+        <span
+          className="bloco-comanda__pegador"
+          aria-hidden="true"
+          onPointerDown={onPegar}
+          onPointerUp={onLargar}
+        >
+          <LuGripVertical size={16} />
+        </span>
 
         <button type="button" onClick={onSelecionar} aria-expanded={selecionado} className="bloco-comanda__titulo">
           <span className="bloco-comanda__nome">{meta.rotulo}</span>
@@ -174,8 +205,26 @@ export default function BlocoComanda({
           )}
 
           {aceita("tamanho") && (
-            <Segmentado legenda="Tamanho da letra" opcoes={TAMANHOS}
-                        valor={bloco.tamanho} onEscolher={(v) => onAlterar({ tamanho: v })} />
+            <div className="bloco-comanda__campo">
+              <label className="bloco-comanda__rotulo" htmlFor={idTamanho}>Tamanho da letra</label>
+              <div className="bloco-comanda__medida">
+                <input
+                  id={idTamanho}
+                  type="number"
+                  min={MIN_TAMANHO_PX}
+                  max={MAX_TAMANHO_PX}
+                  step="1"
+                  value={bloco.tamanho ?? TAMANHO_PADRAO_PX}
+                  onChange={(e) => onAlterar({ tamanho: e.target.value })}
+                  className="bloco-comanda__numero"
+                />
+                <span className="bloco-comanda__unidade">px</span>
+              </div>
+              <span className="bloco-comanda__ajuda">
+                De {MIN_TAMANHO_PX} a {MAX_TAMANHO_PX}. Vale na impressão pelo navegador, a
+                impressora térmica imprime na fonte dela, sempre do mesmo tamanho.
+              </span>
+            </div>
           )}
 
           {(aceita("negrito") || aceita("maiuscula")) && (
@@ -201,22 +250,32 @@ export default function BlocoComanda({
           )}
 
           {aceita("opcoesItens") && (
-            <div className="bloco-comanda__campo">
-              <span className="bloco-comanda__rotulo">O que mostrar em cada item</span>
-              {OPCOES_ITENS.map(({ chave, rotulo, ajuda }) => (
-                <label key={chave} className="bloco-comanda__caixa">
-                  <input
-                    type="checkbox"
-                    checked={bloco.opcoes?.[chave] !== false}
-                    onChange={(e) => onAlterar({ opcoes: { ...bloco.opcoes, [chave]: e.target.checked } })}
-                  />
-                  <span>
-                    {rotulo}
-                    <span className="bloco-comanda__ajuda">{ajuda}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
+            <>
+              <div className="bloco-comanda__campo">
+                <span className="bloco-comanda__rotulo">O que mostrar em cada item</span>
+                {OPCOES_ITENS.map(({ chave, rotulo, ajuda }) => (
+                  <label key={chave} className="chave">
+                    <input
+                      type="checkbox"
+                      className="chave__campo"
+                      checked={bloco.opcoes?.[chave] !== false}
+                      onChange={(e) => onAlterar({ opcoes: { ...bloco.opcoes, [chave]: e.target.checked } })}
+                    />
+                    <span className="chave__pino" />
+                    <span className="chave__texto">
+                      <span className="chave__titulo">{rotulo}</span>
+                      <span className="chave__ajuda">{ajuda}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              <LarguraColunas
+                larguras={largurasDoBloco}
+                mostrarUnitario={bloco.opcoes?.unitario !== false}
+                onAlterar={(larguras) => onAlterar({ opcoes: { ...bloco.opcoes, larguras } })}
+              />
+            </>
           )}
 
           {aceita("linhasEmBranco") && (

@@ -19,7 +19,10 @@ export function useLS(key, initialValue) {
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
+    } catch {
+      // Cota estourada ou aba anônima com storage bloqueado: o app segue
+      // funcionando com o valor em memória — não vale derrubar a tela.
+    }
   }, [key, value]);
 
   return [value, setValue];

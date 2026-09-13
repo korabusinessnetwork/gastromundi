@@ -39,6 +39,29 @@
   gap: 12px;
 }
 
+/* "Meus pedidos" no canto do cabeçalho: acompanhamento é secundário
+   diante do cardápio, mas precisa estar sempre à mão — quem volta na
+   página está voltando justamente para ver isso. `margin-left: auto`
+   empurra para a ponta sem depender da ordem dos irmãos. */
+.vitrine__meus-pedidos {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vitrine__meus-pedidos:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
 .vitrine__logo {
   width: 44px;
   height: 44px;
@@ -64,6 +87,16 @@
 }
 .vitrine__status--aberto { color: var(--gm-green); }
 .vitrine__status--fechado { color: var(--gm-red); }
+/* Selo de retirada: informação, não estado da loja — por isso vem como
+   etiqueta discreta ao lado do "Aberto agora", e não competindo com ele. */
+.vitrine__status--retirada {
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-accent);
+  color: var(--gm-accent);
+  font-size: 12px;
+}
 .vitrine__status-bolinha {
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor;
@@ -125,6 +158,11 @@
   gap: 12px;
 }
 
+/* `color: inherit` como em `.forma` mais abaixo: o cartão é um <button>, e
+   botão não herda a cor do documento — o navegador aplica a dele
+   (`buttontext`, preto). Sem esta linha o NOME do produto saía preto no
+   cartão escuro, ilegível, na tela que o cliente vê. Preço e descrição não
+   sumiam porque declaram cor própria. */
 .card-produto {
   display: flex;
   gap: 12px;
@@ -135,6 +173,7 @@
   border-radius: 14px;
   background: var(--gm-card);
   border: 1px solid var(--gm-border);
+  color: inherit;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.05s;
 }
@@ -163,19 +202,71 @@
   color: var(--gm-green);
 }
 
+/* A miniatura era um quadrado de 88px: a foto do prato aparecia pequena e,
+   por ser quadrada, o `cover` cortava as laterais de quase toda foto de
+   comida (que é tirada deitada). Agora ela é maior e 4:3 — o mesmo
+   enquadramento em que a foto foi tirada, então sobra imagem em vez de
+   corte. `aspect-ratio` mantém a proporção em qualquer largura. */
 .card-produto__foto {
-  width: 88px;
-  height: 88px;
+  width: 116px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 10px;
   object-fit: cover;
   background: var(--gm-surface);
   flex-shrink: 0;
+  align-self: center;
 }
+/* O ícone de reserva acompanha o tamanho do quadro: 44px era o certo para
+   a miniatura do celular e virava um ponto perdido no meio do cartão do
+   computador, onde a foto ocupa a largura inteira. */
 .card-produto__foto--emoji {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
+  font-size: 44px;
+}
+
+/* ── Computador: o cardápio vira grade ─────────────────────────────
+   Em uma coluna só, cada card ficava com 720px de largura e uma tarja de
+   foto perdida na ponta direita — cara de página de celular esticada. A
+   partir de 720px a lista vira grade e o card se reorganiza: foto grande
+   em cima (4:3, largura inteira), texto embaixo. É o formato em que se
+   escolhe comida olhando, que é o que a vitrine é. */
+@media (min-width: 720px) {
+  .vitrine__grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .card-produto {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  /* A foto vem antes do texto na tela sem mudar a ordem do HTML: no
+     código ela continua depois do nome do produto, que é a ordem certa
+     para quem lê com leitor de tela. */
+  .card-produto__foto {
+    order: -1;
+    width: 100%;
+  }
+  .card-produto__foto--emoji {
+    font-size: 72px;
+  }
+
+  /* Preço no rodapé do card, alinhado entre os cards da mesma linha,
+     mesmo quando um tem descrição de duas linhas e o outro nenhuma. */
+  .card-produto__texto {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .card-produto__preco {
+    margin-top: auto;
+    padding-top: 4px;
+  }
 }
 
 /* ── Modal (produto / checkout / confirmação) ───────────────────── */
@@ -253,9 +344,13 @@
   gap: 14px;
   margin-bottom: 20px;
 }
+/* Ao abrir o produto, a foto é a razão de ele ter sido aberto — 72px de
+   selo ao lado do nome não mostrava o prato. Mesma proporção 4:3 do card,
+   em tamanho de olhar. */
 .produto-hero__foto {
-  width: 72px;
-  height: 72px;
+  width: 124px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 14px;
   object-fit: cover;
   background: var(--gm-surface);
@@ -265,7 +360,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 52px;
 }
 .produto-hero__desc {
   margin: 0;
@@ -481,7 +576,34 @@
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
   background: linear-gradient(to top, var(--gm-bg) 70%, transparent);
 }
-.sacola-barra__inner { max-width: 720px; margin: 0 auto; }
+/* A barra é um <button>, e tinha só largura e margem: o navegador
+   desenhava o botão NATIVO dele — cinza, do tamanho do texto, encostado
+   no canto de baixo à esquerda, com "Ver sacola" colado no preço. Era o
+   caminho para o checkout parecendo um defeito da página. `margin: auto`
+   também não centralizava nada, porque botão é inline-block.
+
+   Agora ela veste o mesmo botão primário do resto da vitrine — é a mesma
+   ação (avançar no pedido), tem que ter a mesma cara. */
+.sacola-barra__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 15px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+.sacola-barra__inner:active { transform: scale(0.995); }
 .sacola-barra__badge {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
@@ -490,14 +612,12 @@
 }
 
 /* ── Linha da sacola (revisão) ──────────────────────────────────── */
-.linha-sacola {
-  display: flex;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--gm-border);
-}
+/* A caixa da linha (cartão, espaçamento, borda) mora em SacolaModal.css —
+   é lá que a sacola é desenhada. Aqui ficam só o texto e o preço, que a
+   tela de entrega e a de pagamento também reaproveitam
+   (`.linha-sacola__extra` é a frase de apoio dos dois checkouts). */
 .linha-sacola__texto { flex: 1; min-width: 0; }
-.linha-sacola__nome { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.linha-sacola__nome { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
 .linha-sacola__extra { font-size: 12px; color: var(--gm-muted); margin: 0 0 6px; line-height: 1.4; }
 .linha-sacola__preco { font-size: 14px; font-weight: 800; color: var(--gm-green); white-space: nowrap; }
 

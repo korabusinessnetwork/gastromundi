@@ -189,3 +189,60 @@ describe("ProdutosView, renomear categoria", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("ProdutosView, desabilitar a venda de um produto", () => {
+  // Desabilitar não é excluir: o cadastro fica inteiro (preço, estoque,
+  // ficha técnica) e o item só deixa de ser oferecido no PDV. É o
+  // "acabou hoje" sem ter de recadastrar amanhã.
+  const selo = () => screen.getByRole("switch", { name: /Vender X-Burguer no PDV/ });
+
+  it("o selo mostra o estado de agora, em palavra", () => {
+    render(<ProdutosView />);
+    expect(selo()).toHaveTextContent("À venda");
+    expect(selo()).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("clicar desabilita, e grava só o campo da venda", async () => {
+    const user = userEvent.setup();
+    render(<ProdutosView />);
+    await user.click(selo());
+    expect(updateProduct).toHaveBeenCalledWith(1, { active: false });
+  });
+
+  it("produto desabilitado continua na lista, com o selo trocado", () => {
+    setAppMock({ products: [{ ...PRODUTO, active: false }], updateProduct });
+    render(<ProdutosView />);
+    // Sumir da lista seria o pior desfecho: não haveria como religá-lo.
+    expect(screen.getByText("X-Burguer")).toBeInTheDocument();
+    expect(selo()).toHaveTextContent("Desabilitado");
+    expect(selo()).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("clicar num desabilitado volta a vender", async () => {
+    const user = userEvent.setup();
+    setAppMock({ products: [{ ...PRODUTO, active: false }], updateProduct });
+    render(<ProdutosView />);
+    await user.click(selo());
+    expect(updateProduct).toHaveBeenCalledWith(1, { active: true });
+  });
+
+  it("falha ao gravar avisa e não some sozinho, porque a lista mentiria", async () => {
+    const user = userEvent.setup();
+    updateProduct.mockResolvedValueOnce({ error: { message: "sem permissão" } });
+    render(<ProdutosView />);
+    await user.click(selo());
+
+    const alerta = await screen.findByRole("alert");
+    expect(alerta).toHaveTextContent(/Não deu para desabilitar "X-Burguer"/);
+    expect(alerta).toHaveTextContent(/Nada foi alterado/);
+
+    await user.click(within(alerta).getByRole("button", { name: /Fechar aviso/ }));
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("quem não pode gravar não recebe um botão que vai falhar", () => {
+    setAppMock({ products: [PRODUTO], updateProduct, currentUser: { role: "caixa", name: "Ana" } });
+    render(<ProdutosView />);
+    expect(selo()).toBeDisabled();
+  });
+});

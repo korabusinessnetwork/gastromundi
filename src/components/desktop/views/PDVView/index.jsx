@@ -19,8 +19,10 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { mesmoItemDeVenda } from "@/lib/combos";
+import { carregarTodosGrupos } from "@/lib/gruposEscolha";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
+import { comandasDoSalao } from "@/lib/deliveryPedidos";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
@@ -142,23 +144,33 @@ export default function PDVView({ notify }) {
   const [barcodeValue,      setBarcodeValue]      = useState("");
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
-  const abertas = pending.filter(o => o.status !== "closed");
+  // O pedido de delivery NÃO é comanda do salão: ninguém vai servi-lo na
+  // mesa, e desde 20261002 quem fecha a venda dele é a própria aba
+  // Delivery. O espelho continua em `pending` porque é ele que a Cozinha
+  // lê e a impressora imprime — só deixou de aparecer aqui, onde não
+  // havia o que fazer com ele além de confundir quem atende.
+  const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
 
-  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
-  // Carrega uma vez por entrada na tela; a receita (subprodutos com
-  // controla_estoque) viaja junto no item do carrinho para a baixa de
-  // estoque dos componentes na finalização.
+  // ── Combos e grupos de escolha — vendáveis no PDV ─────────────
+  // Carrega uma vez por entrada na tela. O combo flexível é nome + preço +
+  // grupos de escolha; cada grupo vem indexado por dono em carregarTodosGrupos
+  // (porCombo/porProduto). Ao vender, as escolhas viajam no item do carrinho
+  // e baixam o estoque dos produtos reais escolhidos na finalização.
   const [combos, setCombos] = useState([]);
+  const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
     let ativo = true;
-    supabase
-      .from("combos")
-      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
-      .eq("ativo", true)
-      .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
-        if (ativo) setCombos(data ?? []);
-      });
+    Promise.all([
+      supabase.from("combos").select("id, nome, preco_total").eq("ativo", true),
+      carregarTodosGrupos(),
+    ]).then(([combosRes, gruposRes]) => {
+      if (!ativo) return;
+      if (combosRes.error) console.error("[pdv] erro ao carregar combos:", combosRes.error);
+      if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", gruposRes.error);
+      const porCombo = gruposRes.porCombo ?? {};
+      setCombos((combosRes.data ?? []).map(c => ({ ...c, grupos: porCombo[c.id] ?? [] })));
+      setGruposPorProduto(gruposRes.porProduto ?? {});
+    });
     return () => { ativo = false; };
   }, []);
 
@@ -362,7 +374,7 @@ export default function PDVView({ notify }) {
       setBarcodeFeedback("notfound");
     }
     setTimeout(() => setBarcodeFeedback(null), 2500);
-  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [products, mode]);
 
   useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
 
@@ -468,7 +480,8 @@ export default function PDVView({ notify }) {
         onNfce: ({ estado, resultado, venda }) =>
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
-      handleBack();
+      // Não volta à grade aqui: o CheckoutView mostra a confirmação pós-venda
+      // (comprovante + "Concluir"). A navegação de saída é o onConcluir abaixo.
       return { error: null };
     } catch (err) {
       // não usar JSON.stringify: mascara Error como "{}"
@@ -1196,7 +1209,7 @@ export default function PDVView({ notify }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div className="pdv__produtos-area">
-                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} gruposPorProduto={gruposPorProduto} onAdd={handleAddProduct} />
               </div>
             )}
 
@@ -1245,6 +1258,7 @@ export default function PDVView({ notify }) {
             ]}
             onConfirm={handleConfirmPayment}
             onBack={() => setMode("pedido")}
+            onConcluir={handleBack}
             onRemoverItem={handleRemoverItemCheckout}
           />
         )}
@@ -1891,7 +1905,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
-  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  // Mesma régua da lista: o delivery não é comanda do salão. Contá-lo aqui
+  // diria "R$ 300 em aberto" com zero comandas na tela — e esse dinheiro
+  // não é do caixa até a entrega, quando a aba Delivery registra a venda.
+  const abertas = comandasDoSalao(pending).filter(p => p.status !== "closed");
   const totalAberto = abertas.reduce((s, p) => {
     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
@@ -1920,6 +1937,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
+  // Paleta categórica de método de pagamento: cada método tem sua cor, e
+  // nenhuma delas é semântica. O âmbar do Pix fica literal de propósito
+  // (TD018) — vira `--gm-warn` e o chip do Pix passaria a seguir a cor de
+  // alerta do estabelecimento, destoando dos outros três.
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {

@@ -82,7 +82,7 @@ function parseElemento(s, pos) {
   if (s[pos] !== "<") throw new Error("C14N: esperado início de elemento.");
   pos++;
   let nome = "";
-  while (pos < s.length && !/[\s>\/]/.test(s[pos])) nome += s[pos++];
+  while (pos < s.length && !/[\s>/]/.test(s[pos])) nome += s[pos++];
 
   const atributos = [];
   while (pos < s.length) {

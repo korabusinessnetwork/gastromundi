@@ -179,7 +179,6 @@ export default function DesempenhoReport() {
 
     carregar();
     return () => { cancelado = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipoPeriodo, customInicio, customFim, comparar, tipoComparacao, compInicio, compFim, periodoValido]);
 
   const faturamento = atual?.faturamento ?? 0;

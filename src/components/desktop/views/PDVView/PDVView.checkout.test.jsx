@@ -88,7 +88,7 @@ async function irParaOCheckout(items, total) {
 const botaoConfirmar = () => screen.getByRole("button", { name: /Confirmar Pagamento/ });
 const campoRecebido  = () => document.querySelector(".checkout-view__troco-input");
 
-describe("CheckoutView, dinheiro abaixo do total no pagamento único", () => {
+describe("CheckoutView — dinheiro abaixo do total no pagamento único", () => {
   it("R$ 50 numa conta de R$ 68,30 não confirma, e a tela diz quanto falta", async () => {
     await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
 
@@ -121,12 +121,32 @@ describe("CheckoutView, dinheiro abaixo do total no pagamento único", () => {
     expect(botaoConfirmar()).toBeEnabled();
   });
 
-  it("a trava é só do dinheiro, Pix não pede valor recebido", async () => {
+  it("a trava é só do dinheiro — Pix não pede valor recebido", async () => {
     await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
 
     await clicar("Pix");
     expect(campoRecebido()).toBeNull();
     expect(botaoConfirmar()).toBeEnabled();
+  });
+});
+
+describe("CheckoutView, confirmação pós-venda (espelha o Palm)", () => {
+  it("ao confirmar, mostra a tela de sucesso com imprimir comprovante e só sai no Concluir", async () => {
+    await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
+
+    await clicar("Pix");
+    await clicar(/Confirmar Pagamento/);
+
+    // Não volta sozinho pra grade: a venda foi confirmada e a tela mostra a
+    // confirmação com o comprovante em mãos (princípio nº 1 — próxima ação visível).
+    expect(await screen.findByText("Pagamento confirmado!")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Imprimir comprovante/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Confirmar Pagamento/ })).toBeNull();
+
+    // Só o "Concluir" sai do checkout e volta para a grade de comandas.
+    await clicar("Concluir");
+    expect(screen.queryByText("Pagamento confirmado!")).toBeNull();
+    expect(screen.getByPlaceholderText("Buscar comanda...")).toBeInTheDocument();
   });
 });
 

@@ -9,6 +9,7 @@ import { getSizes } from "@/constants/sizes";
 import { useApp } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
+import BotaoReimprimirVia from "./BotaoReimprimirVia";
 import "./CartPanel.css";
 
 const fmtComanda = (name) =>
@@ -44,13 +45,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
   const getObs = (item) => Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
 
-  // B4 — composição do combo visível no carrinho (o operador confere o que
-  // acompanha sem precisar decorar a receita)
+  // Composição visível no carrinho: as escolhas que o operador fez no combo /
+  // produto com seleção (confere o que vai sem decorar a receita).
   const resumoCombo = (item) => {
-    const fmt = (x) => (Number(x?.quantidade ?? 1) > 1 ? `${x.quantidade}× ${x.nome}` : x.nome);
-    const prods = (item?.combo?.produtos ?? []).filter(p => p?.nome).map(fmt);
-    const subs  = (item?.combo?.subprodutos ?? []).filter(s => s?.nome).map(fmt);
-    const partes = [...prods, ...subs];
+    const escolhas = item?.combo?.escolhas;
+    if (!Array.isArray(escolhas) || escolhas.length === 0) return null;
+    const partes = escolhas
+      .filter(e => e?.nome)
+      .map(e => (Number(e?.qtd ?? 1) > 1 ? `${e.qtd}× ${e.nome}` : e.nome));
     return partes.length ? partes.join(" + ") : null;
   };
 
@@ -114,6 +116,13 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
         {comanda?.garcom && (
           <div className="cart-panel__garcom" style={{ color: varColor(C.muted), marginTop: 4 }}>
             <LuUser size={12} /> {comanda.garcom}
+          </div>
+        )}
+        {/* Reimpressão da via de produção — só faz sentido quando já há
+            itens lançados (mandados para a cozinha). */}
+        {itensAtivos.length > 0 && (
+          <div className="cart-panel__header-acoes" style={{ marginTop: 10 }}>
+            <BotaoReimprimirVia pedido={comanda} />
           </div>
         )}
       </div>

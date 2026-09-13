@@ -97,7 +97,7 @@ export function parsearCSV(texto, separador = detectarSeparador(texto)) {
   let linha = [];
   let celula = "";
   let entreAspas = false;
-  const t = String(texto).replace(/^﻿/, ""); // BOM do Excel
+  const t = String(texto).replace(/^\uFEFF/, ""); // BOM do Excel
 
   for (let i = 0; i < t.length; i++) {
     const c = t[i];

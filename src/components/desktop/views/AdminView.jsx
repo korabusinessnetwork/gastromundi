@@ -980,6 +980,10 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
 const TIPOS_IMPOSTO = ["ISS", "ICMS", "PIS", "COFINS", "Simples Nacional", "Outro"];
 
+// Paleta categórica de tipo de imposto — as seis cores só servem para
+// distinguir um tipo do outro. O âmbar do COFINS fica literal (TD018):
+// virar `--gm-warn` faria só esse chip seguir a cor de alerta do tema,
+// quebrando a paleta.
 const COR_TIPO = {
   "ISS":              "#3b82f6",
   "ICMS":             "#8b5cf6",

@@ -8,7 +8,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "setup:git": "node scripts/setup-git.mjs"
+    "lint": "eslint .",
+    "setup:git": "node scripts/setup_git.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.67.0",
@@ -27,11 +28,15 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^5.2.0",
+    "eslint": "^10.9.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
+    "globals": "^17.11.0",
     "jsdom": "^29.1.1",
     "node-forge": "^1.4.0",
     "vite": "^8.2.1",

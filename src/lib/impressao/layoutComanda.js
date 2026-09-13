@@ -53,7 +53,168 @@ export const DIGITOS_CNPJ = 14;
 export const MAX_BLOCOS = 60;
 
 export const ALINHAMENTOS = ["esquerda", "centro", "direita"];
-export const TAMANHOS = ["pequeno", "normal", "grande"];
+
+// --- Tamanho da letra, em PIXELS --------------------------------------
+// Era "pequeno/normal/grande". Virou número porque três degraus não davam
+// conta: quem quer o TOTAL bem grande na conta do cliente e quem quer o
+// papel compacto precisavam de coisas diferentes, e nenhuma das duas era
+// um dos três.
+//
+// Pixel vale na impressão PELO NAVEGADOR. A térmica não tem pixel — ela
+// imprime na fonte da própria impressora — e por isso ignora o tamanho,
+// como sempre ignorou.
+export const MIN_TAMANHO_PX = 8;
+export const MAX_TAMANHO_PX = 40;
+export const TAMANHO_PADRAO_PX = 13;
+
+// Layouts salvos antes da mudança guardam o nome do degrau. A conversão
+// reproduz o que aqueles nomes desenhavam (0.85em, 1em e 1.3em sobre a
+// base de 13px), para o papel de quem já usava não mudar de aparência.
+const PX_DO_NOME_ANTIGO = { pequeno: 11, normal: 13, grande: 17 };
+
+/**
+ * Tamanho válido a partir do que veio do banco: número dentro dos limites,
+ * nome antigo convertido, qualquer outra coisa vira o padrão. Pura.
+ *
+ * @param {any} bruto
+ * @returns {number} pixels
+ */
+export function tamanhoEmPx(bruto) {
+  if (typeof bruto === "string" && bruto in PX_DO_NOME_ANTIGO) return PX_DO_NOME_ANTIGO[bruto];
+  const n = Math.round(Number(bruto));
+  if (!Number.isFinite(n)) return TAMANHO_PADRAO_PX;
+  return Math.min(MAX_TAMANHO_PX, Math.max(MIN_TAMANHO_PX, n));
+}
+
+// --- Largura das colunas da lista de itens ----------------------------
+// O dono arrasta a divisória entre as colunas e decide quanto do papel
+// vai para o nome do produto e quanto vai para os números. Guardado em
+// PORCENTAGEM do papel, e não em pixels ou caracteres, porque é a única
+// unidade que os dois mundos entendem: o navegador transforma em largura
+// de coluna, a térmica transforma em contagem de caracteres.
+
+export const COLUNAS_ITENS = ["nome", "qtd", "unitario", "total"];
+
+// Piso por coluna. Abaixo disso a coluna deixa de caber até num valor
+// curto e passa a quebrar toda linha — arrastar até ali não é
+// customização, é estragar o papel (prevenção de erro, princípio nº1).
+export const MIN_LARGURA_COLUNA = Object.freeze({ nome: 20, qtd: 7, unitario: 14, total: 16 });
+
+// Fábrica, medida no papel de 58mm, que é o estreito: 14% é o mínimo em
+// que o cabeçalho "Qtd" cabe numa linha, e 25% é o mínimo em que "32.50"
+// não quebra no meio do número. O nome fica com o que sobra — é ele que
+// aceita quebrar em mais linhas sem virar valor errado. Em 80mm tudo isso
+// folga, e o dono pode arrastar a divisória do jeito que quiser.
+export const LARGURAS_ITENS_PADRAO = Object.freeze({ nome: 33, qtd: 14, unitario: 25, total: 28 });
+
+// Nome menor que isto na térmica não é coluna, é uma letra por linha.
+const MIN_CHARS_NOME = 10;
+
+/**
+ * Larguras válidas a partir do que veio do banco (JSON livre): número,
+ * respeitando o piso de cada coluna, somando exatamente 100. Pura.
+ *
+ * @param {any} bruto
+ * @returns {{nome: number, qtd: number, unitario: number, total: number}}
+ */
+export function normalizarLargurasItens(bruto) {
+  const cru = {};
+  for (const coluna of COLUNAS_ITENS) {
+    const n = Number(bruto?.[coluna]);
+    cru[coluna] = Number.isFinite(n) && n > 0 ? n : LARGURAS_ITENS_PADRAO[coluna];
+  }
+  return escalarPara100(cru, COLUNAS_ITENS);
+}
+
+// Escala as colunas informadas para somar 100 e devolve cada uma no seu
+// piso. A sobra da divisão fica com `nome`, que é a coluna elástica — é
+// ela que aceita quebrar em mais de uma linha sem estragar o papel.
+function escalarPara100(larguras, chaves) {
+  const soma = chaves.reduce((t, c) => t + (larguras[c] ?? 0), 0) || 1;
+  const saida = {};
+  let usado = 0;
+  for (const chave of chaves) {
+    if (chave === "nome") continue;
+    const escalado = ((larguras[chave] ?? 0) * 100) / soma;
+    saida[chave] = Math.round(Math.max(MIN_LARGURA_COLUNA[chave], escalado) * 10) / 10;
+    usado += saida[chave];
+  }
+  saida.nome = Math.round(Math.max(MIN_LARGURA_COLUNA.nome, 100 - usado) * 10) / 10;
+
+  // O piso pode ter estourado os 100% (papel estreito com as quatro
+  // colunas no mínimo): aí encolhe proporcionalmente quem não é o nome,
+  // porque cortar o nome é o que deixa o item irreconhecível.
+  const total = chaves.reduce((t, c) => t + saida[c], 0);
+  if (total > 100) {
+    const excedente = total - 100;
+    const encolhivel = total - saida.nome;
+    for (const chave of chaves) {
+      if (chave === "nome") continue;
+      saida[chave] = Math.round((saida[chave] - (excedente * saida[chave]) / encolhivel) * 10) / 10;
+    }
+    saida.nome = Math.round((100 - chaves.reduce((t, c) => (c === "nome" ? t : t + saida[c]), 0)) * 10) / 10;
+  }
+
+  // Reordena na ordem do papel: `mesmoLayout` compara por JSON, e ordem
+  // de chave diferente viraria "alterado" sem nada ter mudado.
+  return Object.fromEntries(COLUNAS_ITENS.filter((c) => chaves.includes(c)).map((c) => [c, saida[c]]));
+}
+
+/**
+ * Projeta as larguras nas colunas que REALMENTE saem no papel: sem o
+ * preço unitário são três colunas, e o espaço dele é redistribuído em
+ * vez de virar buraco. Pura.
+ *
+ * @param {any} larguras
+ * @param {boolean} mostrarUnitario
+ * @returns {object} porcentagens somando 100, só das colunas visíveis
+ */
+export function largurasVisiveis(larguras, mostrarUnitario) {
+  const completas = normalizarLargurasItens(larguras);
+  const chaves = mostrarUnitario ? COLUNAS_ITENS : COLUNAS_ITENS.filter((c) => c !== "unitario");
+  return escalarPara100(completas, chaves);
+}
+
+/**
+ * Larguras em CARACTERES para a térmica, que não tem porcentagem: só
+ * colunas de tamanho inteiro numa linha de 32 ou 48.
+ *
+ * Duas garantias que valem mais que a proporção pedida:
+ * 1. coluna de número nunca fica menor que o maior valor que ela precisa
+ *    mostrar — cortar "R$ 32.50" em "R$ 32" imprimiria um valor ERRADO;
+ * 2. o nome tem que caber INTEIRO na coluna dele; senão devolve `null` e
+ *    o pedido inteiro sai no formato empilhado (nome usando a linha toda,
+ *    valor à direita embaixo), que é o de hoje.
+ *
+ * A regra 2 existe porque o papel de 48 colunas é justamente o que
+ * permite "Filé à parmegiana com fritas e arroz" sair numa linha só.
+ * Espremer esse nome numa coluna de 18 caracteres para ganhar alinhamento
+ * de números seria trocar o que se lê pelo que se admira.
+ *
+ * @param {Array<object>} itens - itens resolvidos (nome, qty, unitario, total)
+ * @param {number} colunas - colunas reais da impressora (32/48)
+ * @param {object} larguras - porcentagens das colunas visíveis
+ * @param {boolean} mostrarUnitario
+ * @returns {{nome: number, qtd: number, unitario: number, total: number}|null}
+ */
+export function largurasEmCaracteres(itens, colunas, larguras, mostrarUnitario) {
+  const total = Math.max(1, Math.floor(Number(colunas) || 0));
+  const pct = largurasVisiveis(larguras, mostrarUnitario);
+  const lista = Array.isArray(itens) ? itens : [];
+  const maior = (fn) => lista.reduce((m, it) => Math.max(m, String(fn(it) ?? "").length), 0);
+
+  const largura = {
+    qtd: Math.max(Math.round((pct.qtd * total) / 100), maior((it) => `${it.qty}x`) + 1),
+    unitario: mostrarUnitario
+      ? Math.max(Math.round((pct.unitario * total) / 100), maior((it) => it.unitario) + 1)
+      : 0,
+    total: Math.max(Math.round((pct.total * total) / 100), maior((it) => it.total) + 1),
+  };
+
+  const nome = total - largura.qtd - largura.unitario - largura.total;
+  if (nome < MIN_CHARS_NOME || nome < maior((it) => it.nome)) return null;
+  return { nome, ...largura };
+}
 
 /**
  * Catálogo dos blocos que podem compor a comanda. `props` declara o
@@ -179,23 +340,23 @@ function aceita(tipo, prop) {
  */
 export const LAYOUT_COMANDA_PADRAO = Object.freeze([
   { id: "logo", tipo: "logo", visivel: true, alinhamento: "centro" },
-  { id: "nome", tipo: "nome", visivel: true, alinhamento: "centro", tamanho: "grande", negrito: true },
-  { id: "dataHora", tipo: "dataHora", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
-  { id: "endereco", tipo: "endereco", visivel: false, alinhamento: "centro", tamanho: "pequeno", texto: "" },
-  { id: "cnpj", tipo: "cnpj", visivel: false, alinhamento: "centro", tamanho: "pequeno", texto: "" },
-  { id: "comanda", tipo: "comanda", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
+  { id: "nome", tipo: "nome", visivel: true, alinhamento: "centro", tamanho: 17, negrito: true },
+  { id: "dataHora", tipo: "dataHora", visivel: true, alinhamento: "centro", tamanho: 11 },
+  { id: "endereco", tipo: "endereco", visivel: false, alinhamento: "centro", tamanho: 11, texto: "" },
+  { id: "cnpj", tipo: "cnpj", visivel: false, alinhamento: "centro", tamanho: 11, texto: "" },
+  { id: "comanda", tipo: "comanda", visivel: true, alinhamento: "centro", tamanho: 11 },
   { id: "separador-1", tipo: "separador", visivel: true },
   { id: "itens", tipo: "itens", visivel: true, opcoes: { unitario: true, observacoes: true, emoji: true } },
   { id: "separador-2", tipo: "separador", visivel: true },
-  { id: "subtotal", tipo: "subtotal", visivel: true, tamanho: "pequeno" },
-  { id: "taxa", tipo: "taxa", visivel: true, tamanho: "pequeno" },
-  { id: "ajuste", tipo: "ajuste", visivel: true, tamanho: "pequeno" },
-  { id: "total", tipo: "total", visivel: true, tamanho: "grande", negrito: true },
-  { id: "troco", tipo: "troco", visivel: true, tamanho: "pequeno" },
-  { id: "pagamento", tipo: "pagamento", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
-  { id: "avisoNaoFiscal", tipo: "avisoNaoFiscal", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
+  { id: "subtotal", tipo: "subtotal", visivel: true, tamanho: 11 },
+  { id: "taxa", tipo: "taxa", visivel: true, tamanho: 11 },
+  { id: "ajuste", tipo: "ajuste", visivel: true, tamanho: 11 },
+  { id: "total", tipo: "total", visivel: true, tamanho: 17, negrito: true },
+  { id: "troco", tipo: "troco", visivel: true, tamanho: 11 },
+  { id: "pagamento", tipo: "pagamento", visivel: true, alinhamento: "centro", tamanho: 11 },
+  { id: "avisoNaoFiscal", tipo: "avisoNaoFiscal", visivel: true, alinhamento: "centro", tamanho: 11 },
   { id: "separador-3", tipo: "separador", visivel: true },
-  { id: "rodape", tipo: "rodape", visivel: true, alinhamento: "centro", tamanho: "pequeno", texto: "" },
+  { id: "rodape", tipo: "rodape", visivel: true, alinhamento: "centro", tamanho: 11, texto: "" },
 ]);
 
 function textoLimpo(valor) {
@@ -216,7 +377,7 @@ function normalizarBloco(bruto, id) {
   const bloco = { id, tipo, visivel: bruto?.visivel !== false };
 
   if (aceita(tipo, "alinhamento")) bloco.alinhamento = umDe(bruto?.alinhamento, ALINHAMENTOS, "centro");
-  if (aceita(tipo, "tamanho")) bloco.tamanho = umDe(bruto?.tamanho, TAMANHOS, "normal");
+  if (aceita(tipo, "tamanho")) bloco.tamanho = tamanhoEmPx(bruto?.tamanho);
   if (aceita(tipo, "negrito")) bloco.negrito = bruto?.negrito === true;
   if (aceita(tipo, "maiuscula")) bloco.maiuscula = bruto?.maiuscula === true;
   if (aceita(tipo, "texto")) bloco.texto = textoLimpo(bruto?.texto);
@@ -224,7 +385,9 @@ function normalizarBloco(bruto, id) {
     bloco.opcoes = {
       unitario: bruto?.opcoes?.unitario !== false,
       observacoes: bruto?.opcoes?.observacoes !== false,
+      escolhas: bruto?.opcoes?.escolhas !== false,
       emoji: bruto?.opcoes?.emoji !== false,
+      larguras: normalizarLargurasItens(bruto?.opcoes?.larguras),
     };
   }
   if (aceita(tipo, "linhasEmBranco")) {
@@ -396,7 +559,7 @@ function aplicarCaixa(texto, bloco) {
 function estiloDoBloco(bloco) {
   return {
     alinhamento: bloco.alinhamento ?? "esquerda",
-    tamanho: bloco.tamanho ?? "normal",
+    tamanho: tamanhoEmPx(bloco.tamanho),
     negrito: bloco.negrito === true,
   };
 }
@@ -410,10 +573,19 @@ function linhasDeTexto(texto) {
     .filter(Boolean);
 }
 
+// O emoji vai SEPARADO do nome, e não colado nele, porque os dois papéis
+// discordam sobre ele: o navegador desenha, a térmica não sabe imprimir
+// (a Ponte manda texto puro na fonte da própria impressora). Colado, ele
+// viajava junto para a térmica — saía caractere estranho no papel e, pior,
+// ocupava espaço na conta das colunas: era o que empurrava o pedido para o
+// formato empilhado mesmo quando as colunas caberiam.
 function itemResolvido(item, opcoes) {
-  const emoji = opcoes.emoji && item.emoji ? `${item.emoji} ` : "";
   return {
-    nome: `${emoji}${item.nome ?? ""}`,
+    emoji: opcoes.emoji && item.emoji ? String(item.emoji) : "",
+    nome: String(item.nome ?? ""),
+    // Composição do combo: "2x Cheddar", "1x Coca". Sai abaixo do item,
+    // como a observação — é o que o cliente confere no papel.
+    escolhas: opcoes.escolhas === false ? [] : (Array.isArray(item.escolhas) ? item.escolhas : []),
     qty: Number(item.qty) || 1,
     unitario: fmtR(item.preco),
     total: fmtR((Number(item.preco) || 0) * (Number(item.qty) || 1)),
@@ -488,10 +660,15 @@ export function resolverBlocosComanda(layout, dados) {
       }
       case "itens": {
         const opcoes = bloco.opcoes ?? { unitario: true, observacoes: true, emoji: true };
+        const unitario = opcoes.unitario !== false;
         saida.push({
           tipo: "itens",
           estilo,
-          unitario: opcoes.unitario !== false,
+          unitario,
+          // Já projetadas nas colunas que saem: os dois renderizadores
+          // recebem a MESMA proporção e só mudam a unidade (porcentagem
+          // no navegador, caractere na térmica).
+          larguras: largurasVisiveis(opcoes.larguras, unitario),
           itens: (Array.isArray(d.itens) ? d.itens : []).map((i) => itemResolvido(i, opcoes)),
         });
         break;

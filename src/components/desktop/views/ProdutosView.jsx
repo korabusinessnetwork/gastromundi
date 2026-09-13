@@ -13,9 +13,10 @@ import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasPro
 import { labelEstoque, getUnidadesCompra, fmtQtd } from "@/utils/conversaoUnidades";
 import { LuTriangleAlert, LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuRuler } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
-import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
 import { novoUid } from "@/lib/uidLista";
+import EditorGruposEscolha from "./EditorGruposEscolha";
+import { carregarGruposDoProduto, salvarGrupos } from "@/lib/gruposEscolha";
 import "./ProdutosView.css";
 
 // TD015: a lista de fornecedores é editada linha a linha e removida do meio, e o
@@ -144,6 +145,15 @@ export default function ProdutosView() {
   const [editingCompra, setEditingCompra] = useState(null);
   const [isInsumo, setIsInsumo] = useState(false);
   const [isProducao, setIsProducao] = useState(false);
+  // Grupos de escolha do produto ("produto com seleção": ex. Refrigerante →
+  // Coca/Fanta). Cada opção é um produto real do catálogo, com o próprio
+  // estoque. Persistidos à parte (salvarGrupos) depois do produto existir.
+  const [grupos, setGrupos] = useState([]);
+  // Ligar/desligar a venda de um produto, direto na lista. Um por vez
+  // (o id em voo) para o botão poder se desabilitar sozinho enquanto grava,
+  // e um recado de falha que não some sem a pessoa ler.
+  const [alternandoId, setAlternandoId] = useState(null);
+  const [erroVenda, setErroVenda] = useState("");
 
 
   // ── Categorias ────────────────────────────────────────────────
@@ -266,12 +276,31 @@ export default function ProdutosView() {
       .filter(p => !busca || p.name.toLowerCase().includes(busca.toLowerCase()));
   }, [products, catFiltro, busca]);
 
+  // Liga/desliga a venda do produto. Não apaga nada: o cadastro continua
+  // inteiro (preço, estoque, ficha técnica), o item só deixa de ser
+  // oferecido no PDV. É o "acabou hoje" sem ter de recadastrar amanhã, e
+  // por isso fica na lista, a um clique, e não escondido dentro do Editar.
+  const alternarVenda = async (p) => {
+    if (!isAdmin || alternandoId != null) return;
+    const ligando = p.active === false;
+    setAlternandoId(p.id);
+    setErroVenda("");
+    const { error } = await updateProduct(p.id, { active: ligando });
+    setAlternandoId(null);
+    if (error) {
+      setErroVenda(
+        `Não deu para ${ligando ? "voltar a vender" : "desabilitar"} "${p.name}". Nada foi alterado. Tente de novo.`,
+      );
+    }
+  };
+
   // ── Modal ─────────────────────────────────────────────────────
 
   const abrirNovo = (insumo = false, producao = false) => {
     setIsInsumo(insumo);
     setIsProducao(producao);
     setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : producao ? "Produção" : "" });
+    setGrupos([]);
     setErro("");
     setEditId(null);
     setModal("novo");
@@ -307,7 +336,14 @@ export default function ProdutosView() {
     });
     setErro("");
     setEditId(p.id);
+    setGrupos([]);
     setModal("editar");
+    // Grupos de escolha só existem para produto comum (não insumo/produção).
+    if (!insumo && !producao) {
+      carregarGruposDoProduto(p.id).then(({ data, error }) => {
+        if (!error && Array.isArray(data)) setGrupos(data);
+      });
+    }
   };
 
   const fecharModal = () => {
@@ -394,19 +430,40 @@ export default function ProdutosView() {
       proxima_validade: form.proxima_validade || null,
     };
     let dbError = null;
+    let produtoId = editId;
     if (modal === "novo") {
-      const { error } = await addProduct({ id: crypto.randomUUID(), ...payload });
+      // products.id é bigint gerado pelo banco — só sai no retorno do insert.
+      const { data, error } = await addProduct({ id: crypto.randomUUID(), ...payload });
       dbError = error;
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
-      if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      if (!error) {
+        produtoId = data?.id;
+        // Estado coerente: o produto agora existe. Se os grupos falharem logo
+        // abaixo, uma nova gravação atualiza (não duplica) — vira modo editar.
+        setEditId(produtoId);
+        setModal("editar");
+        logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
+      }
     } else {
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
       const { error } = await updateProduct(editId, payload);
       dbError = error;
       if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : isProducao ? "producao:editar" : "produto:editar", { msg: `${tipo} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     }
+    if (dbError) { setSalvando(false); setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
+
+    // Opções de escolha — só produto comum, e depois do produto existir (o
+    // novo já ganhou o id real do banco acima). salvarGrupos é delete-then-
+    // insert idempotente, então salvar de novo é seguro.
+    if (!isInsumo && !isProducao && produtoId != null) {
+      const { error: erroGrupos } = await salvarGrupos({ produtoId, grupos });
+      if (erroGrupos) {
+        setSalvando(false);
+        setErro("O produto foi salvo, mas não deu para salvar as opções de escolha. Clique em salvar de novo.");
+        return;
+      }
+    }
     setSalvando(false);
-    if (dbError) { setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
     fecharModal();
   };
 
@@ -429,9 +486,8 @@ export default function ProdutosView() {
   const [abaAtiva, setAbaAtiva] = useState("produtos");
 
   const ABAS = [
-    { id: "produtos",    label: "Produtos" },
-    { id: "subprodutos", label: "Subprodutos" },
-    { id: "combos",      label: "Combos" },
+    { id: "produtos", label: "Produtos" },
+    { id: "combos",   label: "Combos" },
   ];
 
   return (
@@ -482,9 +538,6 @@ export default function ProdutosView() {
         })}
       </div>
 
-      {/* Subprodutos */}
-      {abaAtiva === "subprodutos" && <SubprodutosView sz={sz} />}
-
       {/* Combos */}
       {abaAtiva === "combos" && <CombosView sz={sz} />}
 
@@ -499,6 +552,22 @@ export default function ProdutosView() {
         setBusca={setBusca}
         sz={sz}
       />
+
+      {/* Falha ao ligar/desligar a venda. Fica na tela até a pessoa fechar:
+          um aviso que some sozinho deixaria o produto num estado diferente
+          do que a lista mostra, sem ninguém saber. */}
+      {erroVenda && (
+        <div
+          role="alert"
+          className="produtos-view__erro produtos-view__erro--lista"
+          style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}
+        >
+          <span>{erroVenda}</span>
+          <button type="button" onClick={() => setErroVenda("")} aria-label="Fechar aviso" className="produtos-view__erro-fechar">
+            <LuXIcon size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Tabela */}
       <div className="produtos-view__tabela-area">
@@ -517,7 +586,7 @@ export default function ProdutosView() {
           <table className="produtos-view__tabela">
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
-                {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
+                {["", "Nome", "Categoria", "Unidade", "Preço", "Situação", ""].map((h, i) => (
                   // TD015: cabeçalho literal da tabela de produtos, não vem de dado.
                   <th key={i} className="produtos-view__th" style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>
                 ))}
@@ -526,8 +595,9 @@ export default function ProdutosView() {
             <tbody>
               {produtosFiltrados.map(p => {
                 const units = getUnidadesCompra(p);
+                const vendendo = p.active !== false;
                 return (
-                  <tr key={p.id} className="produtos-view__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <tr key={p.id} className={`produtos-view__tr${vendendo ? "" : " produtos-view__tr--parado"}`} onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td className="produtos-view__td-emoji" style={{ padding: `14px ${sz.pad}px` }}>
                       <div className="produtos-view__emoji-box">{p.emoji || "📦"}</div>
                     </td>
@@ -548,6 +618,27 @@ export default function ProdutosView() {
                     </td>
                     <td className="produtos-view__td" style={{ textAlign: "right" }}>
                       <span className="produtos-view__preco">R$ {Number(p.price).toFixed(2)}</span>
+                    </td>
+                    {/* Situação: o selo é o próprio botão. Ele mostra o estado
+                        de agora em palavra, não em ícone, e o título diz o que
+                        o clique faz — ninguém precisa adivinhar se o verde
+                        significa "está vendendo" ou "clique para vender". */}
+                    <td className="produtos-view__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={vendendo}
+                        aria-label={`Vender ${p.name} no PDV`}
+                        disabled={!isAdmin || alternandoId != null}
+                        onClick={() => alternarVenda(p)}
+                        title={vendendo
+                          ? "Está sendo vendido no PDV. Clique para desabilitar, o cadastro continua salvo."
+                          : "Não aparece no PDV. Clique para voltar a vender."}
+                        className={`produtos-view__pill produtos-view__pill--${vendendo ? "on" : "off"}`}
+                      >
+                        <span className="produtos-view__pill-ponto" />
+                        {alternandoId === p.id ? "Salvando…" : vendendo ? "À venda" : "Desabilitado"}
+                      </button>
                     </td>
                     <td className="produtos-view__td" style={{ paddingRight: 24, textAlign: "right", whiteSpace: "nowrap" }}>
                       {isAdmin && (
@@ -814,6 +905,26 @@ export default function ProdutosView() {
                 )}
               </div>
             </div>
+
+            {/* ── Seção: Opções de escolha (produto com seleção) ──
+                Ex.: "Refrigerante" onde o cliente escolhe Coca ou Fanta —
+                cada opção é um produto real e baixa o próprio estoque. Só
+                faz sentido para produto comum, não insumo/item de produção. */}
+            {!isInsumo && !isProducao && (
+              <div className="produtos-view__secao-escolhas">
+                <div className="produtos-view__secao-titulo">
+                  <LuTag size={15} color={varColor(C.accent)} />
+                  <span>Opções de escolha</span>
+                </div>
+                <div className="produtos-view__secao-ajuda">
+                  Use quando o cliente escolhe entre variações na hora da venda
+                  (ex.: qual refrigerante, qual acompanhamento). Cada opção é um
+                  produto do catálogo e baixa o próprio estoque. Deixe vazio se
+                  o produto é vendido direto.
+                </div>
+                <EditorGruposEscolha grupos={grupos} onChange={setGrupos} products={products} />
+              </div>
+            )}
 
             {/* Erro */}
             {erro && (

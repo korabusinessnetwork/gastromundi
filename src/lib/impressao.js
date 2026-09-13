@@ -1,6 +1,8 @@
 import { supabase } from "./supabase";
 import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 import { normalizarPontos } from "./impressao/pontos";
+import { ROTULO_TIPO } from "./caixaMovimentos";
+import { ROTULO_SITUACAO } from "./caixa";
 import { layoutComandaDeConfig, normalizarLayoutComanda } from "./impressao/layoutComanda";
 
 /**
@@ -281,6 +283,16 @@ export function resolverIdentidadeTenant(tenant, configImpressao) {
 
 // Normaliza os itens de uma venda para o formato de impressão —
 // exclui cancelados (nunca aparecem em comprovante/cupom).
+// As escolhas do item (combo flexível ou produto com seleção) reduzidas ao
+// que o papel precisa: o que foi escolhido e quantos. Pura.
+function escolhasDoItem(item) {
+  const escolhas = item?.combo?.escolhas;
+  if (!Array.isArray(escolhas)) return [];
+  return escolhas
+    .filter((e) => e?.nome)
+    .map((e) => ({ nome: String(e.nome), qtd: Math.max(1, Number(e.qtd) || 1) }));
+}
+
 function normalizarItensVenda(itens) {
   return (Array.isArray(itens) ? itens : [])
     .filter((i) => !i?.cancelado)
@@ -290,6 +302,10 @@ function normalizarItensVenda(itens) {
       preco: Number(i.price) || 0,
       emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
+      // Composição do combo / produto com seleção. Sem ela o papel do
+      // cliente dizia só "Combo X", sem contar QUAL hambúrguer e qual
+      // refrigerante ele está levando — e é isso que ele confere.
+      escolhas: escolhasDoItem(i),
     }));
 }
 
@@ -368,6 +384,9 @@ export function montarViaProducao({ pedido } = {}) {
       qty: Number(i.qty) || 1,
       emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
+      // A cozinha PRECISA da composição: sem ela o ticket diz "1x Combo"
+      // e ninguém na bancada sabe qual hambúrguer montar.
+      escolhas: escolhasDoItem(i),
     }));
 
   return {
@@ -404,4 +423,122 @@ export function horarioLancamentoPedido(pedido) {
     return marcos.reduce((maisRecente, m) => (m > maisRecente ? m : maisRecente));
   }
   return pedido?.launched_at ?? pedido?.created_at ?? new Date().toISOString();
+}
+
+// ── Comprovantes de caixa (F005) ─────────────────────────────────────
+//
+// Sangria/suprimento e fechamento não saíam em papel — o operador
+// registrava e não tinha o que anexar à gaveta/conferência. Ambos usam
+// o MESMO documento genérico (`tipo: "comprovante_caixa"`), pra que um
+// único renderizador (renderizar.js) e um único formatador ESC/POS
+// (escposFormatador.js) atendam os dois — template burro de propósito,
+// como a via de produção. Forma:
+//   { tipo, identidade, titulo, emitidoEm,
+//     destaque: {rotulo, valor} | null,          // valor em evidência
+//     tabela:   {cabecalho:[], linhas:[{rotulo, valores:[]}]} | null,
+//     linhas:   [{rotulo, valor, forte?, sinal?}],
+//     notas:    [{rotulo, texto}] }               // texto livre no rodapé
+// Puras: só montam os dados, não imprimem nada.
+
+/**
+ * Comprovante de sangria/suprimento — o papel que acompanha o dinheiro
+ * que saiu (sangria) ou entrou (suprimento) na gaveta.
+ *
+ * @param {object} params
+ * @param {"sangria"|"suprimento"} params.tipo
+ * @param {number} params.valor - valor movimentado
+ * @param {string} [params.motivo]
+ * @param {string} [params.autor] - operador que registrou
+ * @param {string} [params.autorizadoPor] - quem autorizou (sangria acima do limite)
+ * @param {number} [params.disponivelDepois] - dinheiro na gaveta após o movimento
+ * @param {object} [params.tenant]
+ * @param {object} [params.configImpressao]
+ * @param {string} [params.emitidoEm] - ISO8601; default agora
+ * @returns {object} documento tipo "comprovante_caixa"
+ */
+export function montarComprovanteMovimento({ tipo, valor, motivo, autor, autorizadoPor, disponivelDepois, tenant, configImpressao, emitidoEm } = {}) {
+  const linhas = [];
+  if (Number.isFinite(disponivelDepois)) {
+    linhas.push({ rotulo: "Dinheiro na gaveta após", valor: disponivelDepois, forte: true });
+  }
+
+  const notas = [
+    motivo ? { rotulo: "Motivo", texto: motivo } : null,
+    autor ? { rotulo: "Operador", texto: autor } : null,
+    autorizadoPor ? { rotulo: "Autorizado por", texto: autorizadoPor } : null,
+  ].filter(Boolean);
+
+  return {
+    tipo: "comprovante_caixa",
+    identidade: resolverIdentidadeTenant(tenant, configImpressao),
+    titulo: (ROTULO_TIPO[tipo] ?? "Movimento").toUpperCase(),
+    emitidoEm: emitidoEm ?? new Date().toISOString(),
+    destaque: {
+      rotulo: tipo === "sangria" ? "Valor retirado" : "Valor colocado",
+      valor: Number(valor) || 0,
+    },
+    tabela: null,
+    linhas,
+    notas,
+  };
+}
+
+/**
+ * Comprovante de fechamento de caixa — o resumo da conferência: total
+ * esperado × conferido, diferença, e o quadro por método de pagamento.
+ *
+ * @param {object} params
+ * @param {number} params.totalVendas
+ * @param {number} params.fundo - fundo de troco de abertura
+ * @param {number} params.suprimentos - total de reforços da sessão
+ * @param {number} params.sangrias - total de retiradas da sessão
+ * @param {number} params.totalEsperado - o que o sistema calculou
+ * @param {number} params.totalConferido - o que o operador contou
+ * @param {number} params.diferenca - conferido − esperado
+ * @param {"conferido"|"sobra"|"falta"} params.situacao
+ * @param {Array<{rotulo: string, sistema: number, conferido: number}>} [params.porMetodo]
+ * @param {string} [params.observacao]
+ * @param {string} [params.autor]
+ * @param {object} [params.tenant]
+ * @param {object} [params.configImpressao]
+ * @param {string} [params.emitidoEm]
+ * @returns {object} documento tipo "comprovante_caixa"
+ */
+export function montarComprovanteFechamento({ totalVendas, fundo, suprimentos, sangrias, totalEsperado, totalConferido, diferenca, situacao, porMetodo, observacao, autor, tenant, configImpressao, emitidoEm } = {}) {
+  const linhas = [
+    { rotulo: "Total de vendas", valor: Number(totalVendas) || 0 },
+    { rotulo: "Fundo de caixa", valor: Number(fundo) || 0 },
+  ];
+  if ((Number(suprimentos) || 0) > 0) linhas.push({ rotulo: "Reforços", valor: Number(suprimentos), sinal: true });
+  if ((Number(sangrias) || 0) > 0) linhas.push({ rotulo: "Retiradas", valor: -(Number(sangrias)), sinal: true });
+  linhas.push({ rotulo: "Total esperado", valor: Number(totalEsperado) || 0, forte: true });
+  linhas.push({ rotulo: "Total conferido", valor: Number(totalConferido) || 0, forte: true });
+  linhas.push({ rotulo: ROTULO_SITUACAO[situacao] ?? "Diferença", valor: Number(diferenca) || 0, forte: true, sinal: true });
+
+  const metodos = Array.isArray(porMetodo) ? porMetodo.filter(Boolean) : [];
+  const tabela = metodos.length > 0
+    ? {
+        cabecalho: ["Método", "Sistema", "Conferido"],
+        linhas: metodos.map((m) => ({
+          rotulo: m.rotulo ?? "",
+          valores: [Number(m.sistema) || 0, Number(m.conferido) || 0],
+        })),
+      }
+    : null;
+
+  const notas = [
+    autor ? { rotulo: "Operador", texto: autor } : null,
+    observacao ? { rotulo: "Observação", texto: observacao } : null,
+  ].filter(Boolean);
+
+  return {
+    tipo: "comprovante_caixa",
+    identidade: resolverIdentidadeTenant(tenant, configImpressao),
+    titulo: "FECHAMENTO DE CAIXA",
+    emitidoEm: emitidoEm ?? new Date().toISOString(),
+    destaque: null,
+    tabela,
+    linhas,
+    notas,
+  };
 }

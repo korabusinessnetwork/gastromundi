@@ -21,6 +21,7 @@ import {
   primeiroGrupoPendente,
   achatarGrupos,
 } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 
 // ──────────────────────────────────────────────────────────────────
 // GrupoBloco — renderiza UM grupo (cabeçalho + opções) e, recursivamente,
@@ -113,6 +114,9 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
   const [mostrarObs, setMostrarObs] = useState(false);
   const [qtd, setQtd] = useState(1);
   const [destaque, setDestaque] = useState(null); // id do grupo a destacar
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onFechar);
   const gruposRef = useRef({}); // grupoId → nó, para rolar até o pendente
 
   const grupos = produto?.grupos ?? [];
@@ -195,7 +199,7 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
   }
 
   return (
-    <div className="modal-fundo" onClick={onFechar}>
+    <div className="modal-fundo" {...fundo}>
       <div className="modal-painel modal-painel--produto" onClick={(e) => e.stopPropagation()}>
         <div className="modal-topo">
           <h2 className="modal-titulo">{produto?.nome}</h2>

@@ -120,12 +120,27 @@
   flex-shrink: 0;
 }
 
+/* `overflow: hidden` aqui recortava o dropdown de "+ N mais": ele abria de
+   verdade — o estado mudava, o elemento entrava no DOM — e era cortado na
+   borda da lista, então o clique não produzia nada visível e as categorias
+   extras ficavam inalcançáveis. O que se queria era só impedir a fila de
+   chips de empurrar a busca para fora, e para isso basta `min-width: 0`
+   com `flex-wrap: nowrap`: o contêiner encolhe sem precisar recortar o que
+   sai dele. */
 .categorias-busca__lista {
   display: flex;
   gap: 8px;
   flex: 1;
+  min-width: 0;
   flex-wrap: nowrap;
+}
+
+/* Os chips que não cabem são escondidos pela própria lógica do "+ N mais"
+   (CATS_VISIVEIS), não pelo recorte — mas se a janela apertar mais que o
+   previsto, o último chip não pode vazar por cima da busca. */
+.categorias-busca__lista > .categorias-busca__cat {
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .categorias-busca__cat {
@@ -229,6 +244,65 @@
 .produtos-view__tr {
   border-bottom: 1px solid var(--gm-border);
   transition: background 0.1s;
+}
+
+/* Produto desabilitado continua na lista — é onde se religa. Ele fica
+   apagado para se distinguir num relance de quem está à venda, mas não
+   tão apagado a ponto de virar texto ilegível: o nome e o preço ainda
+   precisam ser lidos por quem procura o item para reativar. */
+.produtos-view__tr--parado .produtos-view__nome,
+.produtos-view__tr--parado .produtos-view__preco,
+.produtos-view__tr--parado .produtos-view__td-emoji,
+.produtos-view__tr--parado .produtos-view__tag-categoria,
+.produtos-view__tr--parado .produtos-view__tag-unidade {
+  opacity: 0.55;
+}
+
+/* Selo de situação: mostra o estado e é o próprio botão que o alterna. */
+.produtos-view__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.produtos-view__pill:disabled {
+  cursor: default;
+}
+
+.produtos-view__pill-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.produtos-view__pill--on {
+  color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
+}
+
+.produtos-view__pill--off {
+  color: var(--gm-muted);
+  background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
+  border: 1px solid var(--gm-border);
+}
+
+.produtos-view__pill--on:not(:disabled):hover {
+  background: color-mix(in srgb, var(--gm-green) 22%, transparent);
+}
+
+.produtos-view__pill--off:not(:disabled):hover {
+  background: color-mix(in srgb, var(--gm-muted) 22%, transparent);
 }
 
 .produtos-view__td-emoji {
@@ -494,6 +568,23 @@
   line-height: var(--lh-base);
 }
 
+/* Seção "Opções de escolha" — mesmo cartão da seção de unidades */
+.produtos-view__secao-escolhas {
+  background: var(--gm-surface);
+  border-radius: 14px;
+  border: 1px solid var(--gm-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.produtos-view__secao-ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
 .produtos-view__bloco {
   display: flex;
   flex-direction: column;
@@ -650,6 +741,28 @@
   font-weight: 600;
   font-size: var(--fs-sm);   /* role: mensagem de erro (era sz.fontSm) */
   line-height: var(--lh-sm);
+}
+
+/* O mesmo aviso, mas fora do modal: fica sobre a lista, com o botão de
+   fechar, porque nada o dispensa automaticamente. */
+.produtos-view__erro--lista {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 24px 12px;
+}
+
+.produtos-view__erro-fechar {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex: none;
 }
 
 .produtos-view__modal-botoes {
