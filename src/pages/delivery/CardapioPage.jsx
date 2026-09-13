@@ -58,6 +58,7 @@ const ENTREGA_INICIAL = {
   cidade: "",
   bairro: "",
   endereco: "",
+  numero: "",
   complemento: "",
   taxa: 0,
 };

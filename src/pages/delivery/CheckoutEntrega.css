@@ -39,6 +39,23 @@
   color: var(--gm-muted);
 }
 
+/* Rua e número, lado a lado. O número é curto e mora na mesma linha do
+   endereço na cabeça de quem escreve, então separar em duas linhas soltas
+   faria a tela parecer mais longa do que é. No celular estreito a coluna
+   do número ainda cabe: 88px é alvo de toque confortável. */
+.campo-linha {
+  display: grid;
+  grid-template-columns: 1fr 88px;
+  gap: 10px;
+}
+
+/* Frase que diz o que ainda falta preencher. Colada no botão que ela
+   explica, senão vira aviso solto no meio do formulário. */
+.linha-sacola__extra.checkout-entrega__falta {
+  margin: 10px 0 0;
+  color: var(--gm-muted);
+}
+
 .btn.checkout-entrega__avancar {
   margin-top: 8px;
 }

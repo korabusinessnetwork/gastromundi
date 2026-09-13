@@ -102,7 +102,16 @@ export function esquecerDispositivo() {
 // preço de ontem para a entrega de hoje.
 const CHAVE_ENTREGA = "kora.delivery.entrega";
 
-const CAMPOS_LEMBRADOS = ["nome", "telefone", "cep", "cidade", "bairro", "endereco", "complemento"];
+const CAMPOS_LEMBRADOS = [
+  "nome",
+  "telefone",
+  "cep",
+  "cidade",
+  "bairro",
+  "endereco",
+  "numero",
+  "complemento",
+];
 
 /**
  * Reduz o formulário ao que vale a pena lembrar, tudo em texto. Pura —
