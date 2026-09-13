@@ -7,16 +7,41 @@
    distância, um caminho óbvio (cardápio → sacola → entrega → pagar).
    ────────────────────────────────────────────────────────────────── */
 
+/* O DOCUMENTO deste app não rola: o `body` (index.html) e o `html`
+   (tema.css) são fechados de propósito, porque toda tela do sistema é uma
+   casca do tamanho exato da janela com um painel rolando por dentro. A
+   vitrine era a única que contava com a rolagem do documento, e por isso
+   simplesmente não rolava: nem com o mouse, nem com o dedo, e tudo que
+   passava da primeira dobra ficava inalcançável para o cliente. Agora ela
+   é o próprio painel que rola, como o resto do app.
+
+   `100dvh` acompanha a barra do navegador do celular, que aparece e some
+   durante a rolagem; `100vh` fica de reserva para quem não tem `dvh`.
+
+   A largura do conteúdo mora aqui, num lugar só: cabeçalho, cardápio e
+   barra da sacola precisam terminar na mesma linha vertical, senão a tela
+   parece torta. */
 .vitrine {
-  min-height: 100vh;
+  --vitrine-largura: 720px;
+
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background: var(--gm-bg);
   color: var(--gm-text);
   font-family: var(--gm-font-texto, system-ui, sans-serif);
   padding-bottom: 96px; /* espaço pra barra fixa da sacola */
 }
 
+/* Tela grande cabe uma coluna a mais de produto sem apertar o cartão. */
+@media (min-width: 1120px) {
+  .vitrine { --vitrine-largura: 1080px; }
+}
+
 .vitrine__wrap {
-  max-width: 720px;
+  max-width: var(--vitrine-largura);
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -31,7 +56,7 @@
 }
 
 .vitrine__header-inner {
-  max-width: 720px;
+  max-width: var(--vitrine-largura);
   margin: 0 auto;
   padding: 14px 16px;
   display: flex;
@@ -153,9 +178,13 @@
 }
 
 /* ── Cards de produto ───────────────────────────────────────────── */
+/* Quantas colunas couberem com o cartão em 320px, em qualquer largura. O
+   `min(100%, 320px)` é o que segura uma coluna só no celular estreito, sem
+   precisar de media query. */
 .vitrine__grid {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
 }
 
 /* `color: inherit` como em `.forma` mais abaixo: o cartão é um <button>, e
@@ -180,7 +209,15 @@
 .card-produto:active { transform: scale(0.99); }
 .card-produto:hover { border-color: var(--gm-accent); }
 
-.card-produto__texto { flex: 1; min-width: 0; }
+/* Coluna, com o preço empurrado para o pé: os preços de uma mesma linha
+   da grade ficam alinhados entre si, mesmo quando um produto tem descrição
+   de duas linhas e o vizinho não tem nenhuma. */
+.card-produto__texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
 .card-produto__nome {
   font-size: 15px;
   font-weight: 700;
@@ -197,18 +234,19 @@
   overflow: hidden;
 }
 .card-produto__preco {
+  margin-top: auto;
   font-size: 15px;
   font-weight: 800;
   color: var(--gm-green);
 }
 
-/* A miniatura era um quadrado de 88px: a foto do prato aparecia pequena e,
-   por ser quadrada, o `cover` cortava as laterais de quase toda foto de
-   comida (que é tirada deitada). Agora ela é maior e 4:3 — o mesmo
-   enquadramento em que a foto foi tirada, então sobra imagem em vez de
-   corte. `aspect-ratio` mantém a proporção em qualquer largura. */
+/* A miniatura é 4:3, o mesmo enquadramento em que foto de comida é tirada
+   (deitada), então o `cover` sobra imagem em vez de cortar as laterais. E
+   fica no tamanho de miniatura mesmo: foto grande ocupando a largura do
+   cartão empurra nome, descrição e preço para fora da tela, que era a
+   reclamação do dono. */
 .card-produto__foto {
-  width: 116px;
+  width: 104px;
   aspect-ratio: 4 / 3;
   height: auto;
   border-radius: 10px;
@@ -217,56 +255,11 @@
   flex-shrink: 0;
   align-self: center;
 }
-/* O ícone de reserva acompanha o tamanho do quadro: 44px era o certo para
-   a miniatura do celular e virava um ponto perdido no meio do cartão do
-   computador, onde a foto ocupa a largura inteira. */
 .card-produto__foto--emoji {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 44px;
-}
-
-/* ── Computador: o cardápio vira grade ─────────────────────────────
-   Em uma coluna só, cada card ficava com 720px de largura e uma tarja de
-   foto perdida na ponta direita — cara de página de celular esticada. A
-   partir de 720px a lista vira grade e o card se reorganiza: foto grande
-   em cima (4:3, largura inteira), texto embaixo. É o formato em que se
-   escolhe comida olhando, que é o que a vitrine é. */
-@media (min-width: 720px) {
-  .vitrine__grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-  }
-
-  .card-produto {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  /* A foto vem antes do texto na tela sem mudar a ordem do HTML: no
-     código ela continua depois do nome do produto, que é a ordem certa
-     para quem lê com leitor de tela. */
-  .card-produto__foto {
-    order: -1;
-    width: 100%;
-  }
-  .card-produto__foto--emoji {
-    font-size: 72px;
-  }
-
-  /* Preço no rodapé do card, alinhado entre os cards da mesma linha,
-     mesmo quando um tem descrição de duas linhas e o outro nenhuma. */
-  .card-produto__texto {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-  .card-produto__preco {
-    margin-top: auto;
-    padding-top: 4px;
-  }
+  font-size: 40px;
 }
 
 /* ── Modal (produto / checkout / confirmação) ───────────────────── */
@@ -590,7 +583,9 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  max-width: 720px;
+  /* Menos as bordas de 16px do `.vitrine__wrap`, senão a barra fica mais
+     larga que a coluna de produtos que ela acompanha. */
+  max-width: calc(var(--vitrine-largura) - 32px);
   margin: 0 auto;
   padding: 15px 18px;
   border: none;
