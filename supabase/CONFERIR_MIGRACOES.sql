@@ -100,7 +100,10 @@ WITH marcas (n, migracao, marca_existe) AS (
          EXISTS (SELECT 1 FROM pg_constraint
                   WHERE conrelid = to_regclass('public.grupos_escolha')
                     AND conname  = 'grupos_escolha_maximo_valido'
-                    AND pg_get_constraintdef(oid) LIKE '%maximo = 0%'))
+                    AND pg_get_constraintdef(oid) LIKE '%maximo = 0%')),
+    (27, '20261005_desabilitar_produto_espelho',
+         EXISTS (SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'products_espelha_delivery' AND NOT tgisinternal))
 )
 SELECT
   n                                                    AS "nº",
@@ -121,11 +124,13 @@ WITH marcas AS (
   + (to_regclass('public.solicitacoes_conta')        IS NOT NULL)::int
   + (to_regprocedure('public.telefone_br_valido(text)')      IS NOT NULL)::int
   + (to_regprocedure('public.registrar_venda_delivery(uuid)') IS NOT NULL)::int
+  + (EXISTS (SELECT 1 FROM pg_trigger
+              WHERE tgname = 'products_espelha_delivery' AND NOT tgisinternal))::int
   AS marcos_grandes
 )
 SELECT
-  marcos_grandes || ' de 7 marcos grandes presentes' AS "resumo rápido",
-  CASE WHEN marcos_grandes = 7
+  marcos_grandes || ' de 8 marcos grandes presentes' AS "resumo rápido",
+  CASE WHEN marcos_grandes = 8
        THEN 'Parece bem atualizado — mesmo assim, rode o APLICAR_MIGRACOES_PENDENTES.sql para fechar as pontas.'
        ELSE 'Faltam migrações. Rode o APLICAR_MIGRACOES_PENDENTES.sql inteiro.' END AS "o que fazer"
 FROM marcas;
