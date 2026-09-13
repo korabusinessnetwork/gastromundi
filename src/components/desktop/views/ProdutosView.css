@@ -258,51 +258,78 @@
   opacity: 0.55;
 }
 
-/* Selo de situação: mostra o estado e é o próprio botão que o alterna. */
-.produtos-view__pill {
+/* Chave de situação da linha. Nasceu como selo colorido sem borda, e o
+   olho lia etiqueta de status, não algo em que se clica. Agora é o mesmo
+   controle do card do delivery: borda sempre visível, hover, foco, e um
+   trilho com bolinha. A palavra fica junto porque a posição da bolinha diz
+   "ligado", mas não diz ligado para quê. */
+.produtos-view__disp {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 12px;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
   border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.produtos-view__pill:disabled {
+.produtos-view__disp:disabled {
   cursor: default;
+  opacity: 0.65;
 }
 
-.produtos-view__pill-ponto {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
+.produtos-view__disp:not(:disabled):hover {
+  border-color: var(--gm-muted);
+}
+
+.produtos-view__disp:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+
+.produtos-view__disp-trilho {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--gm-faint);
+  transition: background 0.15s ease;
   flex: none;
 }
 
-.produtos-view__pill--on {
+.produtos-view__disp-bola {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+}
+
+/* O verde é do trilho, não do fundo do botão inteiro: pintar tudo o
+   devolveria à cara de selo. */
+.produtos-view__disp--on .produtos-view__disp-texto {
   color: var(--gm-green);
-  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
 }
 
-.produtos-view__pill--off {
+.produtos-view__disp--on .produtos-view__disp-trilho {
+  background: var(--gm-green);
+}
+
+.produtos-view__disp--on .produtos-view__disp-bola {
+  left: 15px;
+}
+
+.produtos-view__disp--off .produtos-view__disp-texto {
   color: var(--gm-muted);
-  background: color-mix(in srgb, var(--gm-muted) 12%, transparent);
-  border: 1px solid var(--gm-border);
-}
-
-.produtos-view__pill--on:not(:disabled):hover {
-  background: color-mix(in srgb, var(--gm-green) 22%, transparent);
-}
-
-.produtos-view__pill--off:not(:disabled):hover {
-  background: color-mix(in srgb, var(--gm-muted) 22%, transparent);
 }
 
 .produtos-view__td-emoji {

@@ -627,10 +627,17 @@ export default function ProdutosView() {
                         title={vendendo
                           ? "Está sendo vendido no PDV. Clique para desabilitar — o cadastro continua salvo."
                           : "Não aparece no PDV. Clique para voltar a vender."}
-                        className={`produtos-view__pill produtos-view__pill--${vendendo ? "on" : "off"}`}
+                        className={`produtos-view__disp produtos-view__disp--${vendendo ? "on" : "off"}`}
                       >
-                        <span className="produtos-view__pill-ponto" />
-                        {alternandoId === p.id ? "Salvando…" : vendendo ? "À venda" : "Desabilitado"}
+                        <span className="produtos-view__disp-texto">
+                          {alternandoId === p.id ? "Salvando…" : vendendo ? "À venda" : "Desabilitado"}
+                        </span>
+                        {/* Trilho e bolinha, o mesmo controle do card do
+                            delivery: é o que faz o olho ler "clicável" em vez
+                            de "etiqueta de status". */}
+                        <span className="produtos-view__disp-trilho" aria-hidden="true">
+                          <span className="produtos-view__disp-bola" />
+                        </span>
                       </button>
                     </td>
                     <td className="produtos-view__td" style={{ paddingRight: 24, textAlign: "right", whiteSpace: "nowrap" }}>

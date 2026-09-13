@@ -1256,10 +1256,17 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
               title={item.disponivel
                 ? "Está no cardápio online. Clique para tirar do ar."
                 : "Fora do cardápio online. Clique para voltar a oferecer."}
-              className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
+              className={`delivery-view__disp delivery-view__disp--${item.disponivel ? "on" : "off"}`}
             >
-              <span className="delivery-view__card-dot" />
-              {item.disponivel ? "Disponível" : "Indisponível"}
+              <span className="delivery-view__disp-texto">
+                {item.disponivel ? "Disponível" : "Indisponível"}
+              </span>
+              {/* Trilho e bolinha: é o que faz o olho ler "controle" e não
+                  "etiqueta". A palavra sozinha, por mais colorida que fosse,
+                  continuava parecendo um selo de status. */}
+              <span className="delivery-view__disp-trilho" aria-hidden="true">
+                <span className="delivery-view__disp-bola" />
+              </span>
             </button>
           </div>
           {item.descricao ? (

@@ -326,12 +326,6 @@
 .delivery-view__card-preco {
   font-weight: 800;
 }
-.delivery-view__card-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
 .delivery-view__card-acoes {
   display: flex;
   align-items: stretch;
@@ -413,8 +407,80 @@
   min-width: 0;
 }
 
-.delivery-view__card-nome-linha .delivery-view__pill {
+/* Chave de disponibilidade do card. Era um selo (`__pill`) sem borda e sem
+   hover: um adesivo colorido, que o olho lê como etiqueta de status e não
+   como algo em que se clica. Aqui vira controle de verdade — borda sempre
+   visível, hover, foco, e um trilho com bolinha que não tem como ser
+   confundido com rótulo. A palavra fica junto porque a posição da bolinha
+   diz "ligado", mas não diz ligado PARA QUÊ. */
+.delivery-view__disp {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.delivery-view__disp:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.delivery-view__disp:not(:disabled):hover {
+  border-color: var(--gm-muted);
+}
+
+.delivery-view__disp:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+
+.delivery-view__disp-trilho {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--gm-faint);
+  transition: background 0.15s ease;
+  flex: none;
+}
+
+.delivery-view__disp-bola {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+}
+
+/* Ligado: o verde é do trilho, não do fundo do botão inteiro. Pintar o
+   botão todo o devolveria à cara de selo. */
+.delivery-view__disp--on .delivery-view__disp-texto {
+  color: var(--gm-green);
+}
+
+.delivery-view__disp--on .delivery-view__disp-trilho {
+  background: var(--gm-green);
+}
+
+.delivery-view__disp--on .delivery-view__disp-bola {
+  left: 15px;
+}
+
+.delivery-view__disp--off .delivery-view__disp-texto {
+  color: var(--gm-muted);
 }
 .delivery-view__card-desc {
   opacity: 0.75;
@@ -436,37 +502,6 @@
   gap: 8px;
   margin-top: 8px;
   flex-wrap: wrap;
-}
-.delivery-view__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-}
-/* Só o admin liga/desliga o item no cardápio; para os demais o selo é um
-   rótulo, e o cursor precisa dizer isso antes do clique (prevenção de erro). */
-.delivery-view__pill:disabled {
-  cursor: default;
-}
-/* Disponível/indisponível: a cor mora no modificador, e a bolinha herda dele
-   por descendência — assim o estado é decidido em um lugar só. */
-.delivery-view__pill--on {
-  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
-  color: var(--gm-green);
-}
-.delivery-view__pill--off {
-  background: color-mix(in srgb, var(--gm-muted) 8%, transparent);
-  color: var(--gm-muted);
-}
-.delivery-view__pill--on .delivery-view__card-dot {
-  background: var(--gm-green);
-}
-.delivery-view__pill--off .delivery-view__card-dot {
-  background: var(--gm-muted);
 }
 
 /* Estado vazio */
@@ -1780,7 +1815,6 @@
 .delivery-view__card-desc   { font-size: var(--fs-sm); line-height: var(--lh-sm); }   /* apoio (era sz.fontSm) */
 .delivery-view__card-preco  { font-size: var(--fs-lg); line-height: var(--lh-lg); font-variant-numeric: tabular-nums; } /* money (era sz.fontLg) */
 .delivery-view__card-editar { font-size: var(--fs-base); line-height: var(--lh-base); } /* botão (era sz.fontBase) */
-.delivery-view__pill        { font-size: var(--fs-xs); line-height: var(--lh-xs); }   /* selo (era sz.fontSm) */
 
 /* Formulário / modal */
 .delivery-view__label { font-size: var(--fs-sm); line-height: var(--lh-sm); }         /* label (era sz.fontSm) */
