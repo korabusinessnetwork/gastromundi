@@ -1,0 +1,28 @@
+{
+  "onda": 1,
+  "commit_base": "<sha do commit que fixou ambiente e seed>",
+  "suites": [
+    {
+      "id": "auth",
+      "fluxos": ["F01", "F02", "F03"],
+      "criticidade": "alta",
+      "modelo": "forte",
+      "porta_front": 5201,
+      "porta_api": 3001,
+      "banco": "qa_auth",
+      "usuarios": ["qa-auth-admin@teste.local", "qa-auth-op@teste.local"],
+      "dados": "seed padrão, prefixo auth-"
+    },
+    {
+      "id": "cadastro",
+      "fluxos": ["F04", "F05", "F06"],
+      "criticidade": "média",
+      "modelo": "barato",
+      "porta_front": 5202,
+      "porta_api": 3002,
+      "banco": "qa_cadastro",
+      "usuarios": ["qa-cadastro-admin@teste.local"],
+      "dados": "seed padrão, prefixo cadastro-"
+    }
+  ]
+}

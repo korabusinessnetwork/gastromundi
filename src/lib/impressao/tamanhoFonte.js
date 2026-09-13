@@ -79,10 +79,10 @@ export function usaFonteMiuda(tamanho) {
 // Frase que o dono lê embaixo do controle, na tela de Impressão. Fala do
 // papel, não do protocolo: ninguém precisa saber o que é "Fonte B".
 export const EXPLICACAO_TAMANHO_TERMICA = {
-  pequena: "Letra miúda — cabe mais texto por linha.",
+  pequena: "Letra miúda, cabe mais texto por linha.",
   normal: "Letra padrão da impressora.",
-  alta: "Letra alta — o dobro da altura, sem mudar o texto que cabe na linha.",
-  grande: "Letra grande — o dobro da altura e da largura; cabe metade do texto por linha.",
+  alta: "Letra alta, o dobro da altura, sem mudar o texto que cabe na linha.",
+  grande: "Letra grande, o dobro da altura e da largura; cabe metade do texto por linha.",
 };
 
 // Os degraus como o dono escolhe na tela de Impressão, com o valor em px
