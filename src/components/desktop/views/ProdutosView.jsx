@@ -144,6 +144,11 @@ export default function ProdutosView() {
   // Coca/Fanta). Cada opção é um produto real do catálogo, com o próprio
   // estoque. Persistidos à parte (salvarGrupos) depois do produto existir.
   const [grupos, setGrupos] = useState([]);
+  // Ligar/desligar a venda de um produto, direto na lista. Um por vez
+  // (o id em voo) para o botão poder se desabilitar sozinho enquanto grava,
+  // e um recado de falha que não some sem a pessoa ler.
+  const [alternandoId, setAlternandoId] = useState(null);
+  const [erroVenda, setErroVenda] = useState("");
 
 
   // ── Categorias ────────────────────────────────────────────────
@@ -265,6 +270,24 @@ export default function ProdutosView() {
       .filter(p => catFiltro === "Todos" || p.category === catFiltro)
       .filter(p => !busca || p.name.toLowerCase().includes(busca.toLowerCase()));
   }, [products, catFiltro, busca]);
+
+  // Liga/desliga a venda do produto. Não apaga nada: o cadastro continua
+  // inteiro (preço, estoque, ficha técnica), o item só deixa de ser
+  // oferecido no PDV. É o "acabou hoje" sem ter de recadastrar amanhã, e
+  // por isso fica na lista, a um clique, e não escondido dentro do Editar.
+  const alternarVenda = async (p) => {
+    if (!isAdmin || alternandoId != null) return;
+    const ligando = p.active === false;
+    setAlternandoId(p.id);
+    setErroVenda("");
+    const { error } = await updateProduct(p.id, { active: ligando });
+    setAlternandoId(null);
+    if (error) {
+      setErroVenda(
+        `Não deu para ${ligando ? "voltar a vender" : "desabilitar"} "${p.name}". Nada foi alterado. Tente de novo.`,
+      );
+    }
+  };
 
   // ── Modal ─────────────────────────────────────────────────────
 
@@ -524,6 +547,22 @@ export default function ProdutosView() {
         sz={sz}
       />
 
+      {/* Falha ao ligar/desligar a venda. Fica na tela até a pessoa fechar:
+          um aviso que some sozinho deixaria o produto num estado diferente
+          do que a lista mostra, sem ninguém saber. */}
+      {erroVenda && (
+        <div
+          role="alert"
+          className="produtos-view__erro produtos-view__erro--lista"
+          style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}
+        >
+          <span>{erroVenda}</span>
+          <button type="button" onClick={() => setErroVenda("")} aria-label="Fechar aviso" className="produtos-view__erro-fechar">
+            <LuXIcon size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Tabela */}
       <div className="produtos-view__tabela-area">
         {carregando ? (
@@ -541,7 +580,7 @@ export default function ProdutosView() {
           <table className="produtos-view__tabela">
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
-                {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
+                {["", "Nome", "Categoria", "Unidade", "Preço", "Situação", ""].map((h, i) => (
                   <th key={i} className="produtos-view__th" style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>
                 ))}
               </tr>
@@ -549,8 +588,9 @@ export default function ProdutosView() {
             <tbody>
               {produtosFiltrados.map(p => {
                 const units = getUnidadesCompra(p);
+                const vendendo = p.active !== false;
                 return (
-                  <tr key={p.id} className="produtos-view__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <tr key={p.id} className={`produtos-view__tr${vendendo ? "" : " produtos-view__tr--parado"}`} onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <td className="produtos-view__td-emoji" style={{ padding: `14px ${sz.pad}px` }}>
                       <div className="produtos-view__emoji-box">{p.emoji || "📦"}</div>
                     </td>
@@ -571,6 +611,27 @@ export default function ProdutosView() {
                     </td>
                     <td className="produtos-view__td" style={{ textAlign: "right" }}>
                       <span className="produtos-view__preco">R$ {Number(p.price).toFixed(2)}</span>
+                    </td>
+                    {/* Situação: o selo é o próprio botão. Ele mostra o estado
+                        de agora em palavra, não em ícone, e o título diz o que
+                        o clique faz — ninguém precisa adivinhar se o verde
+                        significa "está vendendo" ou "clique para vender". */}
+                    <td className="produtos-view__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={vendendo}
+                        aria-label={`Vender ${p.name} no PDV`}
+                        disabled={!isAdmin || alternandoId != null}
+                        onClick={() => alternarVenda(p)}
+                        title={vendendo
+                          ? "Está sendo vendido no PDV. Clique para desabilitar — o cadastro continua salvo."
+                          : "Não aparece no PDV. Clique para voltar a vender."}
+                        className={`produtos-view__pill produtos-view__pill--${vendendo ? "on" : "off"}`}
+                      >
+                        <span className="produtos-view__pill-ponto" />
+                        {alternandoId === p.id ? "Salvando…" : vendendo ? "À venda" : "Desabilitado"}
+                      </button>
                     </td>
                     <td className="produtos-view__td" style={{ paddingRight: 24, textAlign: "right", whiteSpace: "nowrap" }}>
                       {isAdmin && (

@@ -123,7 +123,13 @@ export default function PdvModulo({ onVoltar }) {
   useEffect(() => () => clearTimeout(timerImpressao.current), []);
 
   // ── Catálogo ────────────────────────────────────────────────────
-  const listaProdutos = useMemo(() => products ?? [], [products]);
+  // Produto desabilitado no cadastro não é oferecido para venda. O catálogo
+  // do AppContext traz os desabilitados junto de propósito (senão sumiriam da
+  // tela de cadastro e não haveria como religá-los), então o corte é aqui.
+  const listaProdutos = useMemo(
+    () => (products ?? []).filter((p) => p.active !== false),
+    [products],
+  );
 
   const categorias = useMemo(
     () => ["Todos", ...new Set(listaProdutos.map((p) => p.category).filter(Boolean))],

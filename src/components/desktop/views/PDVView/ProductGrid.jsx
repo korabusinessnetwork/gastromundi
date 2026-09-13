@@ -10,9 +10,15 @@ const CAT_COMBOS = "Combos";
 export default function ProductGrid({ products, combos = [], gruposPorProduto = {}, onAdd }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
+  // Produto desabilitado no cadastro não é oferecido aqui. O catálogo do
+  // AppContext traz os desabilitados junto de propósito (senão eles sumiriam
+  // da tela de cadastro e não haveria como religá-los), então o corte é aqui,
+  // na tela que vende. Vale também para a barra de categorias: uma categoria
+  // inteira desabilitada não vira aba vazia.
+  const vendaveis = products.filter(p => p.active !== false);
   // "Combos" só entra na barra quando há combos — vira a aba onde o operador
   // encontra os combos, além de aparecerem também em "Todos".
-  const categorias = ["Todos", ...new Set(products.map(p => p.category)), ...(combos.length ? [CAT_COMBOS] : [])];
+  const categorias = ["Todos", ...new Set(vendaveis.map(p => p.category)), ...(combos.length ? [CAT_COMBOS] : [])];
   const [catAtiva, setCatAtiva] = useState("Todos");
 
   // Item com grupos de escolha (combo flexível ou produto com seleção) abre
@@ -46,7 +52,7 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
   // diz o que fazer. Aqui os dois vazios são coisas diferentes: catálogo
   // vazio manda a pessoa para a tela de cadastro; categoria vazia é só um
   // filtro sem resultado.
-  const catalogoVazio = products.length === 0 && combos.length === 0;
+  const catalogoVazio = vendaveis.length === 0 && combos.length === 0;
 
   // Arrastar-para-rolar a barra de categorias: quando há categorias demais
   // elas transbordam e somem à direita (ex. nomes longos). No mouse não dá
@@ -75,8 +81,8 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
   const selecionarCat = (cat) => { if (!arrasto.current.moveu) setCatAtiva(cat); };
 
   const filtrados = catAtiva === "Todos"
-    ? products
-    : products.filter(p => p.category === catAtiva);
+    ? vendaveis
+    : vendaveis.filter(p => p.category === catAtiva);
 
   // Combos são standalone (não têm produto principal). Aparecem primeiro em
   // "Todos" e são a única coisa na aba "Combos". As demais categorias mostram

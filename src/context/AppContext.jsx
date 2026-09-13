@@ -480,7 +480,12 @@ export function AppProvider({ children }) {
         { data: rolePermsData },
         { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
-        supabase.from("products").select("*").eq("active", true).order("id"),
+        // Sem filtro de `active`: o produto desabilitado precisa continuar
+        // chegando aqui, senão ele some do próprio cadastro e não há como
+        // reativá-lo — quem desliga uma vez perde o produto para sempre.
+        // Quem decide o que NÃO oferecer para venda são as telas de venda
+        // (ProductGrid, PdvModulo), cada uma filtrando `active !== false`.
+        supabase.from("products").select("*").order("id"),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
@@ -1289,7 +1294,9 @@ export function AppProvider({ children }) {
   // que gravam fora das actions acima (ex.: importação de planilha).
   const recarregarProdutos = async () => {
     const { data, error } = await supabase
-      .from("products").select("*").eq("active", true).order("id");
+      // Mesma razão do bootstrap: traz desabilitado junto, quem filtra
+      // para venda é a tela de venda.
+      .from("products").select("*").order("id");
     if (!error && data) setProductsLocal(data);
     return { error };
   };
