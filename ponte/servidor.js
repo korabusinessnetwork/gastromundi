@@ -354,7 +354,7 @@ async function ciclarImpressao() {
   try {
     // Cópias viram um único envio: o spooler trata como um trabalho só e
     // não corre o risco de outra comanda entrar no meio das vias.
-    const umaVia = montarBytes(trabalho.linhas, { cortaPapel: trabalho.cortaPapel });
+    const umaVia = montarBytes(trabalho.linhas, { cortaPapel: trabalho.cortaPapel, tamanhoFonte: trabalho.tamanhoFonte });
     const bytes = trabalho.copias > 1
       ? Buffer.concat(Array.from({ length: trabalho.copias }, () => umaVia))
       : umaVia;
@@ -874,8 +874,12 @@ async function tratarRequisicao(req, res) {
   // Ficam DEPOIS do gate de propósito: quem está no Wi-Fi manda pedido,
   // nunca aciona a impressora. Quem imprime é o app do caixa, no PC.
   if (rota === "GET /impressoras") {
+    // A versão vai junto porque é nesta chamada que a tela de Impressão
+    // do app descobre com que Ponte está falando — Ponte velha não
+    // entende o tamanho da letra (POST /imprimir → tamanhoFonte) e a
+    // tela precisa avisar em vez de deixar o dono achar que escolheu.
     try {
-      return responderJson(res, 200, { impressoras: await listarImpressoras() });
+      return responderJson(res, 200, { impressoras: await listarImpressoras(), versao: VERSAO });
     } catch (e) {
       // Sem lista o caixa ainda consegue digitar o nome ou usar impressora
       // de rede — por isso avisa em vez de derrubar a tela. O texto cru do
@@ -884,6 +888,7 @@ async function tratarRequisicao(req, res) {
       logarErro("não consegui ler a lista de impressoras do Windows", e);
       return responderJson(res, 200, {
         impressoras: [],
+        versao: VERSAO,
         aviso: "Não deu para ler a lista de impressoras do Windows. Digite o nome da impressora ou use uma impressora de rede.",
       });
     }

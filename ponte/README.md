@@ -209,10 +209,17 @@ vai imprimir).
 
 | Rota | O que faz |
 | --- | --- |
-| `GET /impressoras` | Lista as impressoras instaladas no Windows (`{ impressoras: [{ nome, padrao }] }`) |
-| `POST /imprimir` | Põe um documento na fila. Corpo: `{ destino, linhas: ["..."], cortaPapel?: true, copias?: 1 }`. Responde `202 { id }` |
+| `GET /impressoras` | Lista as impressoras instaladas no Windows (`{ impressoras: [{ nome, padrao }], versao }`) — a `versao` é como o app sabe se esta Ponte entende o tamanho da letra |
+| `POST /imprimir` | Põe um documento na fila. Corpo: `{ destino, linhas: ["..."], cortaPapel?: true, copias?: 1, tamanhoFonte?: "normal" }`. Responde `202 { id }` |
 | `GET /impressao` | Mostra a fila e o histórico (`{ trabalhos, pendentes }`) |
 | `POST /impressao/limpar` | Apaga da fila os trabalhos já concluídos/falhados |
+
+`tamanhoFonte` é o tamanho da letra na impressora — `"pequena"` (Fonte B,
+letra miúda), `"normal"` (padrão), `"alta"` (o dobro da altura) ou
+`"grande"` (o dobro da altura e da largura). Nome desconhecido ou ausente
+imprime no padrão, nunca recusa o trabalho. **Quem manda o tamanho quebra
+o texto nas colunas daquele tamanho** (48 por linha em 80mm no normal, 64
+na miúda, 24 na grande): a Ponte só obedece, ela não reformata.
 
 Exemplos de `destino`:
 

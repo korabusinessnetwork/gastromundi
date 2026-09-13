@@ -109,6 +109,20 @@ describe("criarTrabalho", () => {
     expect(criarTrabalho(corpo({ copias: null }), {}).trabalho.copias).toBe(1);
   });
 
+  it("guarda o tamanho da letra pedido pelo caixa", () => {
+    expect(novo({ tamanhoFonte: "alta" }).trabalho.tamanhoFonte).toBe("alta");
+    expect(novo({ tamanhoFonte: "pequena" }).trabalho.tamanhoFonte).toBe("pequena");
+  });
+
+  it("tamanho ausente ou desconhecido não recusa a impressão — cai no padrão", () => {
+    // App mais novo que a Ponte (ou campo digitado errado) não pode deixar
+    // a cozinha sem comanda: imprime no tamanho de sempre.
+    expect(novo().trabalho.tamanhoFonte).toBe("normal");
+    expect(novo({ tamanhoFonte: "gigante" }).trabalho.tamanhoFonte).toBe("normal");
+    expect(novo({ tamanhoFonte: 42 }).trabalho.tamanhoFonte).toBe("normal");
+    expect(novo({ tamanhoFonte: "gigante" }).ok).toBe(true);
+  });
+
   it("cortaPapel só é false quando pedido explicitamente", () => {
     expect(novo({ cortaPapel: false }).trabalho.cortaPapel).toBe(false);
     expect(novo({ cortaPapel: undefined }).trabalho.cortaPapel).toBe(true);

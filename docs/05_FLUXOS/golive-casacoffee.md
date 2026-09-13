@@ -51,10 +51,20 @@ conferir no painel se RLS está **enabled** em `tenants`, `users`, `assinaturas`
 Tudo `true`/preenchido → mandar o link e o login pra Paula. Critério de "operável":
 ela loga no subdomínio, vê a marca dela e consegue cadastrar o primeiro produto.
 
+### 8. Carga do cardápio (atalho — evita redigitar 272 itens)
+O cardápio do Casa veio do PDV antigo no relatório "Cadastro de preços por loja e grupo"
+(loja 1-CASA COFFEE COLAB, tabela Geral). `supabase/SEED_produtos_casacoffee.sql` cadastra
+os 272 itens com os preços do relatório — rodar **o arquivo inteiro de uma vez**
+(usa tabela temporária); idempotente, não duplica se rodar de novo.
+Passo **opcional**: se a Paula preferir montar o cardápio na mão pela tela de Produtos,
+pular. Depois da carga, sobram duas faxinas pra ela (estão descritas no cabeçalho do SQL):
+os 61 itens de preço R$ 0,00 (insumos/componentes do monta-salada, que não são de venda) e
+a categoria "Desativado" (vinhos fora de linha).
+
 ## O que fica com a Paula (self-service, sem a gente)
 
-Cardápio (obrigatório) → meios de pagamento (default já serve) → mesas (se salão) →
-equipe → abrir caixa e vender. Detalhe por tela no runbook de ativação.
+Cardápio (obrigatório — ou já carregado no passo 8) → meios de pagamento (default já serve)
+→ mesas (se salão) → equipe → abrir caixa e vender. Detalhe por tela no runbook de ativação.
 
 ## Fora do escopo deste go-live
 

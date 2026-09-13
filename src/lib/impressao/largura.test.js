@@ -68,6 +68,36 @@ describe("colunasEscpos", () => {
       expect(colunas).toBeGreaterThan(0);
     }
   });
+
+  it("letra miúda cabe mais por linha; letra grande cabe metade", () => {
+    expect(colunasEscpos(80, "pequena")).toBe(64); // Fonte B
+    expect(colunasEscpos(80, "normal")).toBe(48);
+    expect(colunasEscpos(80, "alta")).toBe(48);    // só a altura dobra
+    expect(colunasEscpos(80, "grande")).toBe(24);  // a largura dobra
+  });
+
+  it("o mesmo vale no papel de 58mm", () => {
+    expect(colunasEscpos(58, "pequena")).toBe(42);
+    expect(colunasEscpos(58, "normal")).toBe(32);
+    expect(colunasEscpos(58, "alta")).toBe(32);
+    expect(colunasEscpos(58, "grande")).toBe(16);
+  });
+
+  it("tamanho ausente ou desconhecido imprime como sempre imprimiu", () => {
+    expect(colunasEscpos(80)).toBe(colunasEscpos(80, "normal"));
+    expect(colunasEscpos(80, "gigante")).toBe(48);
+    expect(colunasEscpos(58, undefined)).toBe(32);
+  });
+
+  it("nenhum tamanho produz coluna quebrada ou não positiva", () => {
+    for (const tamanho of ["pequena", "normal", "alta", "grande", "x", undefined]) {
+      for (const mm of [80, 58, 40, 0, undefined]) {
+        const colunas = colunasEscpos(mm, tamanho);
+        expect(Number.isInteger(colunas)).toBe(true);
+        expect(colunas).toBeGreaterThan(0);
+      }
+    }
+  });
 });
 
 describe("quebrarLinha", () => {

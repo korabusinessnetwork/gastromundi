@@ -109,6 +109,41 @@ describe("driver escpos-ponte", () => {
     expect(trabalhoEnviado().cortaPapel).toBe(false);
   });
 
+  it("manda pra Ponte o tamanho da letra que o dono escolheu", async () => {
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80, fonteBase: 18 });
+    expect(trabalhoEnviado().tamanhoFonte).toBe("alta");
+
+    enviarImpressaoPonteMock.mockClear();
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80, fonteBase: 22 });
+    expect(trabalhoEnviado().tamanhoFonte).toBe("grande");
+  });
+
+  it("perfil sem fonte definida imprime no tamanho padrão da impressora", async () => {
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80 });
+    expect(trabalhoEnviado().tamanhoFonte).toBe("normal");
+  });
+
+  it("letra grande reflui o texto nas colunas que a impressora vai usar", async () => {
+    // O bug que este teste tranca: mandar o tamanho grande (que dobra a
+    // largura do caractere) sem estreitar a formatação faria cada linha
+    // sair com o dobro da largura do papel — comanda embaralhada.
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80, fonteBase: 22 });
+    const linhasGrande = trabalhoEnviado().linhas;
+    enviarImpressaoPonteMock.mockClear();
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80 });
+    const linhasNormais = trabalhoEnviado().linhas;
+
+    expect(Math.max(...linhasGrande.map((l) => l.length))).toBeLessThanOrEqual(24);
+    expect(Math.max(...linhasNormais.map((l) => l.length))).toBeGreaterThan(24);
+  });
+
+  it("letra miúda aproveita as colunas a mais da Fonte B", async () => {
+    await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 80, fonteBase: 11 });
+    const trabalho = trabalhoEnviado();
+    expect(trabalho.tamanhoFonte).toBe("pequena");
+    expect(Math.max(...trabalho.linhas.map((l) => l.length))).toBeGreaterThan(48);
+  });
+
   it("58mm produz colunas mais estreitas que 80mm", async () => {
     await imprimir(documentoComprovante, { impressora: IMPRESSORA_WINDOWS, larguraMm: 58 });
     const linhas58 = trabalhoEnviado().linhas;
