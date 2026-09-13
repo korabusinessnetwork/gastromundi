@@ -249,8 +249,11 @@ describe("DeliveryView, tirar um item do ar é um clique na grade", () => {
   it("o botão está na grade, sem abrir nada", async () => {
     const user = userEvent.setup();
     await irParaCardapio(user);
-    expect(chave()).toHaveTextContent("Disponível");
     expect(chave()).toHaveAttribute("aria-checked", "true");
+    // No card a chave é só trilho e bolinha (o nome do produto precisa da
+    // largura), então o estado por extenso vive no title — é o que o dono
+    // lê ao passar o mouse e o que o leitor de tela anuncia.
+    expect(chave()).toHaveAttribute("title", expect.stringMatching(/Está no cardápio online/));
   });
 
   it("um clique grava a virada na hora, sem passar pelo Salvar", async () => {
@@ -264,11 +267,11 @@ describe("DeliveryView, tirar um item do ar é um clique na grade", () => {
     });
   });
 
-  it("item fora do ar mostra a palavra trocada", async () => {
+  it("item fora do ar aparece com a chave desligada", async () => {
     const user = userEvent.setup();
     await irParaCardapio(user, { ...ITEM, disponivel: false });
-    expect(chave()).toHaveTextContent("Indisponível");
     expect(chave()).toHaveAttribute("aria-checked", "false");
+    expect(chave()).toHaveAttribute("title", expect.stringMatching(/Fora do cardápio online/));
   });
 
   it("a chave não existe mais dentro do Editar", async () => {

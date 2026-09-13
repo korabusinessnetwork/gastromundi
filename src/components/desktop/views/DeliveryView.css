@@ -394,17 +394,24 @@
    do nome, nunca a palavra que diz se o item está no ar. */
 .delivery-view__card-nome-linha {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
+/* O nome QUEBRA em vez de ser cortado. Com a chave ao lado ocupando cerca
+   de 130px de um card de 300, `nowrap` transformava "Hmaburguer de cheedar"
+   em "Hmabur…" — e um cardápio onde não se lê o nome do produto não serve
+   para nada. Duas linhas cobrem os nomes reais; o terceiro nível de aperto
+   ainda corta, mas aí já não havia saída. */
 .delivery-view__card-nome {
   font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
   min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
 /* Chave de disponibilidade do card. Era um selo (`__pill`) sem borda e sem
@@ -428,6 +435,12 @@
   cursor: pointer;
   white-space: nowrap;
   transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+/* Sem a palavra ao lado: o padding assimétrico (que abria espaço para o
+   texto à esquerda) vira simétrico, senão a chave fica torta. */
+.delivery-view__disp--compacto {
+  padding: 5px 8px;
 }
 
 .delivery-view__disp:disabled {

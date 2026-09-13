@@ -1256,14 +1256,14 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
               title={item.disponivel
                 ? "Está no cardápio online. Clique para tirar do ar."
                 : "Fora do cardápio online. Clique para voltar a oferecer."}
-              className={`delivery-view__disp delivery-view__disp--${item.disponivel ? "on" : "off"}`}
+              className={`delivery-view__disp delivery-view__disp--compacto delivery-view__disp--${item.disponivel ? "on" : "off"}`}
             >
-              <span className="delivery-view__disp-texto">
-                {item.disponivel ? "Disponível" : "Indisponível"}
-              </span>
-              {/* Trilho e bolinha: é o que faz o olho ler "controle" e não
-                  "etiqueta". A palavra sozinha, por mais colorida que fosse,
-                  continuava parecendo um selo de status. */}
+              {/* Só o trilho e a bolinha, sem a palavra. Aqui o card tem
+                  300px e a chave com texto comia 130 deles: "Hmaburguer de
+                  cheedar" virava "Hmabur…", e cardápio em que não se lê o
+                  nome do produto não serve. O estado continua dito por
+                  extenso no title e no aria-label; na tabela de Produtos,
+                  que tem coluna própria, a palavra aparece. */}
               <span className="delivery-view__disp-trilho" aria-hidden="true">
                 <span className="delivery-view__disp-bola" />
               </span>
