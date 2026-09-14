@@ -263,6 +263,12 @@ export function sanitizarConfig(config) {
     // banco (20261005) — a regra vale para toda escrita em products, não só
     // para a tela que a originou.
     espelhar_desabilitado: !!config?.espelhar_desabilitado,
+    // Produto novo do PDV entra sozinho no cardápio online. Desligado por
+    // padrão: ligar sozinho publicaria na internet tudo o que fosse
+    // cadastrado a partir de agora, e há quem mantenha de propósito o
+    // cardápio online menor que o do salão. Quem aplica é um gatilho no
+    // banco (20261007) — produto nasce de mais de um lugar.
+    sincronizar_automatico: !!config?.sincronizar_automatico,
   };
 }
 
@@ -394,7 +400,7 @@ function coordOuNull(bruto, min, max) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, espelhar_desabilitado, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, espelhar_desabilitado, sincronizar_automatico, updated_at")
     .maybeSingle();
   return { data, error };
 }
@@ -469,8 +475,17 @@ export async function removerProdutoDelivery(id) {
  * @param {Array} jaPublicados - linhas atuais de produto_delivery
  * @returns {{ data:{importados:number}, error:any }}
  */
-export async function importarProdutosDelivery(products, jaPublicados) {
-  const faltantes = produtosParaImportar(products, jaPublicados);
+export async function importarProdutosDelivery(products, jaPublicados, idsEscolhidos = null) {
+  let faltantes = produtosParaImportar(products, jaPublicados);
+  // `idsEscolhidos` null = importa tudo o que falta (o comportamento antigo,
+  // que continua valendo para quem chama sem escolher). Com uma lista, só
+  // ela entra — e o filtro é aplicado DEPOIS de produtosParaImportar, então
+  // um id já publicado ou não publicável não volta pela porta dos fundos
+  // mesmo que a tela mande.
+  if (Array.isArray(idsEscolhidos)) {
+    const querem = new Set(idsEscolhidos.map((id) => String(id)));
+    faltantes = faltantes.filter((p) => querem.has(String(p.id)));
+  }
   if (faltantes.length === 0) return { data: { importados: 0 }, error: null };
   const linhas = faltantes.map((p, i) => ({
     produto_id: p.id,

@@ -1,8 +1,8 @@
 -- ══════════════════════════════════════════════════════════════════════
--- GASTROMUNDI — as 28 migrações pendentes, na ordem certa.
+-- GASTROMUNDI — as 29 migrações pendentes, na ordem certa.
 --
 -- Gerado a partir de supabase/migrations/, de 20260918_delivery_nao_publica_insumo_nem_preco_zero.sql
--- até 20261006_cliente_do_delivery.sql.
+-- até 20261007_delivery_sincroniza_produto_novo.sql.
 --
 -- COMO USAR
 --   1. Abra o SQL Editor do seu projeto no Supabase.
@@ -36,9 +36,9 @@ BEGIN;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [01/28]  20260918_delivery_nao_publica_insumo_nem_preco_zero.sql
+-- [01/29]  20260918_delivery_nao_publica_insumo_nem_preco_zero.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [01/28] 20260918_delivery_nao_publica_insumo_nem_preco_zero.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [01/29] 20260918_delivery_nao_publica_insumo_nem_preco_zero.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- DL34 — insumo da ficha técnica estava à venda, a R$ 0,00, na vitrine
@@ -675,9 +675,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [02/28]  20260918_grupos_escolha.sql
+-- [02/29]  20260918_grupos_escolha.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [02/28] 20260918_grupos_escolha.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [02/29] 20260918_grupos_escolha.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Grupos de escolha — produtos com seleção e combos flexíveis
@@ -824,9 +824,9 @@ END $$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [03/28]  20260919_baixa_estoque_cria_linha.sql
+-- [03/29]  20260919_baixa_estoque_cria_linha.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [03/28] 20260919_baixa_estoque_cria_linha.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [03/29] 20260919_baixa_estoque_cria_linha.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Baixa no caixa SEMPRE vira baixa no estoque
@@ -945,9 +945,9 @@ ON CONFLICT (produto_id) DO NOTHING;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [04/28]  20260919_delivery_entregadores.sql
+-- [04/29]  20260919_delivery_entregadores.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [04/28] 20260919_delivery_entregadores.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [04/29] 20260919_delivery_entregadores.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Delivery — entregadores (motoboys) + atribuição ao pedido
@@ -1050,9 +1050,9 @@ CREATE POLICY delivery_entregadores_tenant_isolamento
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [05/28]  20260919_pautas.sql
+-- [05/29]  20260919_pautas.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [05/28] 20260919_pautas.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [05/29] 20260919_pautas.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Pautas da Kora — pautas_pessoas + pautas
@@ -1256,9 +1256,9 @@ CREATE POLICY pautas_update_socio
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [06/28]  20260920_delivery_pagamento_entregador.sql
+-- [06/29]  20260920_delivery_pagamento_entregador.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [06/28] 20260920_delivery_pagamento_entregador.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [06/29] 20260920_delivery_pagamento_entregador.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Delivery — pagamento do entregador vira SAÍDA DE CAIXA (sangria).
@@ -1303,9 +1303,9 @@ CREATE INDEX IF NOT EXISTS delivery_pedidos_entregador_pago_idx
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [07/28]  20260920_rls_habilitada_tabelas_base.sql
+-- [07/29]  20260920_rls_habilitada_tabelas_base.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [07/28] 20260920_rls_habilitada_tabelas_base.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [07/29] 20260920_rls_habilitada_tabelas_base.sql'; END $aplicando$;
 
 -- ════════════════════════════════════════════════════════════════════
 -- 20260920 — LIGAR a RLS nas seis tabelas em que ela nunca foi ligada
@@ -1446,9 +1446,9 @@ ORDER BY c.relname;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [08/28]  20260921_delivery_rate_limit_sem_telefone.sql
+-- [08/29]  20260921_delivery_rate_limit_sem_telefone.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [08/28] 20260921_delivery_rate_limit_sem_telefone.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [08/29] 20260921_delivery_rate_limit_sem_telefone.sql'; END $aplicando$;
 
 -- ════════════════════════════════════════════════════════════════════
 -- 20260921 — rate-limit do delivery público: fechar o desvio do
@@ -1577,9 +1577,9 @@ $$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [09/28]  20260921_indices_tenant_id.sql
+-- [09/29]  20260921_indices_tenant_id.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [09/28] 20260921_indices_tenant_id.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [09/29] 20260921_indices_tenant_id.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Índices de tenant_id que faltavam — leitura rápida com muitos
@@ -1737,9 +1737,9 @@ END $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [10/28]  20260922_fiscal_config_leitura_por_papel.sql
+-- [10/29]  20260922_fiscal_config_leitura_por_papel.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [10/28] 20260922_fiscal_config_leitura_por_papel.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [10/29] 20260922_fiscal_config_leitura_por_papel.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- NFC-e — leitura da configuração fiscal POR PAPEL (correção)
@@ -1827,9 +1827,9 @@ ORDER BY policyname;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [11/28]  20260922_gravar_itens_comanda.sql
+-- [11/29]  20260922_gravar_itens_comanda.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [11/28] 20260922_gravar_itens_comanda.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [11/29] 20260922_gravar_itens_comanda.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- TD013 — gravação atômica dos itens da comanda
@@ -2122,9 +2122,9 @@ END $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [12/28]  20260923_combo_produtos_isolamento_tenant.sql
+-- [12/29]  20260923_combo_produtos_isolamento_tenant.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [12/28] 20260923_combo_produtos_isolamento_tenant.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [12/29] 20260923_combo_produtos_isolamento_tenant.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- combo_produtos — fecha a policy permissiva e firma o isolamento
@@ -2242,9 +2242,9 @@ ORDER BY policyname;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [13/28]  20260923_dinheiro_precisao.sql
+-- [13/29]  20260923_dinheiro_precisao.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [13/28] 20260923_dinheiro_precisao.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [13/29] 20260923_dinheiro_precisao.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Dinheiro com precisão declarada — numeric(12,2) nas colunas de valor
@@ -2542,9 +2542,9 @@ END $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [14/28]  20260924_fechamentos_colunas.sql
+-- [14/29]  20260924_fechamentos_colunas.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [14/28] 20260924_fechamentos_colunas.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [14/29] 20260924_fechamentos_colunas.sql'; END $aplicando$;
 
 -- ╔══════════════════════════════════════════════════════════════════════╗
 -- ║  20260924_fechamentos_colunas.sql — A6                               ║
@@ -2772,9 +2772,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [15/28]  20260924_search_path_security_definer.sql
+-- [15/29]  20260924_search_path_security_definer.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [15/28] 20260924_search_path_security_definer.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [15/29] 20260924_search_path_security_definer.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Hardening — search_path fixo em toda função SECURITY DEFINER
@@ -2898,9 +2898,9 @@ ORDER BY 1;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [16/28]  20260925_leads_apex.sql
+-- [16/29]  20260925_leads_apex.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [16/28] 20260925_leads_apex.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [16/29] 20260925_leads_apex.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- 20260925 — leads do site institucional (apex kora.codes)
@@ -3094,9 +3094,9 @@ SELECT 'public.leads' AS tabela,
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [17/28]  20260925_ponte_download_bucket.sql
+-- [17/29]  20260925_ponte_download_bucket.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [17/28] 20260925_ponte_download_bucket.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [17/29] 20260925_ponte_download_bucket.sql'; END $aplicando$;
 
 -- ──────────────────────────────────────────────────────────────────
 -- NÃO É MAIS USADA — leia antes de rodar.
@@ -3209,9 +3209,9 @@ where id = 'ponte-download';
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [18/28]  20260926_solicitacoes_conta.sql
+-- [18/29]  20260926_solicitacoes_conta.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [18/28] 20260926_solicitacoes_conta.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [18/29] 20260926_solicitacoes_conta.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- 20260926 — solicitações de conta do site institucional (apex)
@@ -3552,9 +3552,9 @@ SELECT 'public.solicitacoes_conta' AS tabela,
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [19/28]  20260927_grupo_escolha_itens_ativo.sql
+-- [19/29]  20260927_grupo_escolha_itens_ativo.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [19/28] 20260927_grupo_escolha_itens_ativo.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [19/29] 20260927_grupo_escolha_itens_ativo.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Opção de grupo de escolha pode ser DESLIGADA sem ser apagada
@@ -3623,9 +3623,9 @@ END $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [20/28]  20260928_delivery_retirada_no_local.sql
+-- [20/29]  20260928_delivery_retirada_no_local.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [20/28] 20260928_delivery_retirada_no_local.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [20/29] 20260928_delivery_retirada_no_local.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Retirada no local na vitrine pública + "ainda não tem área de
@@ -4324,9 +4324,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [21/28]  20260929_delivery_sem_cep_e_meus_pedidos.sql
+-- [21/29]  20260929_delivery_sem_cep_e_meus_pedidos.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [21/28] 20260929_delivery_sem_cep_e_meus_pedidos.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [21/29] 20260929_delivery_sem_cep_e_meus_pedidos.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Pedir sem saber o CEP, e acompanhar o pedido sem criar conta.
@@ -4861,9 +4861,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [22/28]  20260930_delivery_telefone_obrigatorio.sql
+-- [22/29]  20260930_delivery_telefone_obrigatorio.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [22/28] 20260930_delivery_telefone_obrigatorio.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [22/29] 20260930_delivery_telefone_obrigatorio.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Telefone obrigatório no pedido do delivery.
@@ -5330,9 +5330,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [23/28]  20261001_delivery_via_sai_sozinha.sql
+-- [23/29]  20261001_delivery_via_sai_sozinha.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [23/28] 20261001_delivery_via_sai_sozinha.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [23/29] 20261001_delivery_via_sai_sozinha.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- A via do pedido de delivery nunca saía sozinha na impressora.
@@ -5765,9 +5765,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [24/28]  20261002_venda_do_delivery.sql
+-- [24/29]  20261002_venda_do_delivery.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [24/28] 20261002_venda_do_delivery.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [24/29] 20261002_venda_do_delivery.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- O delivery passa a fechar a própria venda, com registro separado.
@@ -5993,9 +5993,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [25/28]  20261003_delivery_whatsapp_no_aceite.sql
+-- [25/29]  20261003_delivery_whatsapp_no_aceite.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [25/28] 20261003_delivery_whatsapp_no_aceite.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [25/29] 20261003_delivery_whatsapp_no_aceite.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Interruptor: confirmar no WhatsApp ao aceitar o pedido.
@@ -6040,9 +6040,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [26/28]  20261004_escolhas_sem_limite.sql
+-- [26/29]  20261004_escolhas_sem_limite.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [26/28] 20261004_escolhas_sem_limite.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [26/29] 20261004_escolhas_sem_limite.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Máximo zerado = SEM LIMITE (os dois lados: PDV e delivery).
@@ -6557,9 +6557,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [27/28]  20261005_desabilitar_produto_espelho.sql
+-- [27/29]  20261005_desabilitar_produto_espelho.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [27/28] 20261005_desabilitar_produto_espelho.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [27/29] 20261005_desabilitar_produto_espelho.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Desabilitar um produto: PDV e delivery são chaves separadas, e o
@@ -6749,9 +6749,9 @@ $conf$;
 
 
 -- ══════════════════════════════════════════════════════════════════════
--- [28/28]  20261006_cliente_do_delivery.sql
+-- [28/29]  20261006_cliente_do_delivery.sql
 -- ══════════════════════════════════════════════════════════════════════
-DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [28/28] 20261006_cliente_do_delivery.sql'; END $aplicando$;
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [28/29] 20261006_cliente_do_delivery.sql'; END $aplicando$;
 
 -- ══════════════════════════════════════════════════════════════════
 -- Data de nascimento no primeiro pedido, e o cadastro do cliente
@@ -7269,6 +7269,190 @@ BEGIN
   END LOOP;
 
   RAISE NOTICE 'Cadastro do cliente no primeiro pedido: pronto (data de nascimento opcional).';
+END;
+$conf$;
+
+
+-- ══════════════════════════════════════════════════════════════════════
+-- [29/29]  20261007_delivery_sincroniza_produto_novo.sql
+-- ══════════════════════════════════════════════════════════════════════
+DO $aplicando$ BEGIN RAISE NOTICE '▶ APLICANDO [29/29] 20261007_delivery_sincroniza_produto_novo.sql'; END $aplicando$;
+
+-- ══════════════════════════════════════════════════════════════════
+-- Sincronizar automático: produto novo do PDV entra sozinho no cardápio
+-- online, quando o dono liga.
+--
+-- Hoje só existe o caminho manual: cadastra no PDV, vai na aba Delivery,
+-- clica em importar. Esquecer o segundo passo é o normal, não a exceção —
+-- e o produto fica invisível para quem pede pela internet sem ninguém
+-- perceber. Quem tem o cardápio do balcão igual ao do site faz esse
+-- caminho toda vez que cria um item.
+--
+-- DESLIGADO por padrão. Ligar sozinho publicaria na internet, sem
+-- ninguém pedir, tudo o que fosse cadastrado a partir de agora — e há
+-- estabelecimento que mantém de propósito um cardápio online menor que o
+-- do salão.
+--
+-- POR QUE UM GATILHO E NÃO CÓDIGO NA TELA: produto nasce em mais de um
+-- lugar — o Cadastro Produtos do desktop, o botão novo da própria aba
+-- Delivery, a importação de planilha. Uma regra escrita numa tela valeria
+-- só naquela tela, e o dono que ligou a sincronização veria uns produtos
+-- entrarem e outros não, sem entender o critério.
+--
+-- O MESMO CRITÉRIO DA VITRINE. Insumo e Produção moram em `products`
+-- porque a ficha técnica precisa deles, mas farinha de trigo não se vende
+-- por delivery; e produto sem preço publicado é pedido de graça. É a
+-- regra que `categoria_interna` (20260918) já aplica nas RPCs públicas e
+-- que `produtoPublicavelNoDelivery` aplica na tela — aqui ela vale mais
+-- uma vez, no momento em que o produto nasce.
+--
+-- RLS: nada muda. Nenhuma tabela nova. O gatilho é SECURITY DEFINER e
+-- escreve só a linha do MESMO tenant do produto.
+-- ══════════════════════════════════════════════════════════════════
+
+-- ── 1. A opção ─────────────────────────────────────────────────────
+ALTER TABLE public.config_delivery
+  ADD COLUMN IF NOT EXISTS sincronizar_automatico boolean NOT NULL DEFAULT false;
+
+COMMENT ON COLUMN public.config_delivery.sincronizar_automatico IS
+  'Ligado: produto novo criado no PDV entra sozinho no cardápio online (se for vendável: fora de Insumo/Produção e com preço > 0). Desligado (padrão): só pela importação manual.';
+
+-- ── 2. O gatilho ───────────────────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.publicar_produto_novo_no_delivery()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_liga  boolean;
+  v_ordem integer;
+BEGIN
+  -- Produto que já nasce desligado não vai para a vitrine: quem cadastra
+  -- "inativo" está guardando para depois.
+  IF NEW.active IS DISTINCT FROM true THEN
+    RETURN NEW;
+  END IF;
+
+  -- Mesmo critério da vitrine e da tela: nada de insumo, nada de graça.
+  IF public.categoria_interna(NEW.category) OR COALESCE(NEW.price, 0) <= 0 THEN
+    RETURN NEW;
+  END IF;
+
+  -- A opção é POR ESTABELECIMENTO, lida do tenant do PRODUTO — não de
+  -- quem executa. Importação em lote por outro caminho respeita a escolha
+  -- do dono daquele estabelecimento.
+  SELECT cd.sincronizar_automatico
+    INTO v_liga
+    FROM public.config_delivery cd
+   WHERE cd.tenant_id = NEW.tenant_id;
+
+  IF NOT COALESCE(v_liga, false) THEN
+    RETURN NEW;
+  END IF;
+
+  -- Entra no fim da lista: publicar no topo empurraria o cardápio que o
+  -- dono ordenou à mão.
+  SELECT COALESCE(max(ordem), -1) + 1 INTO v_ordem
+    FROM public.produto_delivery
+   WHERE tenant_id = NEW.tenant_id;
+
+  -- ON CONFLICT: a tela que cria o produto e JÁ grava a linha de delivery
+  -- (o "Novo produto" da aba Delivery) não pode colidir com o gatilho.
+  INSERT INTO public.produto_delivery (tenant_id, produto_id, disponivel, ordem)
+  VALUES (NEW.tenant_id, NEW.id, true, v_ordem)
+  ON CONFLICT (tenant_id, produto_id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.publicar_produto_novo_no_delivery() FROM PUBLIC;
+
+DROP TRIGGER IF EXISTS products_publica_no_delivery ON public.products;
+CREATE TRIGGER products_publica_no_delivery
+  AFTER INSERT ON public.products
+  FOR EACH ROW
+  EXECUTE FUNCTION public.publicar_produto_novo_no_delivery();
+
+-- ══════════════════════════════════════════════════════════════════
+-- Conferência ao vivo — EXECUTA a sincronização contra casos conhecidos
+-- e aborta se algum divergir. Limpa o que criou.
+-- ══════════════════════════════════════════════════════════════════
+DO $conf$
+DECLARE
+  v_plano  text;
+  v_tenant uuid;
+  v_prod   bigint;
+  v_qtd    integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger
+                  WHERE tgname = 'products_publica_no_delivery' AND NOT tgisinternal) THEN
+    RAISE EXCEPTION 'Sincronizar: o gatilho não foi criado.';
+  END IF;
+
+  SELECT codigo INTO v_plano FROM public.planos LIMIT 1;
+  IF v_plano IS NULL THEN
+    RAISE NOTICE 'Sincronizar: sem planos cadastrados, conferência pulada.';
+    RETURN;
+  END IF;
+
+  INSERT INTO public.tenants (nome, slug, plano_codigo)
+       VALUES ('Conferência sincronizar', 'conf-sinc-' || gen_random_uuid(), v_plano)
+    RETURNING id INTO v_tenant;
+
+  -- Caso 1 — opção DESLIGADA (o padrão): produto novo NÃO vai para o
+  -- cardápio online. É a regra que protege quem mantém os dois cardápios
+  -- diferentes de propósito.
+  INSERT INTO public.config_delivery (tenant_id, sincronizar_automatico)
+       VALUES (v_tenant, false);
+  INSERT INTO public.products (name, price, category, active, tenant_id)
+       VALUES ('Desligado', 10, 'Comidas', true, v_tenant) RETURNING id INTO v_prod;
+  SELECT count(*) INTO v_qtd FROM public.produto_delivery WHERE produto_id = v_prod;
+  IF v_qtd <> 0 THEN
+    RAISE EXCEPTION 'Sincronizar: publicou com a opção desligada — o cardápio online passaria a crescer sozinho sem ninguém pedir.';
+  END IF;
+
+  -- Caso 2 — LIGADA: o produto novo entra.
+  UPDATE public.config_delivery SET sincronizar_automatico = true WHERE tenant_id = v_tenant;
+  INSERT INTO public.products (name, price, category, active, tenant_id)
+       VALUES ('Ligado', 10, 'Comidas', true, v_tenant) RETURNING id INTO v_prod;
+  SELECT count(*) INTO v_qtd FROM public.produto_delivery WHERE produto_id = v_prod;
+  IF v_qtd <> 1 THEN
+    RAISE EXCEPTION 'Sincronizar: com a opção ligada o produto novo não entrou no cardápio online.';
+  END IF;
+
+  -- Caso 3 — insumo NUNCA entra, nem com a opção ligada. Publicar farinha
+  -- de trigo na vitrine foi um achado crítico de auditoria (20260918).
+  INSERT INTO public.products (name, price, category, active, tenant_id)
+       VALUES ('Farinha', 10, 'Insumo', true, v_tenant) RETURNING id INTO v_prod;
+  SELECT count(*) INTO v_qtd FROM public.produto_delivery WHERE produto_id = v_prod;
+  IF v_qtd <> 0 THEN
+    RAISE EXCEPTION 'Sincronizar: publicou um insumo na vitrine.';
+  END IF;
+
+  -- Caso 4 — preço zero também não: publicado, o cliente pede de graça.
+  INSERT INTO public.products (name, price, category, active, tenant_id)
+       VALUES ('Sem preço', 0, 'Comidas', true, v_tenant) RETURNING id INTO v_prod;
+  SELECT count(*) INTO v_qtd FROM public.produto_delivery WHERE produto_id = v_prod;
+  IF v_qtd <> 0 THEN
+    RAISE EXCEPTION 'Sincronizar: publicou produto sem preço — sairia de graça na vitrine.';
+  END IF;
+
+  -- Caso 5 — produto que nasce inativo fica guardado, não publicado.
+  INSERT INTO public.products (name, price, category, active, tenant_id)
+       VALUES ('Guardado', 10, 'Comidas', false, v_tenant) RETURNING id INTO v_prod;
+  SELECT count(*) INTO v_qtd FROM public.produto_delivery WHERE produto_id = v_prod;
+  IF v_qtd <> 0 THEN
+    RAISE EXCEPTION 'Sincronizar: publicou produto que nasceu desativado.';
+  END IF;
+
+  DELETE FROM public.produto_delivery WHERE tenant_id = v_tenant;
+  DELETE FROM public.products         WHERE tenant_id = v_tenant;
+  DELETE FROM public.config_delivery  WHERE tenant_id = v_tenant;
+  DELETE FROM public.tenants          WHERE id = v_tenant;
+
+  RAISE NOTICE 'Sincronizar automático conferido: desligado por padrão, e nem ligado publica insumo, preço zero ou inativo.';
 END;
 $conf$;
 
