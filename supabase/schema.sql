@@ -913,7 +913,9 @@ CREATE TABLE public.config_delivery (
   endereco_origem_bloqueado boolean NOT NULL DEFAULT false,                    -- 20260827
   fuso                      text    NOT NULL DEFAULT 'America/Sao_Paulo',      -- 20260903
   permite_retirada          boolean NOT NULL DEFAULT false,                    -- 20260928 — aceita retirada no balcão
-  whatsapp_no_aceite        boolean NOT NULL DEFAULT false                     -- 20261003 — confirma no WhatsApp ao aceitar
+  whatsapp_no_aceite        boolean NOT NULL DEFAULT false,                    -- 20261003 — confirma no WhatsApp ao aceitar
+  espelhar_desabilitado     boolean NOT NULL DEFAULT false,                    -- 20261005 — desabilitar no PDV tira do cardápio online
+  sincronizar_automatico    boolean NOT NULL DEFAULT false                     -- 20261007 — produto novo do PDV entra sozinho
 );
 
 CREATE TABLE public.delivery_entregadores (

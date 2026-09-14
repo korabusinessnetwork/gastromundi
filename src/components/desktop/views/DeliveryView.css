@@ -2510,3 +2510,86 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Importar do PDV escolhendo o que entra ─────────────────────────
+   O botão trazia todos os produtos de uma vez. Num cardápio grande,
+   publicar dez obrigava a importar cem e sair removendo um a um. */
+.delivery-view__import-acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.delivery-view__import-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Rola dentro do modal, não a página: o rodapé com "Importar N" precisa
+   ficar sempre à vista, senão a pessoa desmarca e não acha o botão. */
+.delivery-view__import-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.delivery-view__import-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.delivery-view__import-item:hover {
+  background: var(--gm-surface);
+}
+
+/* O nome ocupa a sobra; categoria e preço ficam presos à direita e não
+   encolhem, para as colunas se alinharem entre as linhas. */
+.delivery-view__import-item .delivery-view__item-nome {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.delivery-view__import-item .delivery-view__hint,
+.delivery-view__import-item .delivery-view__item-preco {
+  flex: none;
+}
+
+/* ── Filtro do cardápio já publicado ────────────────────────────── */
+.delivery-view__filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.delivery-view__filtros > .delivery-view__input:first-child {
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.delivery-view__filtros > .delivery-view__input:last-child {
+  flex: 0 1 200px;
+}
+
+/* Filtro sem resultado é coisa diferente de cardápio vazio: ocupa a grade
+   inteira para não ser lido como um cartão. */
+.delivery-view__filtro-vazio {
+  grid-column: 1 / -1;
+  padding: 24px 4px;
+}

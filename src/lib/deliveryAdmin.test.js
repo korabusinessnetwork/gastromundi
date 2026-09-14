@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // A camada importa o client Supabase (que exige VITE_* no import). Só
 // testamos as funções PURAS aqui — o client é mockado para não exigir env.
@@ -23,7 +23,9 @@ import {
   selecionarFaixaKm,
   temFaixasKm,
   subgrupoCriaCiclo,
+  importarProdutosDelivery,
 } from "./deliveryAdmin";
+import { supabase } from "./supabase";
 
 describe("produtosParaImportar", () => {
   // Todo produto de cardápio tem categoria de venda e preço — as fixtures
@@ -260,6 +262,9 @@ describe("sanitizarConfig", () => {
       // dia, e ligar o espelho sozinho tiraria produto do ar sem ninguém
       // ter pedido.
       espelhar_desabilitado: false,
+      // Nasce desligado: ligar sozinho publicaria na internet tudo o que
+      // fosse cadastrado dali em diante, sem ninguém pedir.
+      sincronizar_automatico: false,
     });
   });
 
@@ -470,5 +475,64 @@ describe("subgrupoCriaCiclo (barra aninhamento que fecharia laço)", () => {
   it("compara por String (uuid do banco em tipos mistos)", () => {
     const b = [{ id: 1, subgrupoIds: [2] }, { id: 2, subgrupoIds: [] }];
     expect(subgrupoCriaCiclo(b, "2", "1")).toBe(true);
+  });
+});
+
+describe("importarProdutosDelivery — escolher o que entra", () => {
+  // O botão trazia TODOS de uma vez. Num cardápio de cem itens, publicar
+  // dez obrigava a importar cem e sair removendo um a um, cada remoção
+  // com confirmação. Agora a tela manda a lista escolhida.
+  const vendavel = (id, extra) => ({ id, category: "Lanches", price: 10, ...extra });
+
+  /** Os produto_id que foram parar no insert. */
+  function idsInseridos() {
+    const c = supabase.calls.find((x) => x.table === "produto_delivery" && x.method === "insert");
+    return (c?.args?.[0] ?? []).map((l) => l.produto_id);
+  }
+
+  beforeEach(() => {
+    supabase.reset();
+    supabase.setTableHandler("produto_delivery", ({ method }) =>
+      method === "insert" ? { data: [{ id: "a" }], error: null } : undefined,
+    );
+  });
+
+  it("sem lista, importa tudo o que falta — o comportamento de sempre", async () => {
+    const products = [vendavel(1), vendavel(2), vendavel(3)];
+    const { data } = await importarProdutosDelivery(products, []);
+    expect(idsInseridos()).toEqual([1, 2, 3]);
+    expect(data.importados).toBe(1); // o que o mock devolveu
+  });
+
+  it("com lista, só os escolhidos entram", async () => {
+    const products = [vendavel(1), vendavel(2), vendavel(3)];
+    await importarProdutosDelivery(products, [], [1, 3]);
+    expect(idsInseridos()).toEqual([1, 3]);
+  });
+
+  it("id como texto casa com id numérico — é como a tela devolve o checkbox", async () => {
+    await importarProdutosDelivery([vendavel(7), vendavel(8)], [], ["7"]);
+    expect(idsInseridos()).toEqual([7]);
+  });
+
+  it("escolher um insumo não o publica: o filtro do que é vendável vem antes", async () => {
+    // A tela não oferece insumo, mas se um id chegar por qualquer caminho
+    // ele não pode entrar pela porta dos fundos — publicar farinha de
+    // trigo na vitrine foi achado crítico de auditoria.
+    const products = [vendavel(1), { id: 2, category: "Insumo", price: 30 }];
+    await importarProdutosDelivery(products, [], [1, 2]);
+    expect(idsInseridos()).toEqual([1]);
+  });
+
+  it("escolher quem já está publicado não duplica", async () => {
+    const products = [vendavel(1), vendavel(2)];
+    await importarProdutosDelivery(products, [{ produto_id: 1 }], [1, 2]);
+    expect(idsInseridos()).toEqual([2]);
+  });
+
+  it("lista vazia não grava nada", async () => {
+    const { data } = await importarProdutosDelivery([vendavel(1)], [], []);
+    expect(data.importados).toBe(0);
+    expect(supabase.calls.some((c) => c.method === "insert")).toBe(false);
   });
 });
