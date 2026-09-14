@@ -22,6 +22,10 @@ import {
   calcularSaldoDevedor,
   sanitizarTermoBusca,
   anonimizarCliente,
+  origemDoCliente,
+  mesDoAniversario,
+  filtrarClientes,
+  rotuloAniversario,
 } from "./clientes";
 
 beforeEach(() => {
@@ -76,6 +80,24 @@ describe("cadastrarCliente", () => {
     expect(error.clienteExistente.nome).toBe("João Antigo");
     const insert = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "insert");
     expect(insert).toBeUndefined();
+  });
+
+  it("grava a data de nascimento informada no balcão", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: [], error: null });
+
+    await cadastrarCliente({ nome: "João", telefone: "11988887777", dataNascimento: "1990-05-10" }, "maria");
+
+    const insert = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "insert");
+    expect(insert.args[0].data_nascimento).toBe("1990-05-10");
+  });
+
+  it("cadastro sem data de nascimento salva null (o campo é opcional)", async () => {
+    mockSupabase.current.setTableResult("clientes", { data: [], error: null });
+
+    await cadastrarCliente({ nome: "João", telefone: "11988887777" }, "maria");
+
+    const insert = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "insert");
+    expect(insert.args[0].data_nascimento).toBeNull();
   });
 });
 
@@ -237,5 +259,113 @@ describe("calcularSaldoDevedor", () => {
 
   it("retorna 0 quando todas as contas já foram quitadas", () => {
     expect(calcularSaldoDevedor([{ valor: 50, status: "recebido" }])).toBe(0);
+  });
+});
+
+describe("origemDoCliente", () => {
+  // A origem não virou coluna nova de propósito: `criado_por` já dizia
+  // isso. Uma coluna a mais precisaria ser preenchida em todos os
+  // caminhos, e o primeiro esquecido viraria cliente "sem origem".
+  it("delivery é quem a RPC do pedido cadastrou", () => {
+    expect(origemDoCliente({ criado_por: "delivery" })).toBe("delivery");
+  });
+
+  it("todo o resto é PDV — inclusive cadastro antigo sem `criado_por`", () => {
+    expect(origemDoCliente({ criado_por: "ana" })).toBe("pdv");
+    expect(origemDoCliente({ criado_por: null })).toBe("pdv");
+    expect(origemDoCliente({})).toBe("pdv");
+    expect(origemDoCliente(null)).toBe("pdv");
+  });
+});
+
+describe("mesDoAniversario", () => {
+  it("lê o mês da data", () => {
+    expect(mesDoAniversario({ data_nascimento: "1990-05-10" })).toBe(5);
+    expect(mesDoAniversario({ data_nascimento: "1985-12-31" })).toBe(12);
+    expect(mesDoAniversario({ data_nascimento: "2000-01-01" })).toBe(1);
+  });
+
+  it("lê como TEXTO, sem montar Date — o fuso roubaria um dia", () => {
+    // `new Date("1990-01-01")` é meia-noite UTC: num fuso a oeste volta
+    // como 31 de dezembro, e o cliente sairia da lista de janeiro.
+    expect(mesDoAniversario({ data_nascimento: "1990-01-01" })).toBe(1);
+    expect(mesDoAniversario({ data_nascimento: "1990-12-31" })).toBe(12);
+  });
+
+  it("sem data, ou com lixo, devolve null", () => {
+    for (const ruim of [null, undefined, "", "31/05/1990", "1990", "abc"]) {
+      expect(mesDoAniversario({ data_nascimento: ruim })).toBeNull();
+    }
+    expect(mesDoAniversario(null)).toBeNull();
+  });
+
+  it("mês fora da faixa não passa", () => {
+    expect(mesDoAniversario({ data_nascimento: "1990-13-01" })).toBeNull();
+    expect(mesDoAniversario({ data_nascimento: "1990-00-01" })).toBeNull();
+  });
+});
+
+describe("rotuloAniversario", () => {
+  it("escreve dia e mês em português", () => {
+    expect(rotuloAniversario({ data_nascimento: "1990-05-10" })).toBe("10 de maio");
+    expect(rotuloAniversario({ data_nascimento: "1985-03-01" })).toBe("1 de março");
+  });
+
+  it("primeiro e último dia do ano não escorregam de mês (fuso)", () => {
+    expect(rotuloAniversario({ data_nascimento: "1990-01-01" })).toBe("1 de janeiro");
+    expect(rotuloAniversario({ data_nascimento: "1990-12-31" })).toBe("31 de dezembro");
+  });
+
+  it("sem data devolve null", () => {
+    expect(rotuloAniversario({ data_nascimento: null })).toBeNull();
+    expect(rotuloAniversario({})).toBeNull();
+    expect(rotuloAniversario(null)).toBeNull();
+  });
+});
+
+describe("filtrarClientes", () => {
+  const LISTA = [
+    { id: 1, nome: "Ana", criado_por: "delivery", data_nascimento: "1990-05-10", endereco: "Rua A, 1" },
+    { id: 2, nome: "Bruno", criado_por: "joao", data_nascimento: "1985-05-02", endereco: null },
+    { id: 3, nome: "Carla", criado_por: "delivery", data_nascimento: null, endereco: "Rua C, 3" },
+    { id: 4, nome: "Davi", criado_por: null, data_nascimento: "1992-12-25", endereco: "   " },
+  ];
+  const ids = (f) => filtrarClientes(LISTA, f).map((c) => c.id);
+
+  it("sem filtro, devolve tudo", () => {
+    expect(ids({})).toEqual([1, 2, 3, 4]);
+    expect(filtrarClientes(LISTA)).toHaveLength(4);
+  });
+
+  it("por origem", () => {
+    expect(ids({ origem: "delivery" })).toEqual([1, 3]);
+    expect(ids({ origem: "pdv" })).toEqual([2, 4]);
+    expect(ids({ origem: "todos" })).toEqual([1, 2, 3, 4]);
+  });
+
+  it("por mês de aniversário — é o filtro que serve a promoção", () => {
+    expect(ids({ mesAniversario: 5 })).toEqual([1, 2]);
+    expect(ids({ mesAniversario: 12 })).toEqual([4]);
+    // Quem não informou a data não entra em nenhum mês.
+    expect(ids({ mesAniversario: 1 })).toEqual([]);
+  });
+
+  it("só quem tem endereço — promoção com entrega", () => {
+    // Endereço em branco não conta: não dá para entregar em espaço.
+    expect(ids({ comEndereco: true })).toEqual([1, 3]);
+  });
+
+  it("os filtros se somam", () => {
+    expect(ids({ origem: "delivery", mesAniversario: 5 })).toEqual([1]);
+    expect(ids({ origem: "pdv", comEndereco: true })).toEqual([]);
+  });
+
+  it("mês como texto funciona — é o que o <select> devolve", () => {
+    expect(ids({ mesAniversario: "5" })).toEqual([1, 2]);
+  });
+
+  it("entrada não-array não quebra", () => {
+    expect(filtrarClientes(null, { origem: "pdv" })).toEqual([]);
+    expect(filtrarClientes(undefined)).toEqual([]);
   });
 });

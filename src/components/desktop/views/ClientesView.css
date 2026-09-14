@@ -76,6 +76,122 @@
   font-family: inherit;
 }
 
+/* ── Filtros da lista ── */
+
+.clientes-view__filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.clientes-view__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.clientes-view__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.clientes-view__chip:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-text);
+}
+.clientes-view__chip b {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+.clientes-view__chip--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+  color: var(--gm-accent);
+}
+.clientes-view__chip--ativo b {
+  opacity: 1;
+}
+
+.clientes-view__filtro-mes {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+}
+
+.clientes-view__filtro-mes-rotulo {
+  /* Some no estreito: o ícone de bolo + os nomes de mês já dizem o que é. */
+  display: none;
+}
+@media (min-width: 900px) {
+  .clientes-view__filtro-mes-rotulo { display: inline; }
+}
+
+.clientes-view__select {
+  border: none;
+  background: none;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  padding: 4px 6px;
+  border-radius: 999px;
+  cursor: pointer;
+  outline: none;
+}
+
+.clientes-view__limpar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+}
+.clientes-view__limpar:hover {
+  color: var(--gm-text);
+  border-color: var(--gm-accent);
+}
+
+.clientes-view__contagem {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+  margin-bottom: 10px;
+}
+
 .clientes-view__lista-area {
   flex: 1;
   overflow-y: auto;
@@ -136,11 +252,46 @@
   min-height: 72px;
 }
 
+.clientes-view__card-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .clientes-view__card-nome {
   font-weight: 700;
   font-size: var(--fs-lg);
   line-height: var(--lh-lg);
   color: var(--gm-text);
+  /* O nome pode ocupar duas linhas antes do selo apertar: o cartão existe
+     para dizer QUEM é o cliente, e nome cortado não serve. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Selo de origem — só informa (não é botão): o cartão inteiro já clica. */
+.clientes-view__selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.clientes-view__selo--pdv {
+  background: color-mix(in srgb, var(--gm-muted) 16%, transparent);
+  color: var(--gm-muted);
+}
+
+.clientes-view__selo--delivery {
+  background: color-mix(in srgb, var(--gm-accent) 16%, transparent);
+  color: var(--gm-accent);
 }
 
 .clientes-view__card-linha {
@@ -247,6 +398,15 @@
   line-height: var(--lh-xs);
   color: var(--gm-red);
   font-weight: 600;
+}
+
+/* Explicação de para que serve um campo opcional — em cinza, para não
+   competir com o aviso de erro logo acima. */
+.clientes-view__ajuda-campo {
+  margin-top: 6px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
 }
 
 .clientes-view__modal-botoes {
@@ -412,6 +572,13 @@
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
   font-family: inherit;
+}
+
+.cliente-detalhe__nome-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .cliente-detalhe__nome {
