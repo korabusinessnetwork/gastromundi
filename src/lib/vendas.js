@@ -168,6 +168,9 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     valorAjuste: venda.valor_ajuste ?? 0,
     total: venda.total ?? 0,
     cashier: venda.cashier ?? null,
+    // 20261002 — 'pdv' | 'delivery'. Venda gravada antes da coluna existir
+    // é de balcão: era o único jeito de vender.
+    origem: venda.origem === "delivery" ? "delivery" : "pdv",
     clienteId: venda.cliente_id ?? null,
     at: venda.at,
     items: (itens ?? []).map((item) => ({

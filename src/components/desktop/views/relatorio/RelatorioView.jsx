@@ -1,9 +1,11 @@
-﻿import { useState, useMemo, useEffect, Fragment } from "react";
+﻿import { useState, useMemo, useEffect, useRef, useCallback, Fragment } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
 import { calcularVariacaoPercentual } from "@/lib/relatorios";
+import { origemDaVenda } from "@/lib/relatorioDelivery";
 import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
+import { formatarFormaPagamento } from "@/lib/deliveryPedidos";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
@@ -14,15 +16,17 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
+import DeliveryReport from "./DeliveryReport";
+import ExportBar from "./ExportBar";
 import BotaoReimprimirComprovante from "./BotaoReimprimirComprovante";
 import "./RelatorioView.css";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
-  LuPrinter, LuDownload, LuX, LuCircleX,
+  LuX, LuCircleX, LuStore, LuBike, LuPrinter,
 } from "react-icons/lu";
 
-const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+const ABAS_BASE = ["Vendas", "Delivery", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 // "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
 const PERIODOS = [
@@ -95,6 +99,24 @@ function KpiCard({ label, value, color, Icon, sz }) {
   );
 }
 
+// Mesma palavra do menu ("Frente de Caixa") e da vitrine ("Delivery") —
+// quem lê a linha sabe em que tela aquela venda aconteceu.
+const ROTULO_ORIGEM = { pdv: "Frente de caixa", delivery: "Delivery" };
+
+function SeloOrigemVenda({ venda }) {
+  const delivery = origemDaVenda(venda) === "delivery";
+  const cor = delivery ? C.accent : C.blue;
+  const Icone = delivery ? LuBike : LuStore;
+  return (
+    <span
+      className="relatorio-view__selo-origem"
+      style={{ background: alfa(cor, "18"), color: varColor(cor) }}
+    >
+      <Icone size={12} /> {ROTULO_ORIGEM[delivery ? "delivery" : "pdv"]}
+    </span>
+  );
+}
+
 function Th({ children, right }) {
   return (
     <th className={"relatorio-view__th" + (right ? " relatorio-view__th--direita" : "")}>
@@ -139,29 +161,6 @@ function ChipBtn({ active, onClick, children, sz }) {
     >
       {children}
     </button>
-  );
-}
-
-// ── Barra de exportação ───────────────────────────────────────────
-
-function ExportBar({ onPDF, onXLSX, sz }) {
-  return (
-    <div className="relatorio-view__export-bar">
-      <button
-        onClick={onPDF}
-        title="Exportar PDF"
-        className="relatorio-view__export-btn"
-      >
-        <LuPrinter size={13} /> PDF
-      </button>
-      <button
-        onClick={onXLSX}
-        title="Exportar Excel"
-        className="relatorio-view__export-btn"
-      >
-        <LuDownload size={13} /> Excel
-      </button>
-    </div>
   );
 }
 
@@ -339,6 +338,9 @@ export default function RelatorioView() {
   const [customFim,     setCustomFim]     = useState("");
   const [fechDetalhe,   setFechDetalhe]   = useState(null);
   const [metodoFilt,  setMetodoFilt]  = useState("todos");
+  // Balcão x delivery na aba Vendas: a venda já nasce marcada
+  // (vendas.origem, migração 20261002), então é só recortar.
+  const [origemFilt,  setOrigemFilt]  = useState("todos");
   const [buscaComanda, setBuscaComanda] = useState(""); // Leva 15.5
   const [logTipo,    setLogTipo]    = useState("todos");
   const [subVendas,  setSubVendas]  = useState("resumido");
@@ -367,12 +369,13 @@ export default function RelatorioView() {
   // ── Vendas ────────────────────────────────────────────────────
   const vendasFiltradas = useMemo(() => {
     let l = filtrarPorPeriodo(sales, "at", periodo, customInicio, customFim);
+    if (origemFilt !== "todos") l = l.filter(s => origemDaVenda(s) === origemFilt);
     if (metodoFilt !== "todos") l = l.filter(s => Object.keys(totalPorMetodo(s)).includes(metodoFilt));
     // Leva 15.5 — busca por número/nome da comanda
     const busca = buscaComanda.trim().toLowerCase();
     if (busca) l = l.filter(s => String(s.comanda ?? "").toLowerCase().includes(busca));
     return l;
-  }, [sales, periodo, metodoFilt, buscaComanda, customInicio, customFim]);
+  }, [sales, periodo, origemFilt, metodoFilt, buscaComanda, customInicio, customFim]);
 
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
@@ -516,9 +519,9 @@ export default function RelatorioView() {
       return;
     }
     if (subVendas === "resumido") {
-      const headers = ["Comanda", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
+      const headers = ["Comanda", "Origem", "Caixa", "Itens", "Método", "Total (R$)", "Data/Hora"];
       const rows = vendasFiltradas.map(v => [
-        v.comanda ?? "—", v.cashier ?? "—", totalItens(v),
+        v.comanda ?? "—", ROTULO_ORIGEM[origemDaVenda(v)], v.cashier ?? "—", totalItens(v),
         normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
         Number(v.total ?? 0).toFixed(2), fmtData(v.at),
       ]);
@@ -526,10 +529,10 @@ export default function RelatorioView() {
       if (fmt === "pdf") exportToPDF("Vendas Resumido", headers, rows, periodo, { totais });
       else               exportToXLSX("Vendas Resumido", headers, rows, periodo);
     } else {
-      const headers = ["Comanda", "Caixa", "Método", "Produto", "Qtd", "Unit. (R$)", "Subtotal (R$)", "Data/Hora"];
+      const headers = ["Comanda", "Origem", "Caixa", "Método", "Produto", "Qtd", "Unit. (R$)", "Subtotal (R$)", "Data/Hora"];
       const rows = vendasFiltradas.flatMap(v =>
         (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
-          v.comanda ?? "—", v.cashier ?? "—",
+          v.comanda ?? "—", ROTULO_ORIGEM[origemDaVenda(v)], v.cashier ?? "—",
           normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
           (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
@@ -540,6 +543,29 @@ export default function RelatorioView() {
       if (fmt === "pdf") exportToPDF("Vendas Detalhado", headers, rows, periodo);
       else               exportToXLSX("Vendas Detalhado", headers, rows, periodo);
     }
+  };
+
+  // A aba Delivery calcula os próprios números (ela é quem carrega os
+  // pedidos); guardamos o último resultado numa ref só para os botões de
+  // exportar, que vivem aqui em cima com a marca do estabelecimento.
+  const dadosDeliveryRef = useRef(null);
+  const guardarDadosDelivery = useCallback((d) => { dadosDeliveryRef.current = d; }, []);
+
+  const exportDelivery = (fmt) => {
+    const d = dadosDeliveryRef.current;
+    if (!d) return;
+    const headers = ["Recorte", "Faturamento (R$)", "Pedidos/Vendas", "Ticket Médio (R$)", "Participação (%)"];
+    const rows = [
+      ["Frente de caixa", d.comparacao.pdv.total.toFixed(2), d.comparacao.pdv.vendas, d.comparacao.pdv.ticket.toFixed(2), d.comparacao.pdv.participacao.toFixed(1)],
+      ["Delivery",        d.comparacao.delivery.total.toFixed(2), d.comparacao.delivery.vendas, d.comparacao.delivery.ticket.toFixed(2), d.comparacao.delivery.participacao.toFixed(1)],
+      ...d.bairros.map(l => [`Bairro: ${l.nome}`, l.total.toFixed(2), l.pedidos, "", ""]),
+      ...d.pagamentos.map(l => [`Pagamento: ${formatarFormaPagamento(l.nome)}`, l.total.toFixed(2), l.pedidos, "", ""]),
+    ];
+    const totais = `Total: ${fmtR(d.comparacao.total)} · Delivery: ${d.resumo.pedidos} pedido(s)`
+      + `, ${d.resumo.cancelados} cancelado(s) · Taxas: ${fmtR(d.resumo.taxaEntrega)}`
+      + (d.tempoMedio == null ? "" : ` · Tempo médio até entregar: ${Math.round(d.tempoMedio)} min`);
+    if (fmt === "pdf") exportToPDF("Delivery x Frente de Caixa", headers, rows, periodo, { totais });
+    else               exportToXLSX("Delivery x Frente de Caixa", headers, rows, periodo);
   };
 
   const exportFechamentos = (fmt) => {
@@ -788,6 +814,21 @@ export default function RelatorioView() {
                 ))}
               </div>
 
+              {/* Filtro de origem — de onde veio a venda. Fica ANTES do
+                  método porque é o corte mais grosso: primeiro "de onde",
+                  depois "como pagou". */}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} role="group" aria-label="Filtrar por origem da venda">
+                {[
+                  ["todos",    "Tudo",             null],
+                  ["pdv",      "Frente de caixa",  LuStore],
+                  ["delivery", "Delivery",         LuBike],
+                ].map(([id, label, OI]) => (
+                  <ChipBtn key={id} active={origemFilt === id} onClick={() => setOrigemFilt(id)} sz={sz}>
+                    {OI && <OI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{label}
+                  </ChipBtn>
+                ))}
+              </div>
+
               {/* Filtro método */}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
                 {["todos", "dinheiro", "credito", "debito", "pix"].map(m => (
@@ -813,7 +854,7 @@ export default function RelatorioView() {
                 }}
               />
 
-              <ExportBar onPDF={() => exportVendas("pdf")} onXLSX={() => exportVendas("xlsx")} sz={sz} />
+              <ExportBar onPDF={() => exportVendas("pdf")} onXLSX={() => exportVendas("xlsx")} />
             </div>
 
             {/* ── RESUMIDO ── */}
@@ -827,6 +868,7 @@ export default function RelatorioView() {
                     <thead>
                       <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                         <Th>Comanda</Th>
+                        <Th>Origem</Th>
                         <Th>Caixa</Th>
                         <Th right>Itens</Th>
                         <Th right>Método</Th>
@@ -844,6 +886,7 @@ export default function RelatorioView() {
                           style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
                         >
                           <Td sz={sz}><span style={{ fontWeight: 700 }}>{v.comanda ?? "—"}</span></Td>
+                          <Td sz={sz} nowrap><SeloOrigemVenda venda={v} /></Td>
                           <Td sz={sz}>{v.cashier ?? "—"}</Td>
                           <Td sz={sz} right>
                             {Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : "—"}
@@ -1086,6 +1129,27 @@ export default function RelatorioView() {
           </div>
         )}
 
+        {/* ══ DELIVERY (comparação com a frente de caixa) ══ */}
+        {aba === "Delivery" && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "flex-end",
+              padding: `${sz.padSm}px ${sz.pad}px 0`, flexShrink: 0,
+            }}>
+              <ExportBar onPDF={() => exportDelivery("pdf")} onXLSX={() => exportDelivery("xlsx")} />
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: `${sz.padSm}px ${sz.pad}px ${sz.pad}px` }}>
+              <DeliveryReport
+                vendas={sales}
+                periodo={periodo}
+                customInicio={customInicio}
+                customFim={customFim}
+                onExportar={guardarDadosDelivery}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ══ DESEMPENHO (vendas, margem — F011) ══ */}
         {aba === "Desempenho" && !isAdmin && (
           <Empty icon={LuLock} msg="Acesso restrito a administradores e gerentes" sz={sz} />
@@ -1113,7 +1177,7 @@ export default function RelatorioView() {
               display: "flex", alignItems: "center", justifyContent: "flex-end",
               padding: `0 ${sz.pad}px ${sz.padSm}px`, flexShrink: 0,
             }}>
-              <ExportBar onPDF={() => exportCancelamentos("pdf")} onXLSX={() => exportCancelamentos("xlsx")} sz={sz} />
+              <ExportBar onPDF={() => exportCancelamentos("pdf")} onXLSX={() => exportCancelamentos("xlsx")} />
             </div>
 
             {/* Tabela */}
@@ -1225,7 +1289,7 @@ export default function RelatorioView() {
         {aba === "Fechamentos" && (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <div style={{ display: "flex", justifyContent: "flex-end", padding: `${sz.padSm}px ${sz.pad}px`, flexShrink: 0 }}>
-              <ExportBar onPDF={() => exportFechamentos("pdf")} onXLSX={() => exportFechamentos("xlsx")} sz={sz} />
+              <ExportBar onPDF={() => exportFechamentos("pdf")} onXLSX={() => exportFechamentos("xlsx")} />
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
               {fechsFiltrados.length === 0 ? (
@@ -1350,7 +1414,7 @@ export default function RelatorioView() {
                 >
                   {loadingLogs ? "Carregando…" : "↻ Atualizar"}
                 </button>
-                <ExportBar onPDF={() => exportLogs("pdf")} onXLSX={() => exportLogs("xlsx")} sz={sz} />
+                <ExportBar onPDF={() => exportLogs("pdf")} onXLSX={() => exportLogs("xlsx")} />
               </div>
             </div>
 
@@ -1553,7 +1617,7 @@ export default function RelatorioView() {
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
                 Visão administrativa consolidada — inclui todos os operadores. Confidencial.
               </div>
-              <ExportBar onPDF={() => exportAdmin("pdf")} onXLSX={() => exportAdmin("xlsx")} sz={sz} />
+              <ExportBar onPDF={() => exportAdmin("pdf")} onXLSX={() => exportAdmin("xlsx")} />
             </div>
 
             {/* Faturamento por operador */}

@@ -85,6 +85,8 @@ describe("buscarVendaCompleta", () => {
       total: 105,
       cashier: "Ana",
       clienteId: null,
+      // 20261002 — a venda lida diz de onde veio; sem a marca, é balcão.
+      origem: "pdv",
       at: "2026-08-23T18:00:00.000Z",
       items: [
         { id: 7, name: "X-Burger", price: 20, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },

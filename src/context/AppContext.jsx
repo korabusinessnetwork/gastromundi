@@ -330,7 +330,7 @@ export function AppProvider({ children }) {
     try {
       const { data: vendasData, error: eVendas } = await supabase
         .from("vendas")
-        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at")
+        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem")
         .gte("at", desde)
         .order("at", { ascending: false });
       if (eVendas) throw eVendas;
