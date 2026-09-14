@@ -474,3 +474,102 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* ── Tipo de escolha (modelos prontos) ──────────────────────────────
+   Três atalhos que preenchem mínimo, máximo e regra de preço de uma
+   vez. É o que faz o mesmo editor servir hamburgueria e pizzaria sem
+   o dono ter de raciocinar sobre os três campos separadamente. */
+.editor-grupos__modelos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.editor-grupos__modelo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+.editor-grupos__modelo:hover {
+  border-color: var(--gm-accent);
+}
+
+.editor-grupos__modelo--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 10%, transparent);
+}
+
+.editor-grupos__modelo-titulo {
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-text);
+}
+.editor-grupos__modelo--ativo .editor-grupos__modelo-titulo {
+  color: var(--gm-accent);
+}
+
+.editor-grupos__modelo-exemplo {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}
+
+/* ── Como cobrar (regra de preço do grupo) ── */
+.editor-grupos__regra {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.editor-grupos__regra-titulo {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+
+.editor-grupos__regra-opcoes {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  flex-wrap: wrap;
+}
+
+.editor-grupos__regra-btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.editor-grupos__regra-btn:hover {
+  color: var(--gm-text);
+}
+
+.editor-grupos__regra-btn--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.editor-grupos__regra-btn--ativo:hover {
+  color: #fff;
+}

@@ -11,6 +11,8 @@
 //     "até 2" aceitaria dois cheddar E mais dois bacon.
 //  3. Que "escolha 1" continue trocando de opção em vez de somar.
 //  4. Que o acréscimo seja cobrado por unidade.
+//  5. Que um grupo de SABORES cobre a opção mais cara, e não a soma —
+//     somando, uma pizza de quatro sabores saía por quatro pizzas.
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -64,8 +66,10 @@ describe("SeletorEscolhas — a mesma opção mais de uma vez", () => {
     await userEvent.click(confirmar());
 
     expect(onConfirmar).toHaveBeenCalledTimes(1);
+    // grupoId/regra viajam com a escolha para o carrinho saber COMO
+    // cobrar aquele grupo (ver precoDasEscolhas em src/lib/combos.js).
     expect(onConfirmar.mock.calls[0][0]).toEqual([
-      { produtoId: 1, nome: "Cheddar", qtd: 2, preco: 3 },
+      { produtoId: 1, nome: "Cheddar", qtd: 2, preco: 3, grupoId: "g1", regra: "soma" },
     ]);
   });
 
@@ -126,7 +130,7 @@ describe("SeletorEscolhas — escolha única continua trocando", () => {
     await userEvent.click(confirmar());
 
     expect(onConfirmar.mock.calls[0][0]).toEqual([
-      { produtoId: 2, nome: "Bacon", qtd: 1, preco: 5 },
+      { produtoId: 2, nome: "Bacon", qtd: 1, preco: 5, grupoId: "g1", regra: "soma" },
     ]);
   });
 
@@ -233,5 +237,95 @@ describe("SeletorEscolhas, o cartão da opção não se sobrepõe", () => {
   it("opção sem acréscimo não cria o rótulo de preço", () => {
     montar([grupo({ itens: [{ produtoId: 1, preco: 0 }] })]);
     expect(document.querySelector(".seletor-escolhas__opcao-acrescimo")).toBeNull();
+  });
+});
+
+// ── Pizzaria: o grupo cobra o sabor mais caro, não a conta de todos ──
+const PIZZAS = [
+  { id: 10, name: "Calabresa", price: 40, emoji: "🍕", category: "Pizzas" },
+  { id: 11, name: "Portuguesa", price: 60, emoji: "🍕", category: "Pizzas" },
+];
+
+function montarPizza(over = {}, onConfirmar = vi.fn()) {
+  render(
+    <SeletorEscolhas
+      titulo="Pizza Grande"
+      precoBase={0}
+      grupos={[{
+        id: "sabores",
+        nome: "Sabores",
+        minimo: 2,
+        maximo: 2,
+        origem: "lista",
+        regraPreco: "maior",
+        itens: [{ produtoId: 10, preco: 0 }, { produtoId: 11, preco: 0 }],
+        ...over,
+      }]}
+      products={PIZZAS}
+      onConfirmar={onConfirmar}
+      onClose={vi.fn()}
+    />,
+  );
+  return onConfirmar;
+}
+
+describe("SeletorEscolhas — sabores cobram a opção mais cara", () => {
+  it("meio a meio custa o meio mais caro, não a soma dos dois", async () => {
+    montarPizza();
+
+    await userEvent.click(cartao("Calabresa"));
+    await userEvent.click(cartao("Portuguesa"));
+
+    // 40 + 60 = 100 seria o comportamento antigo; a pizza custa 60.
+    expect(total()).toContain("60,00");
+  });
+
+  it("dois pedaços do mesmo sabor não dobram o preço", async () => {
+    montarPizza();
+
+    await userEvent.click(cartao("Somar um Calabresa"));
+    await userEvent.click(cartao("Somar um Calabresa"));
+
+    expect(total()).toContain("40,00");
+  });
+
+  it("o preço da opção sai do cadastro do produto quando o grupo não define", async () => {
+    // O dono não digitou preço nenhum no grupo: "Calabresa" vale os R$ 40
+    // que ela já vale no catálogo.
+    montarPizza();
+    await userEvent.click(cartao("Calabresa"));
+    expect(total()).toContain("40,00");
+  });
+
+  it("a tela diz por que a conta não é a soma", async () => {
+    montarPizza();
+    expect(screen.getByText(/vale a opção mais cara/i)).toBeInTheDocument();
+  });
+
+  it("no grupo de extras esse aviso não aparece — seria ruído", async () => {
+    montar([grupo()]);
+    expect(screen.queryByText(/vale a opção mais cara/i)).not.toBeInTheDocument();
+  });
+
+  it("a escolha leva a regra do grupo para o carrinho", async () => {
+    const onConfirmar = montarPizza();
+
+    await userEvent.click(cartao("Calabresa"));
+    await userEvent.click(cartao("Portuguesa"));
+    await userEvent.click(confirmar());
+
+    expect(onConfirmar.mock.calls[0][0]).toEqual([
+      { produtoId: 10, nome: "Calabresa", qtd: 1, preco: 40, grupoId: "sabores", regra: "maior" },
+      { produtoId: 11, nome: "Portuguesa", qtd: 1, preco: 60, grupoId: "sabores", regra: "maior" },
+    ]);
+  });
+
+  it("média cobra o meio-termo", async () => {
+    montarPizza({ regraPreco: "media" });
+
+    await userEvent.click(cartao("Calabresa"));
+    await userEvent.click(cartao("Portuguesa"));
+
+    expect(total()).toContain("50,00");
   });
 });

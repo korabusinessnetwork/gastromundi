@@ -269,3 +269,13 @@
   border-color: var(--gm-red);
   color: var(--gm-red);
 }
+
+/* Como o grupo cobra, quando não é a soma simples. Só aparece nesse
+   caso: dizer "soma tudo" no grupo de extras seria ruído. */
+.seletor-escolhas__grupo-regra {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 600;
+  color: var(--gm-muted);
+}

@@ -28,8 +28,70 @@ import { supabase } from "./supabase";
  */
 
 const SEL_GRUPO =
-  "id, produto_id, combo_id, nome, minimo, maximo, origem, categoria, ordem, " +
+  "id, produto_id, combo_id, nome, minimo, maximo, origem, categoria, regra_preco, ordem, " +
   "grupo_escolha_itens(id, produto_id, preco_customizado, ordem, ativo)";
+
+/**
+ * O que o grupo FAZ com o preço das opções escolhidas. Somar serve para
+ * extras; pizzaria não soma sabor, cobra o mais caro (ou a média) — sem
+ * isso, uma pizza de 4 sabores sairia por quatro pizzas.
+ *
+ * A conta em si mora em src/lib/combos.js (precoDasEscolhas), que é quem
+ * o carrinho chama. Aqui ficam só os rótulos que a tela mostra.
+ */
+export const REGRAS_PRECO = [
+  {
+    id: "soma",
+    titulo: "Somar tudo",
+    curto: "soma cada opção",
+    ajuda: "Cada opção escolhida soma o próprio valor. É o caso dos extras: bacon +R$ 4, ovo +R$ 3.",
+  },
+  {
+    id: "maior",
+    titulo: "Cobrar a mais cara",
+    curto: "vale a opção mais cara",
+    ajuda: "O grupo cobra só a opção mais cara entre as escolhidas. É como pizzaria cobra meio a meio: metade de R$ 40 com metade de R$ 60 é uma pizza de R$ 60.",
+  },
+  {
+    id: "media",
+    titulo: "Preço médio",
+    curto: "média das opções",
+    ajuda: "O grupo cobra a média das opções escolhidas. Mesma pizza pela outra convenção: R$ 40 com R$ 60 sai por R$ 50.",
+  },
+];
+
+const IDS_REGRA = new Set(REGRAS_PRECO.map((r) => r.id));
+
+/** Normaliza a regra vinda do banco ou da tela; desconhecida vira 'soma'. */
+export function regraValida(regra) {
+  return IDS_REGRA.has(regra) ? regra : "soma";
+}
+
+/** O texto curto da regra, para a tela não ter de conhecer os ids. */
+export function textoRegra(regra) {
+  return REGRAS_PRECO.find((r) => r.id === regraValida(regra)) ?? REGRAS_PRECO[0];
+}
+
+/**
+ * Numa regra de sabor ('maior'/'media') o número da opção é o PREÇO dela,
+ * não um acréscimo — e o preço de uma pizza de calabresa já está no
+ * cadastro do produto. Então, sem valor próprio, a opção vale o que o
+ * produto vale, e "categoria inteira + cobra a mais cara" fica pronta sem
+ * digitar preço nenhum.
+ *
+ * Em 'soma' o vazio continua valendo zero: extra sem preço não cobra nada.
+ *
+ * @param {'soma'|'maior'|'media'} regra
+ * @param {number|null|undefined} precoDoItem - o valor cadastrado no grupo
+ * @param {object|undefined} produto - o produto de catálogo da opção
+ * @returns {number}
+ */
+export function precoDaOpcao(regra, precoDoItem, produto) {
+  const proprio = Number(precoDoItem ?? 0) || 0;
+  if (proprio > 0) return proprio;
+  if (regraValida(regra) === "soma") return 0;
+  return Number(produto?.price ?? 0) || 0;
+}
 
 function mapGrupo(row) {
   return {
@@ -39,6 +101,7 @@ function mapGrupo(row) {
     maximo: Number(row.maximo ?? 1),
     origem: row.origem === "categoria" ? "categoria" : "lista",
     categoria: row.categoria ?? null,
+    regraPreco: regraValida(row.regra_preco),
     ordem: Number(row.ordem ?? 0),
     itens: (row.grupo_escolha_itens ?? [])
       .slice()
@@ -137,6 +200,7 @@ export async function salvarGrupos({ produtoId = null, comboId = null, grupos = 
       maximo: maximo === 0 ? 0 : Math.max(maximo, minimo),
       origem,
       categoria: origem === "categoria" ? (g.categoria ?? null) : null,
+      regra_preco: regraValida(g.regraPreco),
       ordem: gi,
     };
     const { data: grupoRow, error: errG } = await supabase
@@ -203,10 +267,16 @@ export function instrucaoGrupo(min, max) {
  */
 export function resolverOpcoes(grupo, products = []) {
   if (!grupo) return [];
+  const regra = regraValida(grupo.regraPreco);
   if (grupo.origem === "categoria") {
     return (products ?? [])
       .filter((p) => p.active !== false && p.category === grupo.categoria)
-      .map((p) => ({ produtoId: p.id, nome: p.name ?? "", preco: 0, emoji: p.emoji }));
+      .map((p) => ({
+        produtoId: p.id,
+        nome: p.name ?? "",
+        preco: precoDaOpcao(regra, null, p),
+        emoji: p.emoji,
+      }));
   }
   const porId = new Map((products ?? []).map((p) => [String(p.id), p]));
   return (grupo.itens ?? [])
@@ -218,9 +288,58 @@ export function resolverOpcoes(grupo, products = []) {
       return {
         produtoId: it.produtoId,
         nome: p?.name ?? "",
-        preco: Number(it.preco ?? 0) || 0,
+        preco: precoDaOpcao(regra, it.preco, p),
         emoji: p?.emoji,
       };
     })
     .filter((o) => o.nome); // descarta opção cujo produto sumiu do catálogo
+}
+
+/**
+ * Modelos de grupo — o atalho para quem não quer pensar em mínimo, máximo
+ * e regra de preço separadamente. Cada ramo do comércio cai num deles, e
+ * é isso que faz o mesmo editor servir hamburgueria e pizzaria.
+ *
+ * O modelo só PREENCHE os três campos; eles continuam editáveis depois.
+ */
+export const MODELOS_GRUPO = [
+  {
+    id: "extras",
+    titulo: "Extras",
+    exemplo: "Bacon, cheddar, ovo — cada um soma",
+    campos: { minimo: 0, maximo: 0, regraPreco: "soma" },
+  },
+  {
+    id: "obrigatoria",
+    titulo: "Escolha obrigatória",
+    exemplo: "Qual refrigerante vem no combo",
+    campos: { minimo: 1, maximo: 1, regraPreco: "soma" },
+  },
+  {
+    id: "sabores",
+    titulo: "Sabores",
+    exemplo: "2 sabores de pizza, vale o mais caro",
+    campos: { minimo: 2, maximo: 2, regraPreco: "maior" },
+  },
+];
+
+/**
+ * Qual modelo o grupo está seguindo agora, ou null quando o dono ajustou
+ * a mão e não bate com nenhum. A tela usa isso só para acender o botão —
+ * nada trava quando não bate.
+ *
+ * @param {object} grupo
+ * @returns {string|null}
+ */
+export function modeloDoGrupo(grupo) {
+  const min = Math.max(0, Number(grupo?.minimo ?? 0) || 0);
+  const max = Math.max(0, Number(grupo?.maximo ?? 0) || 0);
+  const regra = regraValida(grupo?.regraPreco);
+  // "Sabores" é o modelo pela REGRA, não pela contagem: 2, 3 ou 4 sabores
+  // são a mesma pizzaria, e o dono muda esse número no stepper.
+  if (regra !== "soma") return "sabores";
+  const achado = MODELOS_GRUPO.find(
+    (m) => m.campos.regraPreco === regra && m.campos.minimo === min && m.campos.maximo === max,
+  );
+  return achado?.id ?? null;
 }

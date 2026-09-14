@@ -14,6 +14,11 @@ import {
   salvarGrupos,
   resolverOpcoes,
   instrucaoGrupo,
+  regraValida,
+  precoDaOpcao,
+  modeloDoGrupo,
+  MODELOS_GRUPO,
+  REGRAS_PRECO,
 } from "./gruposEscolha";
 import { supabase } from "./supabase";
 
@@ -103,6 +108,7 @@ describe("carregarGruposDoProduto / carregarGruposDoCombo", () => {
         maximo: 3,
         origem: "lista",
         categoria: null,
+        regraPreco: "soma",
         ordem: 1,
         // Ordenados por `ordem`, não pela ordem que vieram do banco.
         itens: [
@@ -137,6 +143,9 @@ describe("carregarGruposDoProduto / carregarGruposDoCombo", () => {
       maximo: 1,
       origem: "lista",
       categoria: null,
+      // Grupo gravado antes da regra de preço existir: continua somando,
+      // que é o que o sistema fazia.
+      regraPreco: "soma",
       ordem: 0,
       itens: [],
     });
@@ -466,5 +475,96 @@ describe("instrucaoGrupo", () => {
     expect(instrucaoGrupo(undefined, undefined)).toBe("Opcional — escolha quantas quiser");
     expect(instrucaoGrupo("1", "3")).toBe("Escolha de 1 a 3");
     expect(instrucaoGrupo(-2, -5)).toBe("Opcional — escolha quantas quiser");
+  });
+});
+
+describe("regraValida", () => {
+  it("deixa passar as três conhecidas", () => {
+    for (const r of ["soma", "maior", "media"]) expect(regraValida(r)).toBe(r);
+  });
+
+  it("qualquer outra coisa vira soma — nunca zera o preço calado", () => {
+    for (const ruim of [null, undefined, "", "metade", 7]) expect(regraValida(ruim)).toBe("soma");
+  });
+
+  it("as regras oferecidas na tela são exatamente as que passam", () => {
+    for (const r of REGRAS_PRECO) expect(regraValida(r.id)).toBe(r.id);
+  });
+});
+
+describe("precoDaOpcao", () => {
+  const pizza = { price: 45 };
+
+  it("em soma, opção sem valor não cobra nada (é extra)", () => {
+    expect(precoDaOpcao("soma", null, pizza)).toBe(0);
+    expect(precoDaOpcao("soma", 0, pizza)).toBe(0);
+  });
+
+  it("em maior/media, opção sem valor vale o preço do produto", () => {
+    // É o que faz "categoria inteira de Pizzas + cobra a mais cara"
+    // funcionar sem digitar preço nenhum.
+    expect(precoDaOpcao("maior", null, pizza)).toBe(45);
+    expect(precoDaOpcao("media", null, pizza)).toBe(45);
+  });
+
+  it("valor próprio sempre ganha do preço do catálogo", () => {
+    expect(precoDaOpcao("maior", 30, pizza)).toBe(30);
+    expect(precoDaOpcao("soma", 4, pizza)).toBe(4);
+  });
+
+  it("sem produto no catálogo não inventa preço", () => {
+    expect(precoDaOpcao("maior", null, undefined)).toBe(0);
+  });
+});
+
+describe("resolverOpcoes com regra de sabor", () => {
+  const products = [
+    { id: 1, name: "Calabresa", price: 40, category: "Pizzas", active: true },
+    { id: 2, name: "Portuguesa", price: 60, category: "Pizzas", active: true },
+  ];
+
+  it("categoria inteira + cobra a mais cara já traz o preço de cada sabor", () => {
+    const opcoes = resolverOpcoes(
+      { origem: "categoria", categoria: "Pizzas", regraPreco: "maior" },
+      products,
+    );
+    expect(opcoes.map((o) => o.preco)).toEqual([40, 60]);
+  });
+
+  it("a mesma categoria em soma continua sem acréscimo", () => {
+    const opcoes = resolverOpcoes(
+      { origem: "categoria", categoria: "Pizzas", regraPreco: "soma" },
+      products,
+    );
+    expect(opcoes.map((o) => o.preco)).toEqual([0, 0]);
+  });
+
+  it("na lista, o preço digitado no grupo vale mais que o do catálogo", () => {
+    const opcoes = resolverOpcoes(
+      { origem: "lista", regraPreco: "maior", itens: [{ produtoId: 1, preco: 35 }, { produtoId: 2, preco: 0 }] },
+      products,
+    );
+    expect(opcoes.map((o) => o.preco)).toEqual([35, 60]);
+  });
+});
+
+describe("modeloDoGrupo", () => {
+  it("reconhece extras, escolha obrigatória e sabores", () => {
+    expect(modeloDoGrupo({ minimo: 0, maximo: 0, regraPreco: "soma" })).toBe("extras");
+    expect(modeloDoGrupo({ minimo: 1, maximo: 1, regraPreco: "soma" })).toBe("obrigatoria");
+    expect(modeloDoGrupo({ minimo: 2, maximo: 2, regraPreco: "maior" })).toBe("sabores");
+  });
+
+  it("sabores vale pela REGRA, não pela contagem — 3 ou 4 sabores é a mesma pizzaria", () => {
+    expect(modeloDoGrupo({ minimo: 4, maximo: 4, regraPreco: "maior" })).toBe("sabores");
+    expect(modeloDoGrupo({ minimo: 1, maximo: 3, regraPreco: "media" })).toBe("sabores");
+  });
+
+  it("faixa ajustada à mão não bate com nenhum modelo, e isso não é erro", () => {
+    expect(modeloDoGrupo({ minimo: 1, maximo: 3, regraPreco: "soma" })).toBeNull();
+  });
+
+  it("todo modelo oferecido se reconhece a si mesmo", () => {
+    for (const m of MODELOS_GRUPO) expect(modeloDoGrupo(m.campos)).toBe(m.id);
   });
 });

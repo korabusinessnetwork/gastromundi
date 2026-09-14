@@ -16,6 +16,39 @@ Registrar vendas de forma rápida e confiável no balcão, na mesa ou no deliver
 - Toda venda finalizada gera um **pedido** (ver `PEDIDOS.md`) e, quando há item produzido, alimenta a **Cozinha** (ver `COZINHA.md`).
 - A baixa de estoque ocorre na **finalização** da venda (ver `ESTOQUE.md`).
 
+### Grupos de escolha (combo flexível e produto com seleção)
+Um **grupo de escolha** é a peça única por trás de "combo flexível" (o cliente
+monta o combo) e "produto com seleção" (o produto pede qual). O mesmo editor
+cadastra os dois, e o mesmo seletor do PDV vende os dois.
+
+Cada grupo tem três decisões:
+
+- **Mínimo** — quantas o cliente PRECISA escolher. Zero torna o grupo opcional.
+- **Máximo** — teto de UNIDADES, não de opções distintas ("até 2" aceita dois
+  cheddar). **Zero é sem limite.**
+- **Como cobrar** — o que o grupo faz com o preço das opções escolhidas:
+
+  | Regra | O grupo cobra | Para quê |
+  |---|---|---|
+  | `soma` (padrão) | cada opção soma o próprio valor | extras: bacon +R$ 4, ovo +R$ 3 |
+  | `maior` | só a opção mais cara entre as escolhidas | sabores de pizza: metade de R$ 40 com metade de R$ 60 é uma pizza de R$ 60 |
+  | `media` | a média ponderada pelas frações escolhidas | mesma pizza pela outra convenção: R$ 50 |
+
+Regras que valem em todas elas:
+
+- A regra é **de cada grupo**, nunca do produto: "Pizza Grande" tem o grupo de
+  SABORES (`maior`) e o de BORDA (`soma`) ao mesmo tempo. **Grupos diferentes
+  sempre se somam entre si.**
+- Em `maior`, a quantidade **não** multiplica: 2/4 de calabresa continua sendo
+  parte de UMA pizza. Em `media` ela pondera.
+- Em `soma`, o número de uma opção é um **acréscimo** (vazio = não cobra nada).
+  Em `maior`/`media` é o **preço** da opção, e vazio significa "o preço que o
+  produto já tem no cadastro" — é o que faz "categoria inteira de Pizzas +
+  cobrar a mais cara" funcionar sem digitar preço nenhum.
+- A regra usada fica **gravada na escolha** no momento da venda: mudar a
+  configuração do grupo amanhã não altera o preço de uma comanda de hoje.
+- O padrão de grupo novo é `soma` — o comportamento que o sistema sempre teve.
+
 ## Validações
 - Caixa aberto para pagamentos em dinheiro; senão, bloquear e orientar abertura.
 - Quantidade > 0 e preço unitário ≥ 0; total da venda = soma dos itens − descontos + acréscimos.

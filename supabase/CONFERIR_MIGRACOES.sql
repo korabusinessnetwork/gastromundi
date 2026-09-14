@@ -110,7 +110,11 @@ WITH marcas (n, migracao, marca_existe) AS (
                     AND column_name='data_nascimento')),
     (29, '20261007_delivery_sincroniza_produto_novo',
          EXISTS (SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'products_publica_no_delivery' AND NOT tgisinternal))
+                  WHERE tgname = 'products_publica_no_delivery' AND NOT tgisinternal)),
+    (30, '20261008_regra_preco_grupo',
+         EXISTS (SELECT 1 FROM information_schema.columns
+                  WHERE table_schema='public' AND table_name='grupos_escolha'
+                    AND column_name='regra_preco'))
 )
 SELECT
   n                                                    AS "nº",
@@ -138,11 +142,14 @@ WITH marcas AS (
                 AND column_name='data_nascimento'))::int
   + (EXISTS (SELECT 1 FROM pg_trigger
               WHERE tgname = 'products_publica_no_delivery' AND NOT tgisinternal))::int
+  + (EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema='public' AND table_name='grupos_escolha'
+                AND column_name='regra_preco'))::int
   AS marcos_grandes
 )
 SELECT
-  marcos_grandes || ' de 10 marcos grandes presentes' AS "resumo rápido",
-  CASE WHEN marcos_grandes = 10
+  marcos_grandes || ' de 11 marcos grandes presentes' AS "resumo rápido",
+  CASE WHEN marcos_grandes = 11
        THEN 'Parece bem atualizado — mesmo assim, rode o APLICAR_MIGRACOES_PENDENTES.sql para fechar as pontas.'
        ELSE 'Faltam migrações. Rode o APLICAR_MIGRACOES_PENDENTES.sql inteiro.' END AS "o que fazer"
 FROM marcas;

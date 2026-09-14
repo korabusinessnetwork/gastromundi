@@ -20,11 +20,19 @@
 
 /**
  * Normaliza a lista de escolhas para o shape canônico do carrinho.
- * Descarta entradas sem produtoId. `preco` é o acréscimo daquela escolha
- * ao preço da linha (0 quando a escolha não altera o preço).
+ * Descarta entradas sem produtoId.
+ *
+ * `preco` é o que aquela escolha vale — o que o grupo FAZ com esse número
+ * depende de `regra` (ver precoDasEscolhas). `grupoId` e `regra` são um
+ * retrato do grupo no momento da venda: o dono pode reconfigurar o grupo
+ * amanhã, e a comanda de hoje tem de continuar somando o que foi cobrado.
+ *
+ * Escolha antiga, gravada antes desta versão, não tem nenhum dos dois —
+ * cai em grupo único com regra 'soma', que é exatamente o que o sistema
+ * fazia antes.
  *
  * @param {Array<object>} escolhas
- * @returns {Array<{produtoId: (number|string), nome: string, qtd: number, preco: number}>}
+ * @returns {Array<{produtoId: (number|string), nome: string, qtd: number, preco: number, grupoId: (string|null), regra: string}>}
  */
 function normalizarEscolhas(escolhas) {
   return (Array.isArray(escolhas) ? escolhas : [])
@@ -34,19 +42,67 @@ function normalizarEscolhas(escolhas) {
       nome: e.nome ?? "",
       qtd: Number(e.qtd ?? 1) || 1,
       preco: Number(e.preco ?? 0) || 0,
+      grupoId: e.grupoId ?? null,
+      regra: REGRAS.has(e.regra) ? e.regra : "soma",
     }));
 }
 
+/** As três formas de um grupo virar dinheiro. Ver precoDoGrupo. */
+const REGRAS = new Set(["soma", "maior", "media"]);
+
 /**
- * Soma o acréscimo de preço das escolhas (preço × quantidade da escolha).
- * @param {Array<{qtd: number, preco: number}>} escolhas
+ * Quanto UM grupo cobra, dadas as escolhas feitas nele.
+ *
+ * - `soma`  — cada escolha soma o próprio valor (extras: bacon +4, ovo +3).
+ * - `maior` — o grupo cobra a escolha mais cara, não a conta de todas. É
+ *   como pizzaria cobra meio a meio: metade calabresa (40) e metade
+ *   portuguesa (60) é uma pizza de 60, nunca de 100. A quantidade NÃO
+ *   multiplica aqui — 2/4 de calabresa continua sendo parte de uma pizza.
+ * - `media` — a média ponderada pelas frações escolhidas. Mesma pizza pela
+ *   outra convenção de mercado: (40+60)/2 = 50.
+ *
+ * @param {Array<{qtd: number, preco: number}>} itens
+ * @param {'soma'|'maior'|'media'} regra
  * @returns {number}
  */
-function somaAcrescimos(escolhas) {
-  return (escolhas ?? []).reduce(
-    (s, e) => s + (Number(e?.preco ?? 0) || 0) * (Number(e?.qtd ?? 1) || 1),
-    0,
-  );
+function precoDoGrupo(itens, regra) {
+  const lista = itens ?? [];
+  if (lista.length === 0) return 0;
+  const valor = (e) => Number(e?.preco ?? 0) || 0;
+  const quantas = (e) => Number(e?.qtd ?? 1) || 1;
+
+  if (regra === "maior") {
+    return lista.reduce((maior, e) => Math.max(maior, valor(e)), 0);
+  }
+  if (regra === "media") {
+    const fatias = lista.reduce((s, e) => s + quantas(e), 0);
+    if (fatias <= 0) return 0;
+    return lista.reduce((s, e) => s + valor(e) * quantas(e), 0) / fatias;
+  }
+  return lista.reduce((s, e) => s + valor(e) * quantas(e), 0);
+}
+
+/**
+ * Quanto TODAS as escolhas de um item somam ao preço base, cada grupo
+ * cobrando pela própria regra. Grupos diferentes sempre se somam entre si
+ * — "cobra o mais caro" vale dentro do grupo de sabores, não entre os
+ * sabores e a borda recheada.
+ *
+ * @param {Array<object>} escolhas
+ * @returns {number}
+ */
+export function precoDasEscolhas(escolhas) {
+  const porGrupo = new Map();
+  for (const e of normalizarEscolhas(escolhas)) {
+    // Escolha sem grupo é sempre 'soma' (dado antigo), e somar é
+    // associativo — juntar todas num balde só dá o mesmo resultado.
+    const chave = e.grupoId ?? "__sem_grupo__";
+    if (!porGrupo.has(chave)) porGrupo.set(chave, { regra: e.regra, itens: [] });
+    porGrupo.get(chave).itens.push(e);
+  }
+  let total = 0;
+  for (const { regra, itens } of porGrupo.values()) total += precoDoGrupo(itens, regra);
+  return total;
 }
 
 /**
@@ -65,7 +121,7 @@ export function montarItemCombo(combo, escolhas = []) {
   return {
     id: null,
     name: combo.nome ?? "Combo",
-    price: (Number(combo.preco_total ?? 0) || 0) + somaAcrescimos(escs),
+    price: (Number(combo.preco_total ?? 0) || 0) + precoDasEscolhas(escs),
     combo: { comboId: combo.id, escolhas: escs },
   };
 }
@@ -86,7 +142,7 @@ export function montarItemProdutoEscolhas(produto, escolhas = []) {
   return {
     id: produto.id,
     name: produto.name ?? produto.nome ?? "Produto",
-    price: (Number(produto.price ?? 0) || 0) + somaAcrescimos(escs),
+    price: (Number(produto.price ?? 0) || 0) + precoDasEscolhas(escs),
     emoji: produto.emoji,
     category: produto.category,
     combo: { escolhas: escs },

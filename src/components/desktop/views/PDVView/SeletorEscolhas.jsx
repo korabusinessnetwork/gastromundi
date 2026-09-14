@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { resolverOpcoes, instrucaoGrupo } from "@/lib/gruposEscolha";
+import { resolverOpcoes, instrucaoGrupo, textoRegra, regraValida } from "@/lib/gruposEscolha";
+import { precoDasEscolhas } from "@/lib/combos";
 import { formatarReais as fmtBRL } from "@/lib/dinheiro";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -80,14 +81,30 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
     gruposResolvidos.forEach((g, gi) => {
       for (const [id, qtd] of Object.entries(selecao[gi] ?? {})) {
         const op = g.opcoes.find((o) => String(o.produtoId) === String(id));
-        if (op && qtd > 0) out.push({ produtoId: op.produtoId, nome: op.nome, qtd, preco: Number(op.preco) || 0 });
+        if (op && qtd > 0) {
+          out.push({
+            produtoId: op.produtoId,
+            nome: op.nome,
+            qtd,
+            preco: Number(op.preco) || 0,
+            // O grupo e a regra viajam com a escolha: é o que deixa o
+            // carrinho cobrar "a mais cara" dentro do grupo de sabores e
+            // somar a borda, e o que faz a comanda de hoje continuar
+            // explicando o próprio preço se o dono mexer no grupo amanhã.
+            grupoId: g.id ?? `g${gi}`,
+            regra: regraValida(g.regraPreco),
+          });
+        }
       }
     });
     return out;
   }, [gruposResolvidos, selecao]);
 
+  // A MESMA conta que monta o item do carrinho (src/lib/combos.js). Somar
+  // aqui por fora era o que deixava o modal prometer um total e a linha
+  // da comanda cobrar outro assim que a regra do grupo deixasse de ser soma.
   const total = useMemo(
-    () => Number(precoBase || 0) + escolhas.reduce((s, e) => s + e.preco * e.qtd, 0),
+    () => Number(precoBase || 0) + precoDasEscolhas(escolhas),
     [precoBase, escolhas],
   );
 
@@ -137,6 +154,14 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
                     {instrucaoGrupo(g.minimo ?? 0, g.maximo ?? 1)}
                   </span>
                 </div>
+                {/* Por que a conta não é a soma. Sem esta linha, o operador
+                    marca dois sabores de R$ 40 e R$ 60, vê R$ 60 no total e
+                    acha que a tela errou. */}
+                {regraValida(g.regraPreco) !== "soma" && (
+                  <div className="seletor-escolhas__grupo-regra">
+                    {textoRegra(g.regraPreco).titulo} — {textoRegra(g.regraPreco).curto}
+                  </div>
+                )}
 
                 {g.opcoes.length === 0 ? (
                   <div className="seletor-escolhas__vazio">Nenhuma opção disponível.</div>

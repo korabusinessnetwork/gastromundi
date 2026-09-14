@@ -122,3 +122,92 @@ describe("EditorGruposEscolha — máximo “sem limite”", () => {
     expect(ultimoGrupo().maximo).toBe(3);
   });
 });
+
+// ── Modelos e regra de preço ────────────────────────────────────────
+// O editor tinha só mínimo e máximo, e o preço era SEMPRE a soma. Isso
+// serve extras e quebra pizzaria: quatro sabores de R$ 40 saíam por
+// R$ 160. Os modelos são o atalho que faz o mesmo editor servir os dois
+// ramos sem o dono raciocinar campo a campo.
+describe("modelos de grupo", () => {
+  const ultimoGrupo = () => alterou.mock.calls.at(-1)[0][0];
+
+  it("“Extras” deixa sem obrigatoriedade, sem teto e somando", async () => {
+    montar({ minimo: 1, maximo: 1 });
+
+    await userEvent.click(screen.getByRole("button", { name: /Extras/ }));
+
+    expect(ultimoGrupo()).toMatchObject({ minimo: 0, maximo: 0, regraPreco: "soma" });
+  });
+
+  it("“Sabores” põe a regra de cobrar a mais cara", async () => {
+    montar({ minimo: 0, maximo: 0 });
+
+    await userEvent.click(screen.getByRole("button", { name: /Sabores/ }));
+
+    expect(ultimoGrupo()).toMatchObject({ minimo: 2, maximo: 2, regraPreco: "maior" });
+  });
+
+  it("“Escolha obrigatória” trava em exatamente uma", async () => {
+    montar({ minimo: 0, maximo: 0 });
+
+    await userEvent.click(screen.getByRole("button", { name: /Escolha obrigatória/ }));
+
+    expect(ultimoGrupo()).toMatchObject({ minimo: 1, maximo: 1, regraPreco: "soma" });
+  });
+
+  it("o modelo em uso aparece marcado", () => {
+    montar({ minimo: 2, maximo: 2, regraPreco: "maior" });
+
+    const sabores = screen.getByRole("button", { name: /Sabores/ });
+    expect(sabores).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /Extras/ })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("faixa ajustada à mão não marca modelo nenhum, e isso não trava nada", () => {
+    montar({ minimo: 1, maximo: 3, regraPreco: "soma" });
+
+    for (const nome of [/Extras/, /Escolha obrigatória/, /Sabores/]) {
+      expect(screen.getByRole("button", { name: nome })).toHaveAttribute("aria-pressed", "false");
+    }
+  });
+});
+
+describe("regra de preço", () => {
+  const ultimoGrupo = () => alterou.mock.calls.at(-1)[0][0];
+
+  it("dá para trocar como o grupo cobra", async () => {
+    montar({ regraPreco: "soma" });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cobrar a mais cara" }));
+
+    expect(ultimoGrupo()).toMatchObject({ regraPreco: "maior" });
+  });
+
+  it("a tela explica a regra escolhida em português", () => {
+    montar({ regraPreco: "maior" });
+    expect(screen.getByText(/cobra só a opção mais cara/i)).toBeInTheDocument();
+  });
+
+  it("em regra de sabor o campo da opção vira PREÇO, não acréscimo", () => {
+    // É a diferença que faz o dono digitar 40 e não 40 de acréscimo em
+    // cima de um preço base que ele não sabe qual é.
+    montar({ regraPreco: "maior", itens: [{ produtoId: 1, preco: "" }] });
+
+    expect(screen.getByText("Preço")).toBeInTheDocument();
+    expect(screen.queryByText("Acréscimo")).not.toBeInTheDocument();
+  });
+
+  it("no grupo de extras continua sendo acréscimo", () => {
+    montar({ regraPreco: "soma", itens: [{ produtoId: 1, preco: "" }] });
+
+    expect(screen.getByText("Acréscimo")).toBeInTheDocument();
+    expect(screen.queryByText("Preço")).not.toBeInTheDocument();
+  });
+
+  it("opção sem valor mostra o preço do catálogo como sugestão", () => {
+    montar({ regraPreco: "maior", itens: [{ produtoId: 1, preco: "" }] });
+
+    // X-Burguer custa 30 no cadastro: é o que a opção vale se ficar vazia.
+    expect(document.querySelector(".editor-grupos__acrescimo-input")).toHaveAttribute("placeholder", "30.00");
+  });
+});

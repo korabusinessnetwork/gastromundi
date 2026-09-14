@@ -3,7 +3,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuPlus, LuX, LuSearch, LuMinus, LuTrash2, LuList, LuLayoutGrid, LuEye, LuEyeOff } from "react-icons/lu";
-import { instrucaoGrupo } from "@/lib/gruposEscolha";
+import { instrucaoGrupo, REGRAS_PRECO, MODELOS_GRUPO, modeloDoGrupo, textoRegra, regraValida } from "@/lib/gruposEscolha";
 import NovosProdutosInline from "./NovosProdutosInline";
 import "./EditorGruposEscolha.css";
 
@@ -34,6 +34,9 @@ function grupoNovo() {
     maximo: 1,
     origem: "lista",
     categoria: null,
+    // Somar é o que o sistema sempre fez: grupo novo não muda de
+    // comportamento só porque a regra passou a existir.
+    regraPreco: "soma",
     itens: [],
   };
 }
@@ -119,6 +122,12 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
     set({ maximo: v <= 0 ? 0 : Math.max(v, grupo.minimo ?? 0, 1) });
 
   const ehCategoria = grupo.origem === "categoria";
+  const regra = regraValida(grupo.regraPreco);
+  // Em regra de sabor o número da opção é o PREÇO dela, não um acréscimo —
+  // e a tela precisa dizer isso, senão o dono digita 4 achando que soma.
+  const ehSabor = regra !== "soma";
+  const modeloAtual = modeloDoGrupo(grupo);
+  const aplicarModelo = (m) => set({ ...m.campos });
 
   // Produtos que a categoria escolhida traria hoje. É a prévia do que o
   // botão abaixo transforma em lista.
@@ -165,6 +174,28 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
         </button>
       </div>
 
+      {/* Que tipo de escolha é essa. É o atalho que faz o mesmo editor
+          servir hamburgueria e pizzaria: em vez de raciocinar sobre
+          mínimo, máximo e regra de preço separadamente, o dono aponta o
+          caso e os três campos vão juntos — e seguem editáveis abaixo. */}
+      <div className="editor-grupos__modelos" role="group" aria-label="Tipo de escolha">
+        {MODELOS_GRUPO.map((m) => {
+          const ativo = modeloAtual === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => aplicarModelo(m)}
+              aria-pressed={ativo}
+              className={`editor-grupos__modelo${ativo ? " editor-grupos__modelo--ativo" : ""}`}
+            >
+              <span className="editor-grupos__modelo-titulo">{m.titulo}</span>
+              <span className="editor-grupos__modelo-exemplo">{m.exemplo}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Origem das opções */}
       <div className="editor-grupos__origem-grid">
         {[
@@ -207,6 +238,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
           <div className="editor-grupos__ajuda">
             O cliente escolhe entre todos os produtos ativos desta categoria — cada um baixa o próprio
             estoque. Produto novo nesta categoria passa a aparecer sozinho, sem você mexer aqui.
+            {ehSabor ? " Cada opção vale o preço que o produto já tem no cadastro." : ""}
           </div>
 
           {grupo.categoria && (
@@ -238,7 +270,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
                       <div className="editor-grupos__item-info">Preço base {fmtBRL(p?.price)}</div>
                     </div>
                     <div className="editor-grupos__item-acrescimo">
-                      <span className="editor-grupos__item-acrescimo-label">Acréscimo</span>
+                      <span className="editor-grupos__item-acrescimo-label">{ehSabor ? "Preço" : "Acréscimo"}</span>
                       <div className="editor-grupos__acrescimo-campo">
                         <span className="editor-grupos__acrescimo-cifrao">R$</span>
                         <input
@@ -247,7 +279,10 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
                           step="0.01"
                           value={it.preco ?? ""}
                           onChange={(e) => setPreco(idx, e.target.value)}
-                          placeholder="0,00"
+                          /* Vazio numa regra de sabor não é zero: a opção vale o
+                             preço do produto. O placeholder mostra qual é, para
+                             ninguém digitar de novo o que já está cadastrado. */
+                          placeholder={ehSabor ? Number(p?.price ?? 0).toFixed(2) : "0,00"}
                           className="editor-grupos__acrescimo-input"
                         />
                       </div>
@@ -333,7 +368,9 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
           )}
 
           <div className="editor-grupos__ajuda">
-            O acréscimo é quanto aquela opção soma ao preço — deixe zerado quando não muda nada.
+            {ehSabor
+              ? "Aqui o número é o PREÇO da opção, não um acréscimo. Deixe em branco para usar o preço que o produto já tem no cadastro."
+              : "O acréscimo é quanto aquela opção soma ao preço — deixe zerado quando não muda nada."}
           </div>
         </div>
       )}
@@ -363,6 +400,31 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
         “sem limite” quando o cliente puder repetir à vontade — pizza de quantos
         sabores quiser, por exemplo.
       </div>
+
+      {/* Como o grupo vira dinheiro. Fica junto do mínimo/máximo porque é a
+          mesma decisão: quantas o cliente leva e quanto isso custa. Somar
+          quatro sabores de pizza dá quatro pizzas — é o erro que este
+          seletor existe para impedir. */}
+      <div className="editor-grupos__regra" role="group" aria-label="Como cobrar as opções escolhidas">
+        <span className="editor-grupos__regra-titulo">Como cobrar</span>
+        <div className="editor-grupos__regra-opcoes">
+          {REGRAS_PRECO.map((r) => {
+            const ativo = regra === r.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => set({ regraPreco: r.id })}
+                aria-pressed={ativo}
+                className={`editor-grupos__regra-btn${ativo ? " editor-grupos__regra-btn--ativo" : ""}`}
+              >
+                {r.titulo}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="editor-grupos__ajuda">{textoRegra(regra).ajuda}</div>
     </div>
   );
 }
