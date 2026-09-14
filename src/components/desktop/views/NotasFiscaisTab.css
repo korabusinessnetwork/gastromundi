@@ -198,6 +198,14 @@
   color: var(--gm-text);
 }
 
+/* O hover era pintado por onMouseEnter/onMouseLeave em cada item. O outro
+   usuário da classe (o seletor de fornecedor do formulário manual) ainda
+   tem os handlers, e eles pintam a mesma cor: o inline vence, o resultado
+   é o mesmo, e quando a fatia do formulário sair o hover já está aqui. */
+.nf-tab__dropdown-item:hover {
+  background: var(--gm-surface);
+}
+
 .nf-tab__erro-box {
   border-radius: 12px;
   padding: 12px 18px;
@@ -246,6 +254,12 @@
 .nf-tab__stepper-item {
   display: flex;
   align-items: flex-start;
+  /* Todos esticam menos o último: era `flex: i < steps.length - 1 ? 1 : 0`. */
+  flex: 1;
+}
+
+.nf-tab__stepper-item:last-child {
+  flex: 0;
 }
 
 .nf-tab__stepper-col {
@@ -266,12 +280,36 @@
   font-size: var(--fs-sm);     /* role: número do passo (era 14px) */
   line-height: var(--lh-sm);
   transition: all 0.2s;
+  /* Estado de repouso: o passo que ainda não chegou. "Feito" e "ativo"
+     entram por modificador no item, logo abaixo. */
+  background: var(--gm-surface);
+  border: 2px solid var(--gm-border);
+  color: var(--gm-muted);
+}
+
+.nf-tab__stepper-item--feito .nf-tab__stepper-bola {
+  background: var(--gm-green);
+  border-color: var(--gm-green);
+  color: #fff;
+}
+
+.nf-tab__stepper-item--ativo .nf-tab__stepper-bola {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
 }
 
 .nf-tab__stepper-label {
   font-size: var(--fs-xs);     /* role: caption (era 12px) */
   line-height: var(--lh-xs);
   white-space: nowrap;
+  font-weight: 500;
+  color: var(--gm-muted);
+}
+
+.nf-tab__stepper-item--ativo .nf-tab__stepper-label {
+  font-weight: 700;
+  color: var(--gm-text);
 }
 
 .nf-tab__stepper-linha {
@@ -279,6 +317,11 @@
   height: 2px;
   margin: 16px 8px 0;
   transition: background 0.2s;
+  background: var(--gm-border);
+}
+
+.nf-tab__stepper-item--feito .nf-tab__stepper-linha {
+  background: var(--gm-green);
 }
 
 /* ── VinculaRow ── */
@@ -289,6 +332,9 @@
   gap: 6px;
   border-radius: 8px;
   padding: 6px 10px;
+  /* alfa(C.green, "12") e alfa(C.green, "44") do JSX. */
+  background: color-mix(in srgb, var(--gm-green) 7%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
 }
 
 .nf-tab__vinculado-nome {
@@ -299,6 +345,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--gm-green);
 }
 
 /* ── Upload / dropzone ── */
@@ -440,5 +487,303 @@
   align-items: center;
   gap: 14px;
   padding: 60px;
+  color: var(--gm-muted);
+}
+
+/* ══ F018 fatia 11: Stepper, linha de vínculo, Lista e Detalhe ══
+
+   Regra de nomenclatura desta fatia: célula de tabela leva um modificador
+   próprio que carrega TODAS as suas declarações (`--indice`, `--preco`…),
+   para o tenant poder reestilizar uma coluna sozinha; os poucos casos que
+   são literalmente uma declaração compartilhada entre elementos diferentes
+   (`--muted`, `--elipse`) ficam como classe única, porque duplicá-las por
+   nome semântico não daria a ninguém poder de mudar nada a mais. */
+
+.nf-tab__muted {
+  color: var(--gm-muted);
+}
+
+.nf-tab__inerte {           /* texto de ausência: "1 (auto)", "Não vinculado" */
+  color: var(--gm-muted);
+  font-style: italic;
+}
+
+.nf-tab__elipse {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nf-tab__ancora {           /* referência de posicionamento do dropdown */
+  position: relative;
+}
+
+/* ── Linhas de tabela ── */
+
+/* O hover era JavaScript (`currentTarget.style.background`) nas três tabelas.
+   `:hover` é (0,2,0) e vence `--pendente`, que é (0,1,0): a linha não
+   vinculada acende igual às outras quando o mouse passa, como antes. */
+.nf-tab__tr:hover {
+  background: var(--gm-surface);
+}
+
+.nf-tab__tr--pendente {     /* item do XML ainda sem produto vinculado */
+  background: color-mix(in srgb, var(--gm-warn) 4%, transparent);
+}
+
+.nf-tab__tr--clicavel {
+  cursor: pointer;
+}
+
+.nf-tab__thead-tr {
+  border-bottom: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.nf-tab__th--centro {
+  text-align: center;
+}
+
+.nf-tab__td--centro {
+  text-align: center;
+}
+
+.nf-tab__td--centro-muted {
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+/* ── Colunas da linha de vínculo (step 3) ── */
+
+.nf-tab__td--indice {
+  color: var(--gm-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nf-tab__td--descricao {
+  max-width: 180px;
+}
+
+.nf-tab__vinculo-desc {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nf-tab__td--qtd {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.nf-tab__td--preco {
+  text-align: right;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.nf-tab__td--produto {
+  min-width: 180px;
+}
+
+.nf-tab__td--convertida {
+  font-weight: 800;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.nf-tab__td--convertida-ok {
+  color: var(--gm-green);
+}
+
+.nf-tab__chip-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gm-muted);
+  padding: 0;
+  line-height: 1;
+  display: flex;
+}
+
+.nf-tab__busca-icone {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
+}
+
+/* Com a borda na classe (0,1,0), quem pinta o foco volta a ser
+   src/styles/inputs.css, que tem especificidade maior — era o `border`
+   inline que desligava o baseline global. Nenhum dos dois campos tem estado
+   de erro, então a troca não pede `aria-invalid`. */
+.nf-tab__busca-input {
+  width: 100%;
+  padding: 7px 8px 7px 26px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.nf-tab__fator-input {
+  width: 64px;
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+}
+
+.nf-tab__dropdown--forte {  /* sombra mais densa: o dropdown nasce dentro da tabela */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.nf-tab__dropdown-item--denso {
+  padding: 8px 12px;
+}
+
+.nf-tab__dropdown-nome {
+  font-weight: 600;
+}
+
+/* ── Detalhe da nota ── */
+
+.nf-tab__voltar-btn--solto {  /* o único dos três que não vive numa linha com título */
+  margin-bottom: 20px;
+}
+
+.nf-tab__card--cabecalho {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.nf-tab__cabecalho-titulo {
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.nf-tab__cabecalho-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.nf-tab__campo-rotulo {
+  margin-bottom: 4px;
+}
+
+.nf-tab__campo-valor {
+  font-weight: 600;
+}
+
+.nf-tab__tabela--itens {
+  min-width: 680px;
+}
+
+.nf-tab__td--descricao-nota {
+  font-weight: 600;
+  max-width: 200px;
+}
+
+.nf-tab__produto-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nf-tab__produto-nome {
+  font-weight: 600;
+  color: var(--gm-green);
+}
+
+.nf-tab__td--estoque {
+  font-weight: 700;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.nf-tab__td--estoque-ok {
+  color: var(--gm-green);
+}
+
+/* ── Lista (view padrão) ── */
+
+.nf-tab__lista-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.nf-tab__btn-secundario--compacto {
+  padding: 10px 18px;
+  border-radius: 10px;
+}
+
+.nf-tab__btn-importar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+  /* alfa(C.accent, "44") do JSX. */
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+
+.nf-tab__carregando {
+  text-align: center;
+  padding: 60px;
+  color: var(--gm-muted);
+}
+
+.nf-tab__vazio-icone {
+  opacity: 0.2;
+}
+
+.nf-tab__vazio-titulo {
+  font-weight: 600;
+}
+
+.nf-tab__tabela--historico {
+  min-width: 640px;
+}
+
+.nf-tab__td--fornecedor {
+  font-weight: 700;
+  max-width: 200px;
+}
+
+.nf-tab__td--numero {
+  font-weight: 600;
+}
+
+.nf-tab__td--valor {
+  font-weight: 700;
+  text-align: center;
+}
+
+.nf-tab__badge-status--ok {
+  /* alfa(C.green, "18") e alfa(C.green, "44") do JSX. */
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+}
+
+.nf-tab__seta {
   color: var(--gm-muted);
 }

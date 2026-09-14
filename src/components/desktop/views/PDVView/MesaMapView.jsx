@@ -173,7 +173,7 @@ function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) 
       {semPosicao.length > 0 && (
         <div className="mesa-map__sem-posicao" style={{ marginTop: gap * 2 }}>
           <div className="mesa-map__sem-posicao-titulo" style={{ color: varColor(C.muted) }}>
-            Sem posição no mapa — defina a posição destas mesas em Configurações
+            Sem posição no mapa, defina a posição destas mesas em Configurações
           </div>
           <div className="mesa-map__sem-posicao-grid" style={{ gap }}>
             {semPosicao.map((m) => (
@@ -198,7 +198,7 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
     <div
       className="card-mesa"
       onClick={() => onClick(mesa)}
-      title={`Mesa ${mesa.numero} — ${s.label}${pedido?.garcom ? ` · ${pedido.garcom}` : ""}`}
+      title={`Mesa ${mesa.numero}, ${s.label}${pedido?.garcom ? ` · ${pedido.garcom}` : ""}`}
       style={{
         width: w, height: h, borderRadius: 14, boxSizing: "border-box",
         background: s.bg, border: `2px solid ${s.border}`,

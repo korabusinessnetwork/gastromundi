@@ -15,6 +15,38 @@ elegância técnica. Regras práticas:
 - Acessível ao toque (PDV): alvos grandes, legível a distância, funciona no ritmo de operação.
 - Ao entregar qualquer tela nova, justifique brevemente por que ela é intuitiva (ou o que a torna).
 
+## Regra absoluta de escrita — travessão não existe, vírgula existe
+
+**Em qualquer texto em português que apareça na tela, travessão (`—`) é proibido. Use
+vírgula.** Vale para rótulo, botão, placeholder, mensagem de erro, texto de ajuda,
+`aria-label`, `title` e o que mais o usuário lê. Vale também para o que você escreve
+para o dono: docs, relatórios, mensagens, descrição de PR e de commit.
+
+Isto é regra, não preferência de estilo, e **`src/lib/travessaoGuard.test.js` cobra na
+suíte**. A regra já existia e continuava sendo quebrada porque nada a checava; texto
+de tela é escrito no meio de outra tarefa, e é aí que o hábito vence a regra.
+
+Duas formas continuam permitidas, porque não são pontuação:
+
+1. **O marcador de célula vazia**, `{valor ?? "—"}` numa tabela, que quer dizer "não há
+   valor". Vírgula sozinha numa célula não quer dizer nada. Repare no espaço: `"—"` é o
+   marcador, `" — "` com espaço dos dois lados é **separador** dentro de uma frase
+   montada (`[bairro, taxa].join(" — ")` vira "Centro — R$ 5,00" na tela), e separador é
+   pontuação, tem de virar vírgula.
+2. **A frase que cita o próprio símbolo**, como "clique no “—” da coluna Mensalidade".
+   Trocar ali produziria uma instrução falsa, porque a célula continua mostrando o
+   travessão.
+
+**Uma exceção nomeada, por origem e não por forma:** `src/lib/assinatura.js` duplica
+byte a byte uma frase que o BANCO levanta, e outro guard existe para as duas nunca
+divergirem. Mudar só o lado do JS faria o usuário ler duas frases diferentes para a
+mesma recusa. Há mais 21 mensagens de erro com travessão em `RAISE EXCEPTION` de
+migrations, no mesmo caso; limpá-las custa reaplicar migration em produção por causa de
+pontuação, e isso é decisão do dono, não varredura.
+
+Comentário de código fica de fora de propósito. Comentário não é front, e proibir
+travessão lá só tornaria a regra irritante o bastante para ser ignorada.
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.
@@ -106,13 +138,33 @@ tarefa inteira; se algo ficou de fora, diga o que e por quê em vez de reportar
 Não adicione features, refactor, abstração, error handling ou fallback além do que a
 tarefa exige. Correção de bug não pede faxina em volta.
 
-### Git — a main é minha
+### Git — merge de rodada terminada está autorizado
 
-Merge na `main` exige aprovação explícita do dono, sempre. Você pode desenvolver na
-branch, commitar, dar push na branch e abrir o PR; **mergear, não** — pare no PR
-aberto e me avise. Vale também para auto-merge e para push direto na `main`. A regra
-de permissão em `.claude/settings.json` faz o Claude Code perguntar antes de mergear;
-a proteção de branch no GitHub é a trava de verdade.
+Mesclar na `main` **toda rodada terminada** está autorizado de forma permanente pelo
+dono (confirmado em 11/09/2026). Rodada terminada quer dizer as três coisas juntas:
+review aprovada sem ressalvas, suíte verde e build limpo. Continua valendo abrir o PR
+antes, para o histórico ficar legível.
+
+Isto substitui a regra anterior ("a main é minha", que exigia aprovação a cada merge)
+e resolve a contradição com a memória `loop-autonomo-e-main`. Se as duas voltarem a
+divergir, esta regra manda.
+
+O que continua fora, sempre: `push --force` em qualquer branch, mesclar rodada que
+não fechou, e reescrever histórico já empurrado.
+
+**O PR não é formalidade, é o que a proteção de branch exige.** Medido em 11/09/2026:
+`git push origin main` é aceito quando os commits empurrados estão cobertos por um PR
+aberto (o push fecha o PR como merged), e é **recusado** com "protected branch hook
+declined" quando não estão. Commit avulso feito direto na `main` não sobe. Então o
+caminho é sempre: commitar na branch, abrir o PR, e só então `git merge --ff-only`
+mais `git push origin main`. O `gh pr merge` está bloqueado pelo classificador do modo
+automático, por isso o merge é feito pelo git e não pelo `gh`.
+
+**Efeito colateral que precisa de aviso:** a integração da Vercel sobe **produção** a
+cada push na `main` (não há `git.deploymentEnabled: false` no `vercel.json`). Se a
+rodada tiver migration ainda não aplicada no Supabase, isso deploya frontend novo
+contra banco velho. Nesse caso, avise antes de mesclar e deixe a decisão comigo, em
+vez de mesclar calado.
 
 ### Comunicação
 

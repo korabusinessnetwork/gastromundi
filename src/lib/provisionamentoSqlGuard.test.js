@@ -74,7 +74,7 @@ function corpoDaFuncao() {
 
 const CORPO = corpoDaFuncao();
 
-describe("provisionar_tenant — quem define", () => {
+describe("provisionar_tenant, quem define", () => {
   it("existe pelo menos uma migration que define a função", () => {
     expect(DEFINIDORAS.length).toBeGreaterThan(0);
   });
@@ -96,7 +96,7 @@ describe("provisionar_tenant — quem define", () => {
   });
 });
 
-describe("provisionar_tenant — a guarda de plataforma", () => {
+describe("provisionar_tenant, a guarda de plataforma", () => {
   it("só a plataforma provisiona, e a checagem vem antes de qualquer escrita", () => {
     const posGuarda = CORPO.indexOf("is_super_admin() IS NOT TRUE");
     const posEscrita = CORPO.indexOf("INSERT INTO public.tenants");
@@ -111,7 +111,7 @@ describe("provisionar_tenant — a guarda de plataforma", () => {
   });
 });
 
-describe("provisionar_tenant — o estabelecimento nasce cobrável", () => {
+describe("provisionar_tenant, o estabelecimento nasce cobrável", () => {
   it("cria a assinatura no mesmo ato (regressão da 20260908 ao contrário)", () => {
     // Sem esta linha o estabelecimento nunca vence, nunca aparece no alerta
     // de validade do Console e nunca é cobrado.
@@ -120,7 +120,7 @@ describe("provisionar_tenant — o estabelecimento nasce cobrável", () => {
   });
 });
 
-describe("provisionar_tenant — o estabelecimento nasce com catálogo", () => {
+describe("provisionar_tenant, o estabelecimento nasce com catálogo", () => {
   it("semeia os grupos de categoria (perdidos na 20260908)", () => {
     // Cadastro de categoria exige grupo; sem estes o cliente trava antes de
     // criar a primeira categoria do cardápio.
@@ -146,7 +146,7 @@ describe("provisionar_tenant — o estabelecimento nasce com catálogo", () => {
     }
   });
 
-  it("o seed é idempotente — reprovisionar não duplica unidade", () => {
+  it("o seed é idempotente, reprovisionar não duplica unidade", () => {
     // `unidades_medida` não tem chave única, então a guarda é o NOT EXISTS
     // por (tenant_id, tipo, nome, abreviacao) — a mesma da 20260813.
     const seed = CORPO.slice(CORPO.indexOf("INSERT INTO public.unidades_medida"));
@@ -165,7 +165,7 @@ describe("provisionar_tenant — o estabelecimento nasce com catálogo", () => {
   });
 });
 
-describe("provisionar_tenant — permissões", () => {
+describe("provisionar_tenant, permissões", () => {
   it("a migration tira o EXECUTE de PUBLIC/anon e devolve só a authenticated", () => {
     const sql = semComentarios(readFileSync(join(MIGRATIONS_DIR, ULTIMA), "utf8"));
     const posRevoke = sql.indexOf("REVOKE EXECUTE ON FUNCTION public.provisionar_tenant");

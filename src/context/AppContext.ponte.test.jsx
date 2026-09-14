@@ -213,7 +213,7 @@ afterEach(() => {
   delete window.navigator.onLine;
 });
 
-describe("AppContext — a chave da Ponte do estabelecimento", () => {
+describe("AppContext, a chave da Ponte do estabelecimento", () => {
   it("estabelecimento com a chave ligada abre com a Ponte ligada", async () => {
     comTabelas({
       singles: { users: { data: LINHA_USUARIO, error: null } },
@@ -250,7 +250,7 @@ describe("AppContext — a chave da Ponte do estabelecimento", () => {
     expect(filtro.valores).toContain("ponte_local_ativa");
   });
 
-  it("estabelecimento que nunca ligou fica desligado — e não em 'ainda não sei' para sempre", async () => {
+  it("estabelecimento que nunca ligou fica desligado, e não em 'ainda não sei' para sempre", async () => {
     // A ausência da chave É resposta quando o banco respondeu. Se ficasse
     // `null`, a bridge nunca ligaria nem desligaria: ficaria eternamente
     // esperando uma config que não vem.
@@ -517,7 +517,7 @@ describe("AppContext — a chave da Ponte do estabelecimento", () => {
     expect(filtrosIn.some((f) => f.tabela === "config" && f.valores?.includes("ponte_local_ativa"))).toBe(true);
     expect(app.current.abriuSemInternet).toBe(true); // continua sem alcançar o banco
     expect(app.current.ponteLocalAtiva).toBeNull();  // e sem o ajuste
-    expect(recadoDaTela()).toContain("Ainda sem internet — tentamos agora e não deu");
+    expect(recadoDaTela()).toContain("Ainda sem internet, tentamos agora e não deu");
     expect(botaoBuscar()).not.toBeNull();
     expect(botaoBuscar().disabled).toBe(false);
   });

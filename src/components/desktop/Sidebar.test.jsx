@@ -35,7 +35,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("Sidebar — gating por plano (F013/ADR-005, Fase 2)", () => {
+describe("Sidebar, gating por plano (F013/ADR-005, Fase 2)", () => {
   it("mostra todos os módulos quando o plano do tenant os inclui todos", () => {
     setup({ tenant: { planoCodigo: "avancado", modulosDisponiveis: null }, moduloHabilitado: () => true });
 

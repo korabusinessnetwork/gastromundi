@@ -21,6 +21,8 @@ import {
   definirMensalidade,
   listarAnalitico,
   resumirUso,
+  listarSaude,
+  resumirSaude,
   PERIODOS_ANALYTICS,
   resumirAddonsDoTenant,
   contarAddonsPorTenant,
@@ -66,7 +68,7 @@ describe("normalizarUsername", () => {
     expect(normalizarUsername("bar.do_zé-01!@#")).toBe("bar.do_ze-01");
   });
 
-  it("é idempotente — normalizar duas vezes dá o mesmo resultado", () => {
+  it("é idempotente, normalizar duas vezes dá o mesmo resultado", () => {
     const uma = normalizarUsername("Café Central 42");
     expect(normalizarUsername(uma)).toBe(uma);
   });
@@ -154,7 +156,7 @@ describe("validarNovoEstabelecimento", () => {
     expect(erros.slug).toContain("console2");
   });
 
-  it("compara endereços já normalizados — 'Bar do Zé' ocupa 'bardoze'", () => {
+  it("compara endereços já normalizados, 'Bar do Zé' ocupa 'bardoze'", () => {
     const { erros } = validarNovoEstabelecimento({ ...valido, slug: "Bar do Zé" }, ["bardoze"]);
     expect(erros.slug).toBeTruthy();
   });
@@ -166,12 +168,12 @@ describe("validarNovoEstabelecimento", () => {
 });
 
 describe("normalizarSlug", () => {
-  it("tira acento, espaço e maiúscula — igual ao slugify_tenant do banco", () => {
+  it("tira acento, espaço e maiúscula, igual ao slugify_tenant do banco", () => {
     expect(normalizarSlug("Bar do Zé")).toBe("bardoze");
     expect(normalizarSlug("  Café ☕  ")).toBe("cafe");
   });
 
-  it("apaga hífen e ponto — o banco não guarda separador nenhum", () => {
+  it("apaga hífen e ponto, o banco não guarda separador nenhum", () => {
     expect(normalizarSlug("bar-do-ze")).toBe("bardoze");
     expect(normalizarSlug("bar.do.ze")).toBe("bardoze");
   });
@@ -196,7 +198,7 @@ describe("sugerirSlugLivre", () => {
     expect(sugerirSlugLivre("bardoze", ["bardoze", "bardoze2"])).toBe("bardoze3");
   });
 
-  it("pula rótulo reservado — mesmo laço da RPC provisionar_tenant", () => {
+  it("pula rótulo reservado, mesmo laço da RPC provisionar_tenant", () => {
     expect(sugerirSlugLivre("console", [])).toBe("console2");
   });
 
@@ -347,7 +349,7 @@ describe("cadastroTemDados", () => {
     expect(cadastroTemDados({ adminPassword: "senha-forte" })).toBe(true);
   });
 
-  it("o plano escolhido sozinho não conta — ele já vem selecionado", () => {
+  it("o plano escolhido sozinho não conta, ele já vem selecionado", () => {
     expect(cadastroTemDados({ planoCodigo: "avancado" })).toBe(false);
   });
 
@@ -355,7 +357,7 @@ describe("cadastroTemDados", () => {
     expect(cadastroTemDados({ nome: "   ", adminNome: "\t" })).toBe(false);
   });
 
-  it("senha só de espaço conta — ali espaço é caractere de verdade", () => {
+  it("senha só de espaço conta, ali espaço é caractere de verdade", () => {
     expect(cadastroTemDados({ adminPassword: "  " })).toBe(true);
   });
 
@@ -410,7 +412,7 @@ describe("usernameSugeridoDoNome", () => {
     }
   });
 
-  it("é pura — mesma entrada, mesma saída", () => {
+  it("é pura, mesma entrada, mesma saída", () => {
     expect(usernameSugeridoDoNome("José Maria")).toBe(usernameSugeridoDoNome("José Maria"));
   });
 });
@@ -493,7 +495,7 @@ describe("sugerirUsuarioLivre", () => {
   });
 });
 
-describe("provisionarEstabelecimento — o endereço no corpo", () => {
+describe("provisionarEstabelecimento, o endereço no corpo", () => {
   const base = {
     nome: "Bar do Zé",
     planoCodigo: "avancado",
@@ -518,12 +520,12 @@ describe("provisionarEstabelecimento — o endereço no corpo", () => {
     expect(corpoEnviado().slug).toBe("bardoze");
   });
 
-  it("sem slug, não manda o campo — a borda deriva do nome como sempre fez", async () => {
+  it("sem slug, não manda o campo, a borda deriva do nome como sempre fez", async () => {
     await provisionarEstabelecimento(base);
     expect(corpoEnviado()).not.toHaveProperty("slug");
   });
 
-  it("slug que vira vazio também não vai — não sobrescreve o fallback do servidor", async () => {
+  it("slug que vira vazio também não vai, não sobrescreve o fallback do servidor", async () => {
     await provisionarEstabelecimento({ ...base, slug: "@@@" });
     expect(corpoEnviado()).not.toHaveProperty("slug");
   });
@@ -704,7 +706,7 @@ describe("compararModulosDoPlano", () => {
 // reais na base e o cartão "Receita mensal" do Console afirmava R$ 0,00 como
 // se fosse fato apurado — sem como distinguir "não fatura nada" de "ninguém
 // preencheu o preço". `semPreco` é o que permite à tela dizer POR QUE.
-describe("resumirPlataforma — mensalidade não definida", () => {
+describe("resumirPlataforma, mensalidade não definida", () => {
   const HOJE = new Date("2026-07-24T12:00:00Z");
   const planos = [{ codigo: "basico", nome: "Básico" }];
   // Datas iguais às do describe acima (status já conferido lá): 08-13 = ativo
@@ -804,7 +806,7 @@ describe("definirMensalidade", () => {
     });
   });
 
-  it("manda zero como zero — cortesia é valor válido, não campo vazio", async () => {
+  it("manda zero como zero, cortesia é valor válido, não campo vazio", async () => {
     await definirMensalidade("t1", 0);
     expect(supabase.rpc).toHaveBeenCalledWith("definir_mensalidade_tenant", {
       p_tenant_id: "t1",
@@ -934,7 +936,7 @@ describe("resumirUso", () => {
     expect(kpis.operando).toBe(2);
   });
 
-  it("dá ticket médio nulo — nunca NaN — para quem não teve pedido", () => {
+  it("dá ticket médio nulo, nunca NaN, para quem não teve pedido", () => {
     const { linhas } = resumirUso(tenants, assinaturas, analitico, HOJE);
     const porId = Object.fromEntries(linhas.map((l) => [l.tenantId, l]));
     expect(porId["t-forte"].ticketMedioCentavos).toBe(Math.round(250075 / 25));
@@ -1007,7 +1009,7 @@ describe("resumirUso", () => {
     expect(pagandoSemUso.every((l) => l.diasSemVender === null)).toBe(true);
   });
 
-  it("mantém em carência no bloco de atenção — ainda é cliente que paga", () => {
+  it("mantém em carência no bloco de atenção, ainda é cliente que paga", () => {
     const emCarencia = [
       { tenant_id: "t-parado", data_vencimento: "2026-07-31", carencia_dias: 3, status: "ativo" },
     ];
@@ -1087,7 +1089,7 @@ describe("resumirAddonsDoTenant", () => {
     expect(r.map((a) => a.codigo)).toEqual(["nfe", "tef"]);
   });
 
-  it("add-on do banco sem nome cai no código — a linha nunca fica sem rótulo", () => {
+  it("add-on do banco sem nome cai no código, a linha nunca fica sem rótulo", () => {
     const [a] = resumirAddonsDoTenant([{ codigo: "novo" }], [], "t-1");
     expect(a.nome).toBe("novo");
     expect(a.descricao).toBeNull();
@@ -1240,7 +1242,7 @@ describe("ordenarPorUrgencia", () => {
     expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["urgente", "x", "y", "z"]);
   });
 
-  it("empate total cai na ordem original — a lista não dança entre renders", () => {
+  it("empate total cai na ordem original, a lista não dança entre renders", () => {
     const tenants = [{ id: "primeiro" }, { id: "segundo" }];
     const linhas = [linha("primeiro", "carencia", -3), linha("segundo", "carencia", -3)];
     expect(ids(ordenarPorUrgencia(tenants, linhas))).toEqual(["primeiro", "segundo"]);
@@ -1437,7 +1439,7 @@ describe("filtrarPorSituacao", () => {
     expect(ids(filtrarPorSituacao(BASE, "em_dia", new Set()))).toEqual(["a", "b", "c"]);
   });
 
-  it("conjunto ausente não quebra — trata como ninguém pendente", () => {
+  it("conjunto ausente não quebra, trata como ninguém pendente", () => {
     expect(filtrarPorSituacao(BASE, "atencao", undefined)).toEqual([]);
     expect(ids(filtrarPorSituacao(BASE, "em_dia", undefined))).toEqual(["a", "b", "c"]);
   });
@@ -1468,7 +1470,7 @@ describe("normalizarFiltroSituacao", () => {
     expect(normalizarFiltroSituacao("em_dia")).toBe("em_dia");
   });
 
-  it("valor desconhecido vira 'todos' — URL editada à mão não esconde ninguém", () => {
+  it("valor desconhecido vira 'todos', URL editada à mão não esconde ninguém", () => {
     expect(normalizarFiltroSituacao("xpto")).toBe("todos");
     expect(normalizarFiltroSituacao("bloqueado")).toBe("todos");
   });
@@ -1485,7 +1487,7 @@ describe("normalizarFiltroSituacao", () => {
     expect(normalizarFiltroSituacao()).toBe("todos");
   });
 
-  it("chave repetida (array) vira 'todos' — não há escolha honesta entre duas", () => {
+  it("chave repetida (array) vira 'todos', não há escolha honesta entre duas", () => {
     expect(normalizarFiltroSituacao(["atencao", "em_dia"])).toBe("todos");
     expect(normalizarFiltroSituacao(["atencao"])).toBe("todos");
   });
@@ -1504,13 +1506,14 @@ describe("normalizarFiltroSituacao", () => {
 });
 
 describe("normalizarAba", () => {
-  it("deixa passar as três seções do Console", () => {
-    expect(normalizarAba("estabelecimentos")).toBe("estabelecimentos");
-    expect(normalizarAba("planos")).toBe("planos");
-    expect(normalizarAba("uso")).toBe("uso");
+  it("deixa passar todas as seções do Console", () => {
+    // Enumerado a partir da constante: aba nova sem lugar na URL abriria
+    // o Console em Estabelecimentos sem ninguém perceber.
+    for (const secao of ABAS_CONSOLE) expect(normalizarAba(secao)).toBe(secao);
+    expect(ABAS_CONSOLE).toContain("saude");
   });
 
-  it("valor desconhecido cai na primeira aba — Console nunca abre vazio", () => {
+  it("valor desconhecido cai na primeira aba, Console nunca abre vazio", () => {
     expect(normalizarAba("xpto")).toBe("estabelecimentos");
     expect(normalizarAba("assinaturas")).toBe("estabelecimentos");
   });
@@ -1546,7 +1549,7 @@ describe("normalizarPeriodo", () => {
     expect(normalizarPeriodo("90")).toBe(90);
   });
 
-  it("número fora do conjunto cai no padrão — senão nenhum botão ficaria marcado", () => {
+  it("número fora do conjunto cai no padrão, senão nenhum botão ficaria marcado", () => {
     expect(normalizarPeriodo("45")).toBe(PERIODO_PADRAO);
     expect(normalizarPeriodo("0")).toBe(PERIODO_PADRAO);
     expect(normalizarPeriodo("365")).toBe(PERIODO_PADRAO);
@@ -1653,7 +1656,7 @@ describe("normalizarFiltroPlano", () => {
     expect(normalizarFiltroPlano()).toBe("todos");
   });
 
-  it("caixa diferente não passa — o código do banco é exato", () => {
+  it("caixa diferente não passa, o código do banco é exato", () => {
     expect(normalizarFiltroPlano("BASICO", CATALOGO)).toBe("todos");
     expect(normalizarFiltroPlano("Basico", CATALOGO)).toBe("todos");
   });
@@ -1699,7 +1702,7 @@ describe("contarPorPlano", () => {
     expect(Object.values(contagem).reduce((s, n) => s + n, 0)).toBe(3);
   });
 
-  it("plano sem ninguém simplesmente não aparece — quem lê usa zero", () => {
+  it("plano sem ninguém simplesmente não aparece, quem lê usa zero", () => {
     const contagem = contarPorPlano(BASE);
     expect(contagem.premium ?? 0).toBe(0);
   });
@@ -1743,7 +1746,7 @@ describe("montarMensagemPrimeiroAcesso", () => {
     expect(texto).not.toContain("s3nh4-secreta");
   });
 
-  it("não cita a plataforma — a mensagem é do estabelecimento (decisão 017)", () => {
+  it("não cita a plataforma, a mensagem é do estabelecimento (decisão 017)", () => {
     const texto = montarMensagemPrimeiroAcesso(COMPLETO);
     expect(texto).not.toMatch(/gastromundi/i);
     expect(texto).not.toMatch(/kora/i);
@@ -1924,7 +1927,7 @@ describe("pendentesPrimeiro", () => {
     expect(pendentesPrimeiro(fila).map((s) => s.id)).toEqual(["b", "a"]);
   });
 
-  it("quem pediu primeiro aparece primeiro — é quem espera há mais tempo", () => {
+  it("quem pediu primeiro aparece primeiro, é quem espera há mais tempo", () => {
     const [primeiro] = pendentesPrimeiro(fila);
     expect(primeiro.id).toBe("b");
   });
@@ -1953,7 +1956,7 @@ describe("resumirPlanoSolicitado", () => {
       .toBe("Estoque, Cozinha (KDS)");
   });
 
-  it("sem nada escolhido, DIZ que não escolheu — nunca uma linha vazia", () => {
+  it("sem nada escolhido, DIZ que não escolheu, nunca uma linha vazia", () => {
     expect(resumirPlanoSolicitado({})).toMatch(/não escolheu/i);
     expect(resumirPlanoSolicitado()).toMatch(/não escolheu/i);
     expect(resumirPlanoSolicitado({ plano_nome: "   ", plano_itens: [] })).toMatch(/não escolheu/i);
@@ -1977,7 +1980,7 @@ describe("listarSolicitacoes", () => {
     expect(select.args[0]).toContain("slug_desejado");
   });
 
-  it("falha de leitura volta como erro, com lista vazia — nunca lança", async () => {
+  it("falha de leitura volta como erro, com lista vazia, nunca lança", async () => {
     supabase.setTableError("solicitacoes_conta", { message: "rls" });
     const { data, error } = await listarSolicitacoes();
     expect(data).toEqual([]);
@@ -2010,10 +2013,245 @@ describe("decidirSolicitacao", () => {
     });
   });
 
-  it("erro do banco volta tratável — nunca lança na tela", async () => {
+  it("erro do banco volta tratável, nunca lança na tela", async () => {
     supabase.setRpcError("decidir_solicitacao_conta", { message: "42501" });
     const { data, error } = await decidirSolicitacao("1", "aprovada", { tenantId: "t-1" });
     expect(data).toBeNull();
     expect(error).toBeTruthy();
+  });
+});
+
+// ── F022-SAUDE: saúde da operação ──────────────────────────────────
+
+describe("listarSaude", () => {
+  beforeEach(() => { supabase.reset?.(); });
+
+  it("chama a RPC agregada, não a tabela operacional", async () => {
+    // `.from("nfce_emitidas")` voltaria vazio para o super-admin: a policy
+    // não tem o ramo `OR is_super_admin()`, por decisão (ADR-008, v2 nº 2).
+    supabase.setRpcResult("saude_plataforma", { data: [], error: null });
+    await listarSaude(90);
+    expect(supabase.rpc).toHaveBeenCalledWith("saude_plataforma", { p_dias: 90 });
+  });
+
+  it("erro do banco volta tratável, nunca lança na tela", async () => {
+    supabase.setRpcError("saude_plataforma", { message: "PGRST202" });
+    const { data, error } = await listarSaude(30);
+    // Lista vazia COM erro: a tela precisa poder dizer que não sabe, em vez
+    // de dar atestado de saúde a uma base onde a leitura nem aconteceu.
+    expect(data).toEqual([]);
+    expect(error).toBeTruthy();
+  });
+});
+
+describe("resumirSaude", () => {
+  const TENANTS = [
+    { id: "t1", nome: "Bar do Zé" },
+    { id: "t2", nome: "Café Central" },
+    { id: "t3", nome: "Padaria Nova" },
+  ];
+  const HOJE = new Date("2026-09-11T12:00:00Z");
+  const diasAtras = (n) => new Date(HOJE.getTime() - n * 86400000).toISOString();
+
+  const linhaDe = (resumo, id) => resumo.linhas.find((l) => l.tenantId === id);
+
+  it("tenant que a RPC não devolveu fica zerado e fora dos quebrados", () => {
+    // Ausência de linha é ausência de falha, não falha desconhecida: quem
+    // nunca emitiu nota nem imprimiu nada não está quebrado.
+    const r = resumirSaude(TENANTS, [], HOJE);
+    expect(r.quebrados).toEqual([]);
+    expect(r.linhas).toHaveLength(3);
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscaisParadas: 0,
+      fiscaisRecusadas: 0,
+      impressoesParadas: 0,
+      impressoesComErro: 0,
+      paradas: 0,
+      diasParado: null,
+      fiscalParadaDesde: null,
+    });
+  });
+
+  it("só fiscal: entra nos quebrados com a data da nota mais antiga", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 3,
+        fiscais_paradas: 2,
+        fiscal_parada_desde: diasAtras(5),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t1"]);
+    expect(linhaDe(r, "t1")).toMatchObject({
+      paradas: 2,
+      diasFiscalParada: 5,
+      diasImpressaoParada: null,
+      diasParado: 5,
+    });
+    expect(r.kpis).toMatchObject({
+      estabelecimentosQuebrados: 1,
+      fiscaisParadas: 2,
+      impressoesParadas: 0,
+      fiscaisRecusadas: 3,
+    });
+  });
+
+  it("só impressão: entra nos quebrados sem nenhuma pendência fiscal", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t2",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: null,
+        impressoes_com_erro: 4,
+        impressoes_paradas: 6,
+        impressao_parada_desde: diasAtras(2),
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t2"]);
+    expect(linhaDe(r, "t2")).toMatchObject({
+      paradas: 6,
+      diasFiscalParada: null,
+      diasImpressaoParada: 2,
+      diasParado: 2,
+    });
+  });
+
+  it("os dois problemas juntos: diasParado é o mais antigo dos dois", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 1,
+        fiscal_parada_desde: diasAtras(12),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 3,
+        impressao_parada_desde: diasAtras(1),
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({ paradas: 4, diasParado: 12 });
+  });
+
+  it("recusa sem nada parado não põe ninguém na lista de ação", () => {
+    // A recusa já foi resolvida: ela conta no histórico do período, mas não
+    // é o que exige ação hoje.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 9,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: null,
+        impressoes_com_erro: 2,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados).toEqual([]);
+    expect(r.kpis.fiscaisRecusadas).toBe(9);
+    expect(r.kpis.impressoesComErro).toBe(2);
+  });
+
+  it("gravidade é tempo antes de quantidade", () => {
+    // 1 nota parada há 40 dias é pior que 30 paradas desde hoje de manhã:
+    // a primeira já virou problema com o contador do cliente.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 1,
+        fiscal_parada_desde: diasAtras(40),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+      {
+        tenant_id: "t2",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 30,
+        fiscal_parada_desde: diasAtras(0),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    expect(r.quebrados.map((l) => l.tenantId)).toEqual(["t1", "t2"]);
+  });
+
+  it("a data só vale quando existe pendência", () => {
+    // Defesa contra a RPC mudar: com zero parado, "parado desde terça" seria
+    // uma afirmação falsa na tela.
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 0,
+        fiscal_parada_desde: diasAtras(30),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: diasAtras(30),
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscalParadaDesde: null,
+      impressaoParadaDesde: null,
+      diasParado: null,
+    });
+  });
+
+  it("contagem torta do banco vira zero, nunca NaN na tela", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t1",
+        fiscais_recusadas: null,
+        fiscais_paradas: "2",
+        fiscal_parada_desde: diasAtras(3),
+        impressoes_com_erro: undefined,
+        impressoes_paradas: -5,
+        impressao_parada_desde: "não é data",
+      },
+    ], HOJE);
+
+    expect(linhaDe(r, "t1")).toMatchObject({
+      fiscaisRecusadas: 0,
+      fiscaisParadas: 2,
+      impressoesComErro: 0,
+      impressoesParadas: 0,
+      paradas: 2,
+      diasParado: 3,
+    });
+  });
+
+  it("a tabela mostra a base inteira, do mais quebrado para o limpo", () => {
+    const r = resumirSaude(TENANTS, [
+      {
+        tenant_id: "t3",
+        fiscais_recusadas: 0,
+        fiscais_paradas: 5,
+        fiscal_parada_desde: diasAtras(2),
+        impressoes_com_erro: 0,
+        impressoes_paradas: 0,
+        impressao_parada_desde: null,
+      },
+    ], HOJE);
+
+    // Quem está quebrado no topo; os dois limpos desempatam por nome.
+    expect(r.linhas.map((l) => l.nome)).toEqual(["Padaria Nova", "Bar do Zé", "Café Central"]);
+  });
+
+  it("não muda os arrays que recebe", () => {
+    const tenants = [...TENANTS];
+    const saude = [];
+    resumirSaude(tenants, saude, HOJE);
+    expect(tenants).toEqual(TENANTS);
+    expect(saude).toEqual([]);
   });
 });

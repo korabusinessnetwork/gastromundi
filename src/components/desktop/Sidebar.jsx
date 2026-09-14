@@ -473,6 +473,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                       </div>
                     )}
                     {normalizarPagamentos(fechadaDetalhe).map((p, i) => p.metodo ? (
+                      // TD015: pagamentos de uma venda já fechada, só leitura, e o método repete num split.
                       <div key={i} className="sidebar__cashier-info" style={{ display: "flex", alignItems: "center", gap: 6, color: varColor(C.muted) }}>
                         <LuReceipt size={13} />
                         Pagamento: <strong style={{ color: varColor(C.text) }}>
@@ -497,7 +498,7 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
                       (Array.isArray(fechadaDetalhe.items) ? fechadaDetalhe.items : []).map((it, idx, arr) => {
                         const obsArr = Array.isArray(it.obs) ? it.obs : (it.obs ? [it.obs] : []);
                         return (
-                          <div key={idx} style={{ padding: "10px 16px", borderBottom: idx < arr.length - 1 ? `1px solid var(${C.border})` : "none" }}>
+                          <div key={it.uid ?? idx} style={{ padding: "10px 16px", borderBottom: idx < arr.length - 1 ? `1px solid var(${C.border})` : "none" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                               <span className="sidebar__item-nome" style={{ fontWeight: 600 }}>
                                 {it.emoji && <span style={{ marginRight: 6 }}>{it.emoji}</span>}

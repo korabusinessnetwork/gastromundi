@@ -61,7 +61,7 @@ function linhasQueMontamHtml() {
     .filter(({ texto }) => texto.includes('"<'));
 }
 
-describe("Palm — todo dado do banco é escapado antes de virar HTML", () => {
+describe("Palm, todo dado do banco é escapado antes de virar HTML", () => {
   it("o escapador existe e cobre os cinco caracteres perigosos", () => {
     expect(fonte).toMatch(/function escapar\(/);
     for (const alvo of ["&", "<", ">", '"', "'"]) {
@@ -102,7 +102,7 @@ describe("Palm — todo dado do banco é escapado antes de virar HTML", () => {
     }
   });
 
-  it("nome e categoria continuam escapados — o escape antigo não se perdeu", () => {
+  it("nome e categoria continuam escapados, o escape antigo não se perdeu", () => {
     expect(fonte).toMatch(/escapar\(p\.name\)/);
     expect(fonte).toMatch(/escapar\(i\.name\)/);
     expect(fonte).toMatch(/escapar\(c\)/);

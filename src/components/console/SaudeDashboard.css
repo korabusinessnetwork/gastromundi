@@ -1,0 +1,319 @@
+/**
+ * Saúde da operação por estabelecimento (Console da Plataforma, F022-SAUDE).
+ * CSS separado do JSX (decisão 018) · tokens --gm-* (ADR-007).
+ *
+ * Vizinha do AnalyticsDashboard.css e escrita para parecer a mesma tela: os
+ * mesmos raios, o mesmo cartão de KPI, a mesma tabela, a mesma sombra de
+ * rolagem. Quem trocar de aba não deve sentir que mudou de sistema.
+ *
+ * Duas cores semânticas, as duas do tema (decisão 017): var(--gm-warn) no
+ * que exige ação e var(--gm-green) na afirmação de que não há nada parado.
+ * O verde aqui não é decoração: "nenhuma pendência" é uma resposta, e
+ * resposta positiva precisa parecer diferente de tela vazia.
+ */
+
+.asau {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ── Período ──────────────────────────────────────────────────────── */
+/* Três botões sempre à vista, iguais aos da aba de uso. Aqui eles valem só
+   para as falhas contadas: o que está parado agora não tem período. */
+.asau__periodo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.asau__periodo-rotulo {
+  font-size: 13px;
+  color: var(--gm-muted);
+  font-weight: 600;
+  margin-right: 2px;
+}
+.asau__periodo-btn {
+  padding: 8px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.asau__periodo-btn:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.asau__periodo-btn:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+.asau__periodo-btn--ativo {
+  background: var(--gm-alow);
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+  font-weight: 800;
+}
+
+/* ── Estados (carregando / erro / vazio) ──────────────────────────── */
+.asau__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 20px;
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  color: var(--gm-muted);
+  font-size: 14px;
+  text-align: center;
+}
+.asau__estado p { margin: 0; max-width: 46ch; line-height: 1.55; }
+.asau__estado > svg { color: var(--gm-muted); }
+
+.asau__estado--erro {
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  color: var(--gm-text);
+}
+.asau__estado--erro > svg { color: var(--gm-red); }
+
+.asau__vazio-titulo { font-size: 15px; font-weight: 800; color: var(--gm-text); }
+.asau__vazio-texto { font-size: 13px; }
+
+.asau__tentar {
+  padding: 8px 16px;
+  border: 1px solid var(--gm-border);
+  border-radius: 9px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.asau__tentar:hover { border-color: var(--gm-accent); color: var(--gm-accent); }
+.asau__tentar:focus-visible { outline: 2px solid var(--gm-accent); outline-offset: 1px; }
+
+.asau__spin { animation: asau-girar 1s linear infinite; }
+@keyframes asau-girar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .asau__spin { animation: none; }
+}
+
+/* ── Quem está quebrado ───────────────────────────────────────────── */
+/* Mesma linguagem do alerta de validade da aba de Planos: âmbar, no topo,
+   antes dos números — é o que exige ação, não o que informa. */
+.asau__alerta {
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+.asau__alerta-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gm-warn);
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.asau__alerta-topo strong { color: var(--gm-text); font-weight: 800; }
+
+.asau__alerta-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.asau__alerta-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  background: var(--gm-card);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 45%, transparent);
+}
+.asau__alerta-nome {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* O que está parado fica no meio e é quem cede espaço: o nome do cliente é
+   quem o dono procura na lista, e a data é curta e fixa. */
+.asau__alerta-oque {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.asau__alerta-quando {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gm-warn);
+  white-space: nowrap;
+}
+
+/* ── Nada parado ──────────────────────────────────────────────────── */
+/* Afirmação, não ausência: sem esta faixa a tela mostraria uma tabela de
+   zeros, que lê como "não carregou" (Princípio nº1). */
+.asau__tudo-certo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--gm-green) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  border-radius: 16px;
+  padding: 14px 18px;
+}
+.asau__tudo-certo > svg { flex: 0 0 auto; color: var(--gm-green); }
+.asau__tudo-certo p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--gm-text);
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────── */
+.asau__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 12px;
+}
+.asau__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+  /* sem isto o item de grid não encolhe abaixo do conteúdo e o valor
+     vaza para fora do cartão (mesmo caso do AnalyticsDashboard). */
+  min-width: 0;
+}
+.asau__kpi-icone { color: var(--gm-muted); }
+.asau__kpi-rotulo { font-size: 12px; color: var(--gm-muted); font-weight: 600; }
+.asau__kpi-valor {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.asau__nota {
+  margin: -8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--gm-muted);
+}
+
+/* ── Tabela ───────────────────────────────────────────────────────── */
+.asau__tabela-caixa {
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  background: var(--gm-card);
+  padding: 6px 4px;
+  overflow-x: auto;
+}
+.asau__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.asau__tabela-caption {
+  padding: 12px 14px 10px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--gm-text);
+}
+.asau__tabela th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gm-muted);
+  border-bottom: 1px solid var(--gm-border);
+  white-space: nowrap;
+}
+.asau__tabela td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--gm-surface);
+  white-space: nowrap;
+}
+.asau__tabela tbody tr:last-child td,
+.asau__tabela tbody tr:last-child th { border-bottom: none; }
+
+/* nome do estabelecimento é <th scope="row">: precisa herdar o corpo da
+   célula, senão vem com o maiúsculo do cabeçalho da coluna. */
+.asau__nome {
+  border-bottom: 1px solid var(--gm-surface);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--gm-text);
+}
+.asau__num { text-align: right; }
+
+/* O inverso da aba de uso: aqui quem está quebrado é que precisa saltar, e
+   a tabela é ordenada por pendência, então essas linhas ficam no topo. */
+.asau__linha--quebrada th,
+.asau__linha--quebrada td { color: var(--gm-text); font-weight: 700; }
+.asau__linha--quebrada { background: color-mix(in srgb, var(--gm-warn) 6%, transparent); }
+
+/* ── Sombra de rolagem da tabela (CONSOLE-UX 29) ──────────────────── */
+/* Mesma técnica das outras abas, pela mesma razão: a caixa rola para o lado
+   e nada avisava. As duas primeiras camadas são do tom do cartão e rolam com
+   o conteúdo (`local`), cobrindo a sombra quando não há mais nada escondido
+   daquele lado; as duas de baixo ficam paradas (`scroll`). */
+.asau__tabela-caixa {
+  background-image:
+    linear-gradient(to right, var(--gm-card), transparent),
+    linear-gradient(to left, var(--gm-card), transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--gm-bg) 75%, transparent), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 26px 100%, 26px 100%, 14px 100%, 14px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+@media (max-width: 560px) {
+  .asau__kpi-valor { font-size: 19px; }
+  .asau__periodo-rotulo { width: 100%; }
+
+  .asau__alerta { padding: 16px 14px; }
+
+  /* Empilha pelo mesmo motivo da aba de uso: o nome do cliente é o dado, e
+     em linha ele perde a largura para o resto e vira reticências. */
+  .asau__alerta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .asau__alerta-nome,
+  .asau__alerta-oque {
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: anywhere;
+  }
+
+  /* Altura de dedo: os três períodos são o controle mais usado da aba, e o
+     "Tentar de novo" é a única saída quando a leitura falha. */
+  .asau__periodo-btn,
+  .asau__tentar { min-height: 44px; }
+}

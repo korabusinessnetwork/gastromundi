@@ -80,7 +80,7 @@ async function preencher(user, nome = "Bar do Zé") {
   await user.type(screen.getByLabelText(/Senha provisória/i), "senha-forte-123");
 }
 
-describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
+describe("NovoEstabelecimentoModal, a mensalidade combinada", () => {
   beforeEach(() => {
     mockProvisionar.mockReset();
     mockDefinir.mockReset();
@@ -97,7 +97,7 @@ describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
     expect(screen.getByText(new RegExp(`Vai ficar ${comoRegex(formatarReais(300))} por mês`))).toBeInTheDocument();
   });
 
-  it("vírgula e ponto não viram valor errado — o eco mostra o que será gravado", async () => {
+  it("vírgula e ponto não viram valor errado, o eco mostra o que será gravado", async () => {
     const { user } = montar();
     await user.type(mensalidade(), "1.200,50");
     expect(screen.getByText(new RegExp(comoRegex(formatarReais(1200.5))))).toBeInTheDocument();
@@ -136,7 +136,7 @@ describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
     );
   });
 
-  it("zero digitado é o mesmo que vazio — não chama a RPC à toa", async () => {
+  it("zero digitado é o mesmo que vazio, não chama a RPC à toa", async () => {
     const { user, onCriado } = montar();
     await user.type(mensalidade(), "0");
     await preencher(user);
@@ -195,7 +195,7 @@ describe("NovoEstabelecimentoModal — a mensalidade combinada", () => {
 // nunca sabia que tinha sido renomeado. O que estes testes protegem: que o
 // endereço apareça antes de criar, que seja exatamente o que o banco vai
 // gravar, e que conflito vire uma escolha em vez de uma surpresa.
-describe("NovoEstabelecimentoModal — o endereço do cardápio", () => {
+describe("NovoEstabelecimentoModal, o endereço do cardápio", () => {
   beforeEach(() => {
     mockProvisionar.mockReset();
     mockDefinir.mockReset();
@@ -218,7 +218,7 @@ describe("NovoEstabelecimentoModal — o endereço do cardápio", () => {
     expect(screen.getByText("/cardapio?loja=bardoze")).toBeInTheDocument();
   });
 
-  it("normaliza o que se digita no campo — hífen e acento somem na hora", async () => {
+  it("normaliza o que se digita no campo, hífen e acento somem na hora", async () => {
     const { user } = montar();
     await user.type(linkDoCardapio(), "Bar-Do Zé!");
     expect(linkDoCardapio()).toHaveValue("bardoze");
@@ -287,7 +287,7 @@ describe("NovoEstabelecimentoModal — o endereço do cardápio", () => {
 // nada impedia "123456" em todo cliente novo. O que estes testes protegem: que
 // exista uma senha boa a um clique, que a senha fraca seja dita em voz alta —
 // e que o aviso continue sendo aviso, sem travar quem já decidiu.
-describe("NovoEstabelecimentoModal — a senha provisória", () => {
+describe("NovoEstabelecimentoModal, a senha provisória", () => {
   const senhaProvisoria = () => screen.getByLabelText(/Senha provisória/i);
   const gerarSenha = () => screen.getByRole("button", { name: /Gerar senha/i });
 
@@ -406,7 +406,7 @@ describe("NovoEstabelecimentoModal — a senha provisória", () => {
 // nessa colisão. O que estes testes protegem: que a recusa vire uma escolha de
 // um clique, que a sugestão só apareça depois de o servidor recusar, e que ela
 // mude a cada nova recusa em vez de repetir o mesmo palpite.
-describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
+describe("NovoEstabelecimentoModal, sugestão de usuário livre", () => {
   const usuario = () => screen.getByLabelText(/Usuário de acesso/i);
   const sugestao = () => screen.queryByRole("button", { name: /^Usar / });
   const RECUSA = "A user with this email address has already been registered";
@@ -492,7 +492,7 @@ describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
 
   it("o aviso de estabelecimento órfão continua inteiro ao lado da sugestão", async () => {
     mockProvisionar.mockResolvedValue({
-      error: `${RECUSA} ATENÇÃO: o estabelecimento ficou criado sem responsável — apague pelo painel.`,
+      error: `${RECUSA} ATENÇÃO: o estabelecimento ficou criado sem responsável, apague pelo painel.`,
     });
     const { user } = montar();
     await preencher(user);
@@ -528,7 +528,7 @@ describe("NovoEstabelecimentoModal — sugestão de usuário livre", () => {
 // traduzisse aquilo para `josemaria` de cabeça. O que estes testes protegem: a
 // derivação por estado derivado (muda junto com o nome, sem atraso), e o
 // momento em que ela precisa parar — mão do dono no campo manda mais.
-describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável", () => {
+describe("NovoEstabelecimentoModal, o usuário de acesso vem do responsável", () => {
   const usuario = () => screen.getByLabelText(/Usuário de acesso/i);
   const responsavel = () => screen.getByLabelText(/Nome do responsável/i);
   const sugestao = () => screen.queryByRole("button", { name: /^Usar / });
@@ -576,7 +576,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
     expect(mockProvisionar).not.toHaveBeenCalled();
   });
 
-  it("depois de editado à mão, o campo para de seguir o nome — mesmo apagado", async () => {
+  it("depois de editado à mão, o campo para de seguir o nome, mesmo apagado", async () => {
     const { user } = montar();
     await user.type(responsavel(), "José Maria");
     await digitarUsuario(user, "chefe");
@@ -644,7 +644,7 @@ describe("NovoEstabelecimentoModal — o usuário de acesso vem do responsável"
 // a senha sorteada, que não é relida de lugar nenhum. O que estes testes
 // protegem: que um clique no "X" no meio da venda não apague o trabalho, e que
 // o formulário ainda vazio continue fechando num clique só.
-describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
+describe("NovoEstabelecimentoModal, descartar o cadastro", () => {
   const fechar = () => screen.getByRole("button", { name: /^Fechar$/i });
   const cancelar = () => screen.getByRole("button", { name: /^Cancelar$/i });
   const descartar = () => screen.queryByRole("button", { name: /^Descartar$/i });
@@ -683,7 +683,7 @@ describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
     expect(onFechar).toHaveBeenCalledTimes(1);
   });
 
-  it("a senha gerada conta — é o dado que não existe em nenhum outro lugar", async () => {
+  it("a senha gerada conta, é o dado que não existe em nenhum outro lugar", async () => {
     const { user, onFechar } = montar();
     await user.click(screen.getByRole("button", { name: /Gerar senha/i }));
     await user.click(fechar());
@@ -732,7 +732,7 @@ describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
     expect(onFechar).toHaveBeenCalledTimes(1);
   });
 
-  it("erro do servidor na tela não some sozinho — descartar ali também pergunta", async () => {
+  it("erro do servidor na tela não some sozinho, descartar ali também pergunta", async () => {
     mockProvisionar.mockResolvedValue({ error: "Falha de rede ao falar com o servidor" });
     const { user, onFechar } = montar();
     await preencher(user);
@@ -751,7 +751,7 @@ describe("NovoEstabelecimentoModal — descartar o cadastro", () => {
 // pelo mesmo caminho do "X": com o formulário vazio fecha na hora, com dado
 // preenchido cai na pergunta de descarte da CONSOLE-UX 23. E com a pergunta já
 // na tela, Esc equivale a "Continuar preenchendo" — nunca descarta.
-describe("NovoEstabelecimentoModal — Esc e clique fora", () => {
+describe("NovoEstabelecimentoModal, Esc e clique fora", () => {
   const fundo = () => screen.getByRole("dialog");
   const descartar = () => screen.queryByRole("button", { name: /^Descartar$/i });
 
@@ -826,7 +826,7 @@ describe("NovoEstabelecimentoModal — Esc e clique fora", () => {
 // CONSOLE-UX 25 — o foco. Abrir um modal e ter de caçar o primeiro campo com o
 // mouse é o que fazia o cadastro ser lento; e o Tab não pode passear pela
 // tabela que ficou por baixo do fundo escuro.
-describe("NovoEstabelecimentoModal — foco do teclado", () => {
+describe("NovoEstabelecimentoModal, foco do teclado", () => {
   it("abre com o cursor no primeiro campo, não no botão de fechar", () => {
     montar();
 

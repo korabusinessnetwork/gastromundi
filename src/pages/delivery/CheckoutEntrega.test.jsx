@@ -111,7 +111,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("CheckoutEntrega — a taxa na tela é a do endereço na tela (Run 6, leva 3)", () => {
+describe("CheckoutEntrega, a taxa na tela é a do endereço na tela (Run 6, leva 3)", () => {
   it("com a taxa calculada, o avanço libera com o valor certo", async () => {
     await preencherAteTaxa();
 
@@ -132,7 +132,7 @@ describe("CheckoutEntrega — a taxa na tela é a do endereço na tela (Run 6, l
     expect(calculando()).toBeInTheDocument();
   });
 
-  it("trocar a rua também tranca — no modo por km o preço vem da coordenada", async () => {
+  it("trocar a rua também tranca, no modo por km o preço vem da coordenada", async () => {
     await preencherAteTaxa();
 
     digitar("Endereço (rua, número)", "Rua Muito Longe, 9000");
@@ -268,7 +268,7 @@ async function montar() {
   });
 }
 
-describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6, leva 6)", () => {
+describe("CheckoutEntrega, a busca do CEP não pode mentir nem travar (Run 6, leva 6)", () => {
   it("apagar um dígito durante a busca desliga o aviso de que está buscando", async () => {
     const { promessa, resolver } = pendente();
     mockViaCep.mockReturnValue(promessa);
@@ -393,7 +393,7 @@ describe("CheckoutEntrega — a busca do CEP não pode mentir nem travar (Run 6,
   });
 });
 
-describe("CheckoutEntrega — taxa que não respondeu tem que aparecer na tela (Run 6, leva 6)", () => {
+describe("CheckoutEntrega, taxa que não respondeu tem que aparecer na tela (Run 6, leva 6)", () => {
   it("falha no cálculo diz o que aconteceu em vez de deixar o botão morto", async () => {
     mockCalcularTaxa.mockResolvedValue({ data: null, error: { message: "fetch failed" } });
     await preencherAteTaxa();
@@ -445,7 +445,7 @@ describe("CheckoutEntrega — taxa que não respondeu tem que aparecer na tela (
     expect(erroConexao()).toBeNull();
   });
 
-  it("fora da área não é falha de conexão — cada aviso diz a sua verdade", async () => {
+  it("fora da área não é falha de conexão, cada aviso diz a sua verdade", async () => {
     mockCalcularTaxa.mockResolvedValue({ data: { ok: false }, error: null });
     await preencherAteTaxa();
 
@@ -479,7 +479,7 @@ describe("CheckoutEntrega — taxa que não respondeu tem que aparecer na tela (
   });
 });
 
-describe("CheckoutEntrega — terceiro pendurado não mata o checkout (Run 6, leva 11)", () => {
+describe("CheckoutEntrega, terceiro pendurado não mata o checkout (Run 6, leva 11)", () => {
   // O defeito: ViaCEP e Nominatim eram chamados com `fetch` puro, sem prazo
   // nenhum. Um socket que abre e não responde fica pendurado por minutos, e
   // no modo "taxa por distância" — o único que depende do Nominatim, um

@@ -54,7 +54,7 @@ describe("normalizarPontos", () => {
     expect(lista.filter((p) => p.padrao).map((p) => p.id)).toEqual(["p1"]);
   });
 
-  it("ids repetidos ganham id novo — senão duas linhas da tela editariam o mesmo ponto", () => {
+  it("ids repetidos ganham id novo, senão duas linhas da tela editariam o mesmo ponto", () => {
     const lista = normalizarPontos([{ id: "p1", nome: "A" }, { id: "p1", nome: "B" }, { id: "p1", nome: "C" }]);
 
     expect(lista.map((p) => p.id)).toEqual(["p1", "p2", "p3"]);
@@ -138,11 +138,11 @@ describe("novoPonto", () => {
     expect(novoPonto([{ id: "p1" }, { id: "p3" }], "Bar").id).toBe("p2");
   });
 
-  it("nunca nasce padrão — adicionar um ponto não pode mudar para onde a produção já ia", () => {
+  it("nunca nasce padrão, adicionar um ponto não pode mudar para onde a produção já ia", () => {
     expect(novoPonto(DOIS_PONTOS, "Chapa").padrao).toBe(false);
   });
 
-  it("nasce sem impressora — quem clicou em adicionar ainda não escolheu nada", () => {
+  it("nasce sem impressora, quem clicou em adicionar ainda não escolheu nada", () => {
     expect(novoPonto(DOIS_PONTOS, "Chapa").impressora).toBeNull();
   });
 
@@ -167,7 +167,7 @@ describe("removerPonto", () => {
     expect(limpo).toEqual({ categorias: { Lanches: "p1" }, produtos: { 42: "p1" } });
   });
 
-  it("apagar o padrão promove outro — é impossível ficar sem padrão", () => {
+  it("apagar o padrão promove outro, é impossível ficar sem padrão", () => {
     const { pontos } = removerPonto(DOIS_PONTOS, roteamento, "p1");
 
     expect(pontos.map((p) => p.id)).toEqual(["p2"]);
@@ -182,7 +182,7 @@ describe("removerPonto", () => {
     expect(limpo).toEqual({ categorias: { Lanches: "p1" }, produtos: {} });
   });
 
-  it("não remove o último ponto — a produção não pode ficar sem destino", () => {
+  it("não remove o último ponto, a produção não pode ficar sem destino", () => {
     const { pontos, roteamento: limpo } = removerPonto([COZINHA], roteamento, "p1");
 
     expect(pontos.map((p) => p.id)).toEqual(["p1"]);
@@ -266,7 +266,7 @@ describe("pontoDoItem", () => {
     expect(pontoDoItem({ id: 99, category: "Sobremesas" }, { pontos, roteamento }).id).toBe("p2");
   });
 
-  it("sem pontos e sem roteamento, devolve o ponto sintetizado — nunca undefined", () => {
+  it("sem pontos e sem roteamento, devolve o ponto sintetizado, nunca undefined", () => {
     expect(pontoDoItem({ id: 1, category: "Bebidas" }, {})).toMatchObject({ id: "p1", padrao: true });
     expect(pontoDoItem({ id: 1 }, undefined)).toMatchObject({ id: "p1", padrao: true });
   });
@@ -400,7 +400,7 @@ describe("agruparItensPorPonto", () => {
     expect(new Set(saida.map((i) => i.id)).size).toBe(itens.length);
   });
 
-  it("não devolve grupo vazio — ponto configurado que não recebeu nada não gasta papel", () => {
+  it("não devolve grupo vazio, ponto configurado que não recebeu nada não gasta papel", () => {
     const grupos = agruparItensPorPonto([{ id: 1, category: "Lanches" }], ctx);
 
     expect(grupos).toHaveLength(1);

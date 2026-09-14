@@ -10,8 +10,8 @@ export default function IndicadorRede({ online, pendencias = 0, visivel = true }
 
   const texto = !online
     ? pendencias > 0
-      ? `Sem internet — ${pendencias} ${pendencias === 1 ? "pedido guardado" : "pedidos guardados"} para enviar`
-      : "Sem internet — os pedidos ficam guardados aqui"
+      ? `Sem internet, ${pendencias} ${pendencias === 1 ? "pedido guardado" : "pedidos guardados"} para enviar`
+      : "Sem internet, os pedidos ficam guardados aqui"
     : `Enviando ${pendencias} ${pendencias === 1 ? "pedido guardado" : "pedidos guardados"}...`;
 
   return (

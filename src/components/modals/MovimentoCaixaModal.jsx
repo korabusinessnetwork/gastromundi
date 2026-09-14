@@ -130,8 +130,8 @@ export default function MovimentoCaixaModal({
         {/* Escolha do tipo — a primeira decisão, em alvo grande de toque */}
         <div style={{ display: "flex", gap: 10 }}>
           {[
-            { id: "sangria",    titulo: "Retirar",  ajuda: "Sangria — levar ao cofre",  cor: C.red   },
-            { id: "suprimento", titulo: "Colocar",  ajuda: "Suprimento — troco",        cor: C.green },
+            { id: "sangria",    titulo: "Retirar",  ajuda: "Sangria, levar ao cofre",  cor: C.red   },
+            { id: "suprimento", titulo: "Colocar",  ajuda: "Suprimento, troco",        cor: C.green },
           ].map(op => {
             const ativo = tipo === op.id;
             return (

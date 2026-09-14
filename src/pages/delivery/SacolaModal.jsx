@@ -61,7 +61,7 @@ export default function SacolaModal({
                       {item.obs && <p className="linha-sacola__extra">Obs.: {item.obs}</p>}
                       {fora && (
                         <p className="linha-sacola__selo linha-sacola__selo--fora">
-                          Saiu do cardápio — remova para continuar
+                          Saiu do cardápio, remova para continuar
                         </p>
                       )}
                       {item.situacao === "preco" && (

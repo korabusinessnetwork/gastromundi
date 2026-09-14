@@ -142,7 +142,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 const obsArr   = Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
                 const cancelado = !!item.cancelado;
                 return (
-                  <div key={idx} className="cart-panel__item cart-panel__item--transicao" style={{
+                  <div key={item.uid ?? idx} className="cart-panel__item cart-panel__item--transicao" style={{
                     background: cancelado ? alfa(C.red, "08") : varColor(C.surface),
                     opacity: cancelado ? 0.7 : 1,
                   }}>

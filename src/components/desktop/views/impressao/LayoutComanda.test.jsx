@@ -53,7 +53,7 @@ async function abrirEditor() {
   await waitFor(() => expect(screen.getByText("Lista dos itens")).toBeInTheDocument());
 }
 
-describe("LayoutComanda — a lista mostra a comanda de cima para baixo", () => {
+describe("LayoutComanda, a lista mostra a comanda de cima para baixo", () => {
   it("abre com os blocos do estabelecimento e o papel já montado", async () => {
     await abrirEditor();
 
@@ -72,7 +72,7 @@ describe("LayoutComanda — a lista mostra a comanda de cima para baixo", () => 
 });
 
 describe("mexer no layout muda o papel na hora, antes de salvar", () => {
-  it("desligar um bloco tira ele do papel — e não salva nada", async () => {
+  it("desligar um bloco tira ele do papel, e não salva nada", async () => {
     await abrirEditor();
 
     await userEvent.click(screen.getByRole("switch", { name: "Imprimir Mensagem final" }));
@@ -208,7 +208,7 @@ describe("salvar", () => {
 });
 
 describe("voltar ao padrão", () => {
-  it("pede confirmação antes e preserva o conteúdo — só a arrumação volta ao padrão", async () => {
+  it("pede confirmação antes e preserva o conteúdo, só a arrumação volta ao padrão", async () => {
     await abrirEditor();
 
     await userEvent.click(screen.getByRole("button", { name: /Voltar ao padrão/ }));

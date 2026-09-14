@@ -57,7 +57,7 @@ function Pagina({ sumirComOBotao = false }) {
 }
 
 describe("useFocoDoModal", () => {
-  it("ao abrir, o foco vai para o primeiro campo — não para o X", () => {
+  it("ao abrir, o foco vai para o primeiro campo, não para o X", () => {
     render(<Modal />);
 
     expect(screen.getByLabelText("Nome")).toHaveFocus();

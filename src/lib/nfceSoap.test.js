@@ -10,7 +10,7 @@ import {
 
 const NFE = '<NFe xmlns="http://www.portalfiscal.inf.br/nfe"><infNFe Id="NFe43260712345678000195650010000000011000000017"></infNFe><Signature></Signature></NFe>';
 
-describe("nfceSoap — montarEnvelopeEnviNfe", () => {
+describe("nfceSoap, montarEnvelopeEnviNfe", () => {
   it("monta o envelope SOAP 1.2 com enviNFe síncrono e a NFe embutida", () => {
     const env = montarEnvelopeEnviNfe({ xmlAssinado: NFE, idLote: "1", indSinc: 1 });
     expect(env).toContain("soap12:Envelope");
@@ -27,7 +27,7 @@ describe("nfceSoap — montarEnvelopeEnviNfe", () => {
   });
 });
 
-describe("nfceSoap — interpretarRetornoSefaz (autorizada)", () => {
+describe("nfceSoap, interpretarRetornoSefaz (autorizada)", () => {
   const RETORNO_OK =
     '<retEnviNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
     "<cStat>104</cStat><xMotivo>Lote processado</xMotivo>" +
@@ -62,7 +62,7 @@ describe("nfceSoap — interpretarRetornoSefaz (autorizada)", () => {
   });
 });
 
-describe("nfceSoap — interpretarRetornoSefaz (rejeitada/denegada)", () => {
+describe("nfceSoap, interpretarRetornoSefaz (rejeitada/denegada)", () => {
   it("rejeição de lote sem protNFe: usa o cStat/xMotivo do retEnviNFe", () => {
     const rej =
       '<retEnviNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
@@ -88,7 +88,7 @@ describe("nfceSoap — interpretarRetornoSefaz (rejeitada/denegada)", () => {
   });
 });
 
-describe("nfceSoap — evento de cancelamento (Leva 10)", () => {
+describe("nfceSoap, evento de cancelamento (Leva 10)", () => {
   const EVENTO =
     '<evento versao="1.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
     '<infEvento Id="ID11011143260712345678000195650010000000011000000017 01">' +
@@ -148,7 +148,7 @@ describe("nfceSoap — evento de cancelamento (Leva 10)", () => {
   });
 });
 
-describe("nfceSoap — inutilização de numeração (Leva 11)", () => {
+describe("nfceSoap, inutilização de numeração (Leva 11)", () => {
   const INUT =
     '<inutNFe versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">' +
     '<infInut Id="ID43261234567800019565001000000045000000048"></infInut>' +

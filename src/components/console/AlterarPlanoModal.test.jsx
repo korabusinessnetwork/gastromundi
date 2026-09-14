@@ -65,7 +65,7 @@ function montar(props = {}) {
   return { onAlterado, onFechar };
 }
 
-describe("AlterarPlanoModal — a troca de plano diz o que o cliente perde", () => {
+describe("AlterarPlanoModal, a troca de plano diz o que o cliente perde", () => {
   beforeEach(() => {
     mockAlterarPlano.mockReset();
     mockBuscarModulos.mockReset();
@@ -118,7 +118,7 @@ describe("AlterarPlanoModal — a troca de plano diz o que o cliente perde", () 
     expect(onAlterado).toHaveBeenCalledWith({ plano_codigo: "basico" });
   });
 
-  it("upgrade só com ganho não pede confirmação — salva direto", async () => {
+  it("upgrade só com ganho não pede confirmação, salva direto", async () => {
     const user = userEvent.setup();
     montar({ tenant: { ...TENANT, plano_codigo: "basico" } });
     await user.selectOptions(seletor(), "avancado");
@@ -294,7 +294,7 @@ describe("AlterarPlanoModal — a troca de plano diz o que o cliente perde", () 
 // Nos modais de um campo só, o gesto de sair é o mesmo do "X": reabrir custa um
 // clique, não há o que confirmar. Este teste vale como amostra dos cinco
 // modais simples do Console, que ligam o hook exatamente assim.
-describe("AlterarPlanoModal — Esc e clique fora", () => {
+describe("AlterarPlanoModal, Esc e clique fora", () => {
   it("Esc fecha o modal", async () => {
     const user = userEvent.setup();
     const { onFechar } = montar();

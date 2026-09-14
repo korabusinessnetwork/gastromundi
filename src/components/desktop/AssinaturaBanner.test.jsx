@@ -17,7 +17,7 @@ beforeEach(() => {
 const gerente = { id: 1, name: "Gerente Teste", username: "gerente1", role: "gerente" };
 const caixa = { id: 2, name: "Caixa Teste", username: "caixa1", role: "caixa" };
 
-describe("AssinaturaBanner — Fase 4 (só exibição, sem bloqueio)", () => {
+describe("AssinaturaBanner, Fase 4 (só exibição, sem bloqueio)", () => {
   it("não mostra nada quando ativa e o vencimento está longe", () => {
     setAppMock({ currentUser: gerente, assinatura: { status: "ativo", diasParaVencer: 20, carenciaDias: 3 } });
 
@@ -42,7 +42,7 @@ describe("AssinaturaBanner — Fase 4 (só exibição, sem bloqueio)", () => {
     expect(screen.getByText(/atrasada.*2 dias/i)).toBeInTheDocument();
   });
 
-  it("mostra o aviso de bloqueado (mas o componente em si nunca impede nada — só texto)", () => {
+  it("mostra o aviso de bloqueado (mas o componente em si nunca impede nada, só texto)", () => {
     setAppMock({ currentUser: gerente, assinatura: { status: "bloqueado", diasParaVencer: -10, carenciaDias: 3 } });
 
     render(<AssinaturaBanner />);
@@ -50,7 +50,7 @@ describe("AssinaturaBanner — Fase 4 (só exibição, sem bloqueio)", () => {
     expect(screen.getByText(/regularize para continuar usando/i)).toBeInTheDocument();
   });
 
-  it("não mostra nada para papéis operacionais (caixa) — evita jargão de faturamento no balcão", () => {
+  it("não mostra nada para papéis operacionais (caixa), evita jargão de faturamento no balcão", () => {
     setAppMock({ currentUser: caixa, assinatura: { status: "bloqueado", diasParaVencer: -10, carenciaDias: 3 } });
 
     const { container } = render(<AssinaturaBanner />);

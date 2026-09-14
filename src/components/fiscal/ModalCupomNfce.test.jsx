@@ -107,7 +107,7 @@ describe("<ModalCupomNfce>", () => {
     render(
       <ModalCupomNfce
         estadoEmissao="concluido"
-        resultado={{ status: "rejeitada", detalhe: "cStat 217 — NF-e não consta na base (abc.supabase.co)" }}
+        resultado={{ status: "rejeitada", detalhe: "cStat 217, NF-e não consta na base (abc.supabase.co)" }}
         venda={venda}
         onFechar={() => {}}
       />,

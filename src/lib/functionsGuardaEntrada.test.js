@@ -94,7 +94,7 @@ function semComentariosTs(caminho) {
 
 // ── (A) COMPORTAMENTO ──────────────────────────────────────────────
 
-describe("decidirAcesso — o defeito: papel sem atividade", () => {
+describe("decidirAcesso, o defeito: papel sem atividade", () => {
   it("recusa o admin DESATIVADO que ainda tem JWT válido", () => {
     const demitido = { role: "admin", active: false };
     expect(decidirAcesso(demitido, PAPEIS_ADMIN)).toEqual({ ok: false, motivo: "inativo" });
@@ -106,13 +106,13 @@ describe("decidirAcesso — o defeito: papel sem atividade", () => {
     expect(decidirAcesso({ role: "admin", active: true }, PAPEIS_ADMIN)).toEqual({ ok: true, motivo: null });
   });
 
-  it("distingue conta desativada de papel errado — a causa muda a frase", () => {
+  it("distingue conta desativada de papel errado, a causa muda a frase", () => {
     expect(decidirAcesso({ role: "garcom", active: true }, PAPEIS_ADMIN).motivo).toBe("papel");
     expect(decidirAcesso({ role: "garcom", active: false }, PAPEIS_ADMIN).motivo).toBe("inativo");
   });
 });
 
-describe("decidirAcesso — falha fechado", () => {
+describe("decidirAcesso, falha fechado", () => {
   it("recusa quem não tem linha em users", () => {
     for (const vazio of [null, undefined]) {
       expect(decidirAcesso(vazio, PAPEIS_ADMIN)).toEqual({ ok: false, motivo: "sem_perfil" });
@@ -125,7 +125,7 @@ describe("decidirAcesso — falha fechado", () => {
     expect(decidirAcesso({ role: "admin" }, PAPEIS_ADMIN)).toEqual({ ok: false, motivo: "inativo" });
   });
 
-  it("exige `active` booleano true — nada de valor 'parecido com verdadeiro'", () => {
+  it("exige `active` booleano true, nada de valor 'parecido com verdadeiro'", () => {
     for (const quase of ["true", 1, "sim", {}, []]) {
       expect(decidirAcesso({ role: "admin", active: quase }, PAPEIS_ADMIN).motivo).toBe("inativo");
     }
@@ -138,7 +138,7 @@ describe("decidirAcesso — falha fechado", () => {
   });
 });
 
-describe("decidirAcesso — as listas de papel espelham o gate da tela", () => {
+describe("decidirAcesso, as listas de papel espelham o gate da tela", () => {
   it("gerência = admin e gerente (o `isAdmin` da ConfiguracoesView)", () => {
     expect(decidirAcesso({ role: "gerente", active: true }, PAPEIS_GERENCIA).ok).toBe(true);
     expect(decidirAcesso({ role: "gerente", active: true }, PAPEIS_ADMIN).ok).toBe(false);
@@ -151,18 +151,18 @@ describe("decidirAcesso — as listas de papel espelham o gate da tela", () => {
     expect(decidirAcesso(plataforma, PAPEIS_GERENCIA).ok).toBe(false);
   });
 
-  it("criar estabelecimento é SÓ da plataforma — nem o admin do cliente entra", () => {
+  it("criar estabelecimento é SÓ da plataforma, nem o admin do cliente entra", () => {
     expect(decidirAcesso({ role: "plataforma", active: true }, PAPEIS_PLATAFORMA).ok).toBe(true);
     expect(decidirAcesso({ role: "admin", active: true }, PAPEIS_PLATAFORMA).ok).toBe(false);
     expect(decidirAcesso({ role: "gerente", active: true }, PAPEIS_PLATAFORMA).ok).toBe(false);
   });
 
-  it("o super-admin DESATIVADO não provisiona mais — é o papel mais poderoso", () => {
+  it("o super-admin DESATIVADO não provisiona mais, é o papel mais poderoso", () => {
     expect(decidirAcesso({ role: "plataforma", active: false }, PAPEIS_PLATAFORMA))
       .toEqual({ ok: false, motivo: "inativo" });
   });
 
-  it("emitir NFC-e é ato de caixa pra cima — garçom fica de fora", () => {
+  it("emitir NFC-e é ato de caixa pra cima, garçom fica de fora", () => {
     for (const papel of ["caixa", "gerente", "admin"]) {
       expect(decidirAcesso({ role: papel, active: true }, PAPEIS_FISCAL_EMISSAO).ok).toBe(true);
     }
@@ -195,7 +195,7 @@ describe("decidirAcesso — as listas de papel espelham o gate da tela", () => {
 });
 
 describe("mensagemRecusa", () => {
-  it("conta desativada tem causa própria — 'não é admin' mentiria", () => {
+  it("conta desativada tem causa própria, 'não é admin' mentiria", () => {
     expect(mensagemRecusa("inativo", "Acesso restrito a administradores.")).toBe(ERRO_INATIVO);
   });
 
@@ -207,7 +207,7 @@ describe("mensagemRecusa", () => {
   });
 });
 
-describe("sanitizarHistorico — o corpo do cliente não derruba o Jarvas", () => {
+describe("sanitizarHistorico, o corpo do cliente não derruba o Jarvas", () => {
   it("não estoura com item nulo no array (era TypeError → 500)", () => {
     expect(() => sanitizarHistorico([null, undefined, 7, "oi", []])).not.toThrow();
     expect(sanitizarHistorico([null, undefined, 7, "oi", []])).toEqual([]);
@@ -296,14 +296,14 @@ describe("as quatro funções fiscais barram a conta desativada e o papel errado
     }
   });
 
-  it("cancelar exige gerência e inutilizar exige admin — o peso do ato não mudou", () => {
+  it("cancelar exige gerência e inutilizar exige admin, o peso do ato não mudou", () => {
     expect(semComentariosTs(FUNCOES_FISCAIS["cancelar-nfce"]))
       .toContain("decidirAcesso(perfil, PAPEIS_GERENCIA)");
     expect(semComentariosTs(FUNCOES_FISCAIS["inutilizar-nfce"]))
       .toContain("decidirAcesso(perfil, PAPEIS_ADMIN)");
   });
 
-  it("emitir e reenviar usam a lista de emissão — caixa entra, garçom não", () => {
+  it("emitir e reenviar usam a lista de emissão, caixa entra, garçom não", () => {
     expect(semComentariosTs(FUNCOES_FISCAIS["emitir-nfce"]))
       .toContain("decidirAcesso(perfil, PAPEIS_FISCAL_EMISSAO)");
     expect(semComentariosTs(FUNCOES_FISCAIS["reenviar-nfce"]))
@@ -325,7 +325,7 @@ describe("as quatro funções fiscais barram a conta desativada e o papel errado
   });
 });
 
-describe("manage-user — username que dá conta inacessível e credencial órfã", () => {
+describe("manage-user, username que dá conta inacessível e credencial órfã", () => {
   it("normaliza o username em vez de só baixar a caixa", () => {
     const fonte = semComentariosTs(FUNCOES["manage-user"]);
     // `${uname}@${slug}.local` precisa sobreviver ao sanitizeInput da tela de

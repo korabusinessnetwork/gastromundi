@@ -58,7 +58,7 @@ export default function AssinaturaBloqueada() {
           onClick={() => window.location.reload()}
           style={{ border: `1.5px solid ${alfa(C.text, "33")}`, color: varColor(C.text) }}
         >
-          Já paguei — verificar de novo
+          Já paguei, verificar de novo
         </button>
         <button
           type="button"

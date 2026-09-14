@@ -10,6 +10,7 @@ import {
   resumoHorario,
 } from "@/lib/deliveryHorario";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
+import { novoUid, comUid } from "@/lib/uidLista";
 import { logAction } from "@/lib/logger";
 import "./SecaoDelivery.css";
 
@@ -34,7 +35,18 @@ import "./SecaoDelivery.css";
  *   alcance do polegar, nunca perdido no fim de um scroll longo.
  * - Erro de rede vira card de estado (não popup): sempre visível, sempre
  *   com uma próxima ação clara.
+ *
+ * TD015: mesma identidade de renderização das faixas que a aba do desktop usa,
+ * pelo mesmo motivo, o `uid` vive só no state e `normalizarHorario` o descarta na
+ * fronteira do save. Os dois helpers abaixo são gêmeos dos de ConfiguracoesView:
+ * o módulo de horário se declara puro e não pode gerar identificador.
  */
+const faixaNova = () => ({ ...FAIXA_PADRAO, uid: novoUid() });
+const horarioParaEdicao = (bruto) => {
+  const h = normalizarHorario(bruto);
+  return { ...h, faixas: comUid(h.faixas) };
+};
+
 export default function SecaoDelivery() {
   const { tenant, currentUser } = useApp();
   const [config, setConfig] = useState(null);
@@ -59,7 +71,7 @@ export default function SecaoDelivery() {
       }
       const base = data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig(base);
-      setHorario(normalizarHorario(base.horario));
+      setHorario(horarioParaEdicao(base.horario));
       setErroCarga("");
       setCarregando(false);
     })();
@@ -81,11 +93,11 @@ export default function SecaoDelivery() {
       if (h.auto) return { ...h, auto: false };
       const vazio = h.faixas.length === 0 && h.dias.length === 0;
       if (vazio) {
-        return { auto: true, dias: [...HORARIO_PADRAO.dias], faixas: [{ ...FAIXA_PADRAO }] };
+        return { auto: true, dias: [...HORARIO_PADRAO.dias], faixas: [faixaNova()] };
       }
       // Já tinha algo configurado: religa preservando, mas garante ao menos
       // uma faixa visível para o dono editar.
-      return { ...h, auto: true, faixas: h.faixas.length ? h.faixas : [{ ...FAIXA_PADRAO }] };
+      return { ...h, auto: true, faixas: h.faixas.length ? h.faixas : [faixaNova()] };
     });
   };
 
@@ -100,7 +112,7 @@ export default function SecaoDelivery() {
   // dias marcados. O dono pode ter várias no mesmo dia (ex.: almoço e jantar).
   const setFaixa = (i, patch) =>
     setCampo({ faixas: horario.faixas.map((f, idx) => (idx === i ? { ...f, ...patch } : f)) });
-  const addFaixa = () => setCampo({ faixas: [...horario.faixas, { ...FAIXA_PADRAO }] });
+  const addFaixa = () => setCampo({ faixas: [...horario.faixas, faixaNova()] });
   const removeFaixa = (i) => setCampo({ faixas: horario.faixas.filter((_, idx) => idx !== i) });
 
   const valido = horario ? horarioValido(horario) : false;
@@ -132,7 +144,7 @@ export default function SecaoDelivery() {
     }
     const salvo = data || proximo;
     setConfig(salvo);
-    setHorario(normalizarHorario(salvo.horario));
+    setHorario(horarioParaEdicao(salvo.horario));
     setOkMsg(horario.auto ? "Abertura automática salva." : "Abertura automática desligada.");
     logAction(currentUser?.username, "delivery:horario", {
       msg: horario.auto ? `Delivery automático: ${preview || "configurado"}` : "Delivery automático desligado",
@@ -211,7 +223,7 @@ export default function SecaoDelivery() {
             <span className="cfg-delivery__rotulo">Horários</span>
             <div className="cfg-delivery__faixas">
               {horario.faixas.map((f, i) => (
-                <div className="cfg-delivery__faixa" key={i}>
+                <div className="cfg-delivery__faixa" key={f.uid}>
                   <div className="cfg-delivery__horas">
                     <label className="cfg-delivery__hora">
                       <span>Abre</span>

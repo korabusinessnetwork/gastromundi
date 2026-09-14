@@ -52,7 +52,7 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-describe("useCarrinho — adicionar sem crypto.randomUUID (Run 6, leva 2)", () => {
+describe("useCarrinho, adicionar sem crypto.randomUUID (Run 6, leva 2)", () => {
   it("adiciona normalmente quando o navegador tem randomUUID", () => {
     const { result } = renderHook(() => useCarrinho(SLUG));
 
@@ -87,7 +87,7 @@ describe("useCarrinho — adicionar sem crypto.randomUUID (Run 6, leva 2)", () =
     expect(result.current.itens[0]._linha).toBeTruthy();
   });
 
-  it("sem randomUUID as linhas continuam distintas — remover uma não leva a outra junto", () => {
+  it("sem randomUUID as linhas continuam distintas, remover uma não leva a outra junto", () => {
     semRandomUUID(undefined);
     // Relógio congelado: os dois itens caem no MESMO milissegundo, que é
     // o caso real de quem toca "Adicionar" duas vezes seguidas. Se o id

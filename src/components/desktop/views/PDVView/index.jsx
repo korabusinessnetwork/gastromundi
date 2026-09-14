@@ -18,6 +18,7 @@ import { classificarEstoque } from "@/lib/estoqueSituacao";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
+import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/lib/combos";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
@@ -156,7 +157,7 @@ export default function PDVView({ notify }) {
       .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
       .eq("ativo", true)
       .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
+        if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
         if (ativo) setCombos(data ?? []);
       });
     return () => { ativo = false; };
@@ -420,8 +421,8 @@ export default function PDVView({ notify }) {
       setTimeout(() => setToast(false), 6000);
       handleBack();
     } catch (err) {
-      console.error("Erro ao lançar pedido:", err);
-      notify?.("Erro ao lançar o pedido — nada foi salvo. Tente novamente.", "err");
+      console.error("Erro ao lançar pedido:", resumoErro(err));
+      notify?.("Erro ao lançar o pedido, nada foi salvo. Tente novamente.", "err");
     } finally {
       setSalvando(false);
     }
@@ -451,7 +452,7 @@ export default function PDVView({ notify }) {
     } catch (err) {
       // Mantém o carrinho e NÃO entra no checkout: cobrar itens que não
       // foram gravados geraria divergência entre a conta e a comanda.
-      console.error("handleFinalizar error:", err?.message ?? err, err);
+      console.error("handleFinalizar error:", resumoErro(err));
       notify?.("Não foi possível salvar os itens antes de fechar a conta. Tente novamente.", "err");
     }
   };
@@ -471,8 +472,9 @@ export default function PDVView({ notify }) {
       handleBack();
       return { error: null };
     } catch (err) {
-      // não usar JSON.stringify: mascara Error como "{}"
-      console.error("handleConfirmPayment error:", err?.message ?? err, err);
+      // Só o resumo mascarado: o objeto cru leva o payload da cobrança
+      // para o console de um terminal compartilhado. Ver resumoErro.
+      console.error("handleConfirmPayment error:", resumoErro(err));
       // Devolve o erro para o CheckoutView exibir e reabilitar o botão —
       // engolir aqui deixava o checkout preso em "Processando...".
       return { error: err instanceof Error ? err : new Error("Não foi possível registrar o pagamento. Tente novamente.") };
@@ -642,7 +644,7 @@ export default function PDVView({ notify }) {
         // 1º passo — cria/adiciona no destino. Origem ainda intacta.
         const { error: erroDestino } = await addPending(novaOrder);
         if (erroDestino) {
-          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           return;
         }
 
@@ -658,7 +660,7 @@ export default function PDVView({ notify }) {
           if (erroCompensacao) {
             notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
           } else {
-            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+            notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           }
           return;
         }
@@ -670,7 +672,7 @@ export default function PDVView({ notify }) {
         // TypeError: a modal ficava aberta, sem mensagem, e o clique de novo
         // repetia o erro.
         if (!destino) {
-          notify?.("A comanda de destino não está mais aberta. Nada foi alterado — escolha outra.", "err");
+          notify?.("A comanda de destino não está mais aberta. Nada foi alterado, escolha outra.", "err");
           return;
         }
         const itensDestinoOrig = Array.isArray(destino.items) ? destino.items : [];
@@ -690,7 +692,7 @@ export default function PDVView({ notify }) {
           destinoId, { items: novosDestino, total: totalDestino }, { baseItems: itensDestinoOrig },
         );
         if (erroDestino) {
-          notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+          notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           return;
         }
 
@@ -710,7 +712,7 @@ export default function PDVView({ notify }) {
           if (erroCompensacao) {
             notify?.("Atenção: os itens podem ter ficado duplicados. Confira as duas comandas.", "err");
           } else {
-            notify?.("Não foi possível transferir. Nada foi alterado — tente novamente.", "err");
+            notify?.("Não foi possível transferir. Nada foi alterado, tente novamente.", "err");
           }
           return;
         }
@@ -1454,7 +1456,7 @@ export default function PDVView({ notify }) {
                   const qSel   = transQtds[idx] ?? 0;
                   const ativo  = qSel > 0;
                   return (
-                    <div key={idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
+                    <div key={item.uid ?? idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
                       {item.emoji && <span className="pdv__transfer-item-emoji">{item.emoji}</span>}
                       <div className="pdv__transfer-item-info">
                         <div className="pdv__transfer-item-nome">
@@ -2120,7 +2122,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 {showCancelList && (
                   <div className="pdv__saldo-cancelados-lista">
                     {todosCancelados.map((item, idx) => (
-                      <div key={idx} className="pdv__saldo-cancelado">
+                      <div key={item.uid ?? idx} className="pdv__saldo-cancelado">
                         <div className="pdv__saldo-cancelado-info">
                           <div className="pdv__saldo-cancelado-titulo">
                             <span className="pdv__saldo-item-nome">
@@ -2136,7 +2138,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                             <div className="pdv__saldo-item-meta">
                               {item._comanda ? `${item._comanda} · ` : ""}
                               {item.canceladoPor || ""}
-                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? ` — ${item.motivoCancelamento}` : ""}
+                              {item.motivoCancelamento && item.motivoCancelamento !== "—" ? `, ${item.motivoCancelamento}` : ""}
                             </div>
                           )}
                         </div>

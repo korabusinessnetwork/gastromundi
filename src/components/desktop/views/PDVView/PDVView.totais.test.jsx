@@ -104,7 +104,7 @@ function abrirModalDeTransferencia() {
 const botoesTodos = () => [...document.querySelectorAll(".pdv__transfer-todos-btn")];
 const confirmarTransferencia = () => clicar(/Transferindo para/);
 
-describe("PDVView — total gravado em cada caminho", () => {
+describe("PDVView, total gravado em cada caminho", () => {
   it("lançar pedido: o total ignora o cancelado antigo e vem arredondado", async () => {
     montar([comanda("ORDEM7", "7", [RODIZIO_CANCELADO], 0)]);
 

@@ -119,6 +119,11 @@ import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
 import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+// TD015: as faixas de taxa entram e saem do meio da lista, então a chave de
+// renderização não pode ser a posição. O `uid` vive só no state desta tela:
+// `sanitizarConfig` reconstrói cada faixa antes de gravar, então ele morre na
+// fronteira do save sem precisar de limpeza explícita.
+import { comUid } from "@/lib/uidLista";
 import "./DeliveryView.css";
 
 const ABAS = [
@@ -836,7 +841,7 @@ function AbaCardapio({
             <div className="delivery-view__import-desc">
               {faltamImportar.length > 0
                 ? `Traz de uma vez os ${faltamImportar.length} produto(s) do sistema que ainda não estão no delivery. Depois é só colocar foto e descrição.`
-                : "Tudo em dia — todos os produtos do PDV já estão no delivery."}
+                : "Tudo em dia, todos os produtos do PDV já estão no delivery."}
             </div>
           </div>
           <button
@@ -949,7 +954,7 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
             <div className="delivery-view__card-desc delivery-view__card-desc--vazia">
-              Sem descrição — clique em editar para caprichar.
+              Sem descrição, clique em editar para caprichar.
             </div>
           )}
         </div>
@@ -1225,7 +1230,7 @@ function ModalProduto({
         {ehAddon ? (
           <div className="delivery-view__aviso delivery-view__aviso--info">
             <strong>{prod?.name || "Produto"}</strong>
-            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
+            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""}, nome e preço vêm do
             cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
           </div>
         ) : (
@@ -2013,8 +2018,8 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
       </div>
       <div className="delivery-view__hint delivery-view__editor-explica">
         {Number(min) > 0
-          ? `Obrigatório — o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
-          : `Opcional — o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
+          ? `Obrigatório, o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
+          : `Opcional, o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
       </div>
 
       {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).
@@ -2352,7 +2357,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       if (error) return aviso("Não foi possível carregar as configurações.", "err");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
-      setConfig(cfg);
+      setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
       setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
@@ -2368,7 +2373,8 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar.", "err");
-    setConfig(data || alvo);
+    const salvo = data || alvo;
+    setConfig({ ...salvo, faixas_taxa: comUid(salvo.faixas_taxa ?? []) });
     logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
     aviso("Configurações salvas.", "ok");
   };
@@ -2423,7 +2429,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       aviso("Endereço localizado no mapa. Arraste o pino se quiser ajustar.", "ok");
     } else {
       salvar({ endereco_origem: texto });
-      aviso("Não encontramos esse endereço. Ele foi salvo — marque o ponto arrastando o pino no mapa.", "err");
+      aviso("Não encontramos esse endereço. Ele foi salvo, marque o ponto arrastando o pino no mapa.", "err");
     }
   };
 
@@ -2614,7 +2620,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                     type="button"
                     onClick={alternarBloqueio}
                     className={`delivery-view__cadeado${bloqueado ? " delivery-view__cadeado--travado" : ""}`}
-                    title={bloqueado ? "Endereço bloqueado — toque para liberar a edição" : "Bloquear edição do endereço"}
+                    title={bloqueado ? "Endereço bloqueado, toque para liberar a edição" : "Bloquear edição do endereço"}
                     aria-label={bloqueado ? "Liberar edição do endereço" : "Bloquear edição do endereço"}
                     aria-pressed={bloqueado}
                   >
@@ -2626,7 +2632,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                 <div className="delivery-view__hint delivery-view__hint--campo">
                   {bloqueado
                     ? "Endereço bloqueado. Toque no cadeado para liberar a edição."
-                    : "Comece a digitar e escolha uma sugestão — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
+                    : "Comece a digitar e escolha uma sugestão, o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
                 </div>
               )}
             </div>
@@ -2639,7 +2645,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             />
             {!origem && (
               <div className="delivery-view__hint delivery-view__hint--erro">
-                Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
+                Marque o ponto de partida no mapa, sem ele o cálculo por distância não funciona.
               </div>
             )}
           </div>
@@ -2650,7 +2656,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
           )}
           {faixasVisiveis.map((f, idx) => (
-            <div key={idx} className="delivery-view__faixa">
+            <div key={f.uid} className="delivery-view__faixa">
               <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
                 <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">

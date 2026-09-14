@@ -92,7 +92,7 @@ const clicar = async (nome) => {
   });
 };
 
-describe("MobilePage — lançamento pelo Palm", () => {
+describe("MobilePage, lançamento pelo Palm", () => {
   it("lançamento que falha avisa o erro e não diz que foi enviado", async () => {
     updatePending.mockResolvedValue({ error: { message: "rede caiu" } });
     montar([comandaSete([])]);

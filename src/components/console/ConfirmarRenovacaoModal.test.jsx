@@ -85,7 +85,7 @@ function montar(linha = COM_PRECO, extras = {}) {
   return { onFechar, onConfirmado };
 }
 
-describe("rotuloCompetencia — o mês em português", () => {
+describe("rotuloCompetencia, o mês em português", () => {
   it("traduz o mês para o nome por extenso", () => {
     expect(rotuloCompetencia("2026-03")).toBe("março/2026");
     expect(rotuloCompetencia("2026-12")).toBe("dezembro/2026");
@@ -102,7 +102,7 @@ describe("rotuloCompetencia — o mês em português", () => {
   });
 });
 
-describe("ConfirmarRenovacaoModal — dar baixa na mensalidade", () => {
+describe("ConfirmarRenovacaoModal, dar baixa na mensalidade", () => {
   beforeEach(() => {
     mockRenovar.mockReset();
     mockRenovar.mockResolvedValue({

@@ -58,7 +58,7 @@ function montar(linha = SEM_PRECO) {
   return { onFechar, onDefinido };
 }
 
-describe("DefinirMensalidadeModal — o preço da plataforma", () => {
+describe("DefinirMensalidadeModal, o preço da plataforma", () => {
   beforeEach(() => {
     mockDefinir.mockReset();
     mockDefinir.mockResolvedValue({ data: { tenant_id: "t-novo", valor_mensal: 300 }, error: null });

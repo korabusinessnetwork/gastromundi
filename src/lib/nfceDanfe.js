@@ -173,11 +173,11 @@ export function montarDanfeNfce(dados) {
   // ── Dizeres legais + avisos ──
   const avisos = [];
   if (homologacao) {
-    avisos.push("EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO — SEM VALOR FISCAL");
+    avisos.push("EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO, SEM VALOR FISCAL");
   }
   if (contingencia) {
     avisos.push(
-      "EMITIDA EM CONTINGÊNCIA OFFLINE — AGUARDANDO AUTORIZAÇÃO DA SEFAZ",
+      "EMITIDA EM CONTINGÊNCIA OFFLINE, AGUARDANDO AUTORIZAÇÃO DA SEFAZ",
     );
   }
   if (!autorizada) {

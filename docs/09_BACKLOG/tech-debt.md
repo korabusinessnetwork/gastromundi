@@ -74,13 +74,13 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD005 | Zero testes automatizados; sem script `test`/`lint` no package.json | 🧪 Testes | Alto | Alto | 🟠 High | Resolvido (2026-07-04) |
 | TD006 | `supabase/schema.sql` defasado vs migrações (policies `acesso_total` já substituídas) | 🧹 Code Quality | Médio (onboarding perigoso) | Baixo | 🟡 Medium | Resolvido (2026-07-04) |
 | TD007 | `dist/` commitado no repositório | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Resolvido (2026-07-04) |
-| TD008 | Rate limiting de login só no cliente (contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Identificado — **conferido em 2026-08-02, continua aberto**: o bloqueio ainda é do cliente (`src/context/AppContext.jsx:787`, "Bloqueado por 2 minutos"), com o contador em `localStorage` (não `sessionStorage`, como dizia esta linha — `src/pages/LoginPage.jsx:158`). O caminho servidor já tem precedente no projeto: `senha_admin_tentativas` (`20260802_leva16_hardening_rpcs.sql`) conta tentativas da senha de gerente no banco |
-| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Em andamento — etapa 2 concluída (2026-07-04); **conferido em 2026-08-02, etapa 3 continua aberta**: `src/context/AppContext.jsx` ainda grava nos dois formatos (`from("sales")` + `persistirVendaNormalizada`) |
+| TD008 | Rate limiting de login só no cliente (contornável) | 🔒 Segurança | Baixo (Supabase Auth tem proteção própria) | Baixo | 🟢 Low | Resolvido (2026-09-10) — o contador saiu do `localStorage` e virou a tabela `public.login_tentativas` (migration `20260927_login_tentativas_servidor.sql`), com RLS ligada, sem policy nenhuma e três funções `SECURITY DEFINER`: consultar o estado e somar falha são alcançáveis pelo `anon` (login é pré-sessão), e a que ZERA o contador **não recebe chave por parâmetro** e só é concedida a `authenticated`, senão bastaria chamá-la entre as tentativas para desfazer o próprio bloqueio. `login` (`src/context/AppContext.jsx`) consulta o servidor antes do `signInWithPassword` e registra o desfecho depois; o contador local ficou como eco, para os pips da tela. Falha ABERTA de propósito quando a RPC não responde: um problema no banco não pode impedir o caixa de abrir, e o rate limit do próprio Supabase Auth segue no caminho. Limite conhecido e declarado: quem souber um nome de usuário consegue bloquear aquela conta por dois minutos |
+| TD009 | `sales`/`fechamentos` como blobs JSONB — relatórios/consultas SQL limitados | 🏗️ Arquitetura | Médio | Alto | 🟡 Medium | Resolvido (2026-09-10) — etapa 3 encerrou a escrita dupla: nenhum caminho do app grava em `sales`, as tabelas relacionais viraram fonte de verdade da escrita e o cancelamento de venda fechada virou coluna em `vendas` (migration `20260920_vendas_cancelamento.sql`) em vez de apagar as linhas filhas |
 | TD010 | Realtime só em `pending` — estoque/config/insights não sincronizam entre dispositivos | 🏗️ Arquitetura | Médio | Médio | 🟡 Medium | Resolvido (2026-07-04) |
 | TD011 | Fluxos críticos do PDV sem testes de componente (só funções puras são testadas) | 🧪 Testes | Alto | Médio | 🟠 High | Resolvido (2026-07-05) |
 | TD012 | `estoque.js` engole exceção da baixa e mostra estimativa local como se fosse sucesso — mascarou o bug de RLS (`baixar_estoque`) por semanas. Falha de baixa precisa ser visível (alerta/log), não silenciosa | 🔒 Confiabilidade | Alto (quando estoque for real) | Baixo | 🟠 High | Resolvido (2026-08-01; agregação em 2026-08-15) — `gerarAlertaBaixaFalhou` leva a falha ao painel do Jarvas (o único destes destinos que o gestor abre); `processarBaixaEstoque` devolve o saldo anterior em vez do estimado e embrulha a RPC em `try/catch`; offline não alerta; **falha sistêmica (3+ baixas recusadas na mesma operação) vira um alerta único de chave fixa em vez de um cartão por produto** |
 | TD014 | Guard `deliveryHorarioSqlGuard.test.js` proibia o token `lpad(` e **exigia** `'FM000'` — obrigava a reintroduzir o bug D14 (número do pedido) para a suíte passar; a âncora ainda casava o comentário da migration, não o código | 🧪 Testes | Alto (travava o commit do conserto já aplicado em produção) | Baixo | 🟠 High | Resolvido (2026-08-01) — proíbe a forma (`lpad(x, 3, '0')` / `FM000`), regex provada nos dois lados, `blocosDaFuncao` sem comentários |
-| TD015 | `key={i}` (índice) em listas React — **40 ocorrências** (recontagem de 2026-08-02; eram ~25 em 2026-07-17); item existia desde 2026-07-17 com o número TD012, duplicando o ID do item de estoque e sem linha nesta tabela | 🧹 Code Quality | Baixo | Médio | 🟢 Low | Identificado (2026-07-17, varredura; renumerado em 2026-08-01) — **conferido em 2026-08-02, continua aberto e cresceu** |
+| TD015 | `key={i}` (índice) em listas React — **40 ocorrências** (recontagem de 2026-08-02; eram ~25 em 2026-07-17); item existia desde 2026-07-17 com o número TD012, duplicando o ID do item de estoque e sem linha nesta tabela | 🧹 Code Quality | Baixo | Médio | 🟢 Low | Resolvido (2026-09-10, rodada 66) — 10 trocadas por chave de domínio, 11 por `uid` de `src/lib/uidLista.js`, 19 mantidas com justificativa escrita no código |
 | TD016 | `supabase/schema.sql` e o `docs/09_BACKLOG/` afirmando o que o código desmente — 28 tabelas e a camada multi-tenant inteira fora do schema, 13 itens de backlog com status errado | 🧹 Code Quality | Alto (manda refazer o que existe) | Médio | 🟠 High | Resolvido (2026-08-02) — schema em 54 tabelas com `tenant_id`, backlog conferido item a item, e `src/lib/schemaSqlGuard.test.js` quebrando a suíte na próxima divergência |
 | TD017 | Âmbar de status em `#f59e0b` literal — **8 ocorrências** no Console (`PlanosDashboard.css`, `AnalyticsDashboard.css`, `AssinaturaBanner`), com comentário afirmando que "não tem token --gm-*"; o token existe desde sempre em `src/styles/tema.css:50` (`--gm-warn`) | 🧹 Code Quality | Médio (cor que o tenant white-label não consegue trocar, decisão 017) | Baixo | 🟡 Medium | Resolvido no Console (2026-08-03, rodada 56 / CONSOLE-UX 30) — as 35 cores cruas dos nove CSS do Console viraram `color-mix` sobre `--gm-*`, e os dois comentários que negavam o token foram corrigidos; o `AssinaturaBanner` e o resto do aplicativo seguem no TD018 |
 | TD018 | Âmbar de status em `#f59e0b` literal **fora** do Console — mais de 30 ocorrências em `PDVView`, `CozinhaView`, `EstoqueView`, `NotasFiscaisTab`, `ImpostosAdmin`, `ImportarExportarTab`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js` e `crypto.js`, boa parte delas em `style=` inline no JSX | 🧹 Code Quality | Médio (cor que o tenant white-label não consegue trocar, decisão 017) | Médio (mexe em JSX, não só em CSS) | 🟡 Medium | Resolvido (2026-08-15) — varredura final app-wide: `PDVView/ComandaGrid` e `MesaMapView`, `CozinhaView`, `EstoqueView`, `AdminView`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js`, `ImportarExportarTab.css`, `DemoClientes.css` e `comprovante.css` passaram a usar `--gm-warn`; o comentário de `colorAlfa.js` foi corrigido. Resíduos declarados e justificados na seção abaixo |
@@ -224,7 +224,7 @@ Dois agravantes independentes: a guarda dava ao **mapa em memória do aparelho**
 
 ### [TD009] `sales`/`fechamentos` como blobs JSONB
 
-**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Em andamento — etapa 2 concluída (2026-07-04)
+**Categoria:** Arquitetura · **Impacto:** Médio · **Esforço:** Alto · **Prioridade:** 🟡 Medium · **Status:** Resolvido (2026-09-10)
 
 **Descrição:** `sales` grava a venda inteira como um blob `data jsonb` — relatórios (top produtos, faturamento por método de pagamento) e o Jarvas processam tudo no cliente, sem poder usar SQL/índices. Alinhado ao modelo-alvo (`docs/04_MODELAGEM`).
 
@@ -236,13 +236,26 @@ Dois agravantes independentes: a guarda dava ao **mapa em memória do aparelho**
 
 **~~Observação (fora do escopo desta etapa)~~ — resolvida:** esta nota dizia que `jarvas-assistente` ainda lia estoque via `config.key='estoque'` (removida no TD004), deixando `estoque_atual` sempre vazio. **Não é mais verdade** (conferido em 2026-08-02): `supabase/functions/jarvas-assistente/index.ts:89` lê `from("estoque").select("produto_id, quantidade, minimo")`, com o comentário citando a migração `20260705`. A nota ficou desatualizada por semanas — é a origem do TD016.
 
-**Falta (etapa 3):** após um período de confiança rodando em produção, parar de gravar em `sales` (mantendo-a só como arquivo histórico, ou removê-la). **Conferido em 2026-08-02: continua aberta** — `src/context/AppContext.jsx` grava a venda em `sales` e, logo depois, em `vendas`/`venda_itens`/`venda_pagamentos` via `persistirVendaNormalizada`; o reenvio offline (`reenviarVendaOffline`) faz o mesmo par.
+**Etapa 3 (concluída em 2026-09-10):** o app parou de gravar em `sales`. Os três caminhos de escrita passaram a gravar só nas tabelas relacionais: `addSale`, `reenviarVendaOffline` e `cancelarVendaFechada`. `sales` continua no banco como arquivo histórico e é lida em um único lugar, o fallback de resiliência do bootstrap (`AppContext.jsx`), quando a leitura relacional falha.
+
+O que a etapa exigiu, além de apagar o insert:
+
+- **`persistirVendaNormalizada` deixou de ser fire-and-forget.** Antes qualquer erro só logava, porque `sales` era a gravação que valia. Sem `sales`, um erro engolido é uma venda que não existe. A função passou a devolver `{ ok, jaExistia, cabecalhoGravado, falhas }` e continua sem lançar; quem decide é o chamador.
+- **Assimetria deliberada entre cabeçalho e filhas.** Sem transação única (a alternativa 2 do ADR-013 segue não escolhida), o cabeçalho pode gravar e a filha falhar. Cabeçalho que falha significa venda inexistente: desfaz o otimista do estado local e propaga o erro (ou enfileira, se for queda de rede). Filha que falha depois do cabeçalho significa venda existente e incompleta: **não** desfaz, porque mandar o operador refazer duplicaria a receita; vira `reportarFalha` e o evento `venda.gravacao.incompleta`.
+- **Cancelar virou marcar, não apagar.** `cancelarVendaFechada` apagava as linhas de `vendas`, `venda_itens` e `venda_pagamentos` e guardava a trilha no blob. Sem o blob, apagar apagaria a auditoria junto. A migration `20260920_vendas_cancelamento.sql` adiciona `cancelada`, `motivo_cancelamento`, `cancelada_por` e `cancelada_em` em `vendas` (nenhuma política de RLS nova: `vendas_all_caixa_up` da `20260707` já cobre o UPDATE e o isolamento por `tenant_id` veio na `20260724`). As telas já filtravam `cancelada` no cliente, então a venda marcada continua fora dos relatórios, agora com os itens preservados.
+- **Falha explícita se a migration não estiver aplicada.** Com a coluna faltando (`42703`), o cancelamento devolve `migration_pendente` com mensagem em português nomeando o arquivo, em vez de fingir sucesso. Marcar `sales.data.cancelada` como fallback seria inútil justamente para as vendas novas, que não têm linha em `sales`.
+- **Evento idempotente.** `jaExistia` fecha a pendência 6 do ADR-013: `venda.finalizada` só sai quando a linha nasceu naquela gravação, o que cobre tanto o clique duplo no caixa quanto cada passada do dreno offline.
+
+Spec em `specs/td009-etapa3-fim-da-escrita-dupla-de-venda.md`. Cobertura em `AppContext.addSale.test.jsx` (9 testes), `AppContext.vendaCancelamento.test.jsx` (9 testes) e `vendas.test.js`.
 
 **Pendente (ação manual) — ordem de deploy:**
 1. Rodar `20260708_backfill_vendas.sql` no SQL Editor do Supabase (a migração `20260707` já deveria estar aplicada da etapa 1; `20260709_jarvas_resumo_vendas.sql` também precisa rodar).
 2. Validar com a query de conferência (comentada no final de `20260708_backfill_vendas.sql`) — contagem e soma de totais por mês, `sales` vs `vendas`.
-3. Deployar o frontend.
-4. Redeployar a edge function: `supabase functions deploy jarvas-assistente --no-verify-jwt`.
+3. **Rodar `20260920_vendas_cancelamento.sql` ANTES de deployar o frontend.** O app novo cancela marcando as colunas; sem elas o cancelamento falha com mensagem explícita. O app antigo continua funcionando com as colunas presentes, então a ordem é segura nos dois sentidos.
+4. Deployar o frontend.
+5. Redeployar a edge function: `supabase functions deploy jarvas-assistente --no-verify-jwt`.
+
+**Resíduo declarado:** `fechamentos` continua sendo blob JSONB. A etapa 3 tratou de `sales`, que é a tabela que o TD009 dizia estar em escrita dupla; normalizar o fechamento de caixa é trabalho próprio, sem escrita dupla envolvida, e ainda não tem item de backlog.
 
 ### [TD010] Realtime só em `pending`
 
@@ -308,11 +321,28 @@ Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qt
 
 ### [TD015] `key={i}` (índice) em listas React
 
-**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Identificado (2026-07-17, varredura; renumerado de TD012 em 2026-08-01, ID duplicado)
+**Categoria:** Code Quality · **Impacto:** Baixo · **Esforço:** Médio · **Prioridade:** 🟢 Low · **Status:** Resolvido (2026-09-10, rodada 66)
 
-**Descrição:** ~25 ocorrências de `key={i}`/`key={idx}` em `.map()` (cabeçalhos de tabela, itens de comanda, entradas de split de pagamento etc.). Verificado na varredura de 2026-07-17: as listas afetadas ou são estáticas (headers) ou têm todos os inputs controlados (valor vem do state), então não há bug de comportamento hoje — o risco é futuro, se alguma dessas listas passar a reordenar/ter estado não-controlado por item.
+**Descrição:** 40 ocorrências de `key={i}`/`key={idx}` em `.map()` na recontagem de 2026-08-02 (eram ~25 na varredura de 2026-07-17, quando o item ainda se chamava TD012 e duplicava o ID do débito de estoque). `key={i}` diz ao React "a terceira linha é a terceira linha", não "a terceira linha é o item tal". Enquanto todos os inputs da linha são controlados isso passa despercebido, porque o valor vem do state; no dia em que a linha ganha estado próprio (dropdown aberto, foco, seleção de texto), o estado gruda na posição e reaparece na linha errada depois de remover uma linha do meio.
 
-**Solução proposta:** ao tocar em cada tela, trocar por chave estável (id do item, `metodo`, texto do header). Não vale um refactor em massa isolado.
+**Regra adotada, vale para toda lista nova:** a chave é a identidade do item, nunca a posição. Três casos, nesta ordem:
+
+1. **Existe chave de domínio** (`id` do banco, `produtoId`, um `metodo` que não repete na lista): use ela.
+2. **Não existe, e a lista é editável** (o usuário adiciona, remove do meio, reordena, ou cada linha carrega estado próprio de tela): carimbe um `uid` no objeto com `novoUid()` de `src/lib/uidLista.js`. É chave de renderização, não dado do estabelecimento: quem grava monta o payload campo a campo, ou tira a chave com `semUid`/`listaSemUid` quando o destino é um jsonb livre, que aceitaria o campo caladamente e o devolveria como se fosse dado do cliente.
+3. **A posição É a identidade** (cabeçalho literal escrito na própria linha, pip de tentativa de login, aba selecionada por índice, render de impressão imutável): `key={i}` fica, com um comentário `// TD015:` logo acima dizendo por quê.
+
+**Solução aplicada:** as 40 ocorrências foram separadas em três baldes.
+
+| Balde | Quantas | O que foi feito |
+|---|---|---|
+| A, chave de domínio disponível | 10 | trocada pela chave que o item já carregava, o `id` do banco ou o `uid` que `garantirUidItens` põe no item de comanda, com o índice preservado como fallback para linha antiga |
+| B, lista editável sem chave de domínio | 11 | `uid` de `src/lib/uidLista.js`, com 16 testes em `src/lib/uidLista.test.js` |
+| C, o índice É a identidade | 19 | mantido, com a justificativa escrita no código |
+
+`comUid` é idempotente e devolve a MESMA referência do array quando não há nada a carimbar: estas listas moram em `useState` e são atribuídas dentro de efeitos de carga, e um array novo a cada passada reagendaria o efeito para sempre. `novoUid` não depende de `crypto.randomUUID`, que lança fora de contexto seguro, porque um PDV aberto por IP na rede local do restaurante é exatamente esse caso.
+
+**Verificação:** nenhuma ocorrência de `key={i}`, `key={idx}` ou `key={index}` sobrou em `src/` sem um comentário `// TD015:` acima. Suíte de 232 arquivos / 4102 testes para 233 arquivos / 4118 testes, toda verde, e `npm run build` limpo na entrega. Spec completo, com a lista arquivo a arquivo e as decisões de reclassificação, em `specs/td015-chaves-estaveis-em-listas.md`.
+
 
 ---
 

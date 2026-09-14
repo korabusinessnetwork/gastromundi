@@ -23,7 +23,7 @@ beforeEach(() => {
   mockSupabase.current.reset();
 });
 
-describe("resolverIdentidadeTenant (Fase 6 — sem marca hardcoded)", () => {
+describe("resolverIdentidadeTenant (Fase 6, sem marca hardcoded)", () => {
   it("sem tenant nenhum: nome cai na marca da PLATAFORMA, sem endereço/CNPJ (config padrão)", () => {
     const identidade = resolverIdentidadeTenant(null, undefined);
 
@@ -140,7 +140,7 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
     expect(comprovante.identidade.nome).toBe("Casa Coffee");
   });
 
-  it("sem tenant nenhum, cai na marca da plataforma — nunca na de um cliente", () => {
+  it("sem tenant nenhum, cai na marca da plataforma, nunca na de um cliente", () => {
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
     expect(comprovante.identidade.nome).toBe("Kora");
@@ -172,7 +172,7 @@ describe("montarCupomPreNota (base para o futuro add-on fiscal, F019)", () => {
     expect(cupom.avisoNaoFiscal).toMatch(/sem valor fiscal/i);
   });
 
-  it("dadosFiscais nasce null — ponto de extensão do F019, sem inventar dado fiscal", () => {
+  it("dadosFiscais nasce null, ponto de extensão do F019, sem inventar dado fiscal", () => {
     const cupom = montarCupomPreNota({ venda: { items: [], total: 0, pagamentos: [] } });
 
     expect(cupom.dadosFiscais).toBeNull();

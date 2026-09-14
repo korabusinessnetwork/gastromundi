@@ -38,13 +38,13 @@ function linhasAtivas(conteudo) {
   return conteudo.split("\n").filter((l) => !l.trim().startsWith("--"));
 }
 
-describe("Segurança — guarda de super-admin (is_super_admin NULL bypass)", () => {
+describe("Segurança, guarda de super-admin (is_super_admin NULL bypass)", () => {
   const arquivos = arquivosSql();
   const todo = Object.fromEntries(
     arquivos.map((n) => [n, readFileSync(join(MIGRATIONS_DIR, n), "utf8")])
   );
 
-  it("is_super_admin() é (re)definida com COALESCE — nunca devolve NULL", () => {
+  it("is_super_admin() é (re)definida com COALESCE, nunca devolve NULL", () => {
     // A definição vigente é a do arquivo lexicograficamente maior que
     // (re)cria a função. Basta existir uma definição com COALESCE e que a
     // ÚLTIMA definição no tempo seja essa.

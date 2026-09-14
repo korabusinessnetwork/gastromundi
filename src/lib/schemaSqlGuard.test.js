@@ -179,7 +179,7 @@ describe("supabase/schema.sql acompanha supabase/migrations/", () => {
     expect(
       zumbis,
       `Tabela derrubada por migration mas ainda descrita no supabase/schema.sql:\n  ${zumbis.join("\n  ")}\n` +
-        "Remova o bloco CREATE TABLE dela — query escrita contra ela não roda.",
+        "Remova o bloco CREATE TABLE dela, query escrita contra ela não roda.",
     ).toEqual([]);
   });
 
@@ -193,7 +193,7 @@ describe("supabase/schema.sql acompanha supabase/migrations/", () => {
     expect(
       semColuna,
       `Tabela isolada por tenant sem a coluna tenant_id no bloco do supabase/schema.sql:\n  ${semColuna.join("\n  ")}\n` +
-        "Sem ela no documento, o próximo INSERT nasce sem tenant — e o RLS RESTRICTIVE só reclama em produção.",
+        "Sem ela no documento, o próximo INSERT nasce sem tenant, e o RLS RESTRICTIVE só reclama em produção.",
     ).toEqual([]);
   });
 

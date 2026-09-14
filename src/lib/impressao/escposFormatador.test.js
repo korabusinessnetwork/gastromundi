@@ -54,7 +54,7 @@ describe("formatarComprovanteEscpos", () => {
     expect(semAviso).not.toContain("sem valor fiscal");
 
     const comAviso = formatarComprovanteEscpos(
-      comprovante({ naoFiscal: true, avisoNaoFiscal: "Documento sem valor fiscal — não substitui a nota fiscal." }),
+      comprovante({ naoFiscal: true, avisoNaoFiscal: "Documento sem valor fiscal, não substitui a nota fiscal." }),
       colunas
     ).join("\n");
     expect(comAviso).toContain("sem valor fiscal");
@@ -78,7 +78,7 @@ describe("comanda no papel de 80mm usa as 48 colunas reais da impressora", () =>
     for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(48);
   });
 
-  it("prato que cabe em 48 sai numa linha só — e em 33 saía quebrado", () => {
+  it("prato que cabe em 48 sai numa linha só, e em 33 saía quebrado", () => {
     const linhaCompleta = `1x ${PRATO}`;
     expect(linhaCompleta.length).toBeLessThanOrEqual(48);
 

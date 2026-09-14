@@ -170,6 +170,23 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     cashier: venda.cashier ?? null,
     clienteId: venda.cliente_id ?? null,
     at: venda.at,
+    // TD009 (etapa 3): o cancelamento virou coluna em `vendas` — antes ele
+    // só existia dentro do blob de sales.data, e a venda cancelada sumia da
+    // leitura relacional junto com as linhas apagadas. As telas (Sidebar,
+    // Financeiro, PDV, Relatório) já filtram `cancelada`; agora o filtro
+    // recebe o dado de volta depois de um F5, e não só na mesma sessão.
+    //
+    // Só a venda cancelada carrega os campos: a venda normal nunca teve
+    // `cancelada` no blob, e enfiar quatro campos nulos em toda venda
+    // mudaria o shape legado sem necessidade.
+    ...(venda.cancelada
+      ? {
+          cancelada: true,
+          motivoCancelamento: venda.motivo_cancelamento ?? null,
+          canceladaPor: venda.cancelada_por ?? null,
+          canceladaEm: venda.cancelada_em ?? null,
+        }
+      : {}),
     items: (itens ?? []).map((item) => ({
       id: item.product_id ?? null,
       name: item.nome,
@@ -198,25 +215,36 @@ const PG_UNIQUE_VIOLATION = "23505";
  * linhas normalizadas ganhavam buracos sem nenhum log — foi o que
  * aconteceu na janela do bug de claim do 20260722.
  *
- * Contrato (mantém o de antes): fire-and-forget total — NUNCA lança e
- * NUNCA bloqueia a finalização. `sales` é a fonte de verdade e já foi
- * gravada por quem chama; o backfill idempotente (20260708) cobre
- * qualquer buraco residual. Aqui só garantimos que toda falha seja
- * detectada e registrada (via `onFalha`), não engolida.
+ * Contrato (TD009 etapa 3 — mudou): continua NUNCA lançando, mas deixou
+ * de ser fire-and-forget. `sales` não recebe mais a venda, então estas
+ * tabelas são a fonte de verdade da escrita e quem chama precisa esperar
+ * o resultado e decidir a partir dele. O retorno passa a distinguir três
+ * desfechos, porque `addSale` trata cada um de um jeito:
+ *
+ *   - `ok: true, jaExistia: false` — gravou agora.
+ *   - `ok: true, jaExistia: true`  — já estava gravada (idempotente).
+ *   - `ok: false` + `falhas` — com `cabecalhoGravado` dizendo se a venda
+ *     existe. Falha no cabeçalho = venda inexistente (desfazer/enfileirar).
+ *     Falha só em filha = venda existe e está incompleta: desfazer aí
+ *     mandaria o operador refazer uma venda que já cobrou.
  *
  * Idempotência sem chave natural nas filhas: se o cabeçalho `vendas`
- * bate em violação de unicidade, a venda já existe (dual-write repetido
- * — StrictMode, resync, clique duplo). Isso é sucesso idempotente, não
- * falha, e as filhas NÃO são reinseridas — venda_itens/venda_pagamentos
- * não têm chave natural, então reinserir duplicaria linhas.
+ * bate em violação de unicidade, a venda já existe (replay da fila
+ * offline, StrictMode, resync, clique duplo). Isso é sucesso idempotente,
+ * não falha, e as filhas NÃO são reinseridas — venda_itens/venda_pagamentos
+ * não têm chave natural, então reinserir duplicaria linhas. `jaExistia`
+ * expõe esse caso para quem chama não reemitir o evento da venda no
+ * replay (pendência 6 do ADR-013).
  *
  * @param {object} client - client supabase (injetado p/ testabilidade)
  * @param {object} sale   - venda no shape de sales.data
  * @param {{ onFalha?: (info: {etapa: string, error: any, venda_id: string|null}) => void }} [opts]
- * @returns {Promise<{ ok: boolean, falhas: {etapa: string, error: any}[] }>}
+ * @returns {Promise<{ ok: boolean, jaExistia: boolean, cabecalhoGravado: boolean, falhas: {etapa: string, error: any}[] }>}
  */
 export async function persistirVendaNormalizada(client, sale, { onFalha } = {}) {
   const falhas = [];
+  let jaExistia = false;
+  let cabecalhoGravado = false;
   const registrar = (etapa, error) => {
     falhas.push({ etapa, error });
     // A trilha nunca pode quebrar a venda — isola qualquer erro do callback.
@@ -230,9 +258,15 @@ export async function persistirVendaNormalizada(client, sale, { onFalha } = {}) 
     if (eVenda) {
       // Unicidade = venda já gravada (idempotente): não é falha e não
       // reinsere as filhas, para não duplicá-las.
-      if (eVenda.code !== PG_UNIQUE_VIOLATION) registrar("vendas", eVenda);
-      return { ok: falhas.length === 0, falhas };
+      if (eVenda.code === PG_UNIQUE_VIOLATION) {
+        jaExistia = true;
+        cabecalhoGravado = true;
+      } else {
+        registrar("vendas", eVenda);
+      }
+      return { ok: falhas.length === 0, jaExistia, cabecalhoGravado, falhas };
     }
+    cabecalhoGravado = true;
 
     if (itens.length > 0) {
       const { error: eItens } = await client.from("venda_itens").insert(itens);
@@ -247,5 +281,5 @@ export async function persistirVendaNormalizada(client, sale, { onFalha } = {}) 
     registrar("excecao", err);
   }
 
-  return { ok: falhas.length === 0, falhas };
+  return { ok: falhas.length === 0, jaExistia, cabecalhoGravado, falhas };
 }

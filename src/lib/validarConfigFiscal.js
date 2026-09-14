@@ -40,7 +40,7 @@ export function validarConfigFiscal(campos = {}) {
 
   // ── Identidade ───────────────────────────────────────────────────
   if (!texto(c.cnpj)) erros.cnpj = OBRIGATORIO;
-  else if (!validarCnpj(c.cnpj)) erros.cnpj = "CNPJ inválido — confira os 14 dígitos.";
+  else if (!validarCnpj(c.cnpj)) erros.cnpj = "CNPJ inválido, confira os 14 dígitos.";
 
   const ie = texto(c.ie);
   if (!ie) erros.ie = OBRIGATORIO;

@@ -135,19 +135,19 @@ export const LAYOUTS = {
   padrao: {
     codigo: "padrao",
     nome: "KORA Escuro (padrão)",
-    descricao: "Aparência atual do sistema — navy escuro com roxo.",
+    descricao: "Aparência atual do sistema, navy escuro com roxo.",
     variantes: { diurno: PADRAO, noturno: PADRAO },
   },
   claro: {
     codigo: "claro",
     nome: "Neutro Claro",
-    descricao: "Neutro funcional claro (1a) — fixo, sem troca automática.",
+    descricao: "Neutro funcional claro (1a), fixo, sem troca automática.",
     variantes: { diurno: NEUTRO_CLARO, noturno: NEUTRO_CLARO },
   },
   escuro: {
     codigo: "escuro",
     nome: "Neutro Escuro",
-    descricao: "Neutro funcional escuro (1a) — fixo, sem troca automática.",
+    descricao: "Neutro funcional escuro (1a), fixo, sem troca automática.",
     variantes: { diurno: NEUTRO_ESCURO, noturno: NEUTRO_ESCURO },
   },
   marca: {
@@ -160,14 +160,14 @@ export const LAYOUTS = {
   noturno: {
     codigo: "noturno",
     nome: "Noturno",
-    descricao: "Alto contraste para bar/luz baixa (1c) — fixo.",
+    descricao: "Alto contraste para bar/luz baixa (1c), fixo.",
     variantes: { diurno: NOTURNO, noturno: NOTURNO },
   },
   casa: {
     codigo: "casa",
     nome: "Casa Coffee (dia/noite automático)",
     descricao:
-      "Paleta Casa Coffee Colab — creme de dia, marrom-café à noite (troca às 19h/6h).",
+      "Paleta Casa Coffee Colab, creme de dia, marrom-café à noite (troca às 19h/6h).",
     variantes: { diurno: CASA_DIURNO, noturno: CASA_NOTURNO },
   },
 };

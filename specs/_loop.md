@@ -1,3 +1,192 @@
+## Rodada 69 — F022 fatia, aba "Saúde da operação" no Console — 2026-09-11
+- Spec: specs/f022-saude-da-operacao-no-console.md
+- Resultado: 15 de 15 critérios em sim, aprovado sem ressalvas (suíte 235 arquivos / 4148 testes
+  para 237 arquivos / 4181 testes, verde; `npm run build` limpo).
+- A correção de rumo que a rodada precisou fazer: a tarefa dizia "analytics operacional" e a
+  memória da fila do dono listava isso como fatia futura. Só que a aba "Uso e faturamento" de
+  2026-08-01 já era exatamente aquilo, faturamento, pedidos e ticket por tenant. Construir de novo
+  cumpriria a letra e desperdiçaria a rodada. O que de fato restava da fila era a outra fatia
+  listada lá, saúde do sistema, e foi ela que saiu. A memória foi corrigida no mesmo passo.
+- O que a rodada revelou de não óbvio: período e estado de agora são coisas diferentes e a mesma
+  RPC precisa devolver as duas separadas. Recusa da SEFAZ e erro de impressão são eventos, contam
+  dentro da janela escolhida. Pendência é estado, conta o que está travado agora, sem corte. Se o
+  corte valesse para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a tela
+  diria que está tudo bem justamente no caso mais grave. O guard cobra a forma: `FILTER` com
+  `v_corte` nos eventos, `FILTER` sem corte nas pendências, e recusa a forma `WHERE ... >=
+  v_corte`, que reintroduziria o defeito.
+- A outra coisa que a fatia teve de decidir: gravidade é tempo antes de quantidade. Um cliente com
+  1 nota parada há 40 dias está pior que outro com 30 paradas desde hoje de manhã, porque a
+  primeira já virou conversa com o contador. A ordenação da lista de ação é por dias parado, e o
+  teste fixa exatamente esse par.
+- A parte que quase passou batido: a tela precisa errar alto quando a leitura falha. Com a
+  migration ainda não aplicada, o PostgREST devolve PGRST202, e uma tela ingênua mostraria
+  "nenhuma pendência" para uma base cheia de nota parada. Dar atestado de saúde em cima de uma
+  leitura que não aconteceu é pior que assumir que não sabe, e tem teste para os dois lados.
+- Fica em aberto: a migration `20260928` não foi aplicada (P05). A tela não diz qual nota falhou, e
+  isso é a decisão v2 nº 2 do ADR-008, não limitação a resolver depois. Trabalho de impressão em
+  `processando` não entra em nenhuma contagem, porque não é erro nem pendência parada; se aparecer
+  caso real de trabalho travado nesse estado, vira fatia própria com critério de tempo.
+## Rodada 68 — F018 fatia 11, NotasFiscaisTab: Stepper, vínculo, Lista e Detalhe — 2026-09-11
+- Spec: specs/f018-notas-lista-detalhe-css.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (195 → 124 `style={{` no arquivo,
+  1600 → 1529 no `src` inteiro; suíte 235 arquivos / 4148 testes verde; `npm run build` limpo;
+  `NotasFiscaisTab.test.jsx` verde sem uma asserção tocada).
+- O recorte, e por que ele: o arquivo tinha 195 inline em 1340 linhas e vai sair em três fatias,
+  como saíram o `PDVView` (4 rodadas) e o `DeliveryView` (6). Esta pegou as quatro regiões que
+  não são formulário. As duas que sobraram, o formulário manual e o wizard de XML, têm estado de
+  erro, e a regra da rodada 15 manda `aria-invalid` entrar na mesma edição em que a borda sai do
+  inline: misturar isso com tabela faria uma fatia grande demais para revisar de verdade.
+- O que a rodada revelou de não óbvio: o `Stepper` parecia o caso do kanban do `DeliveryView`,
+  cor espalhada por descendente, mas não era. Lá a cor vem de dado e a saída é custom property no
+  ancestral; aqui o estado tem três valores que o JavaScript sabe enumerar, e a saída é
+  modificador. A pergunta que separa os dois: o JavaScript consegue listar os valores? Custom
+  property também seria pior por transportar uma cor só, e os três estados diferem em quatro
+  propriedades ao mesmo tempo. Está em `memory/patterns.md`.
+- A parte que quase passou batido: o critério 3 da própria spec estava com a conta errada, dizia
+  12 `currentTarget.style` na fatia e 2 fora, quando são 8 dentro (quatro pares de handler) e 6
+  fora. A spec foi corrigida para o número medido. E `.nf-tab__voltar-btn` quase ganhou
+  `margin-bottom` na classe base: enumerados os três usuários antes, só o do Detalhe tem a
+  margem, os outros dois vivem numa linha com título.
+- Fica em aberto: os 124 restantes do arquivo, em duas fatias (formulário manual, 52; wizard, 72).
+  E `.nf-tab__input` é regra órfã no CSS, sem usuário no JSX — já estava órfã antes desta fatia,
+  sai quando o formulário manual for reescrito.
+## Rodada 67 — F021 fatia 2, a fila offline no IndexedDB — 2026-09-10
+- Spec: specs/f021-fila-offline-em-indexeddb.md
+- Resultado: 14 de 14 critérios em sim, aprovado sem ressalvas (suíte 233 arquivos / 4118 testes
+  para 235 arquivos / 4148 testes, verde; `npm run build` limpo; nenhum teste existente removido
+  ou enfraquecido).
+- O obstáculo que o ADR-013 não tinha antecipado: o storage injetável foi construído para essa
+  troca acontecer sem tocar na fila, mas a API da fila é síncrona e o IndexedDB não é. Dois
+  `useState` preguiçosos (`AppContext` e `HistoricoNfce`) chamam `filaOffline.tamanho()` e não
+  podem esperar promessa. A saída foi não trocar o `localStorage` pelo IndexedDB, e sim colocar o
+  IndexedDB EMBAIXO de um espelho síncrono em memória. `fila.js` e `fila.test.js` fecharam a
+  rodada sem uma linha alterada, que era a premissa da fatia.
+- O que a rodada revelou de não óbvio: a hidratação é uma janela, não um instante. Entre o
+  primeiro render e a resposta do banco o operador pode enfileirar uma venda, então a hidratação
+  mescla por `uid` em vez de sobrescrever, e as gravações são serializadas para que uma escrita
+  antiga não aterrisse depois de uma nova e ressuscite op já drenada. A transação resolve no
+  `oncomplete`, não no `onsuccess` da requisição, porque durabilidade só existe quando a
+  transação fecha.
+- A parte que quase passou batido: oito testes de `AppContext.estoqueIdempotencia.test.jsx`
+  quebraram porque liam e semeavam a fila direto no `window.localStorage`, e o `clear()` do
+  `beforeEach` deixou de zerar uma fila que não mora mais lá. Corrigir enfraquecendo asserção
+  seria maquiar; a correção foi expor `storageFilaOffline` e fazer o teste ler a fila pela porta
+  dela, o que o deixa válido em qualquer banco que venha embaixo. E o critério 11 estava correto
+  no arquivo mas não trancado por teste nenhum: virou quatro testes, dois de cada lado da
+  costura.
+- Fica em aberto: a janela entre enfileirar e o banco confirmar (fechar a aba dentro dela ainda
+  perde a última op), registrada como pendência residual no ADR-013. As pendências 2 a 5 do
+  ADR-013 seguem intocadas.
+## Rodada 66 — TD015, chaves estáveis nas listas React — 2026-09-10
+- Spec: specs/td015-chaves-estaveis-em-listas.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes para
+  233 arquivos / 4118 testes, verde; nenhum teste existente removido ou enfraquecido).
+- As 40 ocorrências de `key={i}` foram separadas em três baldes, e o balde é a decisão: 10 já tinham
+  chave de domínio e só precisavam usá-la, 11 são listas editáveis de verdade e ganharam `uid` de
+  `src/lib/uidLista.js` (novo, 16 testes), e 19 são lugares onde a posição É a identidade, cabeçalho
+  literal, pip de tentativa de login, aba selecionada por índice, e ficaram com o índice mais um
+  comentário `// TD015:` dizendo por quê. Chave honesta com o motivo escrito vale mais que chave
+  maquiada.
+- O que a rodada revelou de não óbvio: `uid` é chave de renderização, não dado do estabelecimento, e
+  os saves que espalham a linha inteira num jsonb livre aceitariam o campo caladamente e o
+  devolveriam como se fosse dado do cliente. Por isso `listaSemUid` existe e está nos dois saves do
+  AdminView; os demais saves foram lidos um por um e montam o payload campo a campo. `comUid` também
+  precisou devolver a MESMA referência do array quando não há nada a carimbar, senão o efeito de
+  carga que atribui a lista se reagenda para sempre.
+- A parte que quase passou batido: no `ProdutosView` a chave `c.uid ?? idx` já estava escrita, com a
+  cara certa, e nenhuma linha de `form.compras` recebia `uid` em lugar nenhum, então ela caía sempre
+  no índice. Build, suíte e o grep do critério 1 passariam por cima disso sem apitar, porque a chave
+  existe. Só a leitura do arquivo inteiro pega. O `uid` passou a nascer nos dois pontos onde a linha
+  nasce, e o save continua montando `unidades_compra` campo a campo.
+- Próximo item recomendado: T05, F021 fatia 2, trocar o `localStorage` da fila offline por IndexedDB
+  preservando o storage injetável.
+## Rodada 65 — TD008, o bloqueio de tentativas de login sai do navegador — 2026-09-10
+- Spec: specs/td008-bloqueio-de-login-no-servidor.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 232 arquivos / 4102 testes,
+  verde; base era 230 / 4082, e nenhum teste foi removido).
+- O "Bloqueio após 5 tentativas" prometido na tela de login era contado no `localStorage` do
+  navegador de quem estava tentando entrar, ou seja, o atacante era o dono do contador e
+  `localStorage.clear()` devolvia as cinco tentativas. A migration `20260927_login_tentativas_servidor.sql`
+  move a contagem para `public.login_tentativas`, com RLS ligada e nenhuma policy, e `AppContext.login`
+  consulta o servidor antes do `signInWithPassword` e registra o desfecho depois. O contador local
+  virou eco da última resposta do banco, para os pips da tela responderem sem uma viagem por tecla.
+- O que a rodada revelou de não óbvio: o login é pré-sessão, então não existe `auth.uid()` para usar
+  como chave e as funções precisam ser alcançáveis pelo `anon`. A chave virou `md5(usuario@slug.local)`,
+  digest e não e-mail legível, senão a tabela seria uma lista de logins válidos com nome e slug do
+  tenant. A leitura de estado devolve a mesma forma para chave conhecida e desconhecida, então não
+  serve para enumerar usuário.
+- A parte que quase passou batido: a primeira versão era uma função só,
+  `login_tentativas_registrar(p_chave, p_sucesso)`, concedida ao `anon`. Isso é um freio que o
+  próprio freado desarma, bastava chamá-la com `p_sucesso = true` entre as tentativas. Virou três
+  funções, e a que zera o contador não recebe chave por parâmetro nenhuma: ela tira a identidade de
+  `auth.jwt() ->> 'email'` e só é concedida a `authenticated`. O bloco de verificação no fim da
+  migration recusa a aplicação se a concessão ao `anon` vazar, e há teste travando o contrato do
+  lado do cliente, `expect(mockRpc.mock.calls[0]).toHaveLength(1)`.
+- Falha ABERTA de propósito, e o contraste com a rodada anterior é o ponto: a TD009 etapa 3 escolheu
+  falhar FECHADO porque lá o risco é venda que não existe. Aqui o risco é o caixa não abrir por
+  causa de um soluço no banco, e o rate limit do próprio Supabase Auth continua no caminho de
+  qualquer jeito. RPC sem resposta devolve `disponivel: false` e o login volta ao contador local.
+- Limite conhecido e declarado, não escondido: com o contador por identidade no servidor, quem
+  souber um nome de usuário consegue gastar cinco tentativas erradas e deixar aquela conta bloqueada
+  por dois minutos. Isso não existia quando o contador era do navegador. O bloqueio se dissolve
+  sozinho, e o remédio de verdade seria prova de humanidade no formulário, que é feature própria.
+- Pendência do dono: P04 no `.full-auto/PENDENCIAS-DO-MATHEUS.md`, aplicar a migration antes do
+  deploy do frontend, com a URL do GitHub e a ordem de deploy.
+
+## Rodada 64 — TD009 etapa 3, fim da escrita dupla de venda — 2026-09-10
+- Spec: specs/td009-etapa3-fim-da-escrita-dupla-de-venda.md
+- Resultado: 11 de 11 critérios em sim, aprovado sem ressalvas (suíte 230 arquivos / 4082 testes,
+  verde; base era 229 / 4067, e nenhum teste foi removido).
+- O TD009 dizia desde 2026-07-04 que a etapa 3 estava "para depois de um período de confiança". Ela
+  já tinha rodado: as leituras são relacionais desde a etapa 2 e o backfill está aplicado. O que
+  faltava era parar de gravar em `sales`, o que esta rodada fez nos três caminhos de escrita,
+  `addSale`, `reenviarVendaOffline` e `cancelarVendaFechada`. `sales` continua no banco e é lida em
+  um lugar só, o fallback de resiliência do bootstrap.
+- O que a rodada revelou de não óbvio: `persistirVendaNormalizada` era fire-and-forget porque
+  `sales` é que valia. Sem `sales`, erro engolido é venda que não existe. A função passou a devolver
+  `{ ok, jaExistia, cabecalhoGravado, falhas }` e quem decide virou o chamador, com uma assimetria
+  deliberada, cabeçalho que falha desfaz o otimista e propaga, filha que falha depois do cabeçalho
+  não desfaz, porque mandar o operador refazer a venda duplicaria a receita, e vira trilha.
+- Cancelar deixou de ser apagar. `cancelarVendaFechada` apagava as linhas de `vendas`, `venda_itens`
+  e `venda_pagamentos` e guardava a trilha no blob. Sem o blob, apagar apagaria a auditoria junto.
+  A migration `20260920_vendas_cancelamento.sql` traz as quatro colunas de cancelamento, sem
+  política de RLS nova e sem `SECURITY DEFINER`. Se ela não estiver aplicada, o cancelamento falha
+  com mensagem em português nomeando o arquivo em vez de fingir sucesso, porque marcar
+  `sales.data.cancelada` como fallback seria inútil justamente para as vendas novas, que não têm
+  linha em `sales`.
+- Fechou de carona a pendência 6 do ADR-013: o `upsert` protegia a linha e não o evento, então cada
+  passada do dreno reemitia `venda.finalizada`. Com `jaExistia`, o evento só sai quando a linha
+  nasceu ali, o que cobre também o clique duplo no caixa.
+- Pendência do dono: P03 no `.full-auto/PENDENCIAS-DO-MATHEUS.md`, aplicar a migration antes do
+  deploy do frontend, com a URL do GitHub e a ordem de deploy.
+
+## Rodada 63 — F021, ADR do PDV offline-first (ADR-013) — 2026-09-10
+- Spec: specs/f021-adr-pdv-offline-first.md
+- Resultado: 8 de 8 critérios em sim (suíte 229 arquivos / 4067 testes, verde; mudança só em
+  markdown, nenhum teste novo). Rodada de documentação, zero código de produção tocado.
+- O F021 pedia "PDV offline-first" e exigia um ADR antes do código. O código veio primeiro, na
+  Leva 11, e o backlog passou meses acusando "sem o ADR que o item exigia". O ADR-013 registra
+  retroativamente o que foi construído e separa o que foi decidido do que segue em aberto.
+- O que o ADR fixa: (1) outbox em `src/lib/offline/fila.js` com `uid` por operação, para o dreno
+  não apagar o que chegou no meio dele; (2) dreno FIFO com três desfechos, sucesso sai, erro de
+  rede para tudo e preserva, erro definitivo sai e volta como aviso; (3) carimbo `__tenant` na
+  porta única `enfileirarOffline`, operação de outro tenant é pulada e mantida, e o snapshot de
+  bootstrap descarta quando o carimbo não bate, porque snapshot é cache; (4) snapshot mais PWA
+  para abrir sem rede; (5) a tabela dos oito tipos de operação com como cada um aguenta o replay.
+- O ponto que sustenta o desenho: pela decisão 009 a venda é transação-fonte, então a fila não
+  podia reenviar só `pedidos`, ela reproduz a cascata inteira e cada elo precisa aguentar replay.
+  A idempotência da baixa de estoque, que é o elo mais perigoso porque `baixar_estoque` é `UPDATE`
+  relativo, veio da migration `20260830_idempotencia_baixa_estoque.sql` e fecha o pré-requisito (1)
+  do F021.
+- Seis pendências ficaram nomeadas no próprio ADR, não escondidas: IndexedDB, conflito
+  multi-dispositivo, expiração de JWT no período offline, realtime degradado, contingência fiscal
+  e TEF, e idempotência do reenvio de venda (essa cruza com o TD009 etapa 3).
+- Pendente de decisão: nenhuma nesta rodada.
+- Próximo item recomendado: **TD009 etapa 3** — encerrar a escrita dupla de venda no
+  `AppContext.jsx`, porque as leituras já foram invertidas para `vendas`/`venda_itens`/
+  `venda_pagamentos` e a escrita em `sales` é hoje a única razão de o fallback legado existir,
+  além de ser a raiz da pendência 6 do ADR-013.
+
 ## Rodada 62 — "sempre que der baixa no caixa tem q dar baixa no estoque" (TD020) — 2026-08-15
 - Spec: specs/baixa-no-caixa-sempre-vira-baixa-no-estoque.md
 - Resultado: 9 de 9 critérios em sim (suíte 207 arquivos / 3632 testes, verde; +7 testes novos, 1

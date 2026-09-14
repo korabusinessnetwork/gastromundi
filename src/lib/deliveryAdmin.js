@@ -211,12 +211,12 @@ export function faixaResumo(faixa) {
   const f = normalizarFaixaTaxa(faixa);
   const valor = f.taxa > 0 ? formatarReais(f.taxa) : "Grátis";
   if (f.tipo === "km") {
-    return `Até ${formatarKm(f.km_ate)} km — ${valor}`;
+    return `Até ${formatarKm(f.km_ate)} km, ${valor}`;
   }
   if (f.tipo === "cep") {
-    return `CEP ${formatarCep(f.cep_ini)} a ${formatarCep(f.cep_fim)} — ${valor}`;
+    return `CEP ${formatarCep(f.cep_ini)} a ${formatarCep(f.cep_fim)}, ${valor}`;
   }
-  return `${f.bairro || "Bairro"} — ${valor}`;
+  return `${f.bairro || "Bairro"}, ${valor}`;
 }
 
 /**

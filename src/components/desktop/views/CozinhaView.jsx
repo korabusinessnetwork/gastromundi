@@ -176,7 +176,7 @@ function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto,
       {/* Itens */}
       <div className="pedido-card__itens">
         {itensAtivos.map((item, idx) => (
-          <div key={idx} className="pedido-card__item">
+          <div key={item.uid ?? idx} className="pedido-card__item">
             <span style={{ fontWeight: 700 }}>{item.qty ?? 1}x</span> {item.name}
             {Array.isArray(item.obs) && item.obs.length > 0 && (
               <div className="pedido-card__item-obs">

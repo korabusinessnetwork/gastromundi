@@ -11,7 +11,7 @@ const CNPJ = "12345678000195";
 const PROTOCOLO = "143260000123456";
 const JUST = "Cliente desistiu da compra e pediu o cancelamento.";
 
-describe("nfceEventoCancelamento — montarXmlEventoCancelamento", () => {
+describe("nfceEventoCancelamento, montarXmlEventoCancelamento", () => {
   it("monta o <evento>/<infEvento Id=ID110111...> com todos os campos", () => {
     const { xml, id, chave } = montarXmlEventoCancelamento({
       chave: CHAVE, protocolo: PROTOCOLO, justificativa: JUST, cnpj: CNPJ, tpAmb: 2,
@@ -70,7 +70,7 @@ describe("nfceEventoCancelamento — montarXmlEventoCancelamento", () => {
   });
 });
 
-describe("nfceEventoCancelamento — dentroDoPrazoCancelamento", () => {
+describe("nfceEventoCancelamento, dentroDoPrazoCancelamento", () => {
   const dhEmi = "2026-07-13T12:00:00Z";
 
   it("dentro do prazo padrão", () => {
@@ -92,7 +92,7 @@ describe("nfceEventoCancelamento — dentroDoPrazoCancelamento", () => {
   });
 });
 
-describe("nfceEventoCancelamento — decidirDesfechoCancelamento", () => {
+describe("nfceEventoCancelamento, decidirDesfechoCancelamento", () => {
   it("cStat 135 → cancelada, carrega protocolo e procEventoNFe", () => {
     const d = decidirDesfechoCancelamento({
       retornoInterpretado: {

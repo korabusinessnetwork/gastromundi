@@ -82,7 +82,7 @@ const corpo = recorte(sql, "CREATE OR REPLACE FUNCTION public.estornar_pagamento
  */
 const migracao = sql.slice(0, sql.indexOf("DO $conf$"));
 
-describe("20260913 — a migração existe e roda na hora certa", () => {
+describe("20260913, a migração existe e roda na hora certa", () => {
   it("está na pasta de migrações e depois da renovação que ela desfaz", () => {
     const arquivos = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
     expect(arquivos).toContain(ESTORNO);
@@ -143,7 +143,7 @@ describe("a RPC do estorno", () => {
     }
   });
 
-  it("não recebe o estabelecimento do cliente — ele sai da linha de pagamento", () => {
+  it("não recebe o estabelecimento do cliente, ele sai da linha de pagamento", () => {
     expect(migracao).not.toMatch(/p_tenant_id/);
     expect(corpo).toMatch(/SELECT tenant_id INTO v_tenant/);
     expect(corpo).toMatch(/WHERE id = p_pagamento_id/);
@@ -210,7 +210,7 @@ describe("a migração não abre porta lateral", () => {
     expect(migracao).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE|ALL)\s+ON\s+TABLE/i);
   });
 
-  it("não cria RPC de leitura — o histórico é lido direto pela policy da 20260726", () => {
+  it("não cria RPC de leitura, o histórico é lido direto pela policy da 20260726", () => {
     const funcoes = sql.match(/CREATE (OR REPLACE )?FUNCTION public\.\w+/g) ?? [];
     expect(funcoes).toHaveLength(1);
     expect(funcoes[0]).toContain("estornar_pagamento_assinatura");

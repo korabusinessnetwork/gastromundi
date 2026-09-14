@@ -55,7 +55,7 @@ beforeEach(() => {
   recarregarDadosDoEstabelecimento.mockResolvedValue(undefined);
 });
 
-describe("PonteLocalConfig — chave de liga/desliga do estabelecimento", () => {
+describe("PonteLocalConfig, chave de liga/desliga do estabelecimento", () => {
   it("enquanto o ajuste não chegou, não afirma ligado nem desligado e não deixa clicar", async () => {
     await abrir(null, true);
     expect(chave()).toBeDisabled();
@@ -102,7 +102,7 @@ describe("PonteLocalConfig — chave de liga/desliga do estabelecimento", () => 
   // Nada relê a config sozinho quando a conexão volta. Prometer que o ajuste
   // chega sozinho deixava o dono esperando por algo que não vem: o recado
   // aponta o botão, que é o que traz o ajuste quando ele clicar.
-  it("o recado sem internet não promete ajuste que chega sozinho — aponta o botão", async () => {
+  it("o recado sem internet não promete ajuste que chega sozinho, aponta o botão", async () => {
     await abrir(null, false, { redeOnline: false });
 
     expect(screen.queryByText(/só chega quando a conexão voltar/i)).toBeNull();
@@ -148,7 +148,7 @@ describe("PonteLocalConfig — chave de liga/desliga do estabelecimento", () => 
 
     await act(async () => { fireEvent.click(botaoBuscar()); });
 
-    expect(screen.getByText(/Ainda sem internet — tentamos agora e não deu/i)).toBeTruthy();
+    expect(screen.getByText(/Ainda sem internet, tentamos agora e não deu/i)).toBeTruthy();
   });
 
   // Sem saber o ajuste, não dá para dizer que a chave está desligada — seria
@@ -217,7 +217,7 @@ const abrirComEndereco = async (endereco) => {
 const botaoBaixar = () => document.querySelector(".ponte-config__baixar");
 const passo1 = () => document.querySelector(".ponte-config__passos li").textContent;
 
-describe("PonteLocalConfig — baixar o programa da ponte", () => {
+describe("PonteLocalConfig, baixar o programa da ponte", () => {
   afterEach(() => { vi.unstubAllEnvs(); });
 
   it("mostra o botão apontando para o endereço configurado", async () => {

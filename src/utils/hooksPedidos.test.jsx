@@ -93,7 +93,7 @@ beforeEach(() => {
   listarPedidosDelivery.mockReset();
 });
 
-describe("usePedidosDelivery — falha ao atualizar não pode apagar a lista (Run 6, leva 7)", () => {
+describe("usePedidosDelivery, falha ao atualizar não pode apagar a lista (Run 6, leva 7)", () => {
   it("primeira carga bem-sucedida mostra os pedidos", async () => {
     listarPedidosDelivery.mockResolvedValue({ data: [PEDIDO, OUTRO], error: null });
     await montar(TelaDelivery);
@@ -180,7 +180,7 @@ describe("usePedidosDelivery — falha ao atualizar não pode apagar a lista (Ru
   });
 });
 
-describe("usePedidosCozinha — o DELETE do espelho tira a comanda do painel (Run 6, leva 7)", () => {
+describe("usePedidosCozinha, o DELETE do espelho tira a comanda do painel (Run 6, leva 7)", () => {
   it("apagar a comanda espelho remove o cartão da cozinha ao vivo", async () => {
     // É exatamente o que o trigger de 20260904 faz quando o pedido é
     // cancelado: DELETE da linha em `pending`. Sem esta reação, a cozinha

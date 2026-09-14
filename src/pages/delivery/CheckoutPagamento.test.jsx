@@ -54,7 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("CheckoutPagamento — falha de envio visível (Run 6, leva 1)", () => {
+describe("CheckoutPagamento, falha de envio visível (Run 6, leva 1)", () => {
   it("mostra a mensagem de falha DENTRO da folha, onde o cliente está olhando", () => {
     abrir({ dados: { forma: "pix" }, erro: "Estabelecimento fechado para pedidos no momento." });
 
@@ -85,7 +85,7 @@ describe("CheckoutPagamento — falha de envio visível (Run 6, leva 1)", () => 
   });
 });
 
-describe("CheckoutPagamento — troco digitado com vírgula (Run 6, leva 1)", () => {
+describe("CheckoutPagamento, troco digitado com vírgula (Run 6, leva 1)", () => {
   it("R$ 50,00 num total de R$ 32,50 mostra o troco de R$ 17,50", () => {
     abrir({ dados: { forma: "dinheiro", trocoPara: "50,00" } });
 
@@ -133,7 +133,7 @@ describe("CheckoutPagamento — troco digitado com vírgula (Run 6, leva 1)", ()
 // tabulava do × direto para "Confirmar pedido" — que fica desabilitado
 // justamente até escolher uma forma. Não havia NENHUM caminho para
 // escolher: o checkout inteiro era impossível de terminar sem mouse.
-describe("CheckoutPagamento — pagar só com o teclado (Run 6, leva 4)", () => {
+describe("CheckoutPagamento, pagar só com o teclado (Run 6, leva 4)", () => {
   it("cada forma de pagamento é um controle de verdade, não um texto clicável", () => {
     abrir();
 

@@ -207,16 +207,16 @@ describe("validarFaixa", () => {
 
 describe("faixaResumo", () => {
   it("bairro com taxa", () => {
-    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 5 })).toBe("Centro — R$ 5,00");
+    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 5 })).toBe("Centro, R$ 5,00");
   });
 
   it("taxa 0 aparece como Grátis", () => {
-    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 0 })).toBe("Centro — Grátis");
+    expect(faixaResumo({ tipo: "bairro", bairro: "Centro", taxa: 0 })).toBe("Centro, Grátis");
   });
 
   it("cep formata as duas pontas", () => {
     expect(faixaResumo({ tipo: "cep", cep_ini: "90000000", cep_fim: "90999999", taxa: 8 })).toBe(
-      "CEP 90000-000 a 90999-999 — R$ 8,00"
+      "CEP 90000-000 a 90999-999, R$ 8,00"
     );
   });
 });
@@ -296,7 +296,7 @@ describe("sanitizarConfig", () => {
   });
 });
 
-describe("faixa por km — normalizar/validar/resumo", () => {
+describe("faixa por km, normalizar/validar/resumo", () => {
   it("normaliza km_ate e taxa não-negativos", () => {
     expect(normalizarFaixaTaxa({ tipo: "km", km_ate: "3", taxa: "5,5" })).toEqual({
       tipo: "km",
@@ -316,8 +316,8 @@ describe("faixa por km — normalizar/validar/resumo", () => {
   });
 
   it("resumo humano do anel", () => {
-    expect(faixaResumo({ tipo: "km", km_ate: 3, taxa: 8 })).toBe("Até 3 km — R$ 8,00");
-    expect(faixaResumo({ tipo: "km", km_ate: 2.5, taxa: 0 })).toBe("Até 2,5 km — Grátis");
+    expect(faixaResumo({ tipo: "km", km_ate: 3, taxa: 8 })).toBe("Até 3 km, R$ 8,00");
+    expect(faixaResumo({ tipo: "km", km_ate: 2.5, taxa: 0 })).toBe("Até 2,5 km, Grátis");
   });
 });
 

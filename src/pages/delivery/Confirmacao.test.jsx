@@ -45,7 +45,7 @@ beforeEach(() => {
   fechar = vi.fn();
 });
 
-describe("Confirmacao — o número do pedido não some por um toque errado", () => {
+describe("Confirmacao, o número do pedido não some por um toque errado", () => {
   it("tocar no fundo NÃO fecha a tela de sucesso", async () => {
     const user = userEvent.setup();
     const container = montar();
@@ -85,7 +85,7 @@ describe("Confirmacao — o número do pedido não some por um toque errado", ()
   });
 });
 
-describe("Confirmacao — a saída existe e é a mais visível da tela", () => {
+describe("Confirmacao, a saída existe e é a mais visível da tela", () => {
   it("o botão 'Voltar ao cardápio' fecha", async () => {
     const user = userEvent.setup();
     montar();
@@ -95,13 +95,13 @@ describe("Confirmacao — a saída existe e é a mais visível da tela", () => {
     expect(fechar).toHaveBeenCalledTimes(1);
   });
 
-  it("há exatamente um botão na tela — não há como errar qual é a saída", () => {
+  it("há exatamente um botão na tela, não há como errar qual é a saída", () => {
     montar();
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
 });
 
-describe("Confirmacao — o que a tela informa", () => {
+describe("Confirmacao, o que a tela informa", () => {
   it("mostra o número, o total e o tempo de preparo", () => {
     montar();
 

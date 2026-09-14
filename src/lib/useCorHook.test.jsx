@@ -15,7 +15,7 @@ function Sonda({ token }) {
   return <span data-testid="cor">{cor}</span>;
 }
 
-describe("useCor (hook reativo — recolore quando tenant.tema muda)", () => {
+describe("useCor (hook reativo, recolore quando tenant.tema muda)", () => {
   beforeEach(() => {
     temaMock = null;
     document.documentElement.style.removeProperty("--gm-accent");

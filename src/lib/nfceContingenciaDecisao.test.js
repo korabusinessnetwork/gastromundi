@@ -7,7 +7,7 @@ import {
   CSTAT_SERVICO_PARALISADO,
 } from "./nfceContingenciaDecisao";
 
-describe("nfceContingenciaDecisao — decidirTpEmisInicial", () => {
+describe("nfceContingenciaDecisao, decidirTpEmisInicial", () => {
   it("contingência ativa → sai direto em 9 (pula o online lento)", () => {
     expect(decidirTpEmisInicial({ contingenciaAtiva: true, tpEmisSolicitado: 1 })).toBe(9);
   });
@@ -21,7 +21,7 @@ describe("nfceContingenciaDecisao — decidirTpEmisInicial", () => {
   });
 });
 
-describe("nfceContingenciaDecisao — deveEntrarContingencia", () => {
+describe("nfceContingenciaDecisao, deveEntrarContingencia", () => {
   it("erro de transmissão → entra", () => {
     expect(deveEntrarContingencia({ erroTransmissao: "timeout" })).toBe(true);
   });
@@ -41,7 +41,7 @@ describe("nfceContingenciaDecisao — deveEntrarContingencia", () => {
   });
 });
 
-describe("nfceContingenciaDecisao — deveSairContingencia", () => {
+describe("nfceContingenciaDecisao, deveSairContingencia", () => {
   it("autorizada online → sai (SEFAZ voltou)", () => {
     expect(deveSairContingencia({ autorizada: true })).toBe(true);
   });
@@ -51,7 +51,7 @@ describe("nfceContingenciaDecisao — deveSairContingencia", () => {
   });
 });
 
-describe("nfceContingenciaDecisao — decidirDesfechoEmissao", () => {
+describe("nfceContingenciaDecisao, decidirDesfechoEmissao", () => {
   it("autorizada → status autorizada, sem contingência", () => {
     const d = decidirDesfechoEmissao({ tpEmis: 1, autorizada: true });
     expect(d).toEqual({ status: "autorizada", contingencia: false, motivo: null });

@@ -58,7 +58,7 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-describe("ProdutoModal — grupo obrigatório que ficou sem opção (Run 6, leva 2)", () => {
+describe("ProdutoModal, grupo obrigatório que ficou sem opção (Run 6, leva 2)", () => {
   const PRODUTO_TRAVADO = {
     produto_id: 7,
     nome: "X-Bacon",
@@ -161,7 +161,7 @@ describe("ProdutoModal — grupo obrigatório que ficou sem opção (Run 6, leva
   });
 });
 
-describe("ProdutoModal — grupo no máximo (Run 6, leva 2)", () => {
+describe("ProdutoModal, grupo no máximo (Run 6, leva 2)", () => {
   const ATE_TRES = {
     produto_id: 12,
     nome: "Açaí 500ml",
@@ -192,12 +192,12 @@ describe("ProdutoModal — grupo no máximo (Run 6, leva 2)", () => {
     await user.click(opcaoBotao("Leite condensado"));
     await user.click(opcaoBotao("Banana"));
 
-    expect(selo()).toHaveTextContent("Máximo 3 — desmarque para trocar");
+    expect(selo()).toHaveTextContent("Máximo 3, desmarque para trocar");
     expect(opcaoBotao("Morango")).toBeDisabled();
     expect(opcaoBotao("Morango")).toHaveClass("opcao--bloqueada");
   });
 
-  it("as opções já escolhidas continuam clicáveis — é assim que o cliente troca", async () => {
+  it("as opções já escolhidas continuam clicáveis, é assim que o cliente troca", async () => {
     const { user } = abrir(ATE_TRES);
 
     await user.click(opcaoBotao("Granola"));
@@ -228,7 +228,7 @@ describe("ProdutoModal — grupo no máximo (Run 6, leva 2)", () => {
     expect(selo()).toHaveTextContent("Opcional · até 3");
   });
 
-  it("grupo de escolha única não bloqueia nada — tocar em outra opção troca", async () => {
+  it("grupo de escolha única não bloqueia nada, tocar em outra opção troca", async () => {
     const { user } = abrir({
       produto_id: 13,
       nome: "Refrigerante",
@@ -283,7 +283,7 @@ describe("ProdutoModal — grupo no máximo (Run 6, leva 2)", () => {
 
     expect(opcaoBotao("Farofa")).toBeDisabled();
     expect(opcaoBotao("Beterraba")).toBeEnabled();
-    expect(selo(0)).toHaveTextContent("Máximo 2 — desmarque para trocar");
+    expect(selo(0)).toHaveTextContent("Máximo 2, desmarque para trocar");
     expect(selo(1)).toHaveTextContent("Opcional · até 2");
 
     const saladas = within(document.querySelectorAll(".grupo")[1]);
@@ -297,7 +297,7 @@ describe("ProdutoModal — grupo no máximo (Run 6, leva 2)", () => {
 // e a tela ficava EXATAMENTE igual à de antes do toque. Sem nenhum sinal de
 // que algo aconteceu, o cliente tocava de novo, e de novo — e reencontrava a
 // pilha de repetidos quando a loja abrisse.
-describe("ProdutoModal — loja fechada (Run 6, leva 3)", () => {
+describe("ProdutoModal, loja fechada (Run 6, leva 3)", () => {
   const REFRI = {
     produto_id: 20,
     nome: "Refrigerante lata",
@@ -353,7 +353,7 @@ describe("ProdutoModal — loja fechada (Run 6, leva 3)", () => {
     expect(onAdicionar).not.toHaveBeenCalled();
   });
 
-  it("o preço continua visível — o cliente pode namorar o cardápio", () => {
+  it("o preço continua visível, o cliente pode namorar o cardápio", () => {
     abrir(REFRI, { lojaAberta: false });
 
     expect(cta()).toHaveTextContent("R$ 8,00");

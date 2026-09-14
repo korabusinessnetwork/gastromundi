@@ -36,7 +36,7 @@ export function validarCadastroCliente(dados) {
   // Antes bastava não estar vazio: "123" era salvo calado, e o número só se
   // revelava inútil no dia em que alguém precisava ligar para o cliente.
   if (!telefoneValido(telefone))
-    return { valido: false, erro: "Telefone inválido — informe DDD e número, ex: (11) 91234-5678." };
+    return { valido: false, erro: "Telefone inválido, informe DDD e número, ex: (11) 91234-5678." };
 
   const documento = apenasDigitos(dados?.documento);
   if (documento) {
@@ -44,7 +44,7 @@ export function validarCadastroCliente(dados) {
     if (!validarDocumento(documento, tipo))
       return {
         valido: false,
-        erro: tipo === "cnpj" ? "CNPJ inválido — confira os 14 dígitos." : "CPF inválido — confira os 11 dígitos.",
+        erro: tipo === "cnpj" ? "CNPJ inválido, confira os 14 dígitos." : "CPF inválido, confira os 11 dígitos.",
       };
   }
   return { valido: true, erro: null };

@@ -35,7 +35,7 @@ import {
   usePonteLocal, resumirImpressaoParada, ESPERA_PARA_AVISAR_MS, JANELA_AVISO_MS,
 } from "./usePonteLocal";
 
-describe("resumirImpressaoParada — o que conta como impressão que não saiu", () => {
+describe("resumirImpressaoParada, o que conta como impressão que não saiu", () => {
   const AGORA = Date.parse("2026-08-19T20:00:00.000Z");
   const atras = (ms) => new Date(AGORA - ms).toISOString();
 
@@ -124,7 +124,7 @@ describe("resumirImpressaoParada — o que conta como impressão que não saiu",
 // O botão "Conferir de novo" não conferia nada: jogava as chaves encerradas
 // no dispensadas e recalculava em cima da memória. O alarme sumia, a cozinha
 // continuava sem papel, e o operador aprendia que apertar aquilo resolve.
-describe("usePonteLocal — o botão de conferir vai mesmo ler a fila", () => {
+describe("usePonteLocal, o botão de conferir vai mesmo ler a fila", () => {
   const props = (sobrescrever = {}) => ({
     ativo: true,
     products: [],
@@ -172,7 +172,7 @@ describe("usePonteLocal — o botão de conferir vai mesmo ler a fila", () => {
     expect(result.current.falhaAoConferir).toBe(false);
   });
 
-  it("não apaga o aviso quando não conseguiu conferir — e diz que não conseguiu", async () => {
+  it("não apaga o aviso quando não conseguiu conferir, e diz que não conseguiu", async () => {
     const { result } = await montarComAvisoNaTela();
 
     buscarFilaImpressaoPonte.mockResolvedValue({ data: null, error: new Error("Ponte fora") });

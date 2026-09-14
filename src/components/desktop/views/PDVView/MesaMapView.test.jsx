@@ -158,8 +158,8 @@ describe("MesaMapView (mapa)", () => {
     const faixa = document.querySelector(".mesa-map__sem-posicao-grid");
     expect(faixa.contains(screen.getByTitle(/^Mesa 9/))).toBe(true);
     expect(faixa.contains(screen.getByTitle(/^Mesa 10/))).toBe(true);
-    expect(faixa.contains(screen.getByTitle(/^Mesa 1 /))).toBe(false);
-    expect(faixa.contains(screen.getByTitle(/^Mesa 2 /))).toBe(false);
+    expect(faixa.contains(screen.getByTitle(/^Mesa 1,/))).toBe(false);
+    expect(faixa.contains(screen.getByTitle(/^Mesa 2,/))).toBe(false);
   });
 
   it("mesa da faixa sem posição continua clicável", () => {

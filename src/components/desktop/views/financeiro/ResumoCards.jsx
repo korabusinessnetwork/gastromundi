@@ -21,7 +21,7 @@ export default function ResumoCards({ fluxo, lucro, width, sz }) {
   if (lucro) {
     cards.push({
       label: lucro.unidadesSemFicha > 0
-        ? `Lucro (parcial — ${lucro.unidadesSemFicha} ${lucro.unidadesSemFicha === 1 ? "item vendido sem ficha técnica" : "itens vendidos sem ficha técnica"})`
+        ? `Lucro (parcial, ${lucro.unidadesSemFicha} ${lucro.unidadesSemFicha === 1 ? "item vendido sem ficha técnica" : "itens vendidos sem ficha técnica"})`
         : "Lucro (vendas − custo das fichas − saídas pagas)",
       value: fmtR(lucro.valor),
       color: lucro.valor >= 0 ? varColor(C.green) : varColor(C.red),

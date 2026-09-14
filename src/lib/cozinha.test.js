@@ -38,7 +38,7 @@ describe("formatarTempoDecorrido", () => {
     expect(formatarTempoDecorrido(1439)).toBe("23h 59min");
   });
 
-  it("mostra dias (e horas) a partir de 1 dia — o caso 8510 min vira legível", () => {
+  it("mostra dias (e horas) a partir de 1 dia, o caso 8510 min vira legível", () => {
     expect(formatarTempoDecorrido(1440)).toBe("1d");
     expect(formatarTempoDecorrido(8510)).toBe("5d 21h"); // era "8510 min" na tela
   });

@@ -70,7 +70,7 @@ describe("criarFetchComTimeout", () => {
     expect(erro.message).not.toMatch(/tempo limite/i);
   });
 
-  it("upload de arquivo fica fora do prazo — foto grande em rede ruim é lenta de verdade", () => {
+  it("upload de arquivo fica fora do prazo, foto grande em rede ruim é lenta de verdade", () => {
     expect(ehTransferenciaDeArquivo("https://x.supabase.co/storage/v1/object/fotos/a.jpg")).toBe(true);
     expect(ehTransferenciaDeArquivo("https://x.supabase.co/rest/v1/products")).toBe(false);
 

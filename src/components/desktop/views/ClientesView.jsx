@@ -237,7 +237,7 @@ export default function ClientesView() {
                   className="clientes-view__input"
                 />
                 {telefoneInvalido && (
-                  <div className="clientes-view__hint-campo">Telefone incompleto — informe DDD e número.</div>
+                  <div className="clientes-view__hint-campo">Telefone incompleto, informe DDD e número.</div>
                 )}
               </div>
               <CampoDocumento
@@ -635,7 +635,7 @@ function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
               className="clientes-view__input"
             />
             {telefoneInvalido && (
-              <div className="clientes-view__hint-campo">Telefone incompleto — informe DDD e número.</div>
+              <div className="clientes-view__hint-campo">Telefone incompleto, informe DDD e número.</div>
             )}
           </div>
           <CampoDocumento

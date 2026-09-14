@@ -62,7 +62,7 @@ describe("normalizarLayoutComanda", () => {
     expect(blocos.map((b) => b.id)).toEqual(["total", "texto-1", "texto-2"]);
   });
 
-  it("corta texto gigante — em 32 colunas ele viraria um bloco ilegível", () => {
+  it("corta texto gigante, em 32 colunas ele viraria um bloco ilegível", () => {
     const [bloco] = normalizarLayoutComanda([{ tipo: "texto", texto: "a".repeat(5000) }]);
 
     expect(bloco.texto).toHaveLength(MAX_TEXTO_BLOCO);
@@ -89,7 +89,7 @@ describe("normalizarLayoutComanda", () => {
   });
 });
 
-describe("layoutComandaDeConfig — quem nunca abriu o editor não perde nada", () => {
+describe("layoutComandaDeConfig, quem nunca abriu o editor não perde nada", () => {
   it("semeia o padrão com o endereço, CNPJ e rodapé já configurados", () => {
     const blocos = layoutComandaDeConfig({
       mostrarEnderecoCnpj: true,
@@ -122,7 +122,7 @@ describe("layoutComandaDeConfig — quem nunca abriu o editor não perde nada", 
   });
 });
 
-describe("configLegadoDeLayout — espelho dos campos antigos", () => {
+describe("configLegadoDeLayout, espelho dos campos antigos", () => {
   it("desligar o bloco de endereço desliga também a flag que a identidade lê", () => {
     const blocos = layoutComandaDeConfig({ mostrarEnderecoCnpj: true, endereco: "Rua X" })
       .map((b) => (b.tipo === "endereco" || b.tipo === "cnpj" ? { ...b, visivel: false } : b));
@@ -147,7 +147,7 @@ describe("configLegadoDeLayout — espelho dos campos antigos", () => {
   });
 });
 
-describe("completarLayoutComanda — a lista do editor mostra tudo que a comanda pode ter", () => {
+describe("completarLayoutComanda, a lista do editor mostra tudo que a comanda pode ter", () => {
   it("traz de volta, desligados, os blocos que faltavam no layout gravado", () => {
     const completo = completarLayoutComanda([{ tipo: "nome" }, { tipo: "total" }]);
 

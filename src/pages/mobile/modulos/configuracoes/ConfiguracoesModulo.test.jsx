@@ -27,7 +27,7 @@ function montar(role, props = {}) {
   return render(<ConfiguracoesModulo onVoltar={vi.fn()} {...props} />);
 }
 
-describe("ConfiguracoesModulo — Configurações nativa do Palm", () => {
+describe("ConfiguracoesModulo, Configurações nativa do Palm", () => {
   beforeEach(() => {
     navigate.mockClear();
   });

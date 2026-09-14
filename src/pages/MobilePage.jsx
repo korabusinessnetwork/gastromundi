@@ -389,7 +389,7 @@ export default function MobilePage() {
     setLancApelido("");
     setLancErro("");
     setShowLancar(false);
-    setToast(`Comanda ${nomeComanda} em espera — siga com a próxima`);
+    setToast(`Comanda ${nomeComanda} em espera, siga com a próxima`);
     setTimeout(() => setToast(""), 2500);
   };
 
@@ -607,7 +607,7 @@ export default function MobilePage() {
           }}
         >
           <LuWifiOff aria-hidden="true" />
-          <span>Sem internet — lançar pelo Wi-Fi do caixa</span>
+          <span>Sem internet, lançar pelo Wi-Fi do caixa</span>
         </button>
       ) : null}
 

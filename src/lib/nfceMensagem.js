@@ -46,7 +46,7 @@ export function mensagemDesfechoNfce(resultado) {
   if (status === "sem_chave") {
     return {
       titulo: "A emissão fiscal ainda não está configurada.",
-      texto: "A venda está registrada normalmente. Peça ao responsável para concluir a configuração fiscal — depois disso a nota pode ser emitida.",
+      texto: "A venda está registrada normalmente. Peça ao responsável para concluir a configuração fiscal, depois disso a nota pode ser emitida.",
       motivo: null,
       automatico: false,
     };

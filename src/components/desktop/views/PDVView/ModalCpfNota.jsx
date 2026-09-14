@@ -68,7 +68,7 @@ export default function ModalCpfNota({ total = 0, cliente = null, onConfirmar, o
             <div>
               <div className="modal-cpf-nota__titulo">CPF na nota fiscal</div>
               <div className="modal-cpf-nota__subtitulo">
-                Opcional — informe o documento do cliente ou deixe em branco.
+                Opcional, informe o documento do cliente ou deixe em branco.
               </div>
             </div>
           </div>

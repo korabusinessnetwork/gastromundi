@@ -247,7 +247,7 @@ export default function SubprodutosView({ sz }) {
     // Falha de leitura não é lista vazia. Sem avisar, a tela dizia "Nenhum
     // subproduto cadastrado" e o operador recadastrava tudo por cima.
     if (error) {
-      setErroTela("Não deu para carregar os subprodutos. Recarregue a página — a lista abaixo pode estar incompleta.");
+      setErroTela("Não deu para carregar os subprodutos. Recarregue a página, a lista abaixo pode estar incompleta.");
     } else {
       setLista(data ?? []);
     }
@@ -280,7 +280,7 @@ export default function SubprodutosView({ sz }) {
       .eq("id", s.id);
     if (error) {
       setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: s.ativo } : x));
-      setErroTela(`Não deu para ${s.ativo ? "desativar" : "ativar"} "${s.nome}". Nada mudou — tente de novo.`);
+      setErroTela(`Não deu para ${s.ativo ? "desativar" : "ativar"} "${s.nome}". Nada mudou, tente de novo.`);
     }
   };
 
@@ -368,6 +368,7 @@ export default function SubprodutosView({ sz }) {
               <thead>
                 <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                   {["Nome", "Categoria", "Unidade", "Preço", "Estoque", "Status", ""].map((h, i) => (
+                    // TD015: cabeçalho literal da tabela de subprodutos, não vem de dado.
                     <th key={i} className="subprodutos-view__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
                   ))}
                 </tr>
