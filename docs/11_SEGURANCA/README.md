@@ -60,6 +60,37 @@ segurança levanta achado alto por citar `rm -rf /` ou `/etc/passwd` dentro de u
 ataques documentados. Leia o achado, confira o trecho citado, e registre a conclusão. O que
 nunca pode acontecer é instalar sem olhar.
 
+## O que o primeiro diagnóstico fechou
+
+Varredura de leitura feita com o VibeSec carregado, nas rotas autenticadas e nas
+chamadas ao Supabase. As correções e o que cobra cada uma:
+
+| O que era | Onde | O que cobra agora |
+|-----------|------|-------------------|
+| `.select()` sem argumento nas escritas em `users`, que é `select *` em tabela sensível | `src/context/AppContext.jsx` | colunas explícitas (`colunasRetornoUsers`) |
+| `insert`/`update` recebendo o objeto inteiro do chamador | `users` e `pending`, mesmo arquivo | allowlist em `src/lib/camposPermitidos.js`, com teste |
+| `Access-Control-Allow-Origin: "*"` nas 9 Edge Functions | `supabase/functions/*/index.ts` | `_shared/cors.ts` mais `src/lib/functionsCors.test.js` |
+| erro cru no `console` no caminho do pagamento | `PDVView/index.jsx`, `useFinalizarPagamento.js` | `resumoErro` mais `src/lib/consolePagamentoGuard.test.js` |
+| SVG injetado por `dangerouslySetInnerHTML` sem conferência de forma | `src/lib/qrCodeSvg.js` | `svgSeguro`, com teste |
+
+Três observações que valem mais que a tabela:
+
+1. **CORS aqui não é autenticação, e o aperto é opcional por decisão.** Estas
+   funções autorizam pelo cabeçalho `Authorization`, que o navegador não manda
+   sozinho para outra origem, e quem tem o token chama por fora do navegador,
+   onde CORS não existe. O que a variável `ORIGENS_PERMITIDAS` encurta é o
+   alcance de um token já vazado. Sem a variável configurada, o comportamento
+   segue sendo `*`: falhar fechado derrubaria emissão fiscal no primeiro deploy
+   em que alguém esquecesse a variável, e trocar risco baixo por parada de caixa
+   é péssimo negócio. Formato e exemplo em `.env.example`.
+2. **A allowlist de colunas não substitui a RLS, e não é ela que segura o
+   tenant.** Quem impede gravar em linha de outro estabelecimento é a policy
+   RESTRICTIVE de isolamento, e continua sendo. A allowlist fecha o contrato do
+   lado do cliente, que é onde o erro futuro nasce.
+3. **Allowlist que descarta em silêncio troca brecha por bug mudo.** Por isso
+   `separarCampos` devolve o que ignorou, e os três pontos de escrita reportam
+   ao Sentry quando ignoram alguma coisa.
+
 ## Limite conhecido (importante)
 
 Nenhuma das três cobre bem o maior risco desta stack: **política RLS mal escrita vazando

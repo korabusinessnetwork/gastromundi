@@ -25,6 +25,7 @@ import {
   reportarInconsistencia,
   setTenantObservabilidade,
   tenantAtualObservabilidade,
+  resumoErro,
 } from "./observabilidade";
 
 beforeEach(() => {
@@ -263,5 +264,48 @@ describe("reportarInconsistencia", () => {
   it("é fire-and-forget: NUNCA lança mesmo se o SDK falhar", () => {
     withScope.mockImplementationOnce(() => { throw new Error("SDK caiu"); });
     expect(() => reportarInconsistencia("x", {})).not.toThrow();
+  });
+});
+
+describe("resumoErro", () => {
+  it("devolve a mensagem do erro, não o objeto", () => {
+    expect(resumoErro(new Error("falha ao gravar"))).toBe("falha ao gravar");
+  });
+
+  it("junta o code do Postgres, que é o que serve para diagnosticar", () => {
+    expect(resumoErro({ message: "duplicate key", code: "23505" })).toBe("duplicate key (code: 23505)");
+  });
+
+  it("mascara PII que vem embutida na mensagem do banco", () => {
+    // É o vetor real: a mensagem da constraint traz o dado da linha.
+    const r = resumoErro({ message: "Key (telefone)=(11999998888) already exists", code: "23505" });
+    expect(r).toContain("=(...)");
+    expect(r).not.toContain("11999998888");
+  });
+
+  it("não deixa passar nada além de mensagem e code", () => {
+    // O objeto cru do PostgrestError carrega `details` e `hint` com o
+    // conteúdo da linha, e o do pagamento carrega o payload da cobrança.
+    const r = resumoErro({
+      message: "erro",
+      code: "P0001",
+      details: "cliente Ana Silva, cartão 4111111111111111",
+      hint: "conferir o total de 250,00",
+      payload: { valor: 250, metodo: "credito" },
+    });
+    expect(r).toBe("erro (code: P0001)");
+  });
+
+  it("aguenta string, null, undefined e objeto esquisito sem lançar", () => {
+    expect(resumoErro(null)).toBe("erro sem detalhe");
+    expect(resumoErro(undefined)).toBe("erro sem detalhe");
+    expect(resumoErro("deu ruim")).toBe("deu ruim");
+    expect(() => resumoErro({ get message() { throw new Error("armadilha"); } })).not.toThrow();
+    expect(resumoErro({ get message() { throw new Error("armadilha"); } })).toBe("erro sem detalhe");
+  });
+
+  it("mascara e-mail e sequência longa de dígitos em texto solto", () => {
+    expect(resumoErro("falhou para ana@loja.com.br")).toContain("[email]");
+    expect(resumoErro("cartão 4111111111111111 recusado")).toContain("[num]");
   });
 });

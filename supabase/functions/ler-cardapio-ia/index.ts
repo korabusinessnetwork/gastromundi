@@ -28,16 +28,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decidirAcesso, mensagemRecusa, PAPEIS_GERENCIA } from "../_shared/guardaEntrada.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
 
-const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+// Origem declarada em vez de curinga, ver _shared/cors.ts. Sem a
+// variável configurada o comportamento segue sendo "*", de propósito.
+const ORIGENS_PERMITIDAS = lerOrigensPermitidas(Deno.env.get("ORIGENS_PERMITIDAS"));
 
 const MAX_IMAGENS = 10; // trava de custo/quota — cardápio real cabe nisso
 const PREFIXO_JPEG = "data:image/jpeg;base64,";
@@ -112,6 +107,13 @@ const PROMPT = [
 ].join("\n");
 
 Deno.serve(async (req) => {
+  const corsHeaders = montarCorsHeaders(req.headers.get("Origin"), ORIGENS_PERMITIDAS);
+  function json(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

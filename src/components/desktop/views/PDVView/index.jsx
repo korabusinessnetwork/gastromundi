@@ -18,6 +18,7 @@ import { classificarEstoque } from "@/lib/estoqueSituacao";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
+import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/lib/combos";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
@@ -156,7 +157,7 @@ export default function PDVView({ notify }) {
       .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
       .eq("ativo", true)
       .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", error); return; }
+        if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
         if (ativo) setCombos(data ?? []);
       });
     return () => { ativo = false; };
@@ -420,7 +421,7 @@ export default function PDVView({ notify }) {
       setTimeout(() => setToast(false), 6000);
       handleBack();
     } catch (err) {
-      console.error("Erro ao lançar pedido:", err);
+      console.error("Erro ao lançar pedido:", resumoErro(err));
       notify?.("Erro ao lançar o pedido, nada foi salvo. Tente novamente.", "err");
     } finally {
       setSalvando(false);
@@ -451,7 +452,7 @@ export default function PDVView({ notify }) {
     } catch (err) {
       // Mantém o carrinho e NÃO entra no checkout: cobrar itens que não
       // foram gravados geraria divergência entre a conta e a comanda.
-      console.error("handleFinalizar error:", err?.message ?? err, err);
+      console.error("handleFinalizar error:", resumoErro(err));
       notify?.("Não foi possível salvar os itens antes de fechar a conta. Tente novamente.", "err");
     }
   };
@@ -471,8 +472,9 @@ export default function PDVView({ notify }) {
       handleBack();
       return { error: null };
     } catch (err) {
-      // não usar JSON.stringify: mascara Error como "{}"
-      console.error("handleConfirmPayment error:", err?.message ?? err, err);
+      // Só o resumo mascarado: o objeto cru leva o payload da cobrança
+      // para o console de um terminal compartilhado. Ver resumoErro.
+      console.error("handleConfirmPayment error:", resumoErro(err));
       // Devolve o erro para o CheckoutView exibir e reabilitar o botão —
       // engolir aqui deixava o checkout preso em "Processando...".
       return { error: err instanceof Error ? err : new Error("Não foi possível registrar o pagamento. Tente novamente.") };
