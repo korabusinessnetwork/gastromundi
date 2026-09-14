@@ -58,7 +58,9 @@ describe("formatarPreco", () => {
   it("formata em reais com vírgula decimal", () => {
     expect(formatarPreco(12.5)).toBe("R$ 12,50");
     expect(formatarPreco(0)).toBe("R$ 0,00");
-    expect(formatarPreco(1234.9)).toBe("R$ 1234,90");
+    // O separador de milhar veio junto com o formatador comum
+    // (src/lib/dinheiro.js): "R$ 1234,90" se lê errado.
+    expect(formatarPreco(1234.9)).toBe("R$ 1.234,90");
   });
   it("valor inválido vira R$ 0,00", () => {
     expect(formatarPreco(null)).toBe("R$ 0,00");

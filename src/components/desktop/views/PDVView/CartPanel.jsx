@@ -11,6 +11,7 @@ import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import BotaoReimprimirVia from "./BotaoReimprimirVia";
 import "./CartPanel.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -193,7 +194,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                           color: cancelado ? varColor(C.muted) : varColor(C.green),
                           textDecoration: cancelado ? "line-through" : "none",
                         }}>
-                          R$ {(item.price * qty).toFixed(2)}
+                          {formatarReais((item.price * qty))}
                         </div>
                         {onRemoveAcumulado && !cancelado && (
                           <button
@@ -279,10 +280,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 {/* Linha 2: preço · subtotal */}
                 <div className="cart-panel__preco-linha">
                   <span className="cart-panel__preco-unitario" style={{ color: varColor(C.muted), flex: 1 }}>
-                    R$ {Number(item.price).toFixed(2)} cada
+                    {formatarReais(Number(item.price))} cada
                   </span>
                   <span className="cart-panel__subtotal-item" style={{ fontWeight: 800, color: varColor(C.text), flexShrink: 0 }}>
-                    R$ {(item.price * item.qty).toFixed(2)}
+                    {formatarReais((item.price * item.qty))}
                   </span>
                 </div>
 
@@ -336,14 +337,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               Novos itens (a lançar)
             </span>
             <span className="cart-panel__subtotal-valor" style={{ color: varColor(C.text) }}>
-              R$ {total.toFixed(2)}
+              {formatarReais(total)}
             </span>
           </div>
         )}
         <div className="cart-panel__total-linha" style={{ marginBottom: sz.padSm }}>
           <span className="cart-panel__total-label" style={{ fontWeight: 800 }}>Total da comanda</span>
           <span className="cart-panel__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
-            R$ {totalGeral.toFixed(2)}
+            {formatarReais(totalGeral)}
           </span>
         </div>
 
@@ -371,7 +372,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           }}
         >
           <LuWallet size={15} style={{ marginRight: 6 }} />
-          Finalizar Comanda{totalGeral > 0 ? ` · R$ ${totalGeral.toFixed(2)}` : ""}
+          Finalizar Comanda{totalGeral > 0 ? ` · ${formatarReais(totalGeral)}` : ""}
         </button>
       </div>
 
@@ -564,7 +565,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               </div>
               <div style={{ textAlign: "right", flexShrink: 0 }}>
                 <div className="cart-panel__resumo-total-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", marginBottom: 4 }}>Total</div>
-                <div className="cart-panel__resumo-total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>R$ {totalGeral.toFixed(2)}</div>
+                <div className="cart-panel__resumo-total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>{formatarReais(totalGeral)}</div>
               </div>
             </div>
 

@@ -39,10 +39,8 @@ export function cepCompleto(bruto) {
  * Só para MOSTRAR — nunca é o valor que vale (o servidor recalcula).
  * @param {number} valor
  */
-export function formatarPreco(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
+import { formatarReais as formatarPreco } from "./dinheiro";
+export { formatarPreco };
 
 /**
  * Lê o que o cliente DIGITOU num campo de dinheiro. O teclado brasileiro

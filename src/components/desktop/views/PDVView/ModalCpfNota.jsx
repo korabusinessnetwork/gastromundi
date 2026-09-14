@@ -6,6 +6,7 @@ import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/docume
 import { destDoCliente } from "@/lib/nfceVenda";
 import CampoDocumento from "@/components/shared/CampoDocumento";
 import "./ModalCpfNota.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 /**
  * Etapa "CPF na nota" — aparece ao finalizar a venda quando o add-on `nfe`
@@ -108,7 +109,7 @@ export default function ModalCpfNota({ total = 0, cliente = null, onConfirmar, o
             className="modal-cpf-nota__btn-emitir"
           >
             {preenchido ? `Emitir com ${docLabel}` : "Emitir sem CPF"}
-            <span className="modal-cpf-nota__btn-total">R$ {Number(total).toFixed(2)}</span>
+            <span className="modal-cpf-nota__btn-total">{formatarReais(Number(total))}</span>
           </button>
         </div>
       </div>

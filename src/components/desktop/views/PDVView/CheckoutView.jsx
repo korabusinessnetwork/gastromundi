@@ -18,6 +18,7 @@ import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
 import "./CheckoutView.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -453,7 +454,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
             Pagamento confirmado!
           </div>
           <div className="checkout-view__concluido-sub" style={{ color: varColor(C.muted) }}>
-            {fmtComanda(vendaConcluida.comanda)} · R$ {Number(vendaConcluida.total ?? 0).toFixed(2)}
+            {fmtComanda(vendaConcluida.comanda)} · {formatarReais(Number(vendaConcluida.total ?? 0))}
           </div>
 
           <div className="checkout-view__concluido-acoes">
@@ -593,7 +594,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                       {item.name}
                     </div>
                     <div className="checkout-view__item-preco-unit" style={{ color: varColor(C.muted), marginTop: 4 }}>
-                      {qty}× R$ {Number(item.price).toFixed(2)}
+                      {qty}× {formatarReais(Number(item.price))}
                     </div>
                     {obsArr.map((obs, j) => (
                       <div key={j} className="checkout-view__item-obs" style={{
@@ -605,7 +606,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                   </div>
 
                   <div className="checkout-view__item-total" style={{ color: varColor(C.text) }}>
-                    R$ {(item.price * qty).toFixed(2)}
+                    {formatarReais((item.price * qty))}
                   </div>
 
                   {modoRemocao && (
@@ -678,7 +679,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                   </button>
                 </div>
                 <span className="checkout-view__taxa-valor" style={{ fontWeight: 700, color: aplicarTaxa ? varColor(C.text) : varColor(C.muted), textDecoration: aplicarTaxa ? "none" : "line-through" }}>
-                  R$ {(subtotal * 0.10).toFixed(2)}
+                  {formatarReais((subtotal * 0.10))}
                 </span>
               </div>
             )}
@@ -689,7 +690,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span className="checkout-view__ajuste-aplicado-label" style={{ color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
                     {ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"}
-                    {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `R$ ${parseFloat(ajusteAplicado.valor).toFixed(2)}`})
+                    {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `${formatarReais(parseFloat(ajusteAplicado.valor))}`})
                   </span>
                   <button
                     onClick={() => setAjusteAplicado(null)}
@@ -705,7 +706,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                   </button>
                 </div>
                 <span className="checkout-view__ajuste-aplicado-valor" style={{ fontWeight: 700, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
-                  {valorAjuste < 0 ? "-" : "+"}R$ {Math.abs(valorAjuste).toFixed(2)}
+                  {valorAjuste < 0 ? "-" : "+"}{formatarReais(Math.abs(valorAjuste))}
                 </span>
               </div>
             )}
@@ -714,7 +715,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
             <div className="checkout-view__total-linha" style={{ borderTop: `2px solid var(${C.border})` }}>
               <span className="checkout-view__total-label" style={{ fontWeight: 800, color: varColor(C.muted) }}>Total</span>
               <span className="checkout-view__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
-                R$ {total.toFixed(2)}
+                {formatarReais(total)}
               </span>
             </div>
 
@@ -731,7 +732,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                     Forma de Pagamento
                   </div>
                   <div className="checkout-view__pagamento-subtitulo" style={{ color: varColor(C.muted) }}>
-                    {isSplit ? `${pagamentos.length} pagamentos · R$ ${total.toFixed(2)} total` : "Selecione como o cliente vai pagar"}
+                    {isSplit ? `${pagamentos.length} pagamentos · ${formatarReais(total)} total` : "Selecione como o cliente vai pagar"}
                   </div>
                 </div>
                 {isSplit ? (
@@ -790,7 +791,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                   </div>
                   <span className="checkout-view__stepper-unidade" style={{ color: varColor(C.muted) }}>pessoas</span>
                   <span className="checkout-view__stepper-estimativa" style={{ color: varColor(C.muted), flex: 1 }}>
-                    ≈ R$ {(total / nPessoas).toFixed(2)} cada
+                    ≈ {formatarReais((total / nPessoas))} cada
                   </span>
                   <button
                     onClick={() => dividirPagamento(nPessoas)}
@@ -896,7 +897,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                               color: trocoP >= 0 ? varColor(C.green) : varColor(C.accent),
                               minWidth: 90, textAlign: "right", whiteSpace: "nowrap",
                             }}>
-                              {trocoP >= 0 ? "Troco" : "Falta"}: R$ {Math.abs(trocoP).toFixed(2)}
+                              {trocoP >= 0 ? "Troco" : "Falta"}: {formatarReais(Math.abs(trocoP))}
                             </span>
                           )}
                         </div>
@@ -915,7 +916,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                       {faltaAlocar > 0 ? "Falta alocar" : "Valor excede o total"}
                     </span>
                     <span className="checkout-view__falta-valor" style={{ fontWeight: 900, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
-                      R$ {Math.abs(faltaAlocar).toFixed(2)}
+                      {formatarReais(Math.abs(faltaAlocar))}
                     </span>
                   </div>
                 )}
@@ -1012,7 +1013,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                           {singleTroco >= 0 ? "Troco" : "Falta"}
                         </span>
                         <span className="checkout-view__troco-resultado-valor" style={{ fontWeight: 900, color: singleTroco >= 0 ? varColor(C.green) : varColor(C.accent) }}>
-                          R$ {Math.abs(singleTroco).toFixed(2)}
+                          {formatarReais(Math.abs(singleTroco))}
                         </span>
                       </div>
                     )}
@@ -1048,10 +1049,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                     : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
                     : dinheiroInsuficiente
-                    ? `Faltam R$ ${faltaEmDinheiro.toFixed(2)} em dinheiro — corrija o valor recebido ou divida o pagamento`
+                    ? `Faltam ${formatarReais(faltaEmDinheiro)} em dinheiro — corrija o valor recebido ou divida o pagamento`
                     : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015
-                      ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`
+                      ? `Distribua os ${formatarReais(Math.abs(faltaAlocar))} restantes`
                       : "Selecione a forma de cada pagamento"
                     : "Selecione a forma de pagamento acima"}
                 </div>
@@ -1085,7 +1086,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
             <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
               <div>
                 <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: "#fff" }}>Desconto / Acréscimo</div>
-                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
+                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: {formatarReais(baseComTaxa)}</div>
               </div>
               <button onClick={() => { if (!aplicandoAjuste) fecharAjuste(); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={sz.fontLg} />
@@ -1173,15 +1174,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
                   <div className="checkout-view__preview" style={{ border: `1.5px solid ${alfa(cor, "55")}`, background: alfa(cor, "0c") }}>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span className="checkout-view__preview-label" style={{ color: varColor(C.muted) }}>Total atual</span>
-                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: varColor(C.muted) }}>R$ {baseComTaxa.toFixed(2)}</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: varColor(C.muted) }}>{formatarReais(baseComTaxa)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span className="checkout-view__preview-label" style={{ color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
-                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}{formatarReais(val)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ alignItems: "center", padding: `${sz.padSm}px ${sz.padSm}px` }}>
                       <span className="checkout-view__preview-total-label" style={{ fontWeight: 700, color: varColor(C.text) }}>Novo Total</span>
-                      <span className="checkout-view__preview-total-valor" style={{ fontWeight: 900, color: cor }}>R$ {novoTotal.toFixed(2)}</span>
+                      <span className="checkout-view__preview-total-valor" style={{ fontWeight: 900, color: cor }}>{formatarReais(novoTotal)}</span>
                     </div>
                   </div>
                 );
@@ -1288,7 +1289,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onConc
               <div>
                 <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: varColor(C.red) }}>Remover produto</div>
                 <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
-                  {remocao.item.name} · R$ {Number(remocao.item.price).toFixed(2)}
+                  {remocao.item.name} · {formatarReais(Number(remocao.item.price))}
                 </div>
               </div>
               <button onClick={() => { if (!removendo) setRemocao(null); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>

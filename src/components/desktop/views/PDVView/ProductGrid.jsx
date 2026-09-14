@@ -4,6 +4,7 @@ import { getSizes } from "@/constants/sizes";
 import { montarItemCombo, montarItemProdutoEscolhas } from "@/lib/combos";
 import SeletorEscolhas from "./SeletorEscolhas";
 import "./ProductGrid.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 const CAT_COMBOS = "Combos";
 
@@ -198,11 +199,11 @@ function ProdutoCard({ product, temEscolhas, onSelecionar, sz }) {
       </div>
       {temEscolhas ? (
         <div className="produto-card__preco produto-card__preco--apartir">
-          a partir de R$ {Number(product.price).toFixed(2)}
+          a partir de {formatarReais(Number(product.price))}
         </div>
       ) : (
         <div className="produto-card__preco">
-          R$ {Number(product.price).toFixed(2)}
+          {formatarReais(Number(product.price))}
         </div>
       )}
     </button>
@@ -238,7 +239,7 @@ function ComboCard({ combo, onSelecionar, sz }) {
         </div>
       )}
       <div className="produto-card__preco">
-        R$ {Number(combo.preco_total ?? 0).toFixed(2)}
+        {formatarReais(Number(combo.preco_total ?? 0))}
       </div>
     </button>
   );

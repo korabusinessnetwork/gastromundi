@@ -365,11 +365,11 @@ export function formatarCep(bruto) {
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
 
-/** Número → "R$ 5,00" (pt-BR). */
-export function formatarReais(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
+// Reexporta o formatador comum (src/lib/dinheiro.js). Era uma cópia com
+// `toFixed`, que não punha separador de milhar; o nome fica para não
+// mexer em quem já importa daqui.
+import { formatarReais } from "./dinheiro";
+export { formatarReais };
 
 /** Km sem casas inúteis: 3 → "3", 2.5 → "2,5". */
 export function formatarKm(valor) {
