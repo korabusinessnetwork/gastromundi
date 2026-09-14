@@ -221,6 +221,10 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "Maria",
       clienteId: null,
       origem: "pdv",
+      cancelada: false,
+      motivoCancelamento: null,
+      canceladaPor: null,
+      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Hambúrguer", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -250,6 +254,10 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: null,
       clienteId: null,
       origem: "pdv",
+      cancelada: false,
+      motivoCancelamento: null,
+      canceladaPor: null,
+      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Água", price: 5, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -275,6 +283,10 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "joao",
       clienteId: null,
       origem: "pdv",
+      cancelada: false,
+      motivoCancelamento: null,
+      canceladaPor: null,
+      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 4, name: "Pizza", price: 40, qty: 1, cancelado: true, motivoCancelamento: "Pedido errado", canceladoPor: "joao" },
@@ -313,6 +325,10 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "joao",
       clienteId: "cli-123",
       origem: "pdv",
+      cancelada: false,
+      motivoCancelamento: null,
+      canceladaPor: null,
+      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Suco", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },

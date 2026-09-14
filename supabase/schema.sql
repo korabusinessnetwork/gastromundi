@@ -307,6 +307,29 @@ CREATE TABLE public.pending (
   tenant_id  uuid NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id) -- 20260724
 );
 
+-- ── comandas_arquivadas — 20261009_integridade_do_historico.sql ──
+-- O que o cliente pediu não se apaga. Toda comanda que sai de `pending`
+-- (finalizada OU cancelada) é copiada para cá por um gatilho BEFORE
+-- DELETE (public.arquivar_comanda), então o registro não depende de a
+-- tela lembrar de arquivar — vale também para script e para bug.
+-- `dados` é a linha INTEIRA em jsonb: coluna nova em `pending` entra
+-- aqui sozinha, em vez de parar de ser guardada sem avisar.
+-- DELETE bloqueado para o app por policy RESTRICTIVE.
+CREATE TABLE public.comandas_arquivadas (
+  id           text        PRIMARY KEY,
+  comanda      text,
+  mesa         text,
+  total        numeric(12,2),
+  garcom       text,
+  criada_em    timestamptz,
+  arquivada_em timestamptz NOT NULL DEFAULT now(),
+  dados        jsonb       NOT NULL,
+  tenant_id    uuid        NOT NULL REFERENCES public.tenants(id)
+);
+CREATE INDEX comandas_arquivadas_tenant_idx  ON public.comandas_arquivadas (tenant_id);
+CREATE INDEX comandas_arquivadas_data_idx    ON public.comandas_arquivadas (arquivada_em DESC);
+CREATE INDEX comandas_arquivadas_comanda_idx ON public.comandas_arquivadas (comanda);
+
 -- ── sales (vendas finalizadas — payload JSONB; ver TD009) ─────
 -- TD009 etapa 2: sales mantida como gravação de backup (dual-write).
 -- O app já NÃO lê mais daqui — leituras vêm de vendas/venda_itens/venda_pagamentos.
@@ -337,7 +360,13 @@ CREATE TABLE public.vendas (
   at           timestamptz NOT NULL DEFAULT now(),
   tenant_id    uuid        NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id), -- 20260724
   origem       text        NOT NULL DEFAULT 'pdv',  -- 20261002 — 'pdv' | 'delivery' (CHECK na migração)
-  delivery_pedido_id uuid  REFERENCES public.delivery_pedidos(id) ON DELETE SET NULL  -- 20261002 — UNIQUE parcial
+  delivery_pedido_id uuid  REFERENCES public.delivery_pedidos(id) ON DELETE SET NULL,  -- 20261002 — UNIQUE parcial
+  -- 20261009 — cancelar é MARCAR, nunca apagar: a venda existiu e precisa
+  -- continuar dizendo quanto foi, por quem foi desfeita e por quê.
+  cancelada            boolean     NOT NULL DEFAULT false,
+  motivo_cancelamento  text,
+  cancelada_por        text,
+  cancelada_em         timestamptz
 );
 
 CREATE TABLE public.venda_itens (
@@ -378,7 +407,9 @@ CREATE TABLE public.lancamentos (
   valor       numeric(12,2)     NOT NULL CHECK (valor > 0),
   competencia date        NOT NULL,
   vencimento  date,
-  status      text        NOT NULL DEFAULT 'previsto' CHECK (status IN ('previsto', 'pago', 'recebido', 'vencido')),
+  -- 'cancelado' entrou em 20261009: conta desfeita fica como desfeita, em
+  -- vez de sumir do Financeiro.
+  status      text        NOT NULL DEFAULT 'previsto' CHECK (status IN ('previsto', 'pago', 'recebido', 'vencido', 'cancelado')),
   origem      text        NOT NULL DEFAULT 'manual' CHECK (origem IN ('venda', 'manual', 'estoque')),
   venda_id    text        REFERENCES public.vendas(id) ON DELETE SET NULL,
   cliente_id  uuid        REFERENCES public.clientes(id) ON DELETE SET NULL, -- F010, 20260713_clientes.sql
@@ -386,6 +417,9 @@ CREATE TABLE public.lancamentos (
   criado_por  text,
   baixado_por text,
   baixado_em  timestamptz,
+  cancelado_por       text,        -- 20261009
+  cancelado_em        timestamptz, -- 20261009
+  motivo_cancelamento text,        -- 20261009
   created_at  timestamptz NOT NULL DEFAULT now(),
   tenant_id   uuid        NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id) -- 20260724
 );

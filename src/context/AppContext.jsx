@@ -330,7 +330,7 @@ export function AppProvider({ children }) {
     try {
       const { data: vendasData, error: eVendas } = await supabase
         .from("vendas")
-        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem")
+        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem,cancelada,motivo_cancelamento,cancelada_por,cancelada_em")
         .gte("at", desde)
         .order("at", { ascending: false });
       if (eVendas) throw eVendas;
@@ -1370,11 +1370,17 @@ export function AppProvider({ children }) {
   };
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
-  // O blob em `sales` NÃO é apagado: marcamos data.cancelada (trilha de
-  // auditoria) e removemos as linhas relacionais (TD009), já que o caminho
-  // de leitura é relacional-first — apagar as linhas tira a venda dos
-  // relatórios sem precisar de migration. Lançamentos financeiros da venda
-  // (receita automática / fiado) também são removidos.
+  //
+  // Cancelar é MARCAR, nunca apagar (migração 20261009). Antes esta função
+  // deletava venda_pagamentos, venda_itens, vendas e o lançamento
+  // financeiro: o blob em `sales` sobrevivia marcado, mas a itemização
+  // sumia das tabelas que o app usa para ler, e um fiado cancelado
+  // desaparecia do Financeiro em vez de ficar como cancelado. Uma venda
+  // que existiu e foi desfeita é informação — quanto, de quem, por quem e
+  // por quê —, não sujeira a limpar.
+  //
+  // O banco agora recusa o DELETE nessas tabelas (policy RESTRICTIVE), de
+  // modo que voltar ao caminho antigo não passa nem por engano.
   const cancelarVendaFechada = async (vendaId, motivo) => {
     const alvo = sales.find(s => s && s.id === vendaId);
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
@@ -1402,16 +1408,29 @@ export function AppProvider({ children }) {
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
     }
 
-    // Espelho relacional: filhos antes do cabeçalho (FK). Falha aqui não
-    // desfaz o cancelamento (o blob é a fonte de verdade) — só registra.
-    const { error: ePag } = await supabase.from("venda_pagamentos").delete().eq("venda_id", vendaId);
-    if (ePag) console.error("cancelarVendaFechada venda_pagamentos:", ePag);
-    const { error: eIt } = await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
-    if (eIt) console.error("cancelarVendaFechada venda_itens:", eIt);
-    const { error: eVen } = await supabase.from("vendas").delete().eq("id", vendaId);
+    // Espelho relacional: a linha fica, marcada. Falha aqui não desfaz o
+    // cancelamento (o blob é a fonte de verdade) — só registra.
+    const carimbo = {
+      cancelada: true,
+      motivo_cancelamento: motivo,
+      cancelada_por: cancelada.canceladaPor,
+      cancelada_em: cancelada.canceladaEm,
+    };
+    const { error: eVen } = await supabase.from("vendas").update(carimbo).eq("id", vendaId);
     if (eVen) console.error("cancelarVendaFechada vendas:", eVen);
 
-    const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
+    // O lançamento vira cancelado em vez de sumir: a conta a receber de um
+    // fiado desfeito precisa continuar aparecendo no Financeiro como
+    // desfeita, ou o histórico do cliente fica com um buraco sem nome.
+    const { error: eLanc } = await supabase
+      .from("lancamentos")
+      .update({
+        status: "cancelado",
+        cancelado_por: cancelada.canceladaPor,
+        cancelado_em: cancelada.canceladaEm,
+        motivo_cancelamento: motivo,
+      })
+      .eq("venda_id", vendaId);
     if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);
 
     setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));

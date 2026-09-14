@@ -171,6 +171,13 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     // 20261002 — 'pdv' | 'delivery'. Venda gravada antes da coluna existir
     // é de balcão: era o único jeito de vender.
     origem: venda.origem === "delivery" ? "delivery" : "pdv",
+    // 20261009 — venda cancelada deixou de ser apagada e passou a ser
+    // marcada. Sem ler a marca aqui, ela voltaria a contar no faturamento:
+    // a linha existe de novo, e nada diria que foi desfeita.
+    cancelada: venda.cancelada === true,
+    motivoCancelamento: venda.motivo_cancelamento ?? null,
+    canceladaPor: venda.cancelada_por ?? null,
+    canceladaEm: venda.cancelada_em ?? null,
     clienteId: venda.cliente_id ?? null,
     at: venda.at,
     items: (itens ?? []).map((item) => ({
