@@ -8,6 +8,7 @@ vi.mock("./supabase", async () => {
 });
 
 import {
+  dataNascimentoUtil,
   consultasDeGeocodificacao,
   localizarEndereco,
   apenasDigitosCep,
@@ -414,7 +415,7 @@ describe("montarPayloadPedido", () => {
       ],
     });
     expect(payload).toEqual({
-      cliente: { nome: "Ana", telefone: "5199" },
+      cliente: { nome: "Ana", telefone: "5199", data_nascimento: null },
       entrega: { tipo: "entrega", cep: "90000000", cidade: "", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
       pagamento: { forma: "dinheiro", troco_para: 50, levar_maquininha: false },
       itens: [{ produto_id: 7, combo_id: null, qtd: 2, complementos: ["c1"], obs: "sem cebola" }],
@@ -1241,5 +1242,74 @@ describe("localizarEndereco — o prazo da escada", () => {
     const { data } = await localizarEndereco({}, { agora: relogio(50) });
     expect(globalThis.fetch).not.toHaveBeenCalled();
     expect(data).toBeNull();
+  });
+});
+
+describe("dataNascimentoUtil", () => {
+  // O campo é OPCIONAL e serve para o futuro (aniversário), não para
+  // barrar a compra de hoje. Por isso a função não diz "inválido": diz se
+  // dá para aproveitar. O que não dá simplesmente não vai, e o pedido segue.
+  it("aproveita uma data plausível", () => {
+    expect(dataNascimentoUtil("1990-05-10")).toBe("1990-05-10");
+  });
+
+  it("não aproveita o que está vazio ou pela metade", () => {
+    for (const ruim of ["", "   ", null, undefined, "1990", "1990-05", "10/05/1990"]) {
+      expect(dataNascimentoUtil(ruim)).toBeNull();
+    }
+  });
+
+  it("não aproveita dia que não existe no mês", () => {
+    // O Date aceita "2025-02-31" e rola para março: sem conferir de volta,
+    // o cliente nasceria em 3 de março sem nunca ter digitado isso.
+    expect(dataNascimentoUtil("2025-02-31")).toBeNull();
+    expect(dataNascimentoUtil("2025-13-01")).toBeNull();
+  });
+
+  it("não aproveita data no futuro", () => {
+    const amanha = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(amanha)).toBeNull();
+  });
+
+  it("não aproveita idade impossível", () => {
+    expect(dataNascimentoUtil("1800-01-01")).toBeNull();
+  });
+
+  it("hoje é aproveitável — recém-nascido é caso raro, não erro", () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(hoje)).toBe(hoje);
+  });
+});
+
+describe("montarPayloadPedido — data de nascimento", () => {
+  const base = {
+    entrega: { tipo: "retirada" },
+    pagamento: { forma: "pix" },
+    itens: [{ produto_id: 1, qtd: 1 }],
+  };
+
+  it("vai junto quando o cliente informou", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "1990-05-10" },
+    });
+    expect(p.cliente.data_nascimento).toBe("1990-05-10");
+  });
+
+  it("vira null quando não informou — é o que diz ao servidor para não mexer no cadastro", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+  });
+
+  it("lixo não viaja: o pedido sai igual, sem a data", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "31/02/2025" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+    expect(p.cliente.nome).toBe("Ana");
   });
 });

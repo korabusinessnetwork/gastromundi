@@ -63,6 +63,42 @@ export function valorDigitado(texto) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ── Data de nascimento (cadastro do cliente) ───────────────────────
+
+/**
+ * A data de nascimento é OPCIONAL e existe para o futuro (aniversário do
+ * cliente), não para barrar a compra de hoje. Por isso esta função não
+ * diz "inválido": ela diz se dá para APROVEITAR o que foi digitado. Data
+ * vazia, pela metade, no futuro ou de idade impossível simplesmente não
+ * é aproveitada, e o pedido segue igual.
+ *
+ * Recebe o formato do <input type="date"> ("AAAA-MM-DD"), que é o mesmo
+ * que o Postgres aceita — o campo não é digitado à mão em pt-BR.
+ *
+ * @param {string} texto
+ * @returns {string|null} a data pronta para gravar, ou null
+ */
+export function dataNascimentoUtil(texto) {
+  const bruto = String(texto ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return null;
+  // Tudo em UTC e comparado como TEXTO. Data de nascimento é dia de
+  // calendário, não instante: montar Date no fuso local faz "hoje" virar
+  // "amanhã" (ou ontem) conforme a hora e onde a pessoa está, e o campo
+  // recusaria uma data perfeitamente boa dependendo do relógio.
+  const d = new Date(`${bruto}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  // "2026-02-31" o Date aceita e rola para março: comparar de volta é o
+  // que pega dia que não existe no mês.
+  if (d.toISOString().slice(0, 10) !== bruto) return null;
+  const hoje = new Date();
+  const hojeISO = hoje.toISOString().slice(0, 10);
+  if (bruto > hojeISO) return null;
+  // Texto ISO compara na ordem certa por ser sempre AAAA-MM-DD.
+  const limiteISO = `${hoje.getUTCFullYear() - 120}${hojeISO.slice(4)}`;
+  if (bruto < limiteISO) return null;
+  return bruto;
+}
+
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
 
 /**
@@ -394,6 +430,11 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
       // número limpo. Gravar "(11) 91234-5678" faria a mesma pessoa virar
       // dois contatos diferentes conforme quem digitou a máscara.
       telefone: apenasDigitosTelefone(cliente?.telefone) || null,
+      // Opcional, e só vai quando dá para aproveitar (ver
+      // dataNascimentoUtil). O servidor cria o cadastro do cliente no
+      // primeiro pedido daquele telefone e guarda a data ali — a mesma
+      // pessoa pedindo de novo não é perguntada outra vez.
+      data_nascimento: dataNascimentoUtil(cliente?.dataNascimento),
     },
     entrega: retirada
       ? // Retirada: o cliente vai buscar. Mandar CEP, endereço e coordenada

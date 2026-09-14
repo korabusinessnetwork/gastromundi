@@ -103,7 +103,11 @@ WITH marcas (n, migracao, marca_existe) AS (
                     AND pg_get_constraintdef(oid) LIKE '%maximo = 0%')),
     (27, '20261005_desabilitar_produto_espelho',
          EXISTS (SELECT 1 FROM pg_trigger
-                  WHERE tgname = 'products_espelha_delivery' AND NOT tgisinternal))
+                  WHERE tgname = 'products_espelha_delivery' AND NOT tgisinternal)),
+    (28, '20261006_cliente_do_delivery',
+         EXISTS (SELECT 1 FROM information_schema.columns
+                  WHERE table_schema='public' AND table_name='clientes'
+                    AND column_name='data_nascimento'))
 )
 SELECT
   n                                                    AS "nº",
@@ -126,11 +130,14 @@ WITH marcas AS (
   + (to_regprocedure('public.registrar_venda_delivery(uuid)') IS NOT NULL)::int
   + (EXISTS (SELECT 1 FROM pg_trigger
               WHERE tgname = 'products_espelha_delivery' AND NOT tgisinternal))::int
+  + (EXISTS (SELECT 1 FROM information_schema.columns
+              WHERE table_schema='public' AND table_name='clientes'
+                AND column_name='data_nascimento'))::int
   AS marcos_grandes
 )
 SELECT
-  marcos_grandes || ' de 8 marcos grandes presentes' AS "resumo rápido",
-  CASE WHEN marcos_grandes = 8
+  marcos_grandes || ' de 9 marcos grandes presentes' AS "resumo rápido",
+  CASE WHEN marcos_grandes = 9
        THEN 'Parece bem atualizado — mesmo assim, rode o APLICAR_MIGRACOES_PENDENTES.sql para fechar as pontas.'
        ELSE 'Faltam migrações. Rode o APLICAR_MIGRACOES_PENDENTES.sql inteiro.' END AS "o que fazer"
 FROM marcas;

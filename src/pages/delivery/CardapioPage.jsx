@@ -222,7 +222,14 @@ export default function CardapioPage() {
     // corrige o problema, dá certo, e a tela segue acusando o erro velho.
     setErro("");
     const payload = montarPayloadPedido({
-      cliente: { nome: entrega.nome, telefone: entrega.telefone },
+      cliente: {
+        nome: entrega.nome,
+        telefone: entrega.telefone,
+        // Só o primeiro pedido do aparelho mostra o campo, então na maioria
+        // das vezes isto é undefined — e o payload manda null, que o
+        // servidor entende como "não informou" e deixa o cadastro como está.
+        dataNascimento: entrega.dataNascimento,
+      },
       entrega,
       pagamento,
       itens,

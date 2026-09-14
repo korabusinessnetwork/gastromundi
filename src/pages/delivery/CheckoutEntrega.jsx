@@ -31,6 +31,7 @@ import {
   formatarPreco,
   localizarEndereco,
 } from "@/lib/delivery";
+import { entregaLembrada } from "@/lib/deliveryDispositivo";
 import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
 
@@ -55,6 +56,16 @@ export default function CheckoutEntrega({
   // está digitando.
   const [telefoneTocado, setTelefoneTocado] = useState(false);
   const cepAnterior = useRef("");
+
+  // Primeiro pedido DESTE aparelho: o armazenamento local só tem dados de
+  // entrega depois que alguém pediu daqui. É o sinal que a vitrine já usa
+  // para pré-preencher o formulário, e serve aqui sem inventar nada nem
+  // perguntar ao servidor se o telefone é conhecido — o que, além de uma
+  // ida à rede, diria a qualquer um se um número é cliente da casa.
+  // Lido UMA vez: ele passa a ser falso assim que o pedido é salvo, e o
+  // campo não pode sumir da tela no meio do preenchimento.
+  const [primeiroPedido] = useState(() => Object.keys(entregaLembrada()).length === 0);
+  const hojeISO = new Date().toISOString().slice(0, 10);
 
   // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
   // texto dentro do painel NÃO fecha — era esse o defeito.
@@ -324,6 +335,32 @@ export default function CheckoutEntrega({
               </p>
             )}
           </div>
+
+          {/* Só no PRIMEIRO pedido deste aparelho, e opcional. Perguntar a
+              data de nascimento em toda compra seria pedágio: quem já pediu
+              antes não vê este campo. O "(opcional)" está no rótulo, não
+              escondido na ajuda, porque um campo a mais entre a pessoa e a
+              comida precisa dizer na hora que dá para pular. */}
+          {primeiroPedido && (
+            <div className="campo">
+              <label className="campo__label" htmlFor="ent-nasc">
+                Data de nascimento <span className="campo__opcional">(opcional)</span>
+              </label>
+              <input
+                id="ent-nasc"
+                className="campo__input"
+                type="date"
+                autoComplete="bday"
+                max={hojeISO}
+                value={dados.dataNascimento ?? ""}
+                onChange={(e) => onMudar({ dataNascimento: e.target.value })}
+              />
+              <p className="linha-sacola__extra checkout-entrega__ajuda">
+                Só para o estabelecimento lembrar de você no seu aniversário.
+                Não é usado em mais nada e não atrapalha o pedido.
+              </p>
+            </div>
+          )}
 
           {retirada ? (
             // Onde buscar, quando fica pronto e quanto custa a entrega
