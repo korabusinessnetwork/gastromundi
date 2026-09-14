@@ -29,7 +29,7 @@ import {
   cepCompleto,
   formatarCep,
   formatarPreco,
-  geocodificarEndereco,
+  localizarEndereco,
 } from "@/lib/delivery";
 import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
@@ -46,6 +46,8 @@ export default function CheckoutEntrega({
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
   const [erroTaxa, setErroTaxa] = useState("");
+  // Taxa calculada por aproximação (não achamos a rua exata no mapa).
+  const [taxaAproximada, setTaxaAproximada] = useState(false);
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
   const [tentativa, setTentativa] = useState(0);
   // O aviso do telefone só aparece depois que a pessoa saiu do campo:
@@ -152,9 +154,14 @@ export default function CheckoutEntrega({
       // Modo por distância: o servidor pediu coordenada. Geocodifica o
       // endereço digitado e recalcula. Falha de geocode → mantém o motivo.
       let coord = null;
-      if (res?.motivo === "sem_coordenada" && endereco.trim()) {
-        const texto = [endereco, bairro].filter(Boolean).join(", ");
-        const { data: geo } = await geocodificarEndereco(texto);
+      if (res?.motivo === "sem_coordenada" && (endereco.trim() || bairro)) {
+        // Escada de consultas (ver localizarEndereco): a rua com a cidade
+        // primeiro, e degraus cada vez mais tolerantes até o bairro. Antes
+        // era UMA tentativa, sem a cidade — uma letra trocada na rua
+        // derrubava o pedido inteiro e o botão ficava morto sem explicar.
+        const { data: geo } = await localizarEndereco({
+          endereco, bairro, cidade: dados.cidade, cep,
+        });
         if (geo) {
           coord = geo;
           const r2 = await calcularTaxaEntrega(slug, cep, bairro, geo.lat, geo.lng);
@@ -164,6 +171,9 @@ export default function CheckoutEntrega({
 
       if (!ativo) return;
       setTaxa(res);
+      // A coordenada veio do bairro/CEP, não da rua: a taxa é uma
+      // estimativa e o cliente precisa saber antes de fechar o pedido.
+      setTaxaAproximada(Boolean(res?.ok && coord && coord.precisao === "aproximada"));
       // Sem resposta nenhuma (rede caída, RPC fora do ar, estabelecimento sem
       // entrega configurada) a tela não dizia UMA palavra: nenhum aviso,
       // nenhuma taxa, e o "Ir para o pagamento" desabilitado sem motivo
@@ -188,7 +198,7 @@ export default function CheckoutEntrega({
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, dados.bairro, dados.endereco, slug, tentativa, retirada]);
+  }, [dados.cep, dados.bairro, dados.endereco, dados.cidade, slug, tentativa, retirada]);
 
   const semCoordenada = taxa?.motivo === "sem_coordenada";
   const indisponivelKm = taxa?.motivo === "origem_indefinida";
@@ -450,10 +460,25 @@ export default function CheckoutEntrega({
                   )}
                 </div>
               )}
+              {/* Só chega aqui quando NENHUM degrau da escada achou nada —
+                  nem o bairro com a cidade. Aí o que falta mesmo é a
+                  cidade ou o bairro, não a grafia da rua, e a mensagem
+                  precisa dizer onde mexer em vez de mandar conferir tudo. */}
               {!calculandoTaxa && semCoordenada && (
                 <div className="vitrine__aviso vitrine__aviso--erro">
-                  Não consegui localizar seu endereço no mapa. Confira a rua e o número
-                  para calcular a entrega.
+                  Não consegui localizar esse endereço no mapa. Confira a cidade e o
+                  bairro — com os dois preenchidos eu consigo calcular a entrega mesmo
+                  que a rua esteja com algum erro de digitação.
+                </div>
+              )}
+              {/* Achou pelo bairro ou pelo CEP, não pela rua. A taxa sai e o
+                  pedido anda, mas dizer que é estimada é o mínimo: ela foi
+                  medida do centro do bairro, não da porta do cliente. */}
+              {!calculandoTaxa && temTaxa && taxaAproximada && (
+                <div className="vitrine__aviso">
+                  Não achei a rua exata no mapa, então calculei a entrega pelo seu
+                  bairro. O valor pode mudar um pouco na confirmação do
+                  estabelecimento.
                 </div>
               )}
               {!calculandoTaxa && indisponivelKm && (

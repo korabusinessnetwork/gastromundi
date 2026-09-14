@@ -644,6 +644,100 @@ export async function buscarEnderecoViaCep(cep) {
 // ── Nominatim / OpenStreetMap (grátis) — geocodificação p/ taxa por km ──
 
 /**
+ * A escada de consultas para achar o endereço no mapa, da mais precisa
+ * para a mais tolerante. Pura — quem vai à rede é `localizarEndereco`.
+ *
+ * POR QUE UMA ESCADA. No modo "taxa por distância" o pedido só sai se a
+ * coordenada for encontrada. Antes se mandava UMA consulta, montada como
+ * "rua, bairro" — sem a cidade. Duas consequências, as duas ruins:
+ *
+ *  · sem cidade, o Nominatim procura a rua no Brasil inteiro. "Rua das
+ *    Flores, 100, Centro" existe em centenas de cidades: ou não acha, ou
+ *    acha a errada e a taxa sai de uma distância que não é a real;
+ *  · qualquer tropeço na digitação da rua — uma letra trocada, "av." em
+ *    vez de "avenida", o número da casa que o Nominatim não reconhece —
+ *    derrubava a única tentativa, e o cliente ficava com o botão morto
+ *    sem saber o que corrigir.
+ *
+ * Cada degrau abre mão de um detalhe e mantém o resto. A última é o
+ * bairro com a cidade: aproxima pelo centro do bairro, o que ainda dá uma
+ * taxa honesta. NÃO existe degrau de "só a cidade" — o centro da cidade
+ * pode estar a quilômetros do cliente, e aí a taxa mentiria feio.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @returns {Array<{q:string, precisao:'exata'|'aproximada'}>} sem repetição, em ordem
+ */
+export function consultasDeGeocodificacao(partes) {
+  const limpo = (v) => String(v ?? "").trim().replace(/\s+/g, " ");
+  const endereco = limpo(partes?.endereco);
+  const bairro = limpo(partes?.bairro);
+  const cidade = limpo(partes?.cidade);
+  const cep = apenasDigitosCep(partes?.cep);
+
+  // "Rua das Flores, 100" → "Rua das Flores". O número da casa é a parte
+  // que o Nominatim mais erra, e tirá-lo costuma resolver sozinho.
+  const semNumero = endereco.replace(/,?\s*\d+\s*$/, "").trim();
+
+  const juntar = (...ps) => ps.filter(Boolean).join(", ");
+  // Cada degrau só existe se a peça que o define existir. Sem esta guarda,
+  // um formulário só com a cidade fazia o primeiro degrau virar "Porto
+  // Alegre" — o degrau proibido, entrando pela porta dos fundos.
+  const candidatos = [
+    { q: endereco ? juntar(endereco, bairro, cidade) : "", precisao: "exata" },
+    { q: endereco ? juntar(endereco, cidade) : "", precisao: "exata" },
+    { q: endereco && semNumero && semNumero !== endereco ? juntar(semNumero, bairro, cidade) : "", precisao: "exata" },
+    { q: cepCompleto(cep) ? cep : "", precisao: "aproximada" },
+    // Os DOIS, sempre. Só o bairro cai no mesmo problema da rua sem cidade
+    // (procura no Brasil inteiro), e só a cidade seria o degrau proibido:
+    // o centro da cidade pode estar a quilômetros do cliente.
+    { q: bairro && cidade ? juntar(bairro, cidade) : "", precisao: "aproximada" },
+  ];
+
+  const vistos = new Set();
+  return candidatos.filter((c) => {
+    // Consulta curta demais o Nominatim recusa.
+    if (!c.q || c.q.length < 4) return false;
+    const chave = c.q.toLowerCase();
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+}
+
+/**
+ * Percorre a escada acima e devolve a PRIMEIRA coordenada encontrada,
+ * dizendo se ela é do endereço exato ou uma aproximação pelo bairro/CEP —
+ * a tela usa isso para avisar que a taxa é estimada.
+ *
+ * PRAZO DA ESCADA INTEIRA, e não de cada degrau. Cada chamada ao Nominatim
+ * já tem 8s (PRAZO_TERCEIRO_MS); cinco degraus em fila seriam até 40s com a
+ * tela presa em "Calculando…" — trocar um endereço que não é achado por uma
+ * espera de quarenta segundos não melhora nada.
+ *
+ * O orçamento é UM tempo limite (PRAZO_TERCEIRO_MS). A regra por trás:
+ * se uma única tentativa consumiu o prazo inteiro, o serviço está fora do
+ * ar e as outras quatro vão consumir o mesmo à toa. Quando ele responde
+ * rápido — que é o caso normal — os cinco degraus cabem em menos de um
+ * segundo e o orçamento nunca é alcançado.
+ *
+ * Mesma degradação graciosa do resto: nunca lança; nada encontrado vira
+ * { data: null }.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @param {{orcamentoMs?:number, agora?:() => number}} [opts] - `agora` injetável para teste
+ * @returns {Promise<{data: {lat:number, lng:number, precisao:string}|null, error: null}>}
+ */
+export async function localizarEndereco(partes, { orcamentoMs = PRAZO_TERCEIRO_MS, agora = Date.now } = {}) {
+  const inicio = agora();
+  for (const { q, precisao } of consultasDeGeocodificacao(partes)) {
+    const { data } = await geocodificarEndereco(q);
+    if (data) return { data: { ...data, precisao }, error: null };
+    if (agora() - inicio >= orcamentoMs) break;
+  }
+  return { data: null, error: null };
+}
+
+/**
  * Resolve latitude/longitude a partir de um endereço em texto, usando o
  * Nominatim (OpenStreetMap) — grátis, sem chave. Usado só no modo "por
  * distância": o navegador do cliente geocodifica o endereço digitado e

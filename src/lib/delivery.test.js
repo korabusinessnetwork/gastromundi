@@ -8,6 +8,8 @@ vi.mock("./supabase", async () => {
 });
 
 import {
+  consultasDeGeocodificacao,
+  localizarEndereco,
   apenasDigitosCep,
   formatarCep,
   cepCompleto,
@@ -1082,5 +1084,162 @@ describe("prazo dos serviços de terceiro (Run 6, leva 11)", () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     expect(await promessa).toEqual({ data: null, error: null });
+  });
+});
+
+describe("consultasDeGeocodificacao", () => {
+  // No modo "taxa por distância" o pedido só sai se a coordenada for
+  // encontrada. Antes era UMA consulta, "rua, bairro", SEM a cidade: uma
+  // letra trocada na rua derrubava o pedido, e o botão ficava morto sem
+  // dizer o que corrigir.
+  const qs = (p) => consultasDeGeocodificacao(p).map((c) => c.q);
+
+  const completo = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre/RS",
+    cep: "90000-000",
+  };
+
+  it("a cidade entra em TODAS as consultas de rua", () => {
+    // Sem ela o Nominatim procura a rua no Brasil inteiro: ou não acha, ou
+    // acha a de outra cidade e a taxa sai de uma distância que não é real.
+    for (const q of qs(completo)) {
+      if (q.startsWith("Rua das Flores")) expect(q).toContain("Porto Alegre");
+    }
+  });
+
+  it("vai da mais precisa para a mais tolerante", () => {
+    expect(qs(completo)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS", // sem o número da casa
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("marca como aproximada só o que não é a rua", () => {
+    const p = consultasDeGeocodificacao(completo);
+    expect(p.filter((c) => c.precisao === "exata").map((c) => c.q)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS",
+    ]);
+    expect(p.filter((c) => c.precisao === "aproximada").map((c) => c.q)).toEqual([
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("NÃO existe degrau só com a cidade", () => {
+    // O centro da cidade pode estar a quilômetros do cliente: a taxa sairia
+    // muito errada, e errada para baixo é prejuízo do estabelecimento.
+    expect(qs({ cidade: "Porto Alegre/RS" })).toEqual([]);
+    expect(qs(completo)).not.toContain("Porto Alegre/RS");
+  });
+
+  it("nem degrau só com o bairro, que cai no mesmo problema da rua sem cidade", () => {
+    expect(qs({ bairro: "Centro" })).toEqual([]);
+  });
+
+  it("sem cidade ainda tenta o que dá, em vez de desistir", () => {
+    expect(qs({ endereco: "Rua das Flores, 100", bairro: "Centro" })).toEqual([
+      "Rua das Flores, 100, Centro",
+      "Rua das Flores, 100",
+      "Rua das Flores, Centro",
+    ]);
+  });
+
+  it("só o bairro e a cidade já dão um degrau — é o caso de quem não sabe a rua", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre/RS" })).toEqual([
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("não repete consulta idêntica", () => {
+    // Sem bairro, "rua+bairro+cidade" e "rua+cidade" viram a mesma coisa.
+    expect(qs({ endereco: "Rua das Flores", cidade: "Porto Alegre" })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+  });
+
+  it("CEP incompleto não vira consulta", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre", cep: "9000" }))
+      .not.toContain("9000");
+  });
+
+  it("espaço sobrando e campo vazio não quebram nada", () => {
+    expect(qs({ endereco: "  Rua   das   Flores  ", cidade: " Porto Alegre " })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+    expect(qs({})).toEqual([]);
+    expect(qs(null)).toEqual([]);
+  });
+});
+
+describe("localizarEndereco — o prazo da escada", () => {
+  // Cada consulta ao Nominatim já tem 8s de prazo. Cinco degraus em fila
+  // seriam até 40s com a tela presa em "Calculando…" — a escada resolveria
+  // o erro de digitação criando uma espera pior.
+  const partes = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre",
+    cep: "90000-000",
+  };
+
+  const relogio = (passoMs) => {
+    let t = 0;
+    return () => (t += passoMs) - passoMs; // devolve o instante ANTES do passo
+  };
+
+  it("serviço rápido: percorre a escada inteira até achar", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      // Só o último degrau (bairro + cidade) responde.
+      const achou = tentativas === 5;
+      return { ok: true, json: async () => (achou ? [{ lat: "-30.0", lon: "-51.2" }] : []) };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(5);
+    expect(data).toMatchObject({ lat: -30, lng: -51.2, precisao: "aproximada" });
+  });
+
+  it("serviço pendurado: gasta UM prazo e para, em vez de cinco", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [] };
+    });
+
+    // Cada tentativa "leva" 8s — é o serviço consumindo o prazo inteiro.
+    const { data } = await localizarEndereco(partes, { agora: relogio(8000) });
+
+    expect(tentativas).toBe(1);
+    expect(data).toBeNull();
+  });
+
+  it("achou de primeira: não gasta as outras quatro chamadas", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [{ lat: "-30.0", lon: "-51.2" }] };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(1);
+    expect(data.precisao).toBe("exata");
+  });
+
+  it("nada para consultar não vira chamada nenhuma", async () => {
+    globalThis.fetch = vi.fn();
+    const { data } = await localizarEndereco({}, { agora: relogio(50) });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(data).toBeNull();
   });
 });

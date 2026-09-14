@@ -40,7 +40,7 @@ vi.mock("@/lib/delivery", async () => {
     ...real,
     calcularTaxaEntrega: mockCalcularTaxa,
     buscarEnderecoViaCep: mockViaCep,
-    geocodificarEndereco: mockGeocodificar,
+    localizarEndereco: mockGeocodificar,
   };
 });
 
@@ -484,7 +484,7 @@ describe("CheckoutEntrega — taxa que não respondeu tem que aparecer na tela (
     await preencherAteTaxa();
 
     expect(
-      screen.getByText(/Não consegui localizar seu endereço no mapa/)
+      screen.getByText(/Não consegui localizar esse endereço no mapa/)
     ).toBeInTheDocument();
     expect(erroConexao()).toBeNull();
   });
@@ -523,7 +523,8 @@ describe("CheckoutEntrega — terceiro pendurado não mata o checkout (Run 6, le
     // delas. Só o `fetch` vira dublê, pendurado como terceiro fora do ar.
     const real = await vi.importActual("@/lib/delivery");
     mockViaCep.mockImplementation((...args) => real.buscarEnderecoViaCep(...args));
-    mockGeocodificar.mockImplementation((...args) => real.geocodificarEndereco(...args));
+    // A escada de verdade, com o prazo dela — é isso que está sob teste.
+    mockGeocodificar.mockImplementation((...args) => real.localizarEndereco(...args));
     globalThis.fetch = vi.fn((_url, opcoes) => {
       if (opcoes?.signal?.aborted) return Promise.reject(erroDeAbort());
       return new Promise((_resolver, rejeitar) => {
@@ -559,7 +560,7 @@ describe("CheckoutEntrega — terceiro pendurado não mata o checkout (Run 6, le
     // pelo resto da sessão, com o botão morto e sem uma palavra de aviso.
     expect(calculando()).toBeNull();
     expect(
-      screen.getByText(/Não consegui localizar seu endereço no mapa/)
+      screen.getByText(/Não consegui localizar esse endereço no mapa/)
     ).toBeInTheDocument();
   });
 
