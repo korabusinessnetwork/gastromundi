@@ -84,3 +84,24 @@ Restrições existem para proteger o produto, os usuários e o negócio. Ignorá
 - O Jarvas (IA do GastroMundi) **não** inventa números nem fatos sobre o negócio: insights e sugestões são fundamentados nos dados reais dos módulos (ver `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md`) ou explicitamente marcados como incertos.
 - **Não** usar dados de clientes para treinar modelos sem consentimento explícito.
 - Transparência: o usuário sempre sabe quando está interagindo com IA e de onde vem a informação.
+
+## Restrições de Supply Chain do Agente
+
+- **Nenhuma skill ou plugin de terceiro entra no projeto sem `skillspector scan` limpo
+  antes.** Vale para `/plugin install`, `git clone` em `.claude/skills/`, marketplace nova
+  e qualquer arquivo de instrução vindo de fora. Skill é texto que o agente executa como
+  instrução: instalar skill sem ler é rodar código de terceiro sem ler.
+- O scan é o **modo estático** (`skillspector scan <pasta> --no-llm`), que é gratuito e não
+  precisa de chave de LLM. O estágio semântico consome token e é decisão do dono, caso a
+  caso, só quando o estático levantar algo ambíguo.
+- **"Limpo" quer dizer achado lido, não score zero.** O scanner casa palavra-chave e
+  levanta falso positivo em guia defensivo de segurança (`rm -rf /` e `/etc/passwd` numa
+  tabela de ataques documentados) e em cliente de API legítimo (chave do ambiente indo para
+  cabeçalho HTTP). Cada achado alto ou crítico tem de ser lido, conferido no trecho citado
+  e a conclusão registrada. O que fica proibido é instalar sem olhar.
+- Ferramenta de segurança que **consome token por execução** não entra por padrão: hoje
+  isso exclui `claude-security`, `strix` e os plugins de `trailofbits/skills`, conforme
+  ADR-014. Reabrir só por decisão do dono, com custo aproximado na mesa.
+- **A camada instalada não valida isolamento RLS entre tenants.** Nenhuma ferramenta
+  substitui o teste manual de isolamento multi-tenant exigido pelo ADR-008 e pela restrição
+  legal de vazamento entre tenants acima.

@@ -66,6 +66,7 @@ ADRs capturam o "porquê" por trás de decisões técnicas e de produto signific
 | [ADR-011](./adr-011.md) | Pautas dos sócios em subdomínio próprio, fora do multi-tenancy | Aceito e implementado | 2026-08-13 |
 | [ADR-012](./adr-012.md) | Correção das vulnerabilidades de dependência — SheetJS fora do npm, react-router 7, vite 8 e Node 22 | Aceito e implementado | 2026-08-17 |
 | [ADR-013](./adr-013.md) | PDV offline-first: outbox local, replay da cascata e limites conhecidos | Aceito e implementado (parcial) | 2026-09-10 |
+| [ADR-014](./adr-014.md) | Camada gratuita de segurança do agente, e o que ficou de fora por custo | Aceito e implementado | 2026-09-14 |
 
 ---
 

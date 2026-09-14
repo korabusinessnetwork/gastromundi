@@ -15,6 +15,7 @@
 | [`08_DECISOES/`](./08_DECISOES/) | ADRs (registros de decisão de arquitetura) |
 | [`09_BACKLOG/`](./09_BACKLOG/) | Features planejadas, bugs e débito técnico |
 | [`10_PROMPTS/`](./10_PROMPTS/) | Prompts de IA e templates de mensagem |
+| [`11_SEGURANCA/`](./11_SEGURANCA/) | Camada de segurança do agente, portão de skill de terceiro e limites conhecidos |
 | [`_legado/`](./_legado/) | Documentos do produto anterior, arquivados para referência |
 
 > **Nota de auditoria (jun/2026):** a estrutura foi migrada para a convenção numerada na Fase 2 do plano de refatoração. Conteúdo ainda referente ao produto antigo (em `04_MODELAGEM`, `05_FLUXOS`, `09_BACKLOG` e `_legado/`) será revisado nas fases seguintes.
