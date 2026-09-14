@@ -27,11 +27,15 @@ vi.mock("@/lib/supabase", async () => {
 
 const {
   usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery, salvarProdutoDelivery,
+  listarBibliotecaGrupos, vincularGrupoProduto, desvincularGrupoProduto,
 } = vi.hoisted(() => ({
   usePedidosDelivery: vi.fn(),
   listarProdutosDelivery: vi.fn(),
   carregarConfigDelivery: vi.fn(),
   salvarProdutoDelivery: vi.fn(),
+  listarBibliotecaGrupos: vi.fn(),
+  vincularGrupoProduto: vi.fn(),
+  desvincularGrupoProduto: vi.fn(),
 }));
 
 // Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
@@ -46,6 +50,9 @@ vi.mock("@/lib/deliveryAdmin", async (importOriginal) => ({
   listarProdutosDelivery,
   carregarConfigDelivery,
   salvarProdutoDelivery,
+  listarBibliotecaGrupos,
+  vincularGrupoProduto,
+  desvincularGrupoProduto,
 }));
 
 // O mapa arrasta Leaflet inteiro para o jsdom e não tem nada a ver com pedidos.
@@ -93,6 +100,9 @@ beforeEach(() => {
   setAppMock();
   listarProdutosDelivery.mockResolvedValue({ data: [], error: null });
   salvarProdutoDelivery.mockResolvedValue({ data: null, error: null });
+  listarBibliotecaGrupos.mockResolvedValue({ data: [], error: null });
+  vincularGrupoProduto.mockResolvedValue({ error: null });
+  desvincularGrupoProduto.mockResolvedValue({ error: null });
   carregarConfigDelivery.mockResolvedValue({
     data: { aberto: true, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] },
     error: null,
@@ -293,5 +303,103 @@ describe("DeliveryView, tirar um item do ar é um clique na grade", () => {
     await user.click(screen.getByRole("button", { name: /^Salvar/ }));
 
     expect(salvarProdutoDelivery.mock.calls.at(-1)[0]).toMatchObject({ disponivel: false });
+  });
+});
+
+describe("DeliveryView, extras na própria tela do produto", () => {
+  // Criar o produto e dar extras a ele eram duas viagens: salvava, ia na
+  // aba Complementos, abria cada grupo e marcava o produto na lista
+  // "aparece nestes produtos".
+  const PRODUTO = { id: 7, name: "X-Burguer", price: 30, emoji: "🍔", category: "Lanches" };
+  const ITEM = {
+    id: "pd1", produto_id: 7, disponivel: true, ordem: 0,
+    descricao: "", foto_url: null,
+    produto: PRODUTO,
+  };
+  const GRUPOS = [
+    { id: "g1", nome: "Adicionais", min_escolhas: 0, max_escolhas: 3, itens: [{}, {}], produtoIds: [7] },
+    { id: "g2", nome: "Ponto da carne", min_escolhas: 1, max_escolhas: 1, itens: [{}], produtoIds: [] },
+  ];
+
+  const abrirEdicao = async (user, grupos = GRUPOS) => {
+    setAppMock({ products: [PRODUTO] });
+    listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });
+    listarBibliotecaGrupos.mockResolvedValue({ data: grupos, error: null });
+    await montar();
+    await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
+    await user.click(await screen.findByRole("button", { name: /Editar/ }));
+    await screen.findByText("Extras deste produto");
+  };
+
+  const marcar = (nome) => screen.getByRole("checkbox", { name: new RegExp(nome) });
+
+  it("mostra a biblioteca com o que já está ligado neste produto marcado", async () => {
+    const user = userEvent.setup();
+    await abrirEdicao(user);
+    expect(marcar("Adicionais")).toBeChecked();
+    expect(marcar("Ponto da carne")).not.toBeChecked();
+  });
+
+  it("salvar aplica só a DIFERENÇA, não regrava tudo", async () => {
+    // Apagar e regravar mexeria em vínculos que esta tela nem mostrou, e
+    // cada escrita a mais é uma chance de falhar no meio.
+    const user = userEvent.setup();
+    await abrirEdicao(user);
+
+    await user.click(marcar("Ponto da carne")); // liga
+    await user.click(marcar("Adicionais"));     // desliga
+    await user.click(screen.getByRole("button", { name: /^Salvar/ }));
+
+    expect(vincularGrupoProduto.mock.calls).toEqual([["g2", 7]]);
+    expect(desvincularGrupoProduto.mock.calls).toEqual([["g1", 7]]);
+  });
+
+  it("sem mexer nos extras, nenhuma escrita de vínculo acontece", async () => {
+    const user = userEvent.setup();
+    await abrirEdicao(user);
+    await user.click(screen.getByRole("button", { name: /^Salvar/ }));
+
+    expect(vincularGrupoProduto).not.toHaveBeenCalled();
+    expect(desvincularGrupoProduto).not.toHaveBeenCalled();
+  });
+
+  it("falha ao ligar o extra não engole o produto que já foi salvo", async () => {
+    const user = userEvent.setup();
+    vincularGrupoProduto.mockResolvedValue({ error: { message: "RLS" } });
+    await abrirEdicao(user);
+
+    await user.click(marcar("Ponto da carne"));
+    await user.click(screen.getByRole("button", { name: /^Salvar/ }));
+
+    expect(salvarProdutoDelivery).toHaveBeenCalled();
+    expect(await screen.findByText(/O produto foi salvo, mas não deu para ajustar os extras/))
+      .toBeInTheDocument();
+  });
+
+  it("biblioteca vazia não mostra a seção — nada a marcar", async () => {
+    const user = userEvent.setup();
+    setAppMock({ products: [PRODUTO] });
+    listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });
+    listarBibliotecaGrupos.mockResolvedValue({ data: [], error: null });
+    await montar();
+    await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
+    await user.click(await screen.findByRole("button", { name: /Editar/ }));
+    await screen.findByText("Editar produto do delivery");
+    expect(screen.queryByText("Extras deste produto")).toBeNull();
+  });
+
+  it("falha ao carregar a biblioteca não trava o cadastro do produto", async () => {
+    // O dono liga os extras depois pela aba Complementos, como sempre fez.
+    const user = userEvent.setup();
+    setAppMock({ products: [PRODUTO] });
+    listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });
+    listarBibliotecaGrupos.mockResolvedValue({ data: null, error: { message: "sem rede" } });
+    await montar();
+    await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
+    await user.click(await screen.findByRole("button", { name: /Editar/ }));
+
+    await screen.findByText("Editar produto do delivery");
+    expect(screen.queryByText("Extras deste produto")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Salvar/ })).toBeEnabled();
   });
 });

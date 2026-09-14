@@ -2485,3 +2485,17 @@
   grid-column: 1 / -1;
   padding: 24px 4px;
 }
+
+/* Extras do produto, dentro do modal de cadastro. Mesmo desenho da lista
+   de importação — as duas são "marque o que entra" —, com teto de altura
+   para a biblioteca grande não empurrar os botões de salvar para fora. */
+.delivery-view__extras-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  padding: 6px;
+}
