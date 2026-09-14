@@ -206,3 +206,32 @@ describe("SeletorEscolhas — máximo 0 é sem limite", () => {
     expect(screen.getByText("Opcional, escolha quantas quiser")).toBeInTheDocument();
   });
 });
+
+describe("SeletorEscolhas, o cartão da opção não se sobrepõe", () => {
+  // Nome e acréscimo eram irmãos na mesma linha do flex. Num cartão
+  // estreito a caixa do nome era espremida até 0px e o texto vazava por
+  // cima do preço: os dois saíam impressos um sobre o outro e ilegíveis.
+  // O layout em si só se prova no navegador (jsdom não tem motor de
+  // layout); o que este teste tranca é a ESTRUTURA que o impede de voltar.
+  it("nome e acréscimo vivem dentro do mesmo bloco de texto, empilhados", () => {
+    montar([grupo()]);
+
+    const bloco = document.querySelector(".seletor-escolhas__opcao-texto");
+    expect(bloco).not.toBeNull();
+    expect(bloco.querySelector(".seletor-escolhas__opcao-nome")).toHaveTextContent("Cheddar");
+    expect(bloco.querySelector(".seletor-escolhas__opcao-acrescimo")).toHaveTextContent("R$ 3.00");
+  });
+
+  it("o acréscimo nunca é irmão direto do cartão", () => {
+    // Ser irmão direto é exatamente o arranjo que colidia.
+    montar([grupo()]);
+    for (const acr of document.querySelectorAll(".seletor-escolhas__opcao-acrescimo")) {
+      expect(acr.parentElement.className).toContain("seletor-escolhas__opcao-texto");
+    }
+  });
+
+  it("opção sem acréscimo não cria o rótulo de preço", () => {
+    montar([grupo({ itens: [{ produtoId: 1, preco: 0 }] })]);
+    expect(document.querySelector(".seletor-escolhas__opcao-acrescimo")).toBeNull();
+  });
+});

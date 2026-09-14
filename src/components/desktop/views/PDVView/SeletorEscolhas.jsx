@@ -167,10 +167,16 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
                             }}
                           >
                             <span className="seletor-escolhas__opcao-emoji">{op.emoji ?? "📦"}</span>
-                            <span className="seletor-escolhas__opcao-nome">{op.nome}</span>
-                            {op.preco > 0 && (
-                              <span className="seletor-escolhas__opcao-acrescimo">+{fmtBRL(op.preco)}</span>
-                            )}
+                            {/* Nome e acréscimo empilhados num bloco só. Lado a
+                                lado numa mesma linha, o cartão estreito espremia
+                                a caixa do nome até zero e o texto vazava por cima
+                                do preço — os dois saíam sobrepostos e ilegíveis. */}
+                            <span className="seletor-escolhas__opcao-texto">
+                              <span className="seletor-escolhas__opcao-nome">{op.nome}</span>
+                              {op.preco > 0 && (
+                                <span className="seletor-escolhas__opcao-acrescimo">+{fmtBRL(op.preco)}</span>
+                              )}
+                            </span>
                             <span
                               className="seletor-escolhas__opcao-check"
                               style={{
