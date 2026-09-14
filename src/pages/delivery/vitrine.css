@@ -209,13 +209,12 @@
 .card-produto:active { transform: scale(0.99); }
 .card-produto:hover { border-color: var(--gm-accent); }
 
-/* No celular a altura do cartão é ditada pela foto (116px em 4:3 = 87px de
-   altura). O texto ficava preso no topo, então todo item sem descrição —
-   que é a maioria de um cardápio recém-montado — abria um vão morto embaixo
-   do preço, e a lista parecia cheia de cartões pela metade. Centrado, nome
-   e preço ficam na altura da foto e o cartão fecha. No computador o
-   `justify-content` é sobrescrito abaixo, porque lá o preço vai para o
-   rodapé de propósito (alinhar entre os cartões da mesma linha). */
+/* Numa coluna só (celular) a altura do cartão é ditada pela foto, e o texto
+   ficava preso no topo: todo item sem descrição, que é a maioria de um
+   cardápio recém-montado, terminava o preço no meio do cartão e deixava um
+   vão morto embaixo. Centrado, nome e preço ficam na altura da foto e o
+   cartão fecha. Com duas colunas ou mais isto é desfeito lá embaixo, onde o
+   preço volta para o pé para alinhar entre os cartões da mesma linha. */
 .card-produto__texto {
   flex: 1;
   min-width: 0;
