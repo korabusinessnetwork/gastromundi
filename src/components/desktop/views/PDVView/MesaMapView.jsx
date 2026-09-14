@@ -5,6 +5,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { totalItensAtivos } from "@/lib/comandaItens";
 import "./MesaMapView.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 /**
  * A comanda aberta desta mesa, ou null.
@@ -225,7 +226,7 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
       </div>
       {total > 0 && (
         <div className="card-mesa__valor" style={{ color: s.cor }}>
-          R$ {total.toFixed(2)}
+          {formatarReais(total)}
         </div>
       )}
       {pedido?.garcom && (

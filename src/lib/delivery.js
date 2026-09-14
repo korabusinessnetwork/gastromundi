@@ -84,10 +84,8 @@ export function buscasDeEndereco(entrega) {
  * Só para MOSTRAR — nunca é o valor que vale (o servidor recalcula).
  * @param {number} valor
  */
-export function formatarPreco(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
+import { formatarReais as formatarPreco } from "./dinheiro";
+export { formatarPreco };
 
 /**
  * Lê o que o cliente DIGITOU num campo de dinheiro. O teclado brasileiro
@@ -108,6 +106,42 @@ export function valorDigitado(texto) {
     : bruto;
   const n = Number(normalizado);
   return Number.isFinite(n) ? n : null;
+}
+
+// ── Data de nascimento (cadastro do cliente) ───────────────────────
+
+/**
+ * A data de nascimento é OPCIONAL e existe para o futuro (aniversário do
+ * cliente), não para barrar a compra de hoje. Por isso esta função não
+ * diz "inválido": ela diz se dá para APROVEITAR o que foi digitado. Data
+ * vazia, pela metade, no futuro ou de idade impossível simplesmente não
+ * é aproveitada, e o pedido segue igual.
+ *
+ * Recebe o formato do <input type="date"> ("AAAA-MM-DD"), que é o mesmo
+ * que o Postgres aceita — o campo não é digitado à mão em pt-BR.
+ *
+ * @param {string} texto
+ * @returns {string|null} a data pronta para gravar, ou null
+ */
+export function dataNascimentoUtil(texto) {
+  const bruto = String(texto ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return null;
+  // Tudo em UTC e comparado como TEXTO. Data de nascimento é dia de
+  // calendário, não instante: montar Date no fuso local faz "hoje" virar
+  // "amanhã" (ou ontem) conforme a hora e onde a pessoa está, e o campo
+  // recusaria uma data perfeitamente boa dependendo do relógio.
+  const d = new Date(`${bruto}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  // "2026-02-31" o Date aceita e rola para março: comparar de volta é o
+  // que pega dia que não existe no mês.
+  if (d.toISOString().slice(0, 10) !== bruto) return null;
+  const hoje = new Date();
+  const hojeISO = hoje.toISOString().slice(0, 10);
+  if (bruto > hojeISO) return null;
+  // Texto ISO compara na ordem certa por ser sempre AAAA-MM-DD.
+  const limiteISO = `${hoje.getUTCFullYear() - 120}${hojeISO.slice(4)}`;
+  if (bruto < limiteISO) return null;
+  return bruto;
 }
 
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
@@ -441,6 +475,11 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
       // número limpo. Gravar "(11) 91234-5678" faria a mesma pessoa virar
       // dois contatos diferentes conforme quem digitou a máscara.
       telefone: apenasDigitosTelefone(cliente?.telefone) || null,
+      // Opcional, e só vai quando dá para aproveitar (ver
+      // dataNascimentoUtil). O servidor cria o cadastro do cliente no
+      // primeiro pedido daquele telefone e guarda a data ali — a mesma
+      // pessoa pedindo de novo não é perguntada outra vez.
+      data_nascimento: dataNascimentoUtil(cliente?.dataNascimento),
     },
     entrega: retirada
       ? // Retirada: o cliente vai buscar. Mandar CEP, endereço e coordenada
@@ -691,6 +730,100 @@ export async function buscarEnderecoViaCep(cep) {
 }
 
 // ── Nominatim / OpenStreetMap (grátis) — geocodificação p/ taxa por km ──
+
+/**
+ * A escada de consultas para achar o endereço no mapa, da mais precisa
+ * para a mais tolerante. Pura — quem vai à rede é `localizarEndereco`.
+ *
+ * POR QUE UMA ESCADA. No modo "taxa por distância" o pedido só sai se a
+ * coordenada for encontrada. Antes se mandava UMA consulta, montada como
+ * "rua, bairro" — sem a cidade. Duas consequências, as duas ruins:
+ *
+ *  · sem cidade, o Nominatim procura a rua no Brasil inteiro. "Rua das
+ *    Flores, 100, Centro" existe em centenas de cidades: ou não acha, ou
+ *    acha a errada e a taxa sai de uma distância que não é a real;
+ *  · qualquer tropeço na digitação da rua — uma letra trocada, "av." em
+ *    vez de "avenida", o número da casa que o Nominatim não reconhece —
+ *    derrubava a única tentativa, e o cliente ficava com o botão morto
+ *    sem saber o que corrigir.
+ *
+ * Cada degrau abre mão de um detalhe e mantém o resto. A última é o
+ * bairro com a cidade: aproxima pelo centro do bairro, o que ainda dá uma
+ * taxa honesta. NÃO existe degrau de "só a cidade" — o centro da cidade
+ * pode estar a quilômetros do cliente, e aí a taxa mentiria feio.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @returns {Array<{q:string, precisao:'exata'|'aproximada'}>} sem repetição, em ordem
+ */
+export function consultasDeGeocodificacao(partes) {
+  const limpo = (v) => String(v ?? "").trim().replace(/\s+/g, " ");
+  const endereco = limpo(partes?.endereco);
+  const bairro = limpo(partes?.bairro);
+  const cidade = limpo(partes?.cidade);
+  const cep = apenasDigitosCep(partes?.cep);
+
+  // "Rua das Flores, 100" → "Rua das Flores". O número da casa é a parte
+  // que o Nominatim mais erra, e tirá-lo costuma resolver sozinho.
+  const semNumero = endereco.replace(/,?\s*\d+\s*$/, "").trim();
+
+  const juntar = (...ps) => ps.filter(Boolean).join(", ");
+  // Cada degrau só existe se a peça que o define existir. Sem esta guarda,
+  // um formulário só com a cidade fazia o primeiro degrau virar "Porto
+  // Alegre" — o degrau proibido, entrando pela porta dos fundos.
+  const candidatos = [
+    { q: endereco ? juntar(endereco, bairro, cidade) : "", precisao: "exata" },
+    { q: endereco ? juntar(endereco, cidade) : "", precisao: "exata" },
+    { q: endereco && semNumero && semNumero !== endereco ? juntar(semNumero, bairro, cidade) : "", precisao: "exata" },
+    { q: cepCompleto(cep) ? cep : "", precisao: "aproximada" },
+    // Os DOIS, sempre. Só o bairro cai no mesmo problema da rua sem cidade
+    // (procura no Brasil inteiro), e só a cidade seria o degrau proibido:
+    // o centro da cidade pode estar a quilômetros do cliente.
+    { q: bairro && cidade ? juntar(bairro, cidade) : "", precisao: "aproximada" },
+  ];
+
+  const vistos = new Set();
+  return candidatos.filter((c) => {
+    // Consulta curta demais o Nominatim recusa.
+    if (!c.q || c.q.length < 4) return false;
+    const chave = c.q.toLowerCase();
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+}
+
+/**
+ * Percorre a escada acima e devolve a PRIMEIRA coordenada encontrada,
+ * dizendo se ela é do endereço exato ou uma aproximação pelo bairro/CEP —
+ * a tela usa isso para avisar que a taxa é estimada.
+ *
+ * PRAZO DA ESCADA INTEIRA, e não de cada degrau. Cada chamada ao Nominatim
+ * já tem 8s (PRAZO_TERCEIRO_MS); cinco degraus em fila seriam até 40s com a
+ * tela presa em "Calculando…" — trocar um endereço que não é achado por uma
+ * espera de quarenta segundos não melhora nada.
+ *
+ * O orçamento é UM tempo limite (PRAZO_TERCEIRO_MS). A regra por trás:
+ * se uma única tentativa consumiu o prazo inteiro, o serviço está fora do
+ * ar e as outras quatro vão consumir o mesmo à toa. Quando ele responde
+ * rápido — que é o caso normal — os cinco degraus cabem em menos de um
+ * segundo e o orçamento nunca é alcançado.
+ *
+ * Mesma degradação graciosa do resto: nunca lança; nada encontrado vira
+ * { data: null }.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @param {{orcamentoMs?:number, agora?:() => number}} [opts] - `agora` injetável para teste
+ * @returns {Promise<{data: {lat:number, lng:number, precisao:string}|null, error: null}>}
+ */
+export async function localizarEndereco(partes, { orcamentoMs = PRAZO_TERCEIRO_MS, agora = Date.now } = {}) {
+  const inicio = agora();
+  for (const { q, precisao } of consultasDeGeocodificacao(partes)) {
+    const { data } = await geocodificarEndereco(q);
+    if (data) return { data: { ...data, precisao }, error: null };
+    if (agora() - inicio >= orcamentoMs) break;
+  }
+  return { data: null, error: null };
+}
 
 /**
  * Resolve latitude/longitude a partir de um endereço em texto, usando o

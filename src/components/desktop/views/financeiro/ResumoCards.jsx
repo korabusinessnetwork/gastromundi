@@ -2,9 +2,9 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuTrendingUp, LuTrendingDown, LuWallet, LuClock, LuPiggyBank } from "react-icons/lu";
 import "./ResumoCards.css";
-import { formatarDinheiro } from "@/lib/dinheiro";
+import { formatarReais } from "@/lib/dinheiro";
 
-const fmtR = formatarDinheiro;
+const fmtR = formatarReais;
 
 export default function ResumoCards({ fluxo, lucro, width, sz }) {
   const cards = [

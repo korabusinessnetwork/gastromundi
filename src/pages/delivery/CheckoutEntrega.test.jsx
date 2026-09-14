@@ -40,7 +40,7 @@ vi.mock("@/lib/delivery", async () => {
     ...real,
     calcularTaxaEntrega: mockCalcularTaxa,
     buscarEnderecoViaCep: mockViaCep,
-    geocodificarEndereco: mockGeocodificar,
+    localizarEndereco: mockGeocodificar,
   };
 });
 
@@ -525,7 +525,8 @@ describe("CheckoutEntrega, terceiro pendurado não mata o checkout (Run 6, leva 
     // delas. Só o `fetch` vira dublê, pendurado como terceiro fora do ar.
     const real = await vi.importActual("@/lib/delivery");
     mockViaCep.mockImplementation((...args) => real.buscarEnderecoViaCep(...args));
-    mockGeocodificar.mockImplementation((...args) => real.geocodificarEndereco(...args));
+    // A escada de verdade, com o prazo dela — é isso que está sob teste.
+    mockGeocodificar.mockImplementation((...args) => real.localizarEndereco(...args));
     globalThis.fetch = vi.fn((_url, opcoes) => {
       if (opcoes?.signal?.aborted) return Promise.reject(erroDeAbort());
       return new Promise((_resolver, rejeitar) => {
@@ -907,7 +908,12 @@ describe("CheckoutEntrega — o telefone virou obrigatório", () => {
 // ──────────────────────────────────────────────────────────────────
 
 const SEM_COORDENADA = { data: { ok: false, motivo: "sem_coordenada" }, error: null };
-const COORD = { data: { lat: -29.6, lng: -51.16 }, error: null };
+const COORD = { data: { lat: -29.6, lng: -51.16, precisao: "exata" }, error: null };
+// A escada achou por um degrau mais largo (bairro ou CEP), não pela rua.
+const COORD_APROXIMADA = {
+  data: { lat: -29.6, lng: -51.16, precisao: "aproximada" },
+  error: null,
+};
 const porBairro = () =>
   screen.queryByText(/calculamos a entrega pela\s+região que você informou/);
 
@@ -982,11 +988,11 @@ describe("CheckoutEntrega, pedir sem CEP, com número à parte e rua que o mapa 
   it("rua que o mapa não conhece cai para o bairro em vez de travar o pedido", async () => {
     // Modo por distância: o servidor pede coordenada.
     mockCalcularTaxa.mockResolvedValueOnce(SEM_COORDENADA);
-    // A busca exata não acha (a rua está escrita de um jeito que o mapa não
-    // conhece); a do bairro com a cidade acha.
-    mockGeocodificar
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce(COORD);
+    // A rua está escrita de um jeito que o mapa não conhece, então quem acha
+    // é um degrau mais tolerante da escada: a coordenada volta carimbada
+    // como aproximada (a escada mora em `localizarEndereco`, e a ordem dos
+    // degraus é testada em `delivery.test.js`).
+    mockGeocodificar.mockResolvedValue(COORD_APROXIMADA);
     mockCalcularTaxa.mockResolvedValue({ data: { ok: true, taxa: 9 }, error: null });
 
     await act(async () => {
@@ -1006,11 +1012,13 @@ describe("CheckoutEntrega, pedir sem CEP, com número à parte e rua que o mapa 
     expect(porBairro()).toBeInTheDocument();
   });
 
-  it("a segunda busca é o bairro com a cidade, não o endereço todo de novo", async () => {
+  it("entrega as partes do endereço para a escada, com o número junto da rua", async () => {
+    // A ORDEM dos degraus é da escada (`consultasDeGeocodificacao`, testada em
+    // delivery.test.js). O que cabe a esta tela é não perder pedaço no
+    // caminho: o número mora em campo próprio desde que o CEP virou opcional,
+    // e sem ele o mapa erra a quadra.
     mockCalcularTaxa.mockResolvedValueOnce(SEM_COORDENADA);
-    mockGeocodificar
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce(COORD);
+    mockGeocodificar.mockResolvedValue(COORD_APROXIMADA);
 
     await act(async () => {
       render(<Palco onAvancar={vi.fn()} />);
@@ -1021,11 +1029,13 @@ describe("CheckoutEntrega, pedir sem CEP, com número à parte e rua que o mapa 
     digitar("Número", "80");
     await assentar();
 
-    expect(mockGeocodificar).toHaveBeenNthCalledWith(
-      1,
-      "Rua Sta Cruz do Sull, 80, Cidade Nova, Ivoti"
+    expect(mockGeocodificar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endereco: "Rua Sta Cruz do Sull, 80",
+        bairro: "Cidade Nova",
+        cidade: "Ivoti",
+      })
     );
-    expect(mockGeocodificar).toHaveBeenNthCalledWith(2, "Cidade Nova, Ivoti");
   });
 
   it("quando o mapa acha a rua exata, nada de aviso de cálculo por bairro", async () => {

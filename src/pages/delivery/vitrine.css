@@ -209,14 +209,18 @@
 .card-produto:active { transform: scale(0.99); }
 .card-produto:hover { border-color: var(--gm-accent); }
 
-/* Coluna, com o preço empurrado para o pé: os preços de uma mesma linha
-   da grade ficam alinhados entre si, mesmo quando um produto tem descrição
-   de duas linhas e o vizinho não tem nenhuma. */
+/* Numa coluna só (celular) a altura do cartão é ditada pela foto, e o texto
+   ficava preso no topo: todo item sem descrição, que é a maioria de um
+   cardápio recém-montado, terminava o preço no meio do cartão e deixava um
+   vão morto embaixo. Centrado, nome e preço ficam na altura da foto e o
+   cartão fecha. Com duas colunas ou mais isto é desfeito lá embaixo, onde o
+   preço volta para o pé para alinhar entre os cartões da mesma linha. */
 .card-produto__texto {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 .card-produto__nome {
   font-size: 15px;
@@ -234,10 +238,29 @@
   overflow: hidden;
 }
 .card-produto__preco {
-  margin-top: auto;
   font-size: 15px;
   font-weight: 800;
   color: var(--gm-green);
+}
+
+/* A partir de duas colunas o preço volta para o pé do cartão, e aí os preços
+   de uma mesma linha da grade ficam alinhados entre si, mesmo quando um
+   produto tem descrição de duas linhas e o vizinho não tem nenhuma. Num
+   cartão por linha esse alinhamento não existe para ninguém ver, e o que
+   sobra dele é o vão morto descrito acima.
+
+   684px é a conta da própria grade, não um número redondo: o conteúdo é a
+   largura da janela menos as bordas de 16px, e a segunda coluna só entra com
+   320px de cartão duas vezes mais 12px de intervalo, ou seja 652px de
+   conteúdo. */
+@media (min-width: 684px) {
+  .card-produto__texto {
+    justify-content: flex-start;
+  }
+  .card-produto__preco {
+    margin-top: auto;
+    padding-top: 4px;
+  }
 }
 
 /* A miniatura é 4:3, o mesmo enquadramento em que foto de comida é tirada

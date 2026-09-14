@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { resolverOpcoes, instrucaoGrupo } from "@/lib/gruposEscolha";
+import { formatarReais as fmtBRL } from "@/lib/dinheiro";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -22,10 +23,6 @@ import "./SeletorEscolhas.css";
  * total muda na hora, e o botão de confirmar só habilita quando todas as
  * escolhas obrigatórias foram feitas — o operador não consegue errar.
  */
-
-function fmtBRL(v) {
-  return `R$ ${Number(v || 0).toFixed(2)}`;
-}
 
 const unidades = (qtds) => Object.values(qtds ?? {}).reduce((t, n) => t + n, 0);
 

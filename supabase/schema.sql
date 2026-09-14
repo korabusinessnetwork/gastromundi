@@ -407,6 +407,9 @@ CREATE TABLE public.clientes (
   telefone       text,
   documento      text,
   documento_tipo text        CHECK (documento_tipo IS NULL OR documento_tipo IN ('cpf','cnpj')),
+  -- Preenchida no primeiro pedido do delivery (opcional) ou pelo PDV.
+  -- Uso previsto: aniversário do cliente. 20261006
+  data_nascimento date,
   endereco       text,
   observacoes    text,
   anonimizado    boolean     NOT NULL DEFAULT false,

@@ -39,6 +39,7 @@ import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
 import { inicioSessao } from "@/components/modals/FechamentoModal";
+import { formatarReais } from "@/lib/dinheiro";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -439,7 +440,7 @@ export default function PDVView({ notify }) {
           if (erroImpressao) notify?.(`Pedido lançado, mas não saiu na produção: ${erroImpressao.message}`, "err");
         })
         .catch(() => {});
-      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
+      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · ${formatarReais(total)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
       setToast(true);
       setTimeout(() => setToast(false), 6000);
       handleBack();
@@ -1597,7 +1598,7 @@ export default function PDVView({ notify }) {
                             </div>
                             {o.total > 0 && (
                               <div className="pdv__transfer-card-valor pdv__transfer-lista-valor">
-                                R$ {Number(o.total).toFixed(2)}
+                                {formatarReais(Number(o.total))}
                               </div>
                             )}
                           </button>
@@ -1643,7 +1644,7 @@ export default function PDVView({ notify }) {
                           </div>
                           {encontrada.total > 0 && (
                             <div className="pdv__transfer-card-valor pdv__transfer-preview-valor">
-                              R$ {Number(encontrada.total).toFixed(2)}
+                              {formatarReais(Number(encontrada.total))}
                             </div>
                           )}
                         </div>
@@ -2106,8 +2107,8 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* KPIs */}
             <div className="pdv__saldo-kpis" style={{ gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr" }}>
               {[
-                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
-                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
+                { label: "Vendas Finalizadas",    value: `${formatarReais(totalVendas)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
+                { label: "Em Aberto (estimado)",  value: `${formatarReais(totalAberto)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
               ].map(k => (
                 <div key={k.label} className="pdv__saldo-kpi">
                   <div className="pdv__saldo-kpi-label">{k.label}</div>
@@ -2156,7 +2157,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   </div>
                 </div>
                 <div className="pdv__saldo-kpi-valor">
-                  {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                  {totalCancelado > 0 ? `- ${formatarReais(totalCancelado)}` : formatarReais(0)}
                 </div>
               </div>
             </div>
@@ -2168,7 +2169,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 <div className="pdv__saldo-kpi-sub">Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
               <div className="pdv__saldo-total-valor">
-                R$ {(totalVendas + totalAberto).toFixed(2)}
+                {formatarReais((totalVendas + totalAberto))}
               </div>
             </div>
 
@@ -2185,7 +2186,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                         {rotuloMetodo(metodo, customLabels)}
                       </span>
                       <span className="pdv__saldo-metodo-valor">
-                        R$ {Number(val).toFixed(2)}
+                        {formatarReais(Number(val))}
                       </span>
                     </div>
                   ))}
@@ -2215,7 +2216,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   </div>
                   <div className="pdv__saldo-accordion-dir">
                     <span className="pdv__saldo-accordion-total">
-                      {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                      {totalCancelado > 0 ? `- ${formatarReais(totalCancelado)}` : formatarReais(0)}
                     </span>
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -2252,7 +2253,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                           )}
                         </div>
                         <div className="pdv__saldo-item-preco">
-                          - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                          - {formatarReais(((item.price ?? 0) * (item.qty ?? 1)))}
                         </div>
                       </div>
                     ))}
@@ -2279,7 +2280,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                         </div>
                         <div className="pdv__saldo-comanda-dir">
                           <div className="pdv__saldo-comanda-valor" style={{ color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
-                            {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
+                            {subtotal > 0 ? `${formatarReais(subtotal)}` : "Sem itens"}
                           </div>
                           <div className="pdv__saldo-comanda-meta">
                             {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)

@@ -34,14 +34,14 @@ describe("ComandaGrid, total do card", () => {
   it("grid numerado: item sem preço não vira 'R$ NaN'", () => {
     renderGrid({});
 
-    expect(screen.getByText("R$ 48.30")).toBeInTheDocument();
+    expect(screen.getByText("R$ 48,30")).toBeInTheDocument();
     expect(screen.queryByText(/R\$ NaN/)).not.toBeInTheDocument();
   });
 
   it("lista de busca: item sem preço não vira 'R$ NaN'", () => {
     renderGrid({ busca: "7" });
 
-    expect(screen.getByText("R$ 48.30")).toBeInTheDocument();
+    expect(screen.getByText("R$ 48,30")).toBeInTheDocument();
     expect(screen.queryByText(/R\$ NaN/)).not.toBeInTheDocument();
   });
 
@@ -52,12 +52,12 @@ describe("ComandaGrid, total do card", () => {
     ];
 
     const { unmount } = renderGrid({ abertas: [comanda({ items })] });
-    expect(screen.getByText("R$ 48.30")).toBeInTheDocument();
-    expect(screen.queryByText("R$ 147.30")).not.toBeInTheDocument();
+    expect(screen.getByText("R$ 48,30")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 147,30")).not.toBeInTheDocument();
     unmount();
 
     renderGrid({ abertas: [comanda({ items })], busca: "7" });
-    expect(screen.getByText("R$ 48.30")).toBeInTheDocument();
-    expect(screen.queryByText("R$ 147.30")).not.toBeInTheDocument();
+    expect(screen.getByText("R$ 48,30")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 147,30")).not.toBeInTheDocument();
   });
 });

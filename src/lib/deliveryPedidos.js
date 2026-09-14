@@ -191,11 +191,11 @@ export function resumoPagamento(pedido) {
   return partes.join(" · ");
 }
 
-/** Formata reais (mesma cara do resto do delivery). */
-export function formatarReais(valor) {
-  const n = Number(valor) || 0;
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+// Reexporta o formatador comum (src/lib/dinheiro.js). Esta cópia usava
+// `toLocaleString` cru, que devolve espaço inquebrável depois do "R$" e
+// não batia com as outras duas do delivery.
+import { formatarReais } from "./dinheiro";
+export { formatarReais };
 
 /**
  * "há X" desde created_at, em linguagem curta (agora / 5 min / 2 h / 1 d).

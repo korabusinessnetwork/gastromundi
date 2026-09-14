@@ -8,6 +8,9 @@ vi.mock("./supabase", async () => {
 });
 
 import {
+  dataNascimentoUtil,
+  consultasDeGeocodificacao,
+  localizarEndereco,
   apenasDigitosCep,
   formatarCep,
   cepCompleto,
@@ -60,7 +63,9 @@ describe("formatarPreco", () => {
   it("formata em reais com vírgula decimal", () => {
     expect(formatarPreco(12.5)).toBe("R$ 12,50");
     expect(formatarPreco(0)).toBe("R$ 0,00");
-    expect(formatarPreco(1234.9)).toBe("R$ 1234,90");
+    // O separador de milhar veio junto com o formatador comum
+    // (src/lib/dinheiro.js): "R$ 1234,90" se lê errado.
+    expect(formatarPreco(1234.9)).toBe("R$ 1.234,90");
   });
   it("valor inválido vira R$ 0,00", () => {
     expect(formatarPreco(null)).toBe("R$ 0,00");
@@ -487,7 +492,7 @@ describe("montarPayloadPedido", () => {
       ],
     });
     expect(payload).toEqual({
-      cliente: { nome: "Ana", telefone: "5199" },
+      cliente: { nome: "Ana", telefone: "5199", data_nascimento: null },
       entrega: { tipo: "entrega", cep: "90000000", cidade: "", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
       pagamento: { forma: "dinheiro", troco_para: 50, levar_maquininha: false },
       itens: [{ produto_id: 7, combo_id: null, qtd: 2, complementos: ["c1"], obs: "sem cebola" }],
@@ -1176,5 +1181,231 @@ describe("prazo dos serviços de terceiro (Run 6, leva 11)", () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     expect(await promessa).toEqual({ data: null, error: null });
+  });
+});
+
+describe("consultasDeGeocodificacao", () => {
+  // No modo "taxa por distância" o pedido só sai se a coordenada for
+  // encontrada. Antes era UMA consulta, "rua, bairro", SEM a cidade: uma
+  // letra trocada na rua derrubava o pedido, e o botão ficava morto sem
+  // dizer o que corrigir.
+  const qs = (p) => consultasDeGeocodificacao(p).map((c) => c.q);
+
+  const completo = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre/RS",
+    cep: "90000-000",
+  };
+
+  it("a cidade entra em TODAS as consultas de rua", () => {
+    // Sem ela o Nominatim procura a rua no Brasil inteiro: ou não acha, ou
+    // acha a de outra cidade e a taxa sai de uma distância que não é real.
+    for (const q of qs(completo)) {
+      if (q.startsWith("Rua das Flores")) expect(q).toContain("Porto Alegre");
+    }
+  });
+
+  it("vai da mais precisa para a mais tolerante", () => {
+    expect(qs(completo)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS", // sem o número da casa
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("marca como aproximada só o que não é a rua", () => {
+    const p = consultasDeGeocodificacao(completo);
+    expect(p.filter((c) => c.precisao === "exata").map((c) => c.q)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS",
+    ]);
+    expect(p.filter((c) => c.precisao === "aproximada").map((c) => c.q)).toEqual([
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("NÃO existe degrau só com a cidade", () => {
+    // O centro da cidade pode estar a quilômetros do cliente: a taxa sairia
+    // muito errada, e errada para baixo é prejuízo do estabelecimento.
+    expect(qs({ cidade: "Porto Alegre/RS" })).toEqual([]);
+    expect(qs(completo)).not.toContain("Porto Alegre/RS");
+  });
+
+  it("nem degrau só com o bairro, que cai no mesmo problema da rua sem cidade", () => {
+    expect(qs({ bairro: "Centro" })).toEqual([]);
+  });
+
+  it("sem cidade ainda tenta o que dá, em vez de desistir", () => {
+    expect(qs({ endereco: "Rua das Flores, 100", bairro: "Centro" })).toEqual([
+      "Rua das Flores, 100, Centro",
+      "Rua das Flores, 100",
+      "Rua das Flores, Centro",
+    ]);
+  });
+
+  it("só o bairro e a cidade já dão um degrau — é o caso de quem não sabe a rua", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre/RS" })).toEqual([
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("não repete consulta idêntica", () => {
+    // Sem bairro, "rua+bairro+cidade" e "rua+cidade" viram a mesma coisa.
+    expect(qs({ endereco: "Rua das Flores", cidade: "Porto Alegre" })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+  });
+
+  it("CEP incompleto não vira consulta", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre", cep: "9000" }))
+      .not.toContain("9000");
+  });
+
+  it("espaço sobrando e campo vazio não quebram nada", () => {
+    expect(qs({ endereco: "  Rua   das   Flores  ", cidade: " Porto Alegre " })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+    expect(qs({})).toEqual([]);
+    expect(qs(null)).toEqual([]);
+  });
+});
+
+describe("localizarEndereco — o prazo da escada", () => {
+  // Cada consulta ao Nominatim já tem 8s de prazo. Cinco degraus em fila
+  // seriam até 40s com a tela presa em "Calculando…" — a escada resolveria
+  // o erro de digitação criando uma espera pior.
+  const partes = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre",
+    cep: "90000-000",
+  };
+
+  const relogio = (passoMs) => {
+    let t = 0;
+    return () => (t += passoMs) - passoMs; // devolve o instante ANTES do passo
+  };
+
+  it("serviço rápido: percorre a escada inteira até achar", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      // Só o último degrau (bairro + cidade) responde.
+      const achou = tentativas === 5;
+      return { ok: true, json: async () => (achou ? [{ lat: "-30.0", lon: "-51.2" }] : []) };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(5);
+    expect(data).toMatchObject({ lat: -30, lng: -51.2, precisao: "aproximada" });
+  });
+
+  it("serviço pendurado: gasta UM prazo e para, em vez de cinco", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [] };
+    });
+
+    // Cada tentativa "leva" 8s — é o serviço consumindo o prazo inteiro.
+    const { data } = await localizarEndereco(partes, { agora: relogio(8000) });
+
+    expect(tentativas).toBe(1);
+    expect(data).toBeNull();
+  });
+
+  it("achou de primeira: não gasta as outras quatro chamadas", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [{ lat: "-30.0", lon: "-51.2" }] };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(1);
+    expect(data.precisao).toBe("exata");
+  });
+
+  it("nada para consultar não vira chamada nenhuma", async () => {
+    globalThis.fetch = vi.fn();
+    const { data } = await localizarEndereco({}, { agora: relogio(50) });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(data).toBeNull();
+  });
+});
+
+describe("dataNascimentoUtil", () => {
+  // O campo é OPCIONAL e serve para o futuro (aniversário), não para
+  // barrar a compra de hoje. Por isso a função não diz "inválido": diz se
+  // dá para aproveitar. O que não dá simplesmente não vai, e o pedido segue.
+  it("aproveita uma data plausível", () => {
+    expect(dataNascimentoUtil("1990-05-10")).toBe("1990-05-10");
+  });
+
+  it("não aproveita o que está vazio ou pela metade", () => {
+    for (const ruim of ["", "   ", null, undefined, "1990", "1990-05", "10/05/1990"]) {
+      expect(dataNascimentoUtil(ruim)).toBeNull();
+    }
+  });
+
+  it("não aproveita dia que não existe no mês", () => {
+    // O Date aceita "2025-02-31" e rola para março: sem conferir de volta,
+    // o cliente nasceria em 3 de março sem nunca ter digitado isso.
+    expect(dataNascimentoUtil("2025-02-31")).toBeNull();
+    expect(dataNascimentoUtil("2025-13-01")).toBeNull();
+  });
+
+  it("não aproveita data no futuro", () => {
+    const amanha = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(amanha)).toBeNull();
+  });
+
+  it("não aproveita idade impossível", () => {
+    expect(dataNascimentoUtil("1800-01-01")).toBeNull();
+  });
+
+  it("hoje é aproveitável — recém-nascido é caso raro, não erro", () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(hoje)).toBe(hoje);
+  });
+});
+
+describe("montarPayloadPedido — data de nascimento", () => {
+  const base = {
+    entrega: { tipo: "retirada" },
+    pagamento: { forma: "pix" },
+    itens: [{ produto_id: 1, qtd: 1 }],
+  };
+
+  it("vai junto quando o cliente informou", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "1990-05-10" },
+    });
+    expect(p.cliente.data_nascimento).toBe("1990-05-10");
+  });
+
+  it("vira null quando não informou — é o que diz ao servidor para não mexer no cadastro", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+  });
+
+  it("lixo não viaja: o pedido sai igual, sem a data", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "31/02/2025" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+    expect(p.cliente.nome).toBe("Ana");
   });
 });

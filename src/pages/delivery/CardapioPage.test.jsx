@@ -51,7 +51,7 @@ vi.mock("@/lib/delivery", async () => {
     carregarCardapio: mockCarregarCardapio,
     calcularTaxaEntrega: mockCalcularTaxa,
     buscarEnderecoViaCep: mockViaCep,
-    geocodificarEndereco: mockGeocodificar,
+    localizarEndereco: mockGeocodificar,
     enviarPedido: mockEnviarPedido,
     meusPedidos: mockMeusPedidos,
   };

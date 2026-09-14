@@ -117,7 +117,7 @@ describe("PDVView, Saldo do Dia corta pela abertura do caixa", () => {
       await abrirSaldoAutorizado();
 
       const kpi = screen.getByText("Vendas Finalizadas").parentElement.textContent;
-      expect(kpi).toMatch(/R\$ 120\.00/);
+      expect(kpi).toMatch(/R\$ 120,00/);
       expect(kpi).toMatch(/1 comanda/);
     } finally {
       vi.useRealTimers();
@@ -138,7 +138,7 @@ describe("PDVView, Saldo do Dia corta pela abertura do caixa", () => {
       await abrirSaldoAutorizado();
 
       const kpi = screen.getByText("Vendas Finalizadas").parentElement.textContent;
-      expect(kpi).toMatch(/R\$ 0\.00/);
+      expect(kpi).toMatch(/R\$ 0,00/);
       expect(kpi).toMatch(/0 comandas/);
     } finally {
       vi.useRealTimers();
@@ -188,7 +188,7 @@ describe("PDVView, Saldo do Dia consulta os cancelamentos pelo mesmo corte", () 
       await abrirSaldoAutorizado();
 
       // Lado das vendas: a noite conta.
-      expect(screen.getByText("Vendas Finalizadas").parentElement.textContent).toMatch(/R\$ 120\.00/);
+      expect(screen.getByText("Vendas Finalizadas").parentElement.textContent).toMatch(/R\$ 120,00/);
       // Lado dos cancelamentos: mesmo instante de corte, não a meia-noite.
       expect(cortesPedidos()).toEqual([ABERTURA_18H]);
     } finally {

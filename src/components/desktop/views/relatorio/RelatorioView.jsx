@@ -17,7 +17,7 @@ import { varColor, nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import BotaoReimprimirComprovante from "./BotaoReimprimirComprovante";
 import "./RelatorioView.css";
-import { formatarDinheiro } from "@/lib/dinheiro";
+import { formatarReais } from "@/lib/dinheiro";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuZap, LuSmartphone,
   LuLock, LuTriangleAlert, LuPackage, LuClipboardList, LuShieldAlert,
@@ -101,7 +101,7 @@ function fmtData(dateStr) {
     + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-const fmtR = formatarDinheiro;
+const fmtR = formatarReais;
 
 // ── Componentes auxiliares ────────────────────────────────────────
 

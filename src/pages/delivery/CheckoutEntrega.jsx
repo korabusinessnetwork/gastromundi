@@ -28,10 +28,12 @@ import {
   buscasDeEndereco,
   calcularTaxaEntrega,
   cepCompleto,
+  enderecoComNumero,
   formatarCep,
   formatarPreco,
-  geocodificarEndereco,
+  localizarEndereco,
 } from "@/lib/delivery";
+import { entregaLembrada } from "@/lib/deliveryDispositivo";
 import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
 
@@ -53,6 +55,7 @@ export default function CheckoutEntrega({
   const [buscandoCep, setBuscandoCep] = useState(false);
   const [taxa, setTaxa] = useState(null); // { ok, taxa, motivo, km }
   const [erroTaxa, setErroTaxa] = useState("");
+  // Taxa calculada por aproximação (não achamos a rua exata no mapa).
   const [calculandoTaxa, setCalculandoTaxa] = useState(false);
   // A taxa saiu do bairro/cidade porque o mapa não achou a rua exata. O
   // pedido segue com o endereço escrito, e o cliente merece saber disso
@@ -64,6 +67,16 @@ export default function CheckoutEntrega({
   // está digitando.
   const [telefoneTocado, setTelefoneTocado] = useState(false);
   const cepAnterior = useRef("");
+
+  // Primeiro pedido DESTE aparelho: o armazenamento local só tem dados de
+  // entrega depois que alguém pediu daqui. É o sinal que a vitrine já usa
+  // para pré-preencher o formulário, e serve aqui sem inventar nada nem
+  // perguntar ao servidor se o telefone é conhecido — o que, além de uma
+  // ida à rede, diria a qualquer um se um número é cliente da casa.
+  // Lido UMA vez: ele passa a ser falso assim que o pedido é salvo, e o
+  // campo não pode sumir da tela no meio do preenchimento.
+  const [primeiroPedido] = useState(() => Object.keys(entregaLembrada()).length === 0);
+  const hojeISO = new Date().toISOString().slice(0, 10);
 
   // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
   // texto dentro do painel NÃO fecha — era esse o defeito.
@@ -138,6 +151,11 @@ export default function CheckoutEntrega({
     const cep = apenasDigitosCep(dados.cep);
     const bairro = (dados.bairro || "").trim();
     const cidade = (dados.cidade || "").trim();
+    // O número mora em campo próprio desde que o CEP virou opcional, e a
+    // escada de consultas recebe o endereço como texto livre: juntar aqui é o
+    // que impede o mapa de cair na quadra errada. É ela que tira o número de
+    // novo quando o degrau exato não acha nada.
+    const endereco = enderecoComNumero((dados.endereco || "").trim(), dados.numero);
     // Dá para calcular com CEP completo, com bairro OU com cidade: a faixa
     // por bairro nunca precisou de CEP, e no modo por distância a cidade já
     // basta para o mapa achar onde é. Sem nenhum dos três não há o que
@@ -169,30 +187,29 @@ export default function CheckoutEntrega({
       // só a cidade): uma letra errada no nome da rua não pode travar o
       // pedido, porque quem entrega é gente e vai ler o endereço escrito.
       let coord = null;
-      let aproximada = false;
-      if (res?.motivo === "sem_coordenada") {
-        // Duas tentativas, não a lista inteira: cada ida ao mapa espera até
-        // 8 segundos por um terceiro que pode estar pendurado, e três delas
-        // seguidas deixariam a tela "calculando" por quase meio minuto. A
-        // exata e a melhor região resolvem o caso real, que é a rua escrita
-        // de um jeito que o mapa não conhece.
-        const buscas = buscasDeEndereco({ ...dadosRef.current, cep, bairro, cidade }).slice(
-          0,
-          2
-        );
-        for (let i = 0; i < buscas.length; i++) {
-          const { data: geo } = await geocodificarEndereco(buscas[i]);
-          if (!geo) continue;
+      if (res?.motivo === "sem_coordenada" && (endereco.trim() || bairro)) {
+        // Escada de consultas (ver `localizarEndereco`): a rua com a cidade
+        // primeiro, e degraus cada vez mais tolerantes até o bairro. Antes
+        // era UMA tentativa, sem a cidade, e uma letra trocada na rua
+        // derrubava o pedido inteiro com o botão morto e sem explicação.
+        // A escada tem orçamento de tempo por dentro, então ela para de
+        // tentar em vez de deixar a tela calculando por meio minuto, que era
+        // o motivo de a versão anterior se limitar a duas tentativas.
+        const { data: geo } = await localizarEndereco({
+          endereco, bairro, cidade: dados.cidade, cep,
+        });
+        if (geo) {
           coord = geo;
-          aproximada = i > 0;
           const r2 = await calcularTaxaEntrega(slug, cep, bairro, geo.lat, geo.lng);
           res = r2.data;
-          break;
         }
       }
 
       if (!ativo) return;
       setTaxa(res);
+      // A coordenada veio do bairro/CEP, não da rua: a taxa é uma
+      // estimativa e o cliente precisa saber antes de fechar o pedido.
+      setTaxaAproximada(Boolean(res?.ok && coord && coord.precisao === "aproximada"));
       // Sem resposta nenhuma (rede caída, RPC fora do ar, estabelecimento sem
       // entrega configurada) a tela não dizia UMA palavra: nenhum aviso,
       // nenhuma taxa, e o "Ir para o pagamento" desabilitado sem motivo
@@ -202,7 +219,6 @@ export default function CheckoutEntrega({
           ? ""
           : "Não conseguimos calcular a taxa de entrega agora. Confira sua conexão e tente de novo."
       );
-      setTaxaAproximada(Boolean(res?.ok && aproximada));
       if (res?.ok) {
         onMudar({
           taxa: Number(res.taxa) || 0,
@@ -370,6 +386,32 @@ export default function CheckoutEntrega({
             )}
           </div>
 
+          {/* Só no PRIMEIRO pedido deste aparelho, e opcional. Perguntar a
+              data de nascimento em toda compra seria pedágio: quem já pediu
+              antes não vê este campo. O "(opcional)" está no rótulo, não
+              escondido na ajuda, porque um campo a mais entre a pessoa e a
+              comida precisa dizer na hora que dá para pular. */}
+          {primeiroPedido && (
+            <div className="campo">
+              <label className="campo__label" htmlFor="ent-nasc">
+                Data de nascimento <span className="campo__opcional">(opcional)</span>
+              </label>
+              <input
+                id="ent-nasc"
+                className="campo__input"
+                type="date"
+                autoComplete="bday"
+                max={hojeISO}
+                value={dados.dataNascimento ?? ""}
+                onChange={(e) => onMudar({ dataNascimento: e.target.value })}
+              />
+              <p className="linha-sacola__extra checkout-entrega__ajuda">
+                Só para o estabelecimento lembrar de você no seu aniversário.
+                Não é usado em mais nada e não atrapalha o pedido.
+              </p>
+            </div>
+          )}
+
           {retirada ? (
             // Onde buscar, quando fica pronto e quanto custa a entrega
             // (nada) — as três coisas que quem vai retirar precisa saber.
@@ -529,10 +571,15 @@ export default function CheckoutEntrega({
                   )}
                 </div>
               )}
+              {/* Só chega aqui quando NENHUM degrau da escada achou nada —
+                  nem o bairro com a cidade. Aí o que falta mesmo é a
+                  cidade ou o bairro, não a grafia da rua, e a mensagem
+                  precisa dizer onde mexer em vez de mandar conferir tudo. */}
               {!calculandoTaxa && semCoordenada && (
                 <div className="vitrine__aviso vitrine__aviso--erro">
                   Não consegui localizar esse endereço no mapa. Confira a cidade e o
-                  bairro para calcular a entrega.
+                  bairro, com os dois preenchidos eu consigo calcular a entrega mesmo
+                  que a rua esteja com algum erro de digitação.
                 </div>
               )}
               {!calculandoTaxa && indisponivelKm && (

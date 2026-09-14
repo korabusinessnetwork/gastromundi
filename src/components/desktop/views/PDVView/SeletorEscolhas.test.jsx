@@ -72,11 +72,11 @@ describe("SeletorEscolhas — a mesma opção mais de uma vez", () => {
   it("o acréscimo é cobrado por unidade", async () => {
     montar([grupo()]);
 
-    expect(total()).toBe("R$ 20.00");
+    expect(total()).toBe("R$ 20,00");
     await userEvent.click(cartao("Somar um Cheddar"));
-    expect(total()).toBe("R$ 23.00");
+    expect(total()).toBe("R$ 23,00");
     await userEvent.click(cartao("Somar um Cheddar"));
-    expect(total()).toBe("R$ 26.00");
+    expect(total()).toBe("R$ 26,00");
   });
 
   it("o “−” tira uma unidade de cada vez e some quando zera", async () => {
@@ -86,9 +86,9 @@ describe("SeletorEscolhas — a mesma opção mais de uma vez", () => {
     await userEvent.click(cartao("Somar um Cheddar"));
     await userEvent.click(screen.getByRole("button", { name: "Tirar um Cheddar" }));
 
-    expect(total()).toBe("R$ 23.00");
+    expect(total()).toBe("R$ 23,00");
     await userEvent.click(screen.getByRole("button", { name: "Tirar um Cheddar" }));
-    expect(total()).toBe("R$ 20.00");
+    expect(total()).toBe("R$ 20,00");
     expect(screen.queryByRole("button", { name: "Tirar um Cheddar" })).toBeNull();
   });
 });
@@ -103,7 +103,7 @@ describe("SeletorEscolhas — o teto conta unidades", () => {
     expect(cartao("Somar um Bacon")).toBeDisabled();
     // E somar um terceiro cheddar também não passa.
     expect(cartao("Somar um Cheddar")).toBeDisabled();
-    expect(total()).toBe("R$ 26.00");
+    expect(total()).toBe("R$ 26,00");
   });
 
   it("liberando uma unidade, o que estava bloqueado volta", async () => {
@@ -137,7 +137,7 @@ describe("SeletorEscolhas — escolha única continua trocando", () => {
     expect(screen.queryByRole("button", { name: "Tirar um Cheddar" })).toBeNull();
 
     await userEvent.click(cartao("Cheddar"));
-    expect(total()).toBe("R$ 20.00");
+    expect(total()).toBe("R$ 20,00");
   });
 });
 
@@ -182,7 +182,7 @@ describe("SeletorEscolhas — máximo 0 é sem limite", () => {
 
     expect(cartao("Somar um Cheddar")).toBeEnabled();
     expect(cartao("Somar um Bacon")).toBeEnabled();
-    expect(total()).toBe("R$ 40.00"); // 20 + 5×3 + 1×5
+    expect(total()).toBe("R$ 40,00"); // 20 + 5×3 + 1×5
   });
 
   it("o grupo continua repetível — tem o botão de tirar um", async () => {
@@ -219,7 +219,7 @@ describe("SeletorEscolhas, o cartão da opção não se sobrepõe", () => {
     const bloco = document.querySelector(".seletor-escolhas__opcao-texto");
     expect(bloco).not.toBeNull();
     expect(bloco.querySelector(".seletor-escolhas__opcao-nome")).toHaveTextContent("Cheddar");
-    expect(bloco.querySelector(".seletor-escolhas__opcao-acrescimo")).toHaveTextContent("R$ 3.00");
+    expect(bloco.querySelector(".seletor-escolhas__opcao-acrescimo")).toHaveTextContent("R$ 3,00");
   });
 
   it("o acréscimo nunca é irmão direto do cartão", () => {
