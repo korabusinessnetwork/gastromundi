@@ -9,7 +9,7 @@ import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
-import { reportarFalha } from "@/lib/observabilidade";
+import { reportarFalha, resumoErro } from "@/lib/observabilidade";
 import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 
@@ -132,7 +132,7 @@ export function useFinalizarPagamento() {
           if (isErroDeRede(error)) enfileirarOffline({ tipo: "insert_lancamento", dados, usuario: currentUser?.username });
         }
       } catch (err) {
-        console.error("financeiro (receita por venda):", err);
+        console.error("financeiro (receita por venda):", resumoErro(err));
       }
     })();
 
@@ -160,7 +160,7 @@ export function useFinalizarPagamento() {
         .catch((err) => {
           // emitirDocumentoFiscal já é "nunca lança"; o catch é rede de
           // segurança e ainda assim conclui a modal (nunca a deixa girando).
-          console.error("fiscal (nf-e):", err);
+          console.error("fiscal (nf-e):", resumoErro(err));
           enfileirarNota();
           onNfce?.({
             estado: "concluido",
@@ -173,7 +173,7 @@ export function useFinalizarPagamento() {
       for (const p of pagamentos ?? []) {
         if (!metodoUsaTef(p?.metodo, metodosTef)) continue;
         void processarPagamentoTef(p, { usuario: currentUser?.username, comanda: selected.comanda }).catch((err) => {
-          console.error("tef:", err);
+          console.error("tef:", resumoErro(err));
         });
       }
     }
@@ -191,7 +191,7 @@ export function useFinalizarPagamento() {
     }
     if (selected.mesa) {
       supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
-        .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", err));
+        .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", resumoErro(err)));
     }
 
     // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)

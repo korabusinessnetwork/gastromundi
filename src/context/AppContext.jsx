@@ -24,6 +24,7 @@ import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
+import { separarCampos, COLUNAS_ESCRITA_USERS, COLUNAS_ESCRITA_PENDING, COLUNAS_REPLAY_PENDING } from "@/lib/camposPermitidos";
 import { drenarFila } from "@/lib/offline/fila";
 // Fila local de operações offline (Leva 11) — singleton de módulo sobre o
 // IndexedDB (F021 fatia 2): sobrevive a reload/fechamento do app e é
@@ -443,6 +444,13 @@ export function AppProvider({ children }) {
   // indisponível e repete sem ela — o bootstrap não pode quebrar por causa
   // de uma feature opcional (mesmo padrão de buscarPendingData/Leva 14).
   const COLUNAS_USERS = "id,name,username,role,auth_id,active";
+  // Colunas de retorno das ESCRITAS em `users`. `.select()` sem argumento é
+  // `select *`, que o CLAUDE.md proíbe em tabela sensível: trazia de volta
+  // tudo que a linha tiver, incluindo o que a tela nem usa (hoje `tenant_id`,
+  // amanhã o que a próxima migration acrescentar). `permissions` entra só
+  // quando a migration 20260828 já rodou, mesmo critério de `buscarUsers`.
+  const colunasRetornoUsers = () =>
+    permsColunaIndisponivelRef.current ? COLUNAS_USERS : `${COLUNAS_USERS},permissions`;
   async function buscarUsers() {
     const res = await supabase.from("users")
       .select(`${COLUNAS_USERS},permissions`).eq("active", true);
@@ -849,7 +857,13 @@ export function AppProvider({ children }) {
   // reenviar não duplica nem estoura chave única.
   const executarOpOffline = (op) => {
     if (op.tipo === "insert") return supabase.from("pending").upsert(op.payload, { onConflict: "id" });
-    if (op.tipo === "update") return supabase.from("pending").update(op.changes).eq("id", op.id);
+    // A operação dormiu no localStorage até a rede voltar, e o navegador deixa
+    // qualquer um editar o localStorage. Filtrar de novo na saída custa nada e
+    // garante que o que volta da fila tem a mesma forma do que entrou nela.
+    if (op.tipo === "update") {
+      const { campos } = separarCampos(op.changes, COLUNAS_REPLAY_PENDING);
+      return supabase.from("pending").update(campos).eq("id", op.id);
+    }
     if (op.tipo === "delete") return supabase.from("pending").delete().eq("id", op.id);
     // Cobrança offline (não-TEF): venda fechada sem internet. Upsert por id
     // — se a primeira tentativa gravou mas a resposta se perdeu, reenviar
@@ -1175,16 +1189,27 @@ export function AppProvider({ children }) {
         }
       }
     }
+    // Allowlist antes de qualquer coisa. Aqui ela pesa mais que nos outros
+    // pontos: com a rede fora, este `changes` é gravado no localStorage pela
+    // fila offline e só volta ao banco no dreno, depois de ter passado por um
+    // armazenamento que o navegador deixa qualquer um editar. Filtrar na
+    // entrada é o que garante que o que sai da fila tem a mesma forma do que
+    // entrou nela.
+    const { campos: permitidos, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_PENDING);
+    if (ignorados.length > 0) {
+      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updatePending", tabela: "pending", id, ignorados });
+    }
+    const payload = { ...permitidos, updated_at: new Date().toISOString() };
     let anterior = null;
     setPendingLocal(prev => prev.map(o => {
       if (o.id !== id) return o;
       anterior = o;
-      return { ...o, ...changes };
+      return { ...o, ...permitidos };
     }));
-    const { error } = await supabase.from("pending").update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+    const { error } = await supabase.from("pending").update(payload).eq("id", id);
     if (error) {
       if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } });
+        enfileirarOffline({ tipo: "update", id, changes: payload });
         return { error: null, offline: true };
       }
       console.error("updatePending error:", error);
@@ -1470,9 +1495,15 @@ export function AppProvider({ children }) {
     // OVERRIDE do funcionário (parcial; null = segue o cargo). Se a coluna
     // ainda não existe (migration 20260828 pendente), some do payload
     // (fail-open) e o usuário nasce seguindo o cargo.
-    const { id: _ignored, ...payload } = user;
+    // A allowlist substitui o `const { id: _ignored, ...payload }` que havia
+    // aqui: tirar só o `id` deixava passar qualquer outra chave que o objeto
+    // trouxesse, `tenant_id` inclusive. Ver src/lib/camposPermitidos.js.
+    const { campos: payload, ignorados } = separarCampos(user, COLUNAS_ESCRITA_USERS);
+    if (ignorados.length > 0) {
+      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "addUser", tabela: "users", ignorados });
+    }
     if (permsColunaIndisponivelRef.current) delete payload.permissions;
-    const { data, error } = await supabase.from("users").insert(payload).select().single();
+    const { data, error } = await supabase.from("users").insert(payload).select(colunasRetornoUsers()).single();
     if (data) setUsersLocal(prev => [...prev, {
       ...data,
       permissoesOverride: data.permissions ?? null,
@@ -1484,7 +1515,10 @@ export function AppProvider({ children }) {
   const updateUser = async (id, changes) => {
     // `permissions` (override do funcionário) É persistido — a menos que a
     // coluna ainda não exista no banco (fail-open, migration pendente).
-    const payload = { ...changes };
+    const { campos: payload, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_USERS);
+    if (ignorados.length > 0) {
+      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updateUser", tabela: "users", id, ignorados });
+    }
     if (permsColunaIndisponivelRef.current) delete payload.permissions;
     // .select() após o update: PostgREST retorna sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo (ex.: editor aberto para gerente, mas a
@@ -1495,7 +1529,7 @@ export function AppProvider({ children }) {
       .from("users")
       .update(payload)
       .eq("id", id)
-      .select();
+      .select(colunasRetornoUsers());
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateUser", tabela: "users", id });
@@ -1508,11 +1542,15 @@ export function AppProvider({ children }) {
     }
     setUsersLocal(prev => prev.map(u => {
       if (u.id !== id) return u;
-      const merged = { ...u, ...changes };
+      // Espelha o que FOI ao banco (payload), não o que o chamador pediu
+      // (changes): com a allowlist, os dois podem diferir, e a tela mostrando
+      // campo que não foi gravado é o "sucesso falso" que o resto desta
+      // função existe para evitar.
+      const merged = { ...u, ...payload };
       // Se o override veio nesta edição, adota-o (null = volta a seguir o
       // cargo); senão, preserva o override que o usuário já tinha.
-      const override = Object.prototype.hasOwnProperty.call(changes, "permissions")
-        ? (changes.permissions ?? null)
+      const override = Object.prototype.hasOwnProperty.call(payload, "permissions")
+        ? (payload.permissions ?? null)
         : u.permissoesOverride;
       return {
         ...merged,

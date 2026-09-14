@@ -240,3 +240,36 @@ export function reportarInconsistencia(msg, contexto = {}) {
     /* idem */
   }
 }
+
+/**
+ * Resumo de erro seguro para o `console` do navegador.
+ *
+ * O PDV logava `console.error("...", err?.message ?? err, err)`: o objeto
+ * cru ia inteiro para o console, e no caminho de pagamento ele carrega o
+ * que o CLAUDE.md manda nunca logar. Um `PostgrestError` traz `details` e
+ * `hint` com o dado da linha que violou a constraint; um erro vindo de
+ * `finalizarPagamento` pode trazer o payload da cobrança pendurado.
+ *
+ * O console do caixa não é canal de observabilidade: ele fica aberto num
+ * terminal compartilhado, a extensão do navegador lê, e ninguém raspa
+ * nada ali. Quem recebe o erro inteiro é o `reportarFalha`, que passa
+ * pelo `scrubLGPD` antes de sair.
+ *
+ * Preserva o que serve para diagnosticar (mensagem mascarada e `code` do
+ * Postgres) e descarta o resto. Função pura, nunca lança.
+ *
+ * @param {any} erro
+ * @returns {string}
+ */
+export function resumoErro(erro) {
+  try {
+    if (erro == null) return "erro sem detalhe";
+    if (typeof erro === "string") return mascararPII(erro);
+    const msg = typeof erro.message === "string" && erro.message ? erro.message : String(erro);
+    const code = typeof erro.code === "string" || typeof erro.code === "number" ? erro.code : null;
+    const resumo = mascararPII(msg);
+    return code ? `${resumo} (code: ${code})` : resumo;
+  } catch {
+    return "erro sem detalhe";
+  }
+}

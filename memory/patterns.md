@@ -1053,3 +1053,32 @@ texto), com combinações que não derivam umas das outras.
   extrator de classes do JSX enxergar `nf-tab__X--` e marcar `--feito`/`--ativo` como
   "regra sem uso". É ruído esperado do literal de template, não classe órfã — vale
   reconhecer o padrão antes de sair apagando regra.
+
+### O projeto roda com revisor de segurança que não escreveu o código
+*Adotado em 2026-09-14. Decisão em `docs/08_DECISOES/adr-014.md`, detalhe operacional em
+`docs/11_SEGURANCA/README.md`.*
+
+Quem escreveu não é bom revisor do que escreveu, e isso não muda pelo lado da IA. Então o
+projeto passa a rodar com três ferramentas gratuitas em volta do agente:
+
+- **`security-guidance` ativo** (plugin oficial da Anthropic, escopo de usuário). Revisa a
+  mudança que o próprio Claude acabou de fazer, em três pontos: regex no edit, review do
+  diff no fim do turno, review agêntico no commit. Kill switch por projeto:
+  `SECURITY_GUIDANCE_DISABLE=1`.
+- **`vibesec` no contexto** (`.claude/skills/vibesec/`, versionado no repo). Contexto de
+  código seguro para web: IDOR, XSS, SSRF, SQLi, JWT, mass assignment. Markdown puro, sem
+  código executável, congelado no commit `0590993` da origem.
+- **`skillspector` como portão** antes de qualquer skill de terceiro entrar, ver a
+  restrição correspondente em `memory/restrictions.md`.
+
+**O que a camada não pega, e é o mais importante daqui:** política RLS mal escrita vazando
+dado entre tenants. As três pegam injection, XSS, deserialização insegura e segredo
+hardcodado; uma policy que deixa o tenant A ler o pedido do tenant B não tem nada
+sintaticamente errado e passa batido. Isolamento multi-tenant continua sendo teste manual
+e obrigatório, conforme ADR-008.
+
+**Score de scanner não é veredito.** Medido na instalação: o próprio `security-guidance`,
+oficial da Anthropic, recebe `DO_NOT_INSTALL` do SkillSpector por ler chave de API do
+ambiente e mandar num cabeçalho HTTP, que é o trabalho dele. O `vibesec` recebe o mesmo por
+citar `rm -rf /` e `/etc/passwd` dentro de tabelas que documentam ataques. Ler o achado é o
+passo que decide, não o número.

@@ -15,7 +15,7 @@
  * │ isso, o worker também aceita POST manual (o dia do teste em        │
  * │ homologação): chama-se a função e ela devolve o resumo da fila.    │
  * │   supabase functions deploy reenviar-nfce                          │
- * │   (cron: select cron.schedule('reenvio-nfce','*/5 * * * *', $$     │
+ * │   (cron: select cron.schedule('reenvio-nfce','*\/5 * * * *', $$    │
  * │     select net.http_post('.../functions/v1/reenviar-nfce', ...) $$)│
  * └────────────────────────────────────────────────────────────────────┘
  *
@@ -36,10 +36,11 @@ import {
 } from "../_shared/guardaEntrada.ts";
 import { decidirDesfechoReenvio } from "../../../src/lib/decidirDesfechoReenvio.js";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
+
+// Origem declarada em vez de curinga, ver _shared/cors.ts. Sem a
+// variável configurada o comportamento segue sendo "*", de propósito.
+const ORIGENS_PERMITIDAS = lerOrigensPermitidas(Deno.env.get("ORIGENS_PERMITIDAS"));
 
 // Teto de itens por rodada — usa o índice parcial de pendentes; o resto fica
 // para a próxima chamada/agendamento (backoff é do schedule, não daqui).
@@ -57,6 +58,13 @@ const MARCA_EM_ANDAMENTO = "reenvio_em_andamento";
 const TRAVA_TTL_MS = 5 * 60 * 1000;
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = montarCorsHeaders(req.headers.get("Origin"), ORIGENS_PERMITIDAS);
+  function json(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -275,9 +283,3 @@ function agora(): string {
   return new Date().toISOString();
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}

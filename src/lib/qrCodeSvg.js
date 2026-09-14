@@ -29,5 +29,42 @@ export async function montarSvgQrCode(texto, { margin = 1 } = {}) {
   }
   // Nível de correção de erro M: equilíbrio padrão da NFC-e (bom para
   // impressão térmica sem exagerar no tamanho do módulo).
-  return QRCode.toString(conteudo, { type: "svg", margin, errorCorrectionLevel: "M" });
+  const svg = await QRCode.toString(conteudo, { type: "svg", margin, errorCorrectionLevel: "M" });
+  if (!svgSeguro(svg)) {
+    // Não deve acontecer com a lib atual, que desenha só `path`. Existe
+    // porque este é o ÚNICO `dangerouslySetInnerHTML` do app: se um dia a
+    // biblioteca mudar, ou for trocada por uma que ecoe o texto de entrada
+    // dentro de um `<title>`, o cupom passaria a injetar markup vindo de
+    // dado. Recusar aqui faz o <CupomNfce> cair no estado de erro que ele
+    // já tem, em vez de injetar.
+    throw new Error("QR Code recusado: o SVG gerado não tem a forma esperada.");
+  }
+  return svg;
+}
+
+/**
+ * O markup é um SVG simples, sem nada executável?
+ *
+ * Allowlist de forma, não blocklist de palavra: começa com `<svg`, termina
+ * com `</svg>`, e não contém elemento de script/estrangeiro, atributo de
+ * evento (`onload=`), `javascript:` nem `<foreignObject>`. Função pura,
+ * exportada para o teste conseguir cobrar cada caso.
+ *
+ * @param {unknown} svg
+ * @returns {boolean}
+ */
+export function svgSeguro(svg) {
+  if (typeof svg !== "string") return false;
+  const texto = svg.trim();
+  if (!texto.startsWith("<svg") || !texto.endsWith("</svg>")) return false;
+  // `on...=` cobre onload, onerror, onclick e o que a especificação
+  // inventar depois; a fronteira à esquerda evita raspar um atributo
+  // legítimo que só termine em "on" (ex.: `version=`).
+  if (/<\s*(script|foreignObject|iframe|embed|object|use|animate|set)\b/i.test(texto)) return false;
+  if (/(?:^|[\s"'])on[a-z]+\s*=/i.test(texto)) return false;
+  if (/javascript\s*:/i.test(texto)) return false;
+  // `href`/`xlink:href` num QR só aparece se alguém pendurar link no
+  // desenho, o que esta lib não faz e o cupom não precisa.
+  if (/\bxlink:href\b|\shref\s*=/i.test(texto)) return false;
+  return true;
 }
