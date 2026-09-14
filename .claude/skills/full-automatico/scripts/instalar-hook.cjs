@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Instala o Stop hook do Full Automático num projeto.
-// Uso: node instalar-hook.js <pasta-do-projeto> [--com-protecoes]
+// Uso: node instalar-hook.cjs <pasta-do-projeto> [--com-protecoes]
 // Faz merge no .claude/settings.json sem apagar configurações existentes.
 
 const fs = require("fs");
@@ -12,11 +12,18 @@ const comProtecoes = args.includes("--com-protecoes");
 
 const pastaClaude = path.join(projeto, ".claude");
 const pastaHooks = path.join(pastaClaude, "hooks");
-const destinoHook = path.join(pastaHooks, "full-auto-stop.js");
+// Instalado como .cjs de propósito: o hook usa require(), e projetos com
+// "type": "module" no package.json (todo Vite) quebram se o arquivo for .js.
+// A extensão .cjs funciona nos dois casos.
+const destinoHook = path.join(pastaHooks, "full-auto-stop.cjs");
 const arquivoSettings = path.join(pastaClaude, "settings.json");
 
 fs.mkdirSync(pastaHooks, { recursive: true });
-fs.copyFileSync(path.join(__dirname, "full-auto-stop.js"), destinoHook);
+fs.copyFileSync(path.join(__dirname, "full-auto-stop.cjs"), destinoHook);
+
+// Limpa a versão .js deixada por instalações anteriores, que quebra sob ESM.
+const hookAntigo = path.join(pastaHooks, "full-auto-stop.js");
+if (fs.existsSync(hookAntigo)) fs.rmSync(hookAntigo);
 
 let settings = {};
 if (fs.existsSync(arquivoSettings)) {
@@ -32,18 +39,20 @@ if (fs.existsSync(arquivoSettings)) {
 settings.hooks = settings.hooks || {};
 settings.hooks.Stop = settings.hooks.Stop || [];
 
-const jaTem = JSON.stringify(settings.hooks.Stop).includes("full-auto-stop.js");
-if (!jaTem) {
-  settings.hooks.Stop.push({
-    hooks: [
-      {
-        type: "command",
-        command: "node",
-        args: ["${CLAUDE_PROJECT_DIR}/.claude/hooks/full-auto-stop.js"],
-      },
-    ],
-  });
-}
+// O hook do Claude Code é um comando único, não aceita "args" separado.
+const comandoHook = 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/full-auto-stop.cjs"';
+
+// Tira qualquer registro anterior do full-auto-stop (inclusive o .js quebrado)
+// para não acumular entradas duplicadas a cada execução.
+const antes = settings.hooks.Stop.length;
+settings.hooks.Stop = settings.hooks.Stop.filter(
+  (e) => !JSON.stringify(e).includes("full-auto-stop")
+);
+const jaTem = settings.hooks.Stop.length < antes;
+
+settings.hooks.Stop.push({
+  hooks: [{ type: "command", command: comandoHook }],
+});
 
 // Paralelismo: worktrees partem do trabalho atual, não da main.
 settings.worktree = settings.worktree || {};
@@ -74,7 +83,7 @@ if (comProtecoes) {
 
 fs.writeFileSync(arquivoSettings, JSON.stringify(settings, null, 2) + "\n");
 
-console.log(`Hook ${jaTem ? "já estava instalado" : "instalado"}: ${destinoHook}`);
+console.log(`Hook ${jaTem ? "reinstalado (registro anterior substituído)" : "instalado"}: ${destinoHook}`);
 console.log(`settings.json atualizado: ${arquivoSettings}`);
 console.log(`Paralelismo: worktree.baseRef = ${settings.worktree.baseRef}, .worktreeinclude pronto.`);
 if (comProtecoes) console.log("Travas de segurança adicionadas (deny + ask).");

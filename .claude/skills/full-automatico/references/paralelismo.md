@@ -74,6 +74,6 @@ Para cada frente que terminou, uma por vez:
 
 - **Portas:** frentes que sobem o app usam portas diferentes (ex.: 5173, 5174, 5175...).
 - **Banco local:** cada frente usa o próprio banco local ou schema de teste; nunca o mesmo arquivo SQLite ao mesmo tempo.
-- **Base das worktrees:** o `settings.json` do projeto precisa de `"worktree": { "baseRef": "head" }` para as frentes partirem do trabalho atual, e não da `main`. O `instalar-hook.js` já configura isso.
-- **Arquivos fora do git:** o `.worktreeinclude` na raiz copia `.env` e `.env.local` para cada worktree. O `instalar-hook.js` já cria.
+- **Base das worktrees:** o `settings.json` do projeto precisa de `"worktree": { "baseRef": "head" }` para as frentes partirem do trabalho atual, e não da `main`. O `instalar-hook.cjs` já configura isso.
+- **Arquivos fora do git:** o `.worktreeinclude` na raiz copia `.env` e `.env.local` para cada worktree. O `instalar-hook.cjs` já cria.
 - **Limpeza:** worktrees de subagente sem mudanças são removidas sozinhas. As outras, o maestro remove depois do merge (`git worktree remove`).

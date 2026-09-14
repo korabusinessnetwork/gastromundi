@@ -25,9 +25,9 @@ Regra de escrita do Matheus: em qualquer texto em português que você gerar (do
    - `DECISOES.md`: toda escolha que você fez no lugar do Matheus, com o porquê.
    - `PENDENCIAS-DO-MATHEUS.md`: o que só ele pode fazer, com passo a passo.
    - `LOG.md`: uma linha por tarefa concluída.
-4. **Instalar o hook de continuidade** se `.claude/settings.json` do projeto ainda não tem o Stop hook `full-auto-stop.js`:
+4. **Instalar o hook de continuidade** se `.claude/settings.json` do projeto ainda não tem o Stop hook `full-auto-stop.cjs`:
    ```bash
-   node <pasta-desta-skill>/scripts/instalar-hook.js .
+   node <pasta-desta-skill>/scripts/instalar-hook.cjs .
    ```
    Ele copia o hook para `.claude/hooks/` e faz merge no `settings.json` sem apagar nada existente. O hook impede o Claude Code de encerrar enquanto houver tarefa pendente. Detalhes em `references/setup.md`.
 5. **Git como botão de desfazer.** `git init` se precisar, crie a branch `full-auto/<slug-do-projeto>` e faça um commit inicial. Commits pequenos e frequentes são o que deixa o Matheus confiar numa execução sem supervisão.

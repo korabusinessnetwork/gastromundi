@@ -32,12 +32,12 @@ Observações:
 
 ## 3. Hook de continuidade (Stop hook)
 
-O script `scripts/instalar-hook.js` faz isto automaticamente:
+O script `scripts/instalar-hook.cjs` faz isto automaticamente:
 
 ```powershell
-node <pasta-da-skill>/scripts/instalar-hook.js .
+node <pasta-da-skill>/scripts/instalar-hook.cjs .
 # com travas extras de segurança (recomendado):
-node <pasta-da-skill>/scripts/instalar-hook.js . --com-protecoes
+node <pasta-da-skill>/scripts/instalar-hook.cjs . --com-protecoes
 ```
 
 Resultado no `.claude/settings.json` do projeto:
@@ -50,8 +50,7 @@ Resultado no `.claude/settings.json` do projeto:
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/full-auto-stop.js"]
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/full-auto-stop.cjs\""
           }
         ]
       }
@@ -59,6 +58,12 @@ Resultado no `.claude/settings.json` do projeto:
   }
 }
 ```
+
+Os dois scripts usam `require`, por isso têm extensão `.cjs`, e o hook é instalado como
+`full-auto-stop.cjs`. Com `.js` eles quebrariam em qualquer projeto que tenha
+`"type": "module"` no `package.json`, o que inclui todo projeto Vite. Rodar o instalador
+de novo é seguro: ele substitui o registro anterior em vez de acumular uma segunda
+entrada, e apaga um `full-auto-stop.js` deixado por versões antigas.
 
 Como o hook decide:
 - Sem pasta `.full-auto/` no projeto → não interfere (a skill não está ativa).
