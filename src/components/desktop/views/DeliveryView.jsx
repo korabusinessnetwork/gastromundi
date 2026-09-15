@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import BotaoReimprimirPedido from "./BotaoReimprimirPedido";
+import AbaFechamento from "./delivery/AbaFechamento";
 import { logAction } from "@/lib/logger";
 import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
@@ -145,6 +146,7 @@ import "./DeliveryView.css";
 
 const ABAS = [
   { id: "pedidos",      label: "Pedidos" },
+  { id: "fechamento",   label: "Fechamento" },
   { id: "cardapio",     label: "Cardápio" },
   { id: "complementos", label: "Complementos" },
   { id: "entregadores", label: "Entregadores" },
@@ -474,6 +476,8 @@ export default function DeliveryView({ notify } = {}) {
             entregadores={entregadores}
           />
         )}
+
+        {aba === "fechamento" && <AbaFechamento aviso={aviso} />}
 
         {aba === "cardapio" && (
           <AbaCardapio
@@ -3006,7 +3010,7 @@ function AbaEntregadores({
           onClick={() => setSecao("fechamento")}
           className={`delivery-view__sub-aba${secao === "fechamento" ? " delivery-view__sub-aba--ativa" : ""}`}
         >
-          Fechamento do dia
+          Pagamento
         </button>
       </div>
 
