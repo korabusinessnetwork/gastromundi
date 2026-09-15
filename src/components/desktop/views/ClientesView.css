@@ -152,7 +152,11 @@
 
 .clientes-view__select {
   border: none;
-  background: none;
+  /* Sem `background`, de propósito: quem pinta é a baseline de inputs
+     (src/styles/inputs.css), que também aplica `color-scheme`. Com
+     `background: none` aqui — especificidade de classe, acima da
+     baseline — o controle ficava transparente E o popup nativo caía para
+     branco, com o texto claro por cima: a lista de meses ficava ilegível. */
   color: var(--gm-text);
   font-family: inherit;
   font-weight: 700;
@@ -162,6 +166,13 @@
   border-radius: 999px;
   cursor: pointer;
   outline: none;
+}
+
+/* Alguns navegadores ignoram `color-scheme` no popup e usam o branco do
+   sistema. Pintar a própria opção é o que garante contraste nos dois temas. */
+.clientes-view__select option {
+  background: var(--gm-card);
+  color: var(--gm-text);
 }
 
 .clientes-view__limpar {
