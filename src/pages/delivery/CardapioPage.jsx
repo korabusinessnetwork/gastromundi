@@ -458,6 +458,7 @@ export default function CardapioPage() {
         <Confirmacao
           resultado={resultado}
           tempoPreparo={cardapio.tempo_preparo_min}
+          slug={slug}
           onFechar={fecharConfirmacao}
         />
       )}

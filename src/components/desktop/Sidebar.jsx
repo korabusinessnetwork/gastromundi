@@ -1,6 +1,7 @@
 ﻿import { useMemo, useState } from "react";
 import "./Sidebar.css";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import BotaoFeedback from "@/components/shared/BotaoFeedback";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -288,6 +289,13 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
           );
         })}
       </nav>
+
+      {/* Reportar algo — no pé do menu, longe do caminho de operar, mas
+          alcançável de qualquer tela. Quem vê o problema é quem está no
+          balcão, e até aqui não havia caminho entre essa pessoa e o dono. */}
+      <div className="sidebar__rodape-feedback">
+        <BotaoFeedback usuario={currentUser?.username} />
+      </div>
 
       {/* Modal Auth — Relatório (caixa) */}
       {showAuthRel && createPortal(

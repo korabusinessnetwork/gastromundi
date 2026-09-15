@@ -307,6 +307,35 @@ CREATE TABLE public.pending (
   tenant_id  uuid NOT NULL DEFAULT public.tenant_atual_id() REFERENCES public.tenants(id) -- 20260724
 );
 
+-- ── feedbacks — 20261010_feedbacks.sql ────────────────────────
+-- Dois canais, uma tabela: o relato da EQUIPE (origem='equipe': o que
+-- quebrou e em que tela) e a avaliação do CLIENTE do delivery
+-- (origem='cliente': nota de 1 a 5 e comentário). O ciclo de vida é o
+-- mesmo — chega, é lido, é resolvido —, e o CHECK
+-- feedbacks_campos_da_origem impede linha meio preenchida.
+-- O cliente escreve ANÔNIMO, pela RPC registrar_feedback_cliente
+-- (SECURITY DEFINER, tenant pelo slug): a vitrine não tem sessão, e dar
+-- INSERT direto ao anon abriria a tabela.
+CREATE TABLE public.feedbacks (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id  uuid        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  origem     text        NOT NULL CHECK (origem IN ('equipe', 'cliente')),
+  texto      text        NOT NULL CHECK (btrim(texto) <> ''),
+  nota       integer     CHECK (nota IS NULL OR nota BETWEEN 1 AND 5),
+  tela       text,
+  autor      text,
+  pedido_id  uuid        REFERENCES public.delivery_pedidos(id) ON DELETE SET NULL,
+  resolvido  boolean     NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT feedbacks_campos_da_origem CHECK (
+    (origem = 'cliente' AND autor IS NULL AND tela IS NULL)
+    OR (origem = 'equipe' AND nota IS NULL AND pedido_id IS NULL)
+  )
+);
+CREATE INDEX feedbacks_tenant_idx  ON public.feedbacks (tenant_id);
+CREATE INDEX feedbacks_data_idx    ON public.feedbacks (created_at DESC);
+CREATE INDEX feedbacks_abertos_idx ON public.feedbacks (tenant_id) WHERE NOT resolvido;
+
 -- ── comandas_arquivadas — 20261009_integridade_do_historico.sql ──
 -- O que o cliente pediu não se apaga. Toda comanda que sai de `pending`
 -- (finalizada OU cancelada) é copiada para cá por um gatilho BEFORE

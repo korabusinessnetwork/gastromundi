@@ -3,9 +3,10 @@
 // volta ao cardápio com a sacola já limpa (feedback humano de sucesso).
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco } from "@/lib/delivery";
+import AvaliacaoPedido from "./AvaliacaoPedido";
 import "./Confirmacao.css";
 
-export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
+export default function Confirmacao({ resultado, tempoPreparo, slug, onFechar }) {
   const retirada = resultado?.tipo === "retirada";
   return (
     // Sem fechar no fundo, ao contrário de todos os outros modais da vitrine.
@@ -52,6 +53,11 @@ export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {
             >
               Voltar ao cardápio
             </button>
+
+            {/* Aqui e não depois: é o único momento em que o cliente ainda
+                está na página. Não há conta, e-mail nem push para chamá-lo
+                de volta — ou avalia agora, ou não avalia. */}
+            {slug && <AvaliacaoPedido slug={slug} />}
           </div>
         </div>
       </div>
