@@ -12,6 +12,10 @@
 import { supabase } from "@/lib/supabase";
 import { ehUuid } from "@/lib/deliveryDispositivo";
 import { apenasDigitosTelefone } from "@/lib/telefone";
+// As três regras de cobrança de grupo (somar / a mais cara / média) têm
+// UMA implementação só. A vitrine e o PDV cobram igual porque é
+// literalmente a mesma função — não duas que concordam por enquanto.
+import { precoDoGrupo } from "@/lib/combos";
 
 // ── CEP ────────────────────────────────────────────────────────────
 
@@ -78,6 +82,48 @@ export function valorDigitado(texto) {
  * @param {string} texto
  * @returns {string|null} a data pronta para gravar, ou null
  */
+/**
+ * Monta "AAAA-MM-DD" a partir de dia, mês e ano digitados em campos
+ * separados. Só monta quando os TRÊS estão preenchidos; incompleto
+ * devolve "" para `dataNascimentoUtil` recusar depois.
+ *
+ * Existe porque o `<input type="date">` era péssimo para data de
+ * nascimento: o calendário abre no mês atual e chegar a 1962 é uma
+ * viagem de centenas de cliques. Três campos deixam o ano ser digitado.
+ *
+ * Não valida o dia contra o mês nem o ano contra o futuro — isso é de
+ * `dataNascimentoUtil`, que continua sendo a única regra.
+ *
+ * @param {string|number} dia
+ * @param {string|number} mes  1 a 12
+ * @param {string|number} ano  4 dígitos
+ * @returns {string} "AAAA-MM-DD", ou "" quando falta alguma parte
+ */
+export function montarDataISO(dia, mes, ano) {
+  const d = String(dia ?? "").trim();
+  const m = String(mes ?? "").trim();
+  const a = String(ano ?? "").trim();
+  if (!d || !m || !a) return "";
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(a)) return "";
+  return `${a}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+/**
+ * Desmonta "AAAA-MM-DD" nos três campos da tela. O inverso de
+ * `montarDataISO`, para reabrir o formulário com o que já foi digitado.
+ *
+ * @param {string} iso
+ * @returns {{dia: string, mes: string, ano: string}} partes vazias quando não dá
+ */
+export function separarDataISO(iso) {
+  const bruto = String(iso ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return { dia: "", mes: "", ano: "" };
+  const [ano, mes, dia] = bruto.split("-");
+  // Sem zero à esquerda: o campo é digitado por gente, e "07" num input
+  // numérico é o tipo de detalhe que faz a pessoa apagar e redigitar.
+  return { dia: String(Number(dia)), mes: String(Number(mes)), ano };
+}
+
 export function dataNascimentoUtil(texto) {
   const bruto = String(texto ?? "").trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return null;
@@ -102,12 +148,36 @@ export function dataNascimentoUtil(texto) {
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
 
 /**
+ * Quanto as opções escolhidas acrescentam, RESPEITANDO A REGRA DE CADA
+ * GRUPO. Grupos diferentes sempre se somam entre si; dentro do grupo, é
+ * a regra dele que decide (ver `precoDoGrupo`, a mesma conta do PDV).
+ *
+ * Um grupo de complemento do delivery não tem regra e cai em 'soma' —
+ * que é exatamente o que ele sempre fez. O que muda é o grupo de
+ * escolha vindo do cadastro do produto, onde "escolha 4 sabores" cobra
+ * a pizza mais cara em vez de quatro pizzas.
+ *
+ * @param {Array<{preco?: number, qtd?: number, grupoId?: string, regra?: string}>} complementos
+ */
+export function precoDosComplementos(complementos) {
+  const porGrupo = new Map();
+  for (const c of complementos ?? []) {
+    // Sem grupo é 'soma', e somar é associativo: um balde só dá o mesmo.
+    const chave = c?.grupoId ?? "__sem_grupo__";
+    if (!porGrupo.has(chave)) porGrupo.set(chave, { regra: c?.regra, itens: [] });
+    porGrupo.get(chave).itens.push({ preco: c?.preco, qtd: c?.qtd });
+  }
+  let total = 0;
+  for (const { regra, itens } of porGrupo.values()) total += precoDoGrupo(itens, regra);
+  return total;
+}
+
+/**
  * Soma dos complementos escolhidos de um item do carrinho.
  * @param {{complementosEscolhidos?: Array<{preco?: number}>}} item
  */
 export function somaComplementos(item) {
-  const lista = item?.complementosEscolhidos ?? [];
-  return lista.reduce((acc, c) => acc + (Number(c?.preco) || 0), 0);
+  return precoDosComplementos(item?.complementosEscolhidos);
 }
 
 /** Preço unitário (base + complementos) de um item do carrinho. */
@@ -408,6 +478,57 @@ function coordenada(valor) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ── Rua e número (campos separados na tela, uma linha no pedido) ────
+
+/**
+ * Junta rua e número na linha única que o servidor, o mapa e a etiqueta
+ * do entregador sempre usaram: "Rua das Flores, 100".
+ *
+ * A tela pergunta em dois campos (é onde o erro acontece: o número ia
+ * grudado na rua e sumia junto quando a pessoa corrigia a grafia), mas o
+ * pedido continua guardando uma linha só — mudar o formato gravado
+ * quebraria o histórico e a geocodificação.
+ *
+ * Sem número não inventa nada: quem mora em endereço sem número manda a
+ * rua sozinha, e o complemento diz o resto.
+ *
+ * @param {string} rua
+ * @param {string} numero
+ * @returns {string} a linha pronta, ou "" quando não há rua
+ */
+export function juntarRuaNumero(rua, numero) {
+  const r = String(rua ?? "").trim().replace(/\s+/g, " ");
+  const n = String(numero ?? "").trim().replace(/\s+/g, " ");
+  if (!r) return "";
+  return n ? `${r}, ${n}` : r;
+}
+
+/**
+ * Desmonta a linha única em rua e número, para reabrir o formulário com
+ * o endereço que o aparelho lembrava de antes desta tela existir.
+ *
+ * Só separa o que é reconhecidamente número de porta no FIM da linha
+ * ("100", "100A", "s/n"). Na dúvida devolve tudo em `rua`: chutar errado
+ * aqui apaga parte do endereço na frente do cliente, e um número que
+ * ficou na rua ainda entrega — uma rua truncada, não.
+ *
+ * @param {string} endereco
+ * @returns {{rua: string, numero: string}}
+ */
+export function separarRuaNumero(endereco) {
+  const bruto = String(endereco ?? "").trim().replace(/\s+/g, " ");
+  if (!bruto) return { rua: "", numero: "" };
+  // Vírgula é a marca explícita de "aqui começa o número" — e só vale
+  // quando o que vem depois PARECE número de porta.
+  const comVirgula = bruto.match(/^(.*?),\s*(\d+[A-Za-z]?|s\/?n\.?)$/i);
+  if (comVirgula) return { rua: comVirgula[1].trim(), numero: comVirgula[2].trim() };
+  // Sem vírgula, só um número solto no fim. "Rua 25 de Março" não cai
+  // aqui porque o número não está no fim.
+  const semVirgula = bruto.match(/^(.*\S)\s+(\d+[A-Za-z]?)$/);
+  if (semVirgula) return { rua: semVirgula[1].trim(), numero: semVirgula[2].trim() };
+  return { rua: bruto, numero: "" };
+}
+
 /**
  * Monta o payload jsonb do pedido. NÃO envia preço/total: o servidor
  * recalcula tudo. Envia só a intenção (o que o cliente escolheu).
@@ -449,7 +570,12 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
           cep: apenasDigitosCep(entrega?.cep),
           cidade: (entrega?.cidade ?? "").trim(),
           bairro: (entrega?.bairro ?? "").trim(),
-          endereco: (entrega?.endereco ?? "").trim(),
+          // A tela pergunta rua e número em campos separados; o pedido
+          // guarda a linha única de sempre. Quem ainda mandar `endereco`
+          // pronto (aparelho que lembrou de antes) continua valendo.
+          endereco: entrega?.rua
+            ? juntarRuaNumero(entrega.rua, entrega.numero)
+            : (entrega?.endereco ?? "").trim(),
           complemento: (entrega?.complemento ?? "").trim() || null,
           // Coordenadas só entram quando o modo é por km e o navegador
           // conseguiu geocodificar o endereço. O servidor recalcula a taxa a

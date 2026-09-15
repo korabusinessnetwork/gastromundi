@@ -20,6 +20,7 @@ import {
   rotuloRegraGrupo,
   primeiroGrupoPendente,
   achatarGrupos,
+  precoDosComplementos,
 } from "@/lib/delivery";
 import { useSairDoModal } from "./useSairDoModal";
 
@@ -42,6 +43,9 @@ function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef
   // Chegou ao teto do grupo. Escolha única não conta: ali tocar em outra
   // opção troca a escolha, que é o comportamento esperado de um rádio.
   const noLimite = max > 1 && ids.length >= max;
+  // 'soma' é acréscimo ("+ R$ 4 de bacon"); 'maior' e 'media' são frações
+  // de um produto só, e ali o número é o preço do sabor.
+  const acrescimo = (grupo.regra ?? "soma") === "soma";
 
   return (
     <div
@@ -83,7 +87,13 @@ function GrupoBloco({ grupo, nivel, selecoes, destaque, onAlternar, registrarRef
             </span>
             <span className="opcao__nome">{c.nome}</span>
             {Number(c.preco) > 0 && (
-              <span className="opcao__preco">+ {formatarPreco(c.preco)}</span>
+              // Em grupo de sabores o número é o PREÇO daquele sabor, não
+              // um acréscimo: escrever "+ R$ 60" numa pizza de R$ 60 faria
+              // o cliente somar duas vezes de cabeça. O "+" só aparece
+              // onde ele é verdade.
+              <span className="opcao__preco">
+                {acrescimo ? `+ ${formatarPreco(c.preco)}` : formatarPreco(c.preco)}
+              </span>
             )}
           </button>
         );
@@ -147,7 +157,20 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
     for (const g of achatarGrupos(grupos)) {
       const ids = selecoes[g.id] ?? [];
       for (const c of g.itens ?? []) {
-        if (ids.includes(c.id)) escolhidos.push({ id: c.id, nome: c.nome, preco: c.preco });
+        // O grupo e a REGRA dele viajam junto com a escolha: é o que faz
+        // "escolha 4 sabores" cobrar uma pizza em vez de quatro. Grupo de
+        // complemento comum não manda regra e cai em 'soma', que é o que
+        // ele sempre fez. Gravada na escolha, a regra também não muda o
+        // preço de um pedido de ontem quando o dono mexe no grupo hoje.
+        if (ids.includes(c.id)) {
+          escolhidos.push({
+            id: c.id,
+            nome: c.nome,
+            preco: c.preco,
+            grupoId: g.id,
+            regra: g.regra ?? "soma",
+          });
+        }
       }
     }
     return escolhidos;
@@ -166,11 +189,12 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
   // a loja abrisse. O CTA agora diz por que não dá.
   const fechada = !lojaAberta;
 
-  const precoUnit = useMemo(() => {
-    const base = Number(produto?.preco) || 0;
-    const extras = complementosEscolhidos.reduce((a, c) => a + (Number(c.preco) || 0), 0);
-    return base + extras;
-  }, [produto, complementosEscolhidos]);
+  // A MESMA conta da sacola e do servidor (precoDosComplementos). Somar
+  // por fora aqui era como o modal mostrava um preço e o carrinho outro.
+  const precoUnit = useMemo(
+    () => (Number(produto?.preco) || 0) + precoDosComplementos(complementosEscolhidos),
+    [produto, complementosEscolhidos]
+  );
 
   function adicionar() {
     onAdicionar({

@@ -27,13 +27,22 @@ import {
   buscarEnderecoViaCep,
   calcularTaxaEntrega,
   cepCompleto,
+  dataNascimentoUtil,
   formatarCep,
   formatarPreco,
+  juntarRuaNumero,
   localizarEndereco,
+  montarDataISO,
+  separarDataISO,
 } from "@/lib/delivery";
 import { entregaLembrada } from "@/lib/deliveryDispositivo";
 import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutEntrega.css";
+
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
 
 export default function CheckoutEntrega({
   slug,
@@ -65,7 +74,14 @@ export default function CheckoutEntrega({
   // Lido UMA vez: ele passa a ser falso assim que o pedido é salvo, e o
   // campo não pode sumir da tela no meio do preenchimento.
   const [primeiroPedido] = useState(() => Object.keys(entregaLembrada()).length === 0);
-  const hojeISO = new Date().toISOString().slice(0, 10);
+  // Data de nascimento em três campos. O <input type="date"> abria o
+  // calendário no mês ATUAL: para nascer em 1962 a pessoa tinha de
+  // recuar 700 e poucos meses, ou achar o seletor de ano escondido no
+  // cabeçalho do popup. Digitar o ano é um gesto. Os três campos vivem
+  // aqui (não no estado do pedido) porque "07/1/" é um passo válido da
+  // digitação, e só a data COMPLETA sobe.
+  const [nasc, setNasc] = useState(() => separarDataISO(dados.dataNascimento));
+  const anoMax = new Date().getFullYear();
 
   // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
   // texto dentro do painel NÃO fecha — era esse o defeito.
@@ -110,7 +126,10 @@ export default function CheckoutEntrega({
         // aquilo junto ao escrever o número da casa e a cidade sumia do
         // pedido — e "Centro" sozinho não diz de qual cidade é.
         cidade: atual.cidade || [data.cidade, data.uf].filter(Boolean).join("/"),
-        endereco: atual.endereco || data.logradouro || "",
+        // O ViaCEP devolve o LOGRADOURO, que é exatamente a rua — o
+        // número nunca veio dele, e agora tem campo próprio para a
+        // pessoa digitar. Preencher a rua não pisa no número.
+        rua: atual.rua || data.logradouro || "",
       });
     })();
     return () => {
@@ -148,7 +167,9 @@ export default function CheckoutEntrega({
       setCalculandoTaxa(false);
       return;
     }
-    const endereco = dados.endereco || "";
+    // O mapa recebe a linha única de sempre — a separação é da TELA, e
+    // a escada de geocodificação já sabe tirar o número quando atrapalha.
+    const endereco = juntarRuaNumero(dados.rua, dados.numero);
 
     // JÁ marca como recalculando — não daqui a 700 ms, quando o debounce
     // dispara. Nessa janela a taxa na tela era a do endereço ANTERIOR e o
@@ -209,7 +230,24 @@ export default function CheckoutEntrega({
       clearTimeout(t);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dados.cep, dados.bairro, dados.endereco, dados.cidade, slug, tentativa, retirada]);
+  }, [dados.cep, dados.bairro, dados.rua, dados.numero, dados.cidade, slug, tentativa, retirada]);
+
+  // Um campo mexido → recompõe a data e sobe só se estiver completa.
+  // Incompleta sobe "" (o campo é opcional, e meia data não é dado).
+  function atualizarNascimento(parte) {
+    const proximo = { ...nasc, ...parte };
+    setNasc(proximo);
+    onMudar({ dataNascimento: montarDataISO(proximo.dia, proximo.mes, proximo.ano) });
+  }
+
+  // Os três preenchidos mas a data não se sustenta (31 de fevereiro, ano
+  // no futuro, 1850). Só avisamos com os TRÊS completos: acusar erro no
+  // meio da digitação é brigar com quem ainda está escrevendo. O aviso
+  // não bloqueia — a data é opcional e o pedido segue sem ela.
+  const nascCompleto = Boolean(nasc.dia && nasc.mes && nasc.ano.length === 4);
+  const nascimentoRuim = nascCompleto && !dataNascimentoUtil(
+    montarDataISO(nasc.dia, nasc.mes, nasc.ano)
+  );
 
   const semCoordenada = taxa?.motivo === "sem_coordenada";
   const indisponivelKm = taxa?.motivo === "origem_indefinida";
@@ -226,10 +264,12 @@ export default function CheckoutEntrega({
   // Exigir os 8 dígitos travava quem não sabe o próprio CEP mesmo com o
   // bairro atendido e a taxa já na tela. O telefone, ao contrário, entrou:
   // sem ele ninguém consegue falar com o cliente quando o pedido trava.
+  // A RUA é o obrigatório, não o número: quem mora em estrada sem número
+  // pede do mesmo jeito e explica no complemento.
   const podeAvancar = retirada
     ? Boolean(dados.nome.trim() && telefoneOk)
     : Boolean(
-        dados.nome.trim() && telefoneOk && dados.endereco.trim() && temTaxa && !calculandoTaxa
+        dados.nome.trim() && telefoneOk && (dados.rua ?? "").trim() && temTaxa && !calculandoTaxa
       );
 
   // Trocar de caminho zera o que era do outro: a taxa de uma entrega não
@@ -343,22 +383,68 @@ export default function CheckoutEntrega({
               comida precisa dizer na hora que dá para pular. */}
           {primeiroPedido && (
             <div className="campo">
-              <label className="campo__label" htmlFor="ent-nasc">
+              <span className="campo__label" id="ent-nasc-rotulo">
                 Data de nascimento <span className="campo__opcional">(opcional)</span>
-              </label>
-              <input
-                id="ent-nasc"
-                className="campo__input"
-                type="date"
-                autoComplete="bday"
-                max={hojeISO}
-                value={dados.dataNascimento ?? ""}
-                onChange={(e) => onMudar({ dataNascimento: e.target.value })}
-              />
-              <p className="linha-sacola__extra checkout-entrega__ajuda">
-                Só para o estabelecimento lembrar de você no seu aniversário.
-                Não é usado em mais nada e não atrapalha o pedido.
-              </p>
+              </span>
+              {/* Dia, mês e ano em campos próprios: sem calendário para
+                  navegar e sem "dd/mm/aaaa" dentro da caixa. Cada campo
+                  diz o que é pelo rótulo acima dele, então vazio é vazio
+                  — não um exemplo que parece texto já digitado. */}
+              <div className="nascimento" role="group" aria-labelledby="ent-nasc-rotulo">
+                <div className="nascimento__parte">
+                  <label className="nascimento__mini" htmlFor="ent-nasc-dia">Dia</label>
+                  <input
+                    id="ent-nasc-dia"
+                    className="campo__input nascimento__campo"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={nasc.dia}
+                    onChange={(e) =>
+                      atualizarNascimento({ dia: e.target.value.replace(/\D/g, "").slice(0, 2) })
+                    }
+                  />
+                </div>
+                <div className="nascimento__parte nascimento__parte--mes">
+                  <label className="nascimento__mini" htmlFor="ent-nasc-mes">Mês</label>
+                  {/* Nome por extenso mata a dúvida dd/mm × mm/dd de vez,
+                      e em lista é um toque em vez de dois dígitos. */}
+                  <select
+                    id="ent-nasc-mes"
+                    className="campo__input nascimento__campo nascimento__campo--mes"
+                    value={nasc.mes}
+                    onChange={(e) => atualizarNascimento({ mes: e.target.value })}
+                  >
+                    <option value="">—</option>
+                    {MESES.map((nome, i) => (
+                      <option key={nome} value={String(i + 1)}>{nome}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="nascimento__parte">
+                  <label className="nascimento__mini" htmlFor="ent-nasc-ano">Ano</label>
+                  <input
+                    id="ent-nasc-ano"
+                    className="campo__input nascimento__campo"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={nasc.ano}
+                    onChange={(e) =>
+                      atualizarNascimento({ ano: e.target.value.replace(/\D/g, "").slice(0, 4) })
+                    }
+                  />
+                </div>
+              </div>
+              {nascimentoRuim ? (
+                <p className="linha-sacola__extra checkout-entrega__erro" role="alert">
+                  Confira a data: dia de 1 a 31 e ano entre 1900 e {anoMax}. Se
+                  preferir, deixe os três campos em branco — é opcional.
+                </p>
+              ) : (
+                <p className="linha-sacola__extra checkout-entrega__ajuda">
+                  Só para o estabelecimento lembrar de você no seu aniversário.
+                  Não é usado em mais nada e não atrapalha o pedido.
+                </p>
+              )}
             </div>
           )}
 
@@ -433,19 +519,41 @@ export default function CheckoutEntrega({
                 />
               </div>
 
+              {/* Rua e número separados. Juntos num campo só, o número
+                  ia colado no fim da rua e sumia junto toda vez que a
+                  pessoa voltava para corrigir a grafia — e endereço sem
+                  número é a entrega que o entregador não acha. */}
               <div className="campo">
-                <label className="campo__label" htmlFor="ent-end">
-                  Endereço (rua, número)
+                <label className="campo__label" htmlFor="ent-rua">
+                  Rua
                 </label>
                 <input
-                  id="ent-end"
+                  id="ent-rua"
                   className="campo__input"
                   autoComplete="address-line1"
-                  value={dados.endereco}
-                  maxLength={160}
-                  onChange={(e) => onMudar({ endereco: e.target.value })}
-                  placeholder="Rua, número"
+                  value={dados.rua ?? ""}
+                  maxLength={140}
+                  onChange={(e) => onMudar({ rua: e.target.value })}
                 />
+              </div>
+
+              <div className="campo">
+                <label className="campo__label" htmlFor="ent-num">
+                  Número
+                </label>
+                <input
+                  id="ent-num"
+                  className="campo__input campo__input--curto"
+                  autoComplete="address-line2"
+                  inputMode="numeric"
+                  value={dados.numero ?? ""}
+                  maxLength={12}
+                  onChange={(e) => onMudar({ numero: e.target.value })}
+                />
+                <p className="linha-sacola__extra checkout-entrega__ajuda">
+                  Sem número na rua? Deixe em branco e escreva a referência no
+                  complemento.
+                </p>
               </div>
 
               <div className="campo">

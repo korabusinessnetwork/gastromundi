@@ -65,7 +65,7 @@ const REGRAS = new Set(["soma", "maior", "media"]);
  * @param {'soma'|'maior'|'media'} regra
  * @returns {number}
  */
-function precoDoGrupo(itens, regra) {
+export function precoDoGrupo(itens, regra) {
   const lista = itens ?? [];
   if (lista.length === 0) return 0;
   const valor = (e) => Number(e?.preco ?? 0) || 0;

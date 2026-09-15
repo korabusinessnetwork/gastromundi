@@ -43,6 +43,66 @@
   margin-top: 8px;
 }
 
+/* ── Data de nascimento em três campos ──────────────────────────────
+   O <input type="date"> abre o calendário no mês ATUAL: para nascer em
+   1962 a pessoa recuava centenas de meses, ou caçava o seletor de ano
+   escondido no cabeçalho do popup nativo. Aqui o ano é digitado.
+
+   Ano é o campo mais largo porque é o único de 4 dígitos; o mês é uma
+   lista de nomes, que resolve dd/mm × mm/dd sem precisar explicar. */
+.nascimento {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 6rem;
+  gap: 8px;
+  align-items: end;
+}
+
+.nascimento__parte {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Rótulo de cada caixa, ACIMA dela. É o que substitui o "dd/mm/aaaa"
+   dentro do campo: a caixa vazia fica vazia de verdade, e mesmo assim
+   ninguém precisa adivinhar o que vai ali. */
+.nascimento__mini {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.campo__input.nascimento__campo {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* O select nativo não herda fonte nem cor do documento em todo
+   navegador — sem isto a lista de meses sai branco sobre branco no
+   popup, que foi exatamente o defeito do filtro de Clientes. */
+.campo__input.nascimento__campo--mes {
+  appearance: none;
+  background-color: var(--gm-card);
+  color: var(--gm-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+.campo__input.nascimento__campo--mes option {
+  background-color: var(--gm-card);
+  color: var(--gm-text);
+}
+
+/* Número da casa: caixa curta porque o conteúdo é curto. Um campo
+   largo demais sugere que cabe mais coisa ali — e era isso que fazia o
+   cliente escrever "80 apto 302" no lugar do número. */
+.campo__input.campo__input--curto {
+  max-width: 9rem;
+}
+
 /* ── Receber em casa × retirar no local ─────────────────────────────
    Dois cartões grandes lado a lado, antes de qualquer campo: a escolha
    decide o que a tela vai perguntar, então ela vem primeiro e ocupa

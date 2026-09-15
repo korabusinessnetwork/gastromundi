@@ -119,7 +119,9 @@ WITH marcas (n, migracao, marca_existe) AS (
          EXISTS (SELECT 1 FROM pg_trigger
                   WHERE tgname = 'pending_arquiva_antes_de_sair' AND NOT tgisinternal)),
     (32, '20261010_feedbacks',
-         to_regclass('public.feedbacks') IS NOT NULL)
+         to_regclass('public.feedbacks') IS NOT NULL),
+    (33, '20261011_vitrine_mostra_grupos_do_produto',
+         to_regprocedure('public.montar_grupo_escolha_delivery(uuid,uuid)') IS NOT NULL)
 )
 SELECT
   n                                                    AS "nº",
@@ -152,11 +154,12 @@ WITH marcas AS (
                 AND column_name='regra_preco'))::int
   + (to_regclass('public.comandas_arquivadas') IS NOT NULL)::int
   + (to_regclass('public.feedbacks') IS NOT NULL)::int
+  + (to_regprocedure('public.montar_grupo_escolha_delivery(uuid,uuid)') IS NOT NULL)::int
   AS marcos_grandes
 )
 SELECT
-  marcos_grandes || ' de 13 marcos grandes presentes' AS "resumo rápido",
-  CASE WHEN marcos_grandes = 13
+  marcos_grandes || ' de 14 marcos grandes presentes' AS "resumo rápido",
+  CASE WHEN marcos_grandes = 14
        THEN 'Parece bem atualizado — mesmo assim, rode o APLICAR_MIGRACOES_PENDENTES.sql para fechar as pontas.'
        ELSE 'Faltam migrações. Rode o APLICAR_MIGRACOES_PENDENTES.sql inteiro.' END AS "o que fazer"
 FROM marcas;

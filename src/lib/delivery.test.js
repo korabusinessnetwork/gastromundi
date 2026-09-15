@@ -9,6 +9,10 @@ vi.mock("./supabase", async () => {
 
 import {
   dataNascimentoUtil,
+  montarDataISO,
+  separarDataISO,
+  juntarRuaNumero,
+  separarRuaNumero,
   consultasDeGeocodificacao,
   localizarEndereco,
   apenasDigitosCep,
@@ -16,6 +20,7 @@ import {
   cepCompleto,
   formatarPreco,
   somaComplementos,
+  precoDosComplementos,
   precoUnitario,
   precoLinha,
   calcularSubtotal,
@@ -1281,6 +1286,124 @@ describe("dataNascimentoUtil", () => {
   });
 });
 
+describe("montarDataISO / separarDataISO", () => {
+  // Três campos existem porque o calendário do navegador abre no mês
+  // atual: chegar a 1962 era uma viagem. Digitar o ano é um gesto.
+  it("monta a data a partir dos três campos", () => {
+    expect(montarDataISO("7", "1", "1962")).toBe("1962-01-07");
+  });
+
+  it("completa o zero à esquerda de dia e mês", () => {
+    expect(montarDataISO("5", "9", "1988")).toBe("1988-09-05");
+    expect(montarDataISO("05", "09", "1988")).toBe("1988-09-05");
+  });
+
+  it("parte faltando não vira data pela metade", () => {
+    // Montar "1962-01-" faria dataNascimentoUtil receber lixo em vez de
+    // receber vazio — e o campo é opcional, incompleto não é erro.
+    expect(montarDataISO("", "1", "1962")).toBe("");
+    expect(montarDataISO("7", "", "1962")).toBe("");
+    expect(montarDataISO("7", "1", "")).toBe("");
+  });
+
+  it("ano de dois dígitos não passa — 62 não é 1962 nem 2062", () => {
+    expect(montarDataISO("7", "1", "62")).toBe("");
+  });
+
+  it("volta para os três campos, sem zero à esquerda", () => {
+    expect(separarDataISO("1962-01-07")).toEqual({ dia: "7", mes: "1", ano: "1962" });
+  });
+
+  it("o que não é data vira três campos vazios", () => {
+    for (const ruim of ["", null, undefined, "1962", "07/01/1962"]) {
+      expect(separarDataISO(ruim)).toEqual({ dia: "", mes: "", ano: "" });
+    }
+  });
+
+  it("ida e volta preserva a data", () => {
+    const { dia, mes, ano } = separarDataISO("1990-05-10");
+    expect(montarDataISO(dia, mes, ano)).toBe("1990-05-10");
+  });
+});
+
+describe("juntarRuaNumero / separarRuaNumero", () => {
+  it("junta na linha única de sempre", () => {
+    expect(juntarRuaNumero("Rua das Flores", "100")).toBe("Rua das Flores, 100");
+  });
+
+  it("sem número manda a rua sozinha — não inventa s/n", () => {
+    expect(juntarRuaNumero("Estrada do Mato", "")).toBe("Estrada do Mato");
+  });
+
+  it("sem rua não há endereço", () => {
+    expect(juntarRuaNumero("", "100")).toBe("");
+  });
+
+  it("separa o endereço que o aparelho lembrava", () => {
+    expect(separarRuaNumero("Rua das Flores, 100")).toEqual({
+      rua: "Rua das Flores",
+      numero: "100",
+    });
+  });
+
+  it("separa também sem a vírgula", () => {
+    expect(separarRuaNumero("Rua santa cruz do sul 80")).toEqual({
+      rua: "Rua santa cruz do sul",
+      numero: "80",
+    });
+  });
+
+  it("aceita número com letra e s/n", () => {
+    expect(separarRuaNumero("Av. Brasil, 100A").numero).toBe("100A");
+    expect(separarRuaNumero("Av. Brasil, s/n").numero).toBe("s/n");
+  });
+
+  it("número no MEIO do nome da rua fica na rua", () => {
+    // "Rua 25 de Março" não tem número de porta. Chutar aqui apagaria
+    // parte do endereço na frente do cliente.
+    expect(separarRuaNumero("Rua 25 de Março")).toEqual({
+      rua: "Rua 25 de Março",
+      numero: "",
+    });
+  });
+
+  it("na dúvida tudo fica na rua — rua truncada não entrega", () => {
+    expect(separarRuaNumero("Estrada do Mato Grande")).toEqual({
+      rua: "Estrada do Mato Grande",
+      numero: "",
+    });
+  });
+
+  it("ida e volta preserva o endereço", () => {
+    const { rua, numero } = separarRuaNumero("Rua das Flores, 100");
+    expect(juntarRuaNumero(rua, numero)).toBe("Rua das Flores, 100");
+  });
+});
+
+describe("montarPayloadPedido — rua e número", () => {
+  const base = {
+    cliente: { nome: "Ana", telefone: "51986557795" },
+    pagamento: { forma: "pix" },
+    itens: [{ produto_id: 1, qtd: 1 }],
+  };
+
+  it("manda a linha única montada dos dois campos", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      entrega: { tipo: "entrega", rua: "Rua das Flores", numero: "100" },
+    });
+    expect(p.entrega.endereco).toBe("Rua das Flores, 100");
+  });
+
+  it("aparelho que lembrava o endereço pronto continua valendo", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      entrega: { tipo: "entrega", endereco: "Rua Antiga, 7" },
+    });
+    expect(p.entrega.endereco).toBe("Rua Antiga, 7");
+  });
+});
+
 describe("montarPayloadPedido — data de nascimento", () => {
   const base = {
     entrega: { tipo: "retirada" },
@@ -1311,5 +1434,68 @@ describe("montarPayloadPedido — data de nascimento", () => {
     });
     expect(p.cliente.data_nascimento).toBeNull();
     expect(p.cliente.nome).toBe("Ana");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// A regra de cobrança do grupo chega à vitrine.
+//
+// Até aqui a vitrine SOMAVA tudo. Certo para extras, errado para
+// fração: "escolha 4 sabores" com quatro sabores de R$ 40 cobrava
+// R$ 160 — quatro pizzas. É a mesma conta do PDV (precoDoGrupo),
+// importada, não uma segunda implementação que concorda por enquanto.
+// ══════════════════════════════════════════════════════════════════
+describe("precoDosComplementos — cada grupo cobra pela sua regra", () => {
+  it("sem regra é somar — o complemento do delivery não muda de comportamento", () => {
+    expect(precoDosComplementos([{ preco: 4 }, { preco: 3 }])).toBe(7);
+  });
+
+  it("grupo de sabores cobra a mais cara, não a soma", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "maior", preco: 40 },
+      { grupoId: "g1", regra: "maior", preco: 60 },
+    ])).toBe(60);
+  });
+
+  it("média é a outra convenção de meio a meio", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "media", preco: 40 },
+      { grupoId: "g1", regra: "media", preco: 60 },
+    ])).toBe(50);
+  });
+
+  it("grupos diferentes SEMPRE se somam entre si", () => {
+    // Sabores (a mais cara) + borda (soma) na mesma pizza: 60 + 8.
+    expect(precoDosComplementos([
+      { grupoId: "sabores", regra: "maior", preco: 40 },
+      { grupoId: "sabores", regra: "maior", preco: 60 },
+      { grupoId: "borda", regra: "soma", preco: 8 },
+    ])).toBe(68);
+  });
+
+  it("regra desconhecida cai em somar em vez de zerar a conta", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "sei-la", preco: 4 },
+      { grupoId: "g1", regra: "sei-la", preco: 3 },
+    ])).toBe(7);
+  });
+
+  it("nada escolhido não custa nada", () => {
+    expect(precoDosComplementos([])).toBe(0);
+    expect(precoDosComplementos(null)).toBe(0);
+  });
+
+  it("o carrinho usa a mesma conta — o modal e a sacola não divergem", () => {
+    const item = {
+      preco: 40,
+      qtd: 2,
+      complementosEscolhidos: [
+        { grupoId: "sabores", regra: "maior", preco: 40 },
+        { grupoId: "sabores", regra: "maior", preco: 60 },
+      ],
+    };
+    // 40 de base + 60 do grupo = 100 o unitário, 200 a linha.
+    expect(precoUnitario(item)).toBe(100);
+    expect(precoLinha(item)).toBe(200);
   });
 });

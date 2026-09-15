@@ -31,6 +31,7 @@ import {
   meusPedidos,
   montarPayloadPedido,
   revisarSacola,
+  separarRuaNumero,
 } from "@/lib/delivery";
 import {
   entregaLembrada,
@@ -57,10 +58,26 @@ const ENTREGA_INICIAL = {
   cep: "",
   cidade: "",
   bairro: "",
-  endereco: "",
+  // Rua e número são campos separados na tela; o pedido continua
+  // guardando a linha única (montarPayloadPedido junta os dois).
+  rua: "",
+  numero: "",
   complemento: "",
   taxa: 0,
 };
+
+/**
+ * O que o aparelho lembra, já no formato da tela de hoje. Aparelho que
+ * pediu ANTES de rua e número serem separados guardou a linha inteira em
+ * `endereco` — sem desmontá-la, o cliente antigo abriria o formulário com
+ * a rua em branco e teria de digitar tudo de novo.
+ */
+function entregaInicial() {
+  const lembrado = entregaLembrada();
+  const { endereco, ...resto } = lembrado;
+  const antigo = !lembrado.rua && endereco ? separarRuaNumero(endereco) : null;
+  return { ...ENTREGA_INICIAL, ...resto, ...(antigo ?? {}) };
+}
 const PAGAMENTO_INICIAL = { forma: "", trocoPara: "", levarMaquininha: false };
 
 export default function CardapioPage() {
@@ -97,7 +114,7 @@ export default function CardapioPage() {
   // cidade, bairro e rua a cada pedido é o atrito que faz desistir no meio,
   // e é justamente o que uma conta resolveria. A taxa NÃO é lembrada — ela
   // é resposta do servidor para um endereço num momento.
-  const [entrega, setEntrega] = useState(() => ({ ...ENTREGA_INICIAL, ...entregaLembrada() }));
+  const [entrega, setEntrega] = useState(entregaInicial);
   const [pagamento, setPagamento] = useState(PAGAMENTO_INICIAL);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
@@ -264,7 +281,7 @@ export default function CardapioPage() {
     // aceite, não aqui). Os dados de entrega voltam ao que o aparelho
     // lembra — zerar tudo faria a pessoa redigitar o endereço que ela
     // acabou de usar.
-    setEntrega({ ...ENTREGA_INICIAL, ...entregaLembrada() });
+    setEntrega(entregaInicial());
     setPagamento(PAGAMENTO_INICIAL);
     setResultado(null);
     setTela(null);

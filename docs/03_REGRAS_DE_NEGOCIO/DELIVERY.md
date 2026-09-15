@@ -46,7 +46,7 @@ confiável):
 
 | RPC | Entra | Sai |
 |---|---|---|
-| `cardapio_publico(slug)` | slug do tenant | categorias, produtos ativos disponíveis p/ delivery (foto, descrição, preço), grupos de complemento, combos "monte seu", status aberto/fechado |
+| `cardapio_publico(slug)` | slug do tenant | categorias, produtos ativos disponíveis p/ delivery (foto, descrição, preço), grupos de complemento **e grupos de escolha do produto** (com a regra de cobrança), combos "monte seu", status aberto/fechado |
 | `calcular_taxa_entrega(slug, cep)` | slug + CEP | bairro (ViaCEP), taxa da faixa, tempo estimado — ou "fora da área de entrega" |
 | `criar_pedido_delivery(slug, payload)` | carrinho + endereço + pagamento | nº do pedido + status; **revalida cada preço e a taxa server-side** antes de gravar |
 | `meus_pedidos_delivery(slug, dispositivo)` | slug + UUID do aparelho | os pedidos DAQUELE aparelho (máx. 20), com status — o acompanhamento sem conta |
@@ -128,6 +128,24 @@ gateway/TEF é necessário.
   pedir (decisão de custo do dono, com número na mão).
 - `grupos_complemento` + `complementos` — add-ons por produto (ex.: "Ponto da
   carne", "Adicionais": +bacon R$4), com `min`/`max` de escolha por grupo.
+- `grupos_escolha` + `grupo_escolha_itens` — o **outro** modelo de opções, o
+  que a aba Produtos cadastra (ver `PDV.md`, "Grupos de escolha"). Desde
+  `20261011` a vitrine lê **os dois**: `cardapio_publico` concatena os grupos
+  de complemento com os grupos de escolha do produto, e o modal do produto
+  mostra tudo junto. Antes disso, quem configurava os extras em Produtos
+  abria a vitrine e via o modal **vazio**, sem aviso nenhum.
+  - Os dois modelos continuam separados no banco: não há cópia de um para o
+    outro, a vitrine só passou a ler os dois. Cadastrar em qualquer uma das
+    abas funciona.
+  - O grupo de escolha leva a **regra de cobrança** (`somar` / `a mais cara` /
+    `média`) para a vitrine, então "escolha 4 sabores" cobra uma pizza e não
+    quatro. Grupo de complemento não tem regra e continua somando.
+  - Quem cobra é o servidor: `criar_pedido_delivery` valida que cada opção é
+    de um grupo daquele produto, cobra o `min`/`max` do grupo e recalcula o
+    preço por `preco_grupo_escolha_delivery`. O preço do modal é só exibição.
+  - A conta é a **mesma do PDV** — `precoDoGrupo` (`src/lib/combos.js`) é
+    importada pela vitrine, e `vitrineGruposEscolhaSqlGuard.test.js` prende o
+    SQL e o JS um ao outro.
 - `config_delivery` — 1 linha por tenant: aberto/fechado, horário de
   funcionamento, pedido mínimo, tempo de preparo, as **faixas de taxa**
   (jsonb: `[{ tipo: 'bairro'|'cep', ...valor, taxa }]`) e `permite_retirada`

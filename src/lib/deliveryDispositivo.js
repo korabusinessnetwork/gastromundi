@@ -102,7 +102,14 @@ export function esquecerDispositivo() {
 // preço de ontem para a entrega de hoje.
 const CHAVE_ENTREGA = "kora.delivery.entrega";
 
-const CAMPOS_LEMBRADOS = ["nome", "telefone", "cep", "cidade", "bairro", "endereco", "complemento"];
+// `endereco` continua na lista por causa do que JÁ está guardado nos
+// aparelhos: a tela de hoje grava `rua` e `numero`, mas quem pediu antes
+// da separação tem a linha inteira ali, e é dela que a rua é reconstruída
+// na primeira abertura (ver `entregaInicial` na CardapioPage).
+const CAMPOS_LEMBRADOS = [
+  "nome", "telefone", "cep", "cidade", "bairro",
+  "rua", "numero", "endereco", "complemento",
+];
 
 /**
  * Reduz o formulário ao que vale a pena lembrar, tudo em texto. Pura —

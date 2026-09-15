@@ -206,7 +206,6 @@ describe("Delivery público — o teto do servidor cobre o que a tela deixa digi
     { tela: "src/pages/delivery/CheckoutEntrega.jsx", id: "ent-nome", coluna: "cliente_nome" },
     { tela: "src/pages/delivery/CheckoutEntrega.jsx", id: "ent-tel", coluna: "cliente_telefone" },
     { tela: "src/pages/delivery/CheckoutEntrega.jsx", id: "ent-bairro", coluna: "bairro" },
-    { tela: "src/pages/delivery/CheckoutEntrega.jsx", id: "ent-end", coluna: "endereco" },
     { tela: "src/pages/delivery/CheckoutEntrega.jsx", id: "ent-compl", coluna: "complemento_endereco" },
   ];
 
@@ -217,6 +216,20 @@ describe("Delivery público — o teto do servidor cobre o que a tela deixa digi
     expect(daTela, `${id} sem maxLength na tela`).toBeGreaterThan(0);
     expect(doBanco, `${coluna} sem teto no banco`).toBeGreaterThan(0);
     expect(doBanco).toBeGreaterThanOrEqual(daTela);
+  });
+
+  // A rua e o número são DOIS campos na tela e UMA coluna no banco
+  // (juntarRuaNumero monta "Rua das Flores, 100"). O que precisa caber é a
+  // soma dos dois mais os dois caracteres da vírgula e do espaço — conferir
+  // um de cada vez deixaria passar a soma estourando a coluna.
+  it("rua + número juntos cabem na coluna endereco", () => {
+    const rua = maxLengthDaTela("src/pages/delivery/CheckoutEntrega.jsx", "ent-rua");
+    const numero = maxLengthDaTela("src/pages/delivery/CheckoutEntrega.jsx", "ent-num");
+    const doBanco = tetoDoServidor("endereco");
+
+    expect(rua).toBeGreaterThan(0);
+    expect(numero).toBeGreaterThan(0);
+    expect(rua + 2 + numero).toBeLessThanOrEqual(doBanco);
   });
 
   it("a observação do item também cabe: 200 na tela, 400 no banco", () => {

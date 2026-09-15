@@ -371,3 +371,127 @@ describe("ProdutoModal — loja fechada (Run 6, leva 3)", () => {
     expect(onAdicionar.mock.calls[0][0]).toMatchObject({ produto_id: 20, qtd: 1 });
   });
 });
+
+// ══════════════════════════════════════════════════════════════════
+// A regra de cobrança do grupo, na vitrine.
+//
+// Os grupos de escolha do CADASTRO do produto (aba Produtos) não
+// chegavam à vitrine: o modal saía vazio, sem erro nenhum, e o dono não
+// tinha como descobrir que precisava recadastrar tudo numa segunda aba.
+// Agora chegam — e com a regra de cobrança junto, porque sem ela a
+// vitrine somaria os quatro sabores e cobraria quatro pizzas.
+// ══════════════════════════════════════════════════════════════════
+describe("ProdutoModal — o grupo cobra pela regra dele", () => {
+  const pizza = (regra) => ({
+    produto_id: 1,
+    nome: "Pizza Grande",
+    preco: 40,
+    grupos: [
+      {
+        id: "sabores",
+        nome: "Sabores",
+        min: 2,
+        max: 2,
+        regra,
+        itens: [opcao("cala", "Calabresa", 40), opcao("port", "Portuguesa", 60)],
+      },
+    ],
+  });
+
+  const precoNoBotao = () =>
+    document.querySelector(".btn__preco").textContent;
+
+  it("'a mais cara' cobra UMA pizza, não a soma dos sabores", async () => {
+    const { user } = abrir(pizza("maior"));
+    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
+    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+
+    // 40 de base + 60 do sabor mais caro. Somando daria R$ 140.
+    expect(precoNoBotao()).toBe("R$ 100,00");
+  });
+
+  it("'média' é a outra convenção de meio a meio", async () => {
+    const { user } = abrir(pizza("media"));
+    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
+    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+
+    expect(precoNoBotao()).toBe("R$ 90,00"); // 40 + (40+60)/2
+  });
+
+  it("sem regra continua somando — o complemento do delivery não mudou", async () => {
+    const { user } = abrir(pizza(undefined));
+    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
+    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+
+    expect(precoNoBotao()).toBe("R$ 140,00");
+  });
+
+  it("em grupo de sabores o número é o PREÇO, não um acréscimo", async () => {
+    // "+ R$ 60" numa pizza de R$ 60 faz o cliente somar duas vezes de
+    // cabeça e achar que vai pagar R$ 100 pela metade portuguesa.
+    abrir(pizza("maior"));
+    const botao = screen.getByRole("button", { name: /Portuguesa/ });
+    expect(within(botao).getByText("R$ 60,00")).toBeInTheDocument();
+    expect(within(botao).queryByText(/^\+/)).toBeNull();
+  });
+
+  it("em grupo de extras o '+' continua, porque ali ele é verdade", async () => {
+    abrir({
+      produto_id: 2,
+      nome: "X-Burguer",
+      preco: 25,
+      grupos: [
+        {
+          id: "extras",
+          nome: "Extras",
+          min: 0,
+          max: 0,
+          regra: "soma",
+          itens: [opcao("bacon", "Bacon", 4)],
+        },
+      ],
+    });
+    const botao = screen.getByRole("button", { name: /Bacon/ });
+    expect(within(botao).getByText("+ R$ 4,00")).toBeInTheDocument();
+  });
+
+  it("a escolha leva o grupo e a regra para a sacola", async () => {
+    // Gravada na escolha, a regra não muda o preço de um pedido de ontem
+    // quando o dono mexe no grupo hoje — e a sacola faz a mesma conta
+    // que o modal mostrou.
+    const { user, onAdicionar } = abrir(pizza("maior"));
+    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
+    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    // "Adicionar observação" também casa com /Adicionar/ — o CTA é o do rodapé.
+    await user.click(document.querySelector(".btn--primario"));
+
+    const item = onAdicionar.mock.calls[0][0];
+    expect(item.complementosEscolhidos).toEqual([
+      { id: "cala", nome: "Calabresa", preco: 40, grupoId: "sabores", regra: "maior" },
+      { id: "port", nome: "Portuguesa", preco: 60, grupoId: "sabores", regra: "maior" },
+    ]);
+  });
+
+  it("grupos diferentes se somam entre si", async () => {
+    const { user } = abrir({
+      produto_id: 3,
+      nome: "Pizza Grande",
+      preco: 40,
+      grupos: [
+        {
+          id: "sabores", nome: "Sabores", min: 2, max: 2, regra: "maior",
+          itens: [opcao("cala", "Calabresa", 40), opcao("port", "Portuguesa", 60)],
+        },
+        {
+          id: "borda", nome: "Borda", min: 0, max: 1, regra: "soma",
+          itens: [opcao("catu", "Catupiry", 8)],
+        },
+      ],
+    });
+    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
+    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    await user.click(screen.getByRole("button", { name: /Catupiry/ }));
+
+    expect(precoNoBotao()).toBe("R$ 108,00"); // 40 + 60 + 8
+  });
+});
