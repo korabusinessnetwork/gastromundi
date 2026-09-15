@@ -1,0 +1,162 @@
+/**
+ * Itens fixos do combo. Decisão 018 (CSS separado do JSX) + tokens --gm-*
+ * (ADR-007). Deliberadamente parecido com o EditorGruposEscolha: são dois
+ * blocos do MESMO modal, e parecerem irmãos é o que evita o dono achar que
+ * caiu noutra tela.
+ */
+
+.editor-fixos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editor-fixos__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-fixos__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.editor-fixos__emoji {
+  font-size: var(--fs-lg);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.editor-fixos__nome {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  color: var(--gm-text);
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.editor-fixos__stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+
+.editor-fixos__stepper-btn {
+  /* alvo de toque generoso (princípio nº 1) */
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.editor-fixos__stepper-btn:hover {
+  color: var(--gm-accent);
+}
+
+.editor-fixos__stepper-valor {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--gm-text);
+}
+
+.editor-fixos__remover {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.editor-fixos__remover:hover {
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+}
+
+.editor-fixos__busca-wrap {
+  position: relative;
+}
+
+.editor-fixos__busca-icone {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  pointer-events: none;
+}
+
+.editor-fixos__busca-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px 11px 34px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-family: inherit;
+  outline: none;
+}
+
+.editor-fixos__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.editor-fixos__dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--gm-text);
+}
+.editor-fixos__dropdown-item:hover {
+  background: var(--gm-surface);
+}
+
+.editor-fixos__ajuda {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}

@@ -36,7 +36,7 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
   const clicarCombo = (combo) => {
     const grupos = combo.grupos ?? [];
     if (grupos.length === 0) { const item = montarItemCombo(combo); if (item) onAdd(item); return; }
-    setSeletor({ tipo: "combo", combo, grupos, titulo: combo.nome, emoji: undefined, precoBase: Number(combo.preco_total) || 0 });
+    setSeletor({ tipo: "combo", combo, grupos, titulo: combo.nome, emoji: undefined, precoBase: Number(combo.preco_total) || 0, escolhasFixas: combo.escolhasFixas ?? [] });
   };
 
   const confirmarEscolhas = (escolhas) => {
@@ -168,6 +168,7 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
           precoBase={seletor.precoBase}
           grupos={seletor.grupos}
           products={products}
+          escolhasFixas={seletor.escolhasFixas ?? []}
           onConfirmar={confirmarEscolhas}
           onClose={() => setSeletor(null)}
         />

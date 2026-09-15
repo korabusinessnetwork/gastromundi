@@ -279,3 +279,32 @@
   font-weight: 600;
   color: var(--gm-muted);
 }
+
+/* O que o combo já inclui. Não é escolha: não tem cartão para clicar, e
+   por isso se distingue à primeira vista dos grupos logo abaixo. */
+.seletor-escolhas__fixos {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+
+.seletor-escolhas__fixos-rotulo {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.seletor-escolhas__fixos-lista {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 600;
+  color: var(--gm-text);
+}

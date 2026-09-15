@@ -19,7 +19,9 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { mesmoItemDeVenda } from "@/lib/combos";
+import { resolverItensFixos } from "@/lib/comboItensFixos";
 import { carregarTodosGrupos } from "@/lib/gruposEscolha";
+import { carregarTodosItensFixos } from "@/lib/comboItensFixos";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { comandasDoSalao } from "@/lib/deliveryPedidos";
@@ -164,16 +166,26 @@ export default function PDVView({ notify }) {
     Promise.all([
       supabase.from("combos").select("id, nome, preco_total").eq("ativo", true),
       carregarTodosGrupos(),
-    ]).then(([combosRes, gruposRes]) => {
+      carregarTodosItensFixos(),
+    ]).then(([combosRes, gruposRes, fixosRes]) => {
       if (!ativo) return;
       if (combosRes.error) console.error("[pdv] erro ao carregar combos:", combosRes.error);
       if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", gruposRes.error);
+      if (fixosRes.error) console.error("[pdv] erro ao carregar itens fixos dos combos:", fixosRes.error);
       const porCombo = gruposRes.porCombo ?? {};
-      setCombos((combosRes.data ?? []).map(c => ({ ...c, grupos: porCombo[c.id] ?? [] })));
+      const fixosPorCombo = fixosRes.porCombo ?? {};
+      // Os itens fixos já saem daqui RESOLVIDOS contra o catálogo: é a
+      // única volta em que `products` está à mão, e resolver aqui deixa
+      // montarItemCombo puro (ele só concatena o que já está pronto).
+      setCombos((combosRes.data ?? []).map(c => ({
+        ...c,
+        grupos: porCombo[c.id] ?? [],
+        escolhasFixas: resolverItensFixos(fixosPorCombo[c.id] ?? [], products),
+      })));
       setGruposPorProduto(gruposRes.porProduto ?? {});
     });
     return () => { ativo = false; };
-  }, []);
+  }, [products]);
 
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda

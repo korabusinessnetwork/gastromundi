@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { resolverOpcoes, instrucaoGrupo, textoRegra, regraValida } from "@/lib/gruposEscolha";
 import { precoDasEscolhas } from "@/lib/combos";
+import { resumoItensFixos } from "@/lib/comboItensFixos";
 import { formatarReais as fmtBRL } from "@/lib/dinheiro";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -36,7 +37,7 @@ const tetoDe = (grupo) => {
   return max === 0 ? Infinity : max;
 };
 
-export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos = [], products = [], onConfirmar, onClose }) {
+export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos = [], products = [], escolhasFixas = [], onConfirmar, onClose }) {
   // opções resolvidas por grupo, uma vez
   const gruposResolvidos = useMemo(
     () => grupos.map((g) => ({ ...g, opcoes: resolverOpcoes(g, products) })),
@@ -128,6 +129,16 @@ export default function SeletorEscolhas({ titulo, emoji, precoBase = 0, grupos =
           </div>
           <button onClick={onClose} className="seletor-escolhas__fechar"><LuX size={20} /></button>
         </div>
+
+        {/* O que já vem junto. Aparece ANTES das perguntas porque muda o
+            que o operador precisa perguntar: sabendo que a batata já está
+            no combo, ele não oferece outra. */}
+        {resumoItensFixos(escolhasFixas) && (
+          <div className="seletor-escolhas__fixos">
+            <span className="seletor-escolhas__fixos-rotulo">Já vem com</span>
+            <span className="seletor-escolhas__fixos-lista">{resumoItensFixos(escolhasFixas)}</span>
+          </div>
+        )}
 
         {/* Grupos */}
         <div className="seletor-escolhas__grupos">

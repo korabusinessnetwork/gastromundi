@@ -117,7 +117,11 @@ export function precoDasEscolhas(escolhas) {
  */
 export function montarItemCombo(combo, escolhas = []) {
   if (!combo) return null;
-  const escs = normalizarEscolhas(escolhas);
+  // Os itens FIXOS entram sempre, antes do que o cliente escolheu: é o que
+  // o combo já inclui (src/lib/comboItensFixos.js). Vêm com preço 0, então
+  // não mexem no total — existem para baixar estoque e sair na comanda.
+  // Combo sem itens fixos continua exatamente como era.
+  const escs = normalizarEscolhas([...(combo.escolhasFixas ?? []), ...escolhas]);
   return {
     id: null,
     name: combo.nome ?? "Combo",

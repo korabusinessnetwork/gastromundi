@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
 import { carregarGruposDoCombo, carregarTodosGrupos, salvarGrupos } from "@/lib/gruposEscolha";
+import { carregarItensFixos, salvarItensFixos } from "@/lib/comboItensFixos";
+import EditorItensFixos from "./EditorItensFixos";
 import EditorGruposEscolha from "./EditorGruposEscolha";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -30,6 +32,7 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
   const [nome,     setNome]     = useState(combo?.nome ?? "");
   const [preco,    setPreco]    = useState(combo?.preco_total != null ? String(combo.preco_total) : "");
   const [grupos,   setGrupos]   = useState([]);
+  const [fixos,    setFixos]    = useState([]);
   const [carregandoGrupos, setCarregandoGrupos] = useState(isEdit);
   const [salvando, setSalvando] = useState(false);
   const [erro,     setErro]     = useState("");
@@ -38,12 +41,14 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
   useEffect(() => {
     if (!combo) return;
     let vivo = true;
-    carregarGruposDoCombo(combo.id).then(({ data, error }) => {
-      if (!vivo) return;
-      if (error) setErro("Não deu para carregar os grupos deste combo.");
-      else setGrupos(data);
-      setCarregandoGrupos(false);
-    });
+    Promise.all([carregarGruposDoCombo(combo.id), carregarItensFixos(combo.id)])
+      .then(([resGrupos, resFixos]) => {
+        if (!vivo) return;
+        if (resGrupos.error || resFixos.error) setErro("Não deu para carregar a composição deste combo.");
+        if (!resGrupos.error) setGrupos(resGrupos.data);
+        if (!resFixos.error) setFixos(resFixos.data);
+        setCarregandoGrupos(false);
+      });
     return () => { vivo = false; };
   }, [combo]);
 
@@ -51,7 +56,13 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
     if (!nome.trim()) { setErro("Informe o nome do combo."); return; }
     const precoNum = parseFloat(String(preco).replace(",", ".")) || 0;
     if (precoNum <= 0) { setErro("Informe o preço do combo."); return; }
-    if (grupos.length === 0) { setErro("Adicione ao menos um grupo de escolha."); return; }
+    // Um combo pode ser SÓ itens fixos ("2 lanches e uma batata por R$ 50"),
+    // ou só escolhas, ou os dois. Exigir grupo era o que obrigava o dono a
+    // inventar uma "escolha" de uma opção só para montar combo fechado.
+    if (grupos.length === 0 && fixos.length === 0) {
+      setErro("Um combo precisa de ao menos um item fixo ou um grupo de escolha.");
+      return;
+    }
     setSalvando(true);
     setErro("");
     try {
@@ -74,6 +85,9 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
 
       const { error: errG } = await salvarGrupos({ comboId, grupos });
       if (errG) throw errG;
+
+      const { error: errF } = await salvarItensFixos({ comboId, itens: fixos });
+      if (errF) throw errF;
 
       onSalvo();
     } catch (e) {
@@ -123,9 +137,22 @@ function ModalCombo({ combo, products, onClose, onSalvo }) {
           </div>
         </div>
 
+        {/* Sempre vem com — a parte do combo que não é escolha */}
+        <div>
+          <div className="combos-view__label">Sempre vem com</div>
+          <div className="combos-view__ajuda" style={{ color: varColor(C.muted), fontSize: 12, marginBottom: 10 }}>
+            O que entra no pedido sem o cliente escolher. Ex.: o combo já inclui uma batata.
+          </div>
+          {carregandoGrupos ? (
+            <div className="combos-view__estado">Carregando itens…</div>
+          ) : (
+            <EditorItensFixos itens={fixos} onChange={setFixos} products={products} />
+          )}
+        </div>
+
         {/* Grupos de escolha */}
         <div>
-          <div className="combos-view__label">Grupos de escolha *</div>
+          <div className="combos-view__label">Grupos de escolha</div>
           <div className="combos-view__ajuda" style={{ color: varColor(C.muted), fontSize: 12, marginBottom: 10 }}>
             Cada grupo é uma pergunta que o cliente responde no caixa. Ex.: um grupo "Escolha o hambúrguer" e outro "Escolha o refri".
           </div>

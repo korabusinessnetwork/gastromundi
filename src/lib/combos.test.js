@@ -244,3 +244,58 @@ describe("montarItem* com regra de preço", () => {
     expect(item.combo.escolhas[0]).toMatchObject({ grupoId: "s", regra: "maior" });
   });
 });
+
+describe("itens fixos do combo", () => {
+  const combo = {
+    id: "c1",
+    nome: "Combo Lanche",
+    preco_total: 35,
+    escolhasFixas: [
+      { produtoId: 9, nome: "Batata frita", qtd: 1, preco: 0, grupoId: "fixos", regra: "soma", fixo: true },
+    ],
+  };
+
+  it("entram no item sem o cliente escolher", () => {
+    const item = montarItemCombo(combo, []);
+    expect(item.combo.escolhas.map((e) => e.nome)).toEqual(["Batata frita"]);
+  });
+
+  it("NÃO mexem no preço — já estão dentro do valor do combo", () => {
+    expect(montarItemCombo(combo, []).price).toBe(35);
+  });
+
+  it("vêm antes do que o cliente escolheu, na ordem que a comanda imprime", () => {
+    const item = montarItemCombo(combo, [
+      { produtoId: 10, nome: "Coca", qtd: 1, preco: 0 },
+    ]);
+    expect(item.combo.escolhas.map((e) => e.nome)).toEqual(["Batata frita", "Coca"]);
+  });
+
+  it("baixam estoque como qualquer escolha — é o motivo de virarem escolha", () => {
+    const item = { ...montarItemCombo(combo, []), qty: 2 };
+    const baixas = calcularBaixasEscolhas([item]);
+    expect(baixas).toEqual([{ produtoId: 9, nome: "Batata frita", qtd: 2 }]);
+  });
+
+  it("um item fixo de preço zero não zera a conta de um grupo de sabores", () => {
+    // O risco real: se o fixo caísse no MESMO balde dos sabores com regra
+    // 'maior', o máximo entre 0 e 40 ainda seria 40 — mas com 'media' a
+    // média despencaria. Por isso o fixo tem grupo próprio.
+    const pizza = {
+      id: "c2", nome: "Pizza", preco_total: 0,
+      escolhasFixas: [{ produtoId: 9, nome: "Borda", qtd: 1, preco: 0, grupoId: "fixos", regra: "soma" }],
+    };
+    const item = montarItemCombo(pizza, [
+      { produtoId: 1, nome: "Calabresa", preco: 40, qtd: 1, grupoId: "s", regra: "media" },
+      { produtoId: 2, nome: "Portuguesa", preco: 60, qtd: 1, grupoId: "s", regra: "media" },
+    ]);
+    expect(item.price).toBe(50);
+  });
+
+  it("combo sem itens fixos continua exatamente como era", () => {
+    const semFixos = { id: "c3", nome: "Só escolhas", preco_total: 20 };
+    const item = montarItemCombo(semFixos, [{ produtoId: 1, nome: "X", qtd: 1, preco: 5 }]);
+    expect(item.price).toBe(25);
+    expect(item.combo.escolhas).toHaveLength(1);
+  });
+});

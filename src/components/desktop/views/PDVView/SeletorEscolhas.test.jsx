@@ -329,3 +329,50 @@ describe("SeletorEscolhas — sabores cobram a opção mais cara", () => {
     expect(total()).toContain("50,00");
   });
 });
+
+// ── O que o combo já inclui ─────────────────────────────────────────
+describe("SeletorEscolhas — itens fixos do combo", () => {
+  const FIXOS = [
+    { produtoId: 9, nome: "Batata frita", qtd: 1, preco: 0, grupoId: "fixos", regra: "soma", fixo: true },
+  ];
+
+  function montarComFixos(escolhasFixas) {
+    render(
+      <SeletorEscolhas
+        titulo="Combo Lanche"
+        precoBase={35}
+        grupos={[grupo()]}
+        products={PRODUTOS}
+        escolhasFixas={escolhasFixas}
+        onConfirmar={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+  }
+
+  it("diz o que já vem junto, para o operador não oferecer de novo", () => {
+    montarComFixos(FIXOS);
+    expect(screen.getByText("Já vem com")).toBeInTheDocument();
+    expect(screen.getByText("Batata frita")).toBeInTheDocument();
+  });
+
+  it("dois itens saem numa frase, não numa lista solta", () => {
+    montarComFixos([...FIXOS, { produtoId: 10, nome: "Refri", qtd: 1, preco: 0 }]);
+    expect(screen.getByText("Batata frita e Refri")).toBeInTheDocument();
+  });
+
+  it("o item fixo NÃO vira cartão clicável — não é escolha", () => {
+    montarComFixos(FIXOS);
+    expect(screen.queryByRole("button", { name: /Somar um Batata frita/ })).not.toBeInTheDocument();
+  });
+
+  it("sem itens fixos o bloco nem aparece — rótulo solto é ruído", () => {
+    montarComFixos([]);
+    expect(screen.queryByText("Já vem com")).not.toBeInTheDocument();
+  });
+
+  it("os fixos não entram no total do modal (já estão no preço do combo)", () => {
+    montarComFixos(FIXOS);
+    expect(total()).toContain("35,00");
+  });
+});
