@@ -1,0 +1,245 @@
+/**
+ * Criar grupo de extras sem sair da tela de produto. Decisão 018 (CSS
+ * separado do JSX) + tokens --gm-* (ADR-007).
+ */
+
+.novo-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 6%, var(--gm-card));
+}
+
+.novo-extras__topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.novo-extras__titulo {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.novo-extras__fechar {
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+
+.novo-extras__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.novo-extras__label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.novo-extras__input {
+  width: 100%;
+  box-sizing: border-box;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  outline: none;
+}
+
+/* ── Mínimo e máximo ── */
+
+.novo-extras__minmax {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.novo-extras__stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+
+.novo-extras__stepper-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.novo-extras__stepper-btn:hover {
+  color: var(--gm-accent);
+}
+
+.novo-extras__stepper-valor {
+  min-width: 64px;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-text);
+}
+
+.novo-extras__ajuda {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}
+
+/* ── Opções ── */
+
+.novo-extras__opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.novo-extras__opcao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.novo-extras__input--nome {
+  flex: 1;
+  min-width: 0;
+}
+
+.novo-extras__preco-campo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+
+.novo-extras__cifrao {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.novo-extras__preco-input {
+  width: 74px;
+  border: none;
+  background: none;
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  padding: 10px 0;
+  outline: none;
+}
+
+.novo-extras__remover {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  border-radius: 8px;
+}
+.novo-extras__remover:hover {
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+}
+
+.novo-extras__add {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.novo-extras__add:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.novo-extras__erro {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.novo-extras__botoes {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.novo-extras__btn-cancelar {
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.novo-extras__btn-salvar {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.novo-extras__btn-salvar:disabled {
+  background: var(--gm-faint);
+}

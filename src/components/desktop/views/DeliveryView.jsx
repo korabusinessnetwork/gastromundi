@@ -25,6 +25,7 @@ import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import BotaoReimprimirPedido from "./BotaoReimprimirPedido";
 import AbaFechamento from "./delivery/AbaFechamento";
+import NovoGrupoExtrasInline from "./delivery/NovoGrupoExtrasInline";
 import { logAction } from "@/lib/logger";
 import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
@@ -1573,7 +1574,13 @@ function ModalProduto({
   // os extras ligados.
   const [biblioteca, setBiblioteca] = useState([]);
   const [carregandoExtras, setCarregandoExtras] = useState(true);
+  // Biblioteca VAZIA e biblioteca que FALHOU não são a mesma coisa: vazia é
+  // "ainda não existe grupo" (dá para criar um); falhou é "não sei o que
+  // existe", e oferecer criar levaria o dono a duplicar um grupo que já tem.
+  const [extrasIndisponiveis, setExtrasIndisponiveis] = useState(false);
   const [extras, setExtras] = useState(() => new Set());
+  // Painel de criar grupo sem sair daqui. null = fechado.
+  const [criandoGrupo, setCriandoGrupo] = useState(null);
   // Os vínculos como estavam ao abrir: o salvar aplica só a DIFERENÇA, em
   // vez de apagar tudo e regravar. Regravar mexeria em vínculos que esta
   // tela nem mostrou, e cada escrita é uma chance de falhar no meio.
@@ -1587,7 +1594,8 @@ function ModalProduto({
       setCarregandoExtras(false);
       // Falha aqui não trava o cadastro do produto: a seção some e o dono
       // liga os extras depois, pela aba Complementos, como sempre fez.
-      if (error) return;
+      if (error) { setExtrasIndisponiveis(true); return; }
+      setExtrasIndisponiveis(false);
       setBiblioteca(data ?? []);
       const meus = new Set(
         (data ?? [])
@@ -1864,11 +1872,20 @@ function ModalProduto({
             grupo continua sendo reutilizável em vários produtos; aqui só se
             marca em quais ele aparece. Sem isto, criar um produto e dar
             extras a ele eram duas viagens de tela. */}
-        {!carregandoExtras && biblioteca.length > 0 && (
+        {!carregandoExtras && !extrasIndisponiveis && (
           <div className="delivery-view__campo">
             <label className="delivery-view__label">
               Extras deste produto <span className="delivery-view__hint">(opcional)</span>
             </label>
+            {/* Biblioteca vazia escondia a seção INTEIRA — quem cadastrava o
+                primeiro produto do delivery não via nem que extras existiam,
+                e tinha de descobrir sozinho a aba Complementos. */}
+            {biblioteca.length === 0 && criandoGrupo == null && (
+              <p className="delivery-view__hint">
+                Nenhum grupo de extras ainda. Crie o primeiro aqui mesmo —
+                depois ele fica disponível para os outros produtos também.
+              </p>
+            )}
             <div className="delivery-view__extras-lista">
               {biblioteca.map((g) => {
                 const nItens = (g.itens ?? []).length;
@@ -1889,9 +1906,31 @@ function ModalProduto({
                 );
               })}
             </div>
+            {criandoGrupo == null ? (
+              <button
+                type="button"
+                onClick={() => setCriandoGrupo("")}
+                className="delivery-view__extras-criar"
+              >
+                <LuPlus size={14} /> Criar grupo de extras
+              </button>
+            ) : (
+              <NovoGrupoExtrasInline
+                nomeInicial={criandoGrupo}
+                onCancelar={() => setCriandoGrupo(null)}
+                onCriado={(grupo, avisoParcial) => {
+                  // Entra na lista JÁ marcado: quem acabou de criar o grupo
+                  // para este produto não quer marcá-lo de novo.
+                  setBiblioteca((prev) => [...prev, grupo]);
+                  setExtras((prev) => new Set(prev).add(String(grupo.id)));
+                  setCriandoGrupo(null);
+                  if (avisoParcial) aviso?.(avisoParcial, "err");
+                }}
+              />
+            )}
             <span className="delivery-view__hint">
-              O mesmo grupo pode aparecer em vários produtos. Para criar ou editar as
-              opções de dentro dele, use a aba Complementos.
+              O mesmo grupo pode aparecer em vários produtos. Para editar as opções
+              de um grupo que já existe, use a aba Complementos.
             </span>
           </div>
         )}

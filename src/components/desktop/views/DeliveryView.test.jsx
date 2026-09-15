@@ -376,7 +376,11 @@ describe("DeliveryView, extras na própria tela do produto", () => {
       .toBeInTheDocument();
   });
 
-  it("biblioteca vazia não mostra a seção — nada a marcar", async () => {
+  it("biblioteca vazia mostra a seção mesmo assim, com o caminho para criar", async () => {
+    // Antes a seção sumia por inteiro quando não havia grupo nenhum — e
+    // quem cadastra o PRIMEIRO produto do delivery é exatamente quem está
+    // nessa situação. Ele não via nem que extras existiam, e tinha de
+    // descobrir sozinho a aba Complementos, criar lá e voltar.
     const user = userEvent.setup();
     setAppMock({ products: [PRODUTO] });
     listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });
@@ -385,11 +389,35 @@ describe("DeliveryView, extras na própria tela do produto", () => {
     await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
     await user.click(await screen.findByRole("button", { name: /Editar/ }));
     await screen.findByText("Editar produto do delivery");
-    expect(screen.queryByText("Extras deste produto")).toBeNull();
+
+    expect(screen.getByText("Extras deste produto")).toBeInTheDocument();
+    expect(screen.getByText(/Nenhum grupo de extras ainda/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Criar grupo de extras/ })).toBeInTheDocument();
+  });
+
+  it("dá para criar o grupo sem sair da tela de produto", async () => {
+    const user = userEvent.setup();
+    setAppMock({ products: [PRODUTO] });
+    listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });
+    listarBibliotecaGrupos.mockResolvedValue({ data: [], error: null });
+    await montar();
+    await user.click(screen.getByRole("button", { name: /^Cardápio/ }));
+    await user.click(await screen.findByRole("button", { name: /Editar/ }));
+    await screen.findByText("Editar produto do delivery");
+
+    await user.click(screen.getByRole("button", { name: /Criar grupo de extras/ }));
+
+    expect(screen.getByText("Novo grupo de extras")).toBeInTheDocument();
+    // Botão desabilitado até haver nome e ao menos uma opção: prevenir o
+    // erro em vez de avisar depois (princípio nº 1).
+    expect(screen.getByRole("button", { name: /^Criar grupo$/ })).toBeDisabled();
   });
 
   it("falha ao carregar a biblioteca não trava o cadastro do produto", async () => {
-    // O dono liga os extras depois pela aba Complementos, como sempre fez.
+    // Aqui a seção segue escondida de propósito, e a diferença importa:
+    // biblioteca VAZIA é "ainda não existe grupo" (dá para criar um);
+    // biblioteca que FALHOU é "não sei o que existe", e oferecer criar
+    // levaria o dono a duplicar um grupo que ele já tem.
     const user = userEvent.setup();
     setAppMock({ products: [PRODUTO] });
     listarProdutosDelivery.mockResolvedValue({ data: [ITEM], error: null });

@@ -2499,3 +2499,28 @@
   border-radius: 10px;
   padding: 6px;
 }
+
+/* Criar grupo de extras direto da tela de produto. Tracejado porque é uma
+   saída secundária: o caminho principal é marcar um grupo que já existe. */
+.delivery-view__extras-criar {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.delivery-view__extras-criar:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
