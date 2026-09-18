@@ -256,6 +256,12 @@ export function sanitizarConfig(config) {
     // é uma aba que se abre sozinha, e isso só pode acontecer para quem
     // pediu. Quem aceita dez pedidos seguidos não quer dez abas.
     whatsapp_no_aceite: !!config?.whatsapp_no_aceite,
+    // Pedido novo já nasce aceito, sem o clique de "Aceitar". Desligado
+    // por padrão: aceitar é uma decisão, e ligá-la sozinha para todo mundo
+    // tiraria de quem confere pedido a pedido a única chance de recusar.
+    // Quem aplica é o servidor (20261012) — o pedido NASCE em_preparo, em
+    // vez de ser movido depois, para não existir janela nem corrida.
+    aceite_automatico: !!config?.aceite_automatico,
     // Desabilitar o produto no cadastro do PDV também o tira do cardápio
     // online. Desligado por padrão: "acabou para entrega mas tem no balcão"
     // é situação de todo dia, e ligar isso sozinho mudaria o comportamento
@@ -400,7 +406,7 @@ function coordOuNull(bruto, min, max) {
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, espelhar_desabilitado, sincronizar_automatico, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, aceite_automatico, espelhar_desabilitado, sincronizar_automatico, updated_at")
     .maybeSingle();
   return { data, error };
 }

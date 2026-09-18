@@ -258,6 +258,8 @@ describe("sanitizarConfig", () => {
       // Nasce desligado: é uma aba que se abre sozinha, e isso só pode
       // acontecer para quem pediu.
       whatsapp_no_aceite: false,
+      // Nasce desligado: aceitar é decisão, e ninguém pediu para automatizá-la.
+      aceite_automatico: false,
       // Nasce desligado: "acabou para entrega mas tem no balcão" é o dia a
       // dia, e ligar o espelho sozinho tiraria produto do ar sem ninguém
       // ter pedido.

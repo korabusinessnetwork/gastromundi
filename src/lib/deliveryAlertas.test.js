@@ -25,6 +25,12 @@ const norm = (s) => s.replace(/\s/g, " ");
 
 // ── Puras ───────────────────────────────────────────────────────────
 
+// O filtro era `status === 'recebido'`. Passou a ser "status de CHEGADA"
+// (recebido ou em_preparo) quando o aceite automático nasceu (20261012):
+// com a chave ligada o pedido nunca passa por 'recebido', e a regra antiga
+// silenciava justamente a cozinha que ligou a chave para não ficar olhando
+// a tela. Quem impede o alerta repetido é o id conhecido, não o status —
+// sempre foi.
 describe("detectarNovosPedidos", () => {
   const pedidos = [
     { id: "a", status: "recebido" },
@@ -32,22 +38,26 @@ describe("detectarNovosPedidos", () => {
     { id: "c", status: "recebido" },
   ];
 
-  it("devolve só os inéditos com status 'recebido'", () => {
+  it("devolve os inéditos que acabaram de chegar", () => {
     const novos = detectarNovosPedidos(new Set(["a"]), pedidos);
-    expect(novos.map((p) => p.id)).toEqual(["c"]);
+    expect(novos.map((p) => p.id)).toEqual(["b", "c"]);
   });
 
-  it("ignora pedidos já conhecidos mesmo que 'recebido'", () => {
-    expect(detectarNovosPedidos(new Set(["a", "c"]), pedidos)).toEqual([]);
+  it("ignora pedidos já conhecidos", () => {
+    expect(detectarNovosPedidos(new Set(["a", "b", "c"]), pedidos)).toEqual([]);
   });
 
-  it("não alerta pedido inédito que já não está mais em 'recebido'", () => {
-    const novos = detectarNovosPedidos(new Set(), pedidos);
-    expect(novos.map((p) => p.id)).toEqual(["a", "c"]); // 'b' fica de fora
+  it("pedido inédito em rota ou entregue não alerta", () => {
+    const novos = detectarNovosPedidos(new Set(), [
+      ...pedidos,
+      { id: "d", status: "saiu_entrega" },
+      { id: "e", status: "entregue" },
+    ]);
+    expect(novos.map((p) => p.id)).toEqual(["a", "b", "c"]);
   });
 
   it("aceita Array de ids além de Set", () => {
-    const novos = detectarNovosPedidos(["a"], pedidos);
+    const novos = detectarNovosPedidos(["a", "b"], pedidos);
     expect(novos.map((p) => p.id)).toEqual(["c"]);
   });
 
@@ -186,5 +196,51 @@ describe("com Notification stub no window", () => {
   it("alertarPedidosNovos({ notificar:false }) não cria notificação", () => {
     alertarPedidosNovos([{ id: "a", numero: 1, total: 1 }], { som: false, notificar: false });
     expect(criadas).toHaveLength(0);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// O aviso sonoro × o aceite automático (20261012).
+//
+// Com a chave ligada o pedido NASCE 'em_preparo' e nunca passa por
+// 'recebido'. O filtro antigo era `status === 'recebido'`, então ligar o
+// aceite automático silenciava a cozinha — exatamente de quem ligou a
+// chave para NÃO precisar ficar olhando a tela.
+// ══════════════════════════════════════════════════════════════════
+describe("detectarNovosPedidos com aceite automático", () => {
+  it("pedido que nasce em_preparo também é pedido novo", () => {
+    const novos = detectarNovosPedidos(new Set(), [
+      { id: "a", status: "em_preparo" },
+    ]);
+    expect(novos.map((p) => p.id)).toEqual(["a"]);
+  });
+
+  it("id já conhecido não alerta de novo ao mudar de status", () => {
+    // O operador viu como 'recebido' e alguém apertou aceitar: é o MESMO
+    // pedido andando, não um pedido chegando.
+    const novos = detectarNovosPedidos(new Set(["a"]), [
+      { id: "a", status: "em_preparo" },
+    ]);
+    expect(novos).toEqual([]);
+  });
+
+  it("pedido em rota ou entregue não alerta, mesmo inédito", () => {
+    // Abrir o painel no meio do dia não pode disparar o som do dia inteiro.
+    const novos = detectarNovosPedidos(new Set(), [
+      { id: "b", status: "saiu_entrega" },
+      { id: "c", status: "entregue" },
+      { id: "d", status: "cancelado" },
+    ]);
+    expect(novos).toEqual([]);
+  });
+
+  it("os dois estados de chegada convivem na mesma lista", () => {
+    const novos = detectarNovosPedidos(new Set(["velho"]), [
+      { id: "velho", status: "recebido" },
+      { id: "n1", status: "recebido" },
+      { id: "n2", status: "em_preparo" },
+      { id: "n3", status: "entregue" },
+    ]);
+    expect(novos.map((p) => p.id)).toEqual(["n1", "n2"]);
   });
 });

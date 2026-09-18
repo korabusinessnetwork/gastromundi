@@ -49,6 +49,7 @@ import {
   LuMapPin,
   LuPhone,
   LuMessageCircle,
+  LuZap,
   LuChevronRight,
   LuChevronDown,
   LuArrowLeft,
@@ -74,13 +75,12 @@ import {
   agruparPorStatus,
   resumoEndereco,
   formatarTelefone,
-  linkWhatsApp,
   resumoPagamento,
   tempoDecorrido,
   carregarItensPedido,
   atualizarStatusPedido,
   registrarVendaDelivery,
-  linkConfirmacaoWhatsApp,
+  linkWhatsAppDoPedido,
   STATUS_CANCELADO,
 } from "@/lib/deliveryPedidos";
 import {
@@ -652,11 +652,27 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
       // abre escrita, para o operador conferir e enviar num toque. Só abre
       // quando o dono ligou a chave e quando há telefone utilizável: aba
       // que se abre sozinha sem nada dentro é pior que aba nenhuma.
-      if (proximo === "em_preparo" && config?.whatsapp_no_aceite) {
-        const link = linkConfirmacaoWhatsApp(pedido, {
-          nome: tenant?.nome,
-          tempoPreparo: config?.tempo_preparo_min,
-        });
+      if (config?.whatsapp_no_aceite && (proximo === "em_preparo" || proximo === "saiu_entrega")) {
+        // A mensagem é a do estado em que o pedido ACABOU de entrar, não a
+        // do estado em que estava — quem acabou de sair para entrega não
+        // pode receber "recebemos seu pedido".
+        //
+        // Os itens são buscados aqui: a confirmação vale muito mais com a
+        // lista do que sem ela, e é justamente na confirmação que o cliente
+        // pega o item trocado enquanto ainda dá para refazer na cozinha.
+        // Falha ao buscar não impede o aviso — ele sai sem a lista.
+        const { data: itensDoPedido } = await carregarItensPedido(pedido.id);
+        const link = linkWhatsAppDoPedido(
+          { ...pedido, status: proximo },
+          {
+            nome: tenant?.nome,
+            tempoPreparo: config?.tempo_preparo_min,
+            entregador: entregadores.find(
+              (e) => String(e.id) === String(pedido.entregador_id),
+            )?.nome,
+          },
+          itensDoPedido ?? [],
+        );
         if (link) window.open(link, "_blank", "noopener,noreferrer");
       }
 
@@ -668,7 +684,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
       );
       await recarregar();
     },
-    [aviso, recarregar, currentUser, config, tenant]
+    [aviso, recarregar, currentUser, config, tenant, entregadores]
   );
 
   const cancelar = useCallback(
@@ -810,6 +826,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
                           ehAddon={ehAddon}
                           entregadores={entregadores}
                           entregadoresAtivos={ativos}
+                          loja={{ nome: tenant?.nome, tempoPreparo: config?.tempo_preparo_min }}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
                           onAtribuirEntregador={atribuir}
@@ -833,6 +850,7 @@ function CardPedido({
   ehAddon,
   entregadores = [],
   entregadoresAtivos: ativos = [],
+  loja = {},
   onAvancar,
   onCancelar,
   onAtribuirEntregador,
@@ -845,11 +863,6 @@ function CardPedido({
   const base = baseCorStatus(pedido.status);
   const acao = rotuloAcao(pedido.status);
   const endereco = resumoEndereco(pedido);
-  const zap = linkWhatsApp(
-    pedido.cliente_telefone,
-    `Olá! Aqui é do delivery, sobre o seu pedido ${pedido.numero}.`
-  );
-
   // ── Entregador atribuído a este pedido ──────────────────────────
   const cancelado = pedido.status === STATUS_CANCELADO;
   const atribuidoId = pedido.entregador_id ? String(pedido.entregador_id) : "";
@@ -857,6 +870,19 @@ function CardPedido({
     ? entregadores.find((e) => String(e.id) === atribuidoId) || null
     : null;
   const nomeAtual = entregadorAtual?.nome || (atribuidoId ? "Entregador removido" : "");
+
+  // O botão é um só; quem escolhe o texto é o ESTADO do pedido (confirmação
+  // enquanto está em preparo, "saiu para entrega" depois). Operador não
+  // devia ter de escolher qual mensagem mandar — ele já sabe onde o pedido
+  // está, e a tela também.
+  //
+  // Os itens só entram depois que o cartão foi aberto (é quando eles são
+  // buscados). Fechado, a mensagem sai sem a lista em vez de não sair.
+  const zap = linkWhatsAppDoPedido(
+    pedido,
+    { ...loja, entregador: nomeAtual || undefined },
+    itens ?? [],
+  );
 
   // Opções do seletor: os ativos + o já atribuído (mesmo se desativado depois),
   // pra não sumir com quem está tocando este pedido.
@@ -3880,6 +3906,39 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         )}
       </div>
 
+      {/* Aceite automático de pedidos */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuZap size={16} color={varColor(C.accent)} /> Aceitar pedidos automaticamente
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O pedido já entra em <strong>Em preparo</strong>, sem alguém precisar
+              apertar &quot;Aceitar&quot;. Para cozinha que faz tudo o que entra.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.aceite_automatico}
+              disabled={readOnly}
+              onChange={(e) => salvar({ aceite_automatico: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.aceite_automatico && (
+          <div className="delivery-view__hint">
+            Você continua podendo cancelar um pedido. O que muda é que ninguém
+            precisa estar olhando a tela para ele começar a ser feito — o aviso
+            sonoro de pedido novo continua tocando igual.
+          </div>
+        )}
+      </div>
+
       {/* Confirmação no WhatsApp ao aceitar o pedido */}
       <div className="delivery-view__retirada">
         <label className="delivery-view__switch">
@@ -3888,8 +3947,9 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
               <LuMessageCircle size={16} color={varColor(C.accent)} /> Confirmar no WhatsApp
             </span>
             <span className="delivery-view__hint delivery-view__retirada-hint">
-              Ao aceitar um pedido, abre o WhatsApp do cliente com a confirmação já
-              escrita — você confere e envia. Grátis, sem integração.
+              Ao aceitar um pedido e ao marcar que saiu para entrega, abre o
+              WhatsApp do cliente com a mensagem já escrita — você confere e
+              envia. Grátis, sem integração.
             </span>
           </span>
           <span className="delivery-view__toggle">
@@ -3906,8 +3966,9 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         </label>
         {config.whatsapp_no_aceite && (
           <div className="delivery-view__hint">
-            Abre uma aba por pedido aceito. Se você aceita vários de uma vez, talvez
-            prefira deixar desligado.
+            Abre uma aba a cada aceite e a cada saída para entrega. Se você move
+            vários de uma vez, talvez prefira deixar desligado — o botão do
+            WhatsApp no cartão do pedido continua ali para mandar quando quiser.
           </div>
         )}
       </div>

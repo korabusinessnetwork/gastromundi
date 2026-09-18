@@ -31,6 +31,10 @@ import {
   formatarReais,
   tempoDecorrido,
   atualizarStatusPedido,
+  listarItensParaMensagem,
+  mensagemPedidoEmRota,
+  mensagemDoStatus,
+  linkWhatsAppDoPedido,
 } from "./deliveryPedidos";
 import { supabase } from "./supabase";
 
@@ -476,5 +480,184 @@ describe("linkConfirmacaoWhatsApp", () => {
   it("sem telefone utilizável devolve null — o botão some em vez de abrir aba morta", () => {
     expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "" })).toBeNull();
     expect(linkConfirmacaoWhatsApp({ numero: "1", cliente_telefone: "123" })).toBeNull();
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// As mensagens de WhatsApp — o que o cliente recebe ao clicar no botão.
+//
+// Nada disto usa API paga: `linkWhatsApp` monta um link wa.me com o texto
+// pronto, e quem envia é a pessoa, no aparelho dela. O que os testes
+// prendem é o CONTEÚDO, porque mensagem errada aqui vira ligação para a
+// loja — que é justamente o que ela existe para evitar.
+// ══════════════════════════════════════════════════════════════════
+describe("listarItensParaMensagem", () => {
+  it("põe a quantidade na frente do nome", () => {
+    expect(listarItensParaMensagem([{ nome: "Pizza Calabresa", qtd: 2 }]))
+      .toEqual(["• 2× Pizza Calabresa"]);
+  });
+
+  it("qtd ausente ou quebrada vira 1, não zero nem NaN", () => {
+    expect(listarItensParaMensagem([{ nome: "Coca" }])[0]).toBe("• 1× Coca");
+    expect(listarItensParaMensagem([{ nome: "Coca", qtd: "x" }])[0]).toBe("• 1× Coca");
+  });
+
+  it("os complementos escolhidos vão abaixo do item", () => {
+    const [linha] = listarItensParaMensagem([
+      { nome: "X-Burguer", qtd: 1, complementos: [{ nome: "Bacon" }, { nome: "Cheddar" }] },
+    ]);
+    expect(linha).toContain("Bacon, Cheddar");
+  });
+
+  it("aceita complemento que já veio como texto", () => {
+    const [linha] = listarItensParaMensagem([
+      { nome: "Pizza", qtd: 1, complementos: ["Calabresa", "Portuguesa"] },
+    ]);
+    expect(linha).toContain("Calabresa, Portuguesa");
+  });
+
+  it("a observação entra — é o 'sem cebola' que o cliente quer ver confirmado", () => {
+    const [linha] = listarItensParaMensagem([
+      { nome: "X-Salada", qtd: 1, obs: "sem cebola" },
+    ]);
+    expect(linha).toContain("sem cebola");
+  });
+
+  it("item sem nome não vira linha fantasma", () => {
+    expect(listarItensParaMensagem([{ qtd: 2 }, { nome: "  " }, null])).toEqual([]);
+    expect(listarItensParaMensagem(null)).toEqual([]);
+  });
+});
+
+describe("mensagemPedidoAceito — o que o cliente confere", () => {
+  const pedido = {
+    numero: "260915-004",
+    cliente_nome: "Ana Paula",
+    total: 68,
+    forma_pagamento: "dinheiro",
+    troco_para: 100,
+    tipo_entrega: "entrega",
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre/RS",
+  };
+  const itens = [{ nome: "Pizza Grande", qtd: 1, complementos: [{ nome: "Calabresa" }] }];
+
+  it("lista o que foi pedido", () => {
+    const msg = mensagemPedidoAceito(pedido, { nome: "GastroMundi" }, itens);
+    expect(msg).toContain("1× Pizza Grande");
+    expect(msg).toContain("Calabresa");
+  });
+
+  it("devolve o endereço para o cliente CONFERIR", () => {
+    // Entrega errada quase nunca é o entregador que se perdeu: é o número
+    // que saiu torto no formulário e que ninguém mais olhou.
+    const msg = mensagemPedidoAceito(pedido, {}, itens);
+    expect(msg).toContain("Rua das Flores, 100");
+    expect(msg).toContain("Centro");
+    expect(msg).toMatch(/responder aqui/i);
+  });
+
+  it("na retirada não promete entrega nem manda endereço do cliente", () => {
+    const msg = mensagemPedidoAceito({ ...pedido, tipo_entrega: "retirada" }, {}, itens);
+    expect(msg).toMatch(/retirada no local/i);
+    expect(msg).not.toContain("Rua das Flores");
+  });
+
+  it("sem itens carregados a mensagem sai mesmo assim", () => {
+    // O cartão fechado ainda não buscou os itens. Melhor a confirmação sem
+    // a lista do que confirmação nenhuma.
+    const msg = mensagemPedidoAceito(pedido, { nome: "GastroMundi" }, []);
+    expect(msg).toContain("260915-004");
+    expect(msg).not.toContain("Seu pedido:");
+  });
+
+  it("continua dizendo o total e o troco", () => {
+    const msg = mensagemPedidoAceito(pedido, {}, itens);
+    expect(msg).toContain("R$ 68,00");
+    expect(msg).toContain("R$ 100,00");
+  });
+});
+
+describe("mensagemPedidoEmRota", () => {
+  const pedido = {
+    numero: "260915-004",
+    cliente_nome: "Ana Paula",
+    total: 68,
+    forma_pagamento: "dinheiro",
+    troco_para: 100,
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+  };
+
+  it("diz que saiu, com o número do pedido", () => {
+    const msg = mensagemPedidoEmRota(pedido, { nome: "GastroMundi" });
+    expect(msg).toMatch(/saiu para entrega/i);
+    expect(msg).toContain("260915-004");
+  });
+
+  it("diz quem está levando, quando há entregador", () => {
+    const msg = mensagemPedidoEmRota(pedido, { entregador: "Carlos" });
+    expect(msg).toContain("Carlos");
+  });
+
+  it("sem entregador atribuído não inventa nome", () => {
+    const msg = mensagemPedidoEmRota(pedido, {});
+    expect(msg).toMatch(/saiu para entrega\./i);
+  });
+
+  it("avisa quanto separar e o troco — cliente que procura a carteira segura o entregador", () => {
+    const msg = mensagemPedidoEmRota(pedido, {});
+    expect(msg).toContain("R$ 68,00");
+    expect(msg).toContain("dinheiro");
+    expect(msg).toContain("R$ 100,00");
+  });
+
+  it("leva o endereço: é a última chance de dizer que o número está errado", () => {
+    expect(mensagemPedidoEmRota(pedido, {})).toContain("Rua das Flores, 100");
+  });
+});
+
+describe("mensagemDoStatus — um botão, o texto do momento", () => {
+  const base = { numero: "1", cliente_nome: "Ana", total: 10, endereco: "Rua X, 1" };
+
+  it("em preparo manda a confirmação", () => {
+    expect(mensagemDoStatus({ ...base, status: "em_preparo" }, {}, []))
+      .toMatch(/Recebemos seu pedido/);
+  });
+
+  it("recebido também manda a confirmação", () => {
+    expect(mensagemDoStatus({ ...base, status: "recebido" }, {}, []))
+      .toMatch(/Recebemos seu pedido/);
+  });
+
+  it("saiu para entrega manda a de rota, não a de recebido", () => {
+    // Mandar "recebemos seu pedido" para quem já está esperando na porta é
+    // pior que não mandar nada.
+    const msg = mensagemDoStatus({ ...base, status: "saiu_entrega" }, {}, []);
+    expect(msg).toMatch(/saiu para entrega/i);
+    expect(msg).not.toMatch(/Recebemos seu pedido/);
+  });
+
+  it("status sem mensagem própria abre a conversa sem anunciar nada", () => {
+    for (const status of ["entregue", "cancelado"]) {
+      expect(mensagemDoStatus({ ...base, status }, {}, [])).toMatch(/sobre o seu pedido/i);
+    }
+  });
+});
+
+describe("linkWhatsAppDoPedido", () => {
+  it("monta o link wa.me com o texto do momento — sem API, sem custo", () => {
+    const link = linkWhatsAppDoPedido(
+      { numero: "7", status: "saiu_entrega", cliente_telefone: "51986557795", cliente_nome: "Ana" },
+      {},
+      [],
+    );
+    expect(link).toMatch(/^https:\/\/wa\.me\/5551986557795\?text=/);
+    expect(decodeURIComponent(link)).toMatch(/saiu para entrega/i);
+  });
+
+  it("sem telefone não há link — o botão some em vez de abrir aba morta", () => {
+    expect(linkWhatsAppDoPedido({ numero: "7", status: "em_preparo" }, {}, [])).toBeNull();
   });
 });

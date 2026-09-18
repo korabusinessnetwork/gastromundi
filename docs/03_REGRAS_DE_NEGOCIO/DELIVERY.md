@@ -146,6 +146,48 @@ gateway/TEF é necessário.
   - A conta é a **mesma do PDV** — `precoDoGrupo` (`src/lib/combos.js`) é
     importada pela vitrine, e `vitrineGruposEscolhaSqlGuard.test.js` prende o
     SQL e o JS um ao outro.
+### Aceite automático (20261012)
+
+`config_delivery.aceite_automatico` (nasce **false**). Ligada, o pedido
+**nasce** `em_preparo` em vez de `recebido` — dentro da mesma transação que
+o cria, não num `UPDATE` depois. Isso importa: no front, o aceite só valeria
+com o painel aberto (e a chave existe justamente para quem não está olhando
+a tela), abriria uma janela em que o pedido está "aguardando" já aceito, e
+dois painéis abertos disparariam dois updates.
+
+O que **não** muda: loja fechada, pedido mínimo, endereço fora de área e item
+indisponível continuam recusando o pedido **antes** de ele existir. Aceitar
+sozinho pula o clique de quem ia aceitar mesmo, não a regra. Cancelar continua
+válido (`em_preparo` → `cancelado`).
+
+Efeito colateral tratado: o aviso de pedido novo filtrava por `'recebido'`.
+Com a chave ligada o pedido nunca passa por lá, então `detectarNovosPedidos`
+passou a alertar também o `em_preparo` inédito — senão a chave silenciaria a
+cozinha. Quem impede alerta repetido é o id já conhecido, não o status.
+
+### WhatsApp: link, não API (custo zero)
+
+Não há integração paga. `linkWhatsApp` monta um `https://wa.me/<numero>?text=…`
+com a mensagem pronta; abrir é um clique e **quem envia é a pessoa**, do
+próprio aparelho/WhatsApp Web. Nenhum token, nenhuma conta de negócio,
+nenhuma janela de 24h — e nada é enviado sem alguém apertar.
+
+- `mensagemPedidoAceito` — confirmação: número, **itens pedidos** (com
+  complementos e observação), total, forma de pagamento e o **endereço de
+  volta para o cliente conferir**. É aqui que o item trocado aparece enquanto
+  ainda dá para refazer na cozinha.
+- `mensagemPedidoEmRota` — "saiu para entrega", com entregador (quando
+  atribuído), endereço e quanto separar em dinheiro.
+- `mensagemDoStatus` / `linkWhatsAppDoPedido` — escolhem o texto pelo status
+  do pedido. É o que deixa **um** botão no cartão servir o pedido inteiro:
+  quem aperta não escolhe qual mensagem mandar.
+- `config_delivery.whatsapp_no_aceite` abre a aba sozinha ao aceitar **e** ao
+  marcar que saiu para entrega. Desligada, o botão do cartão continua ali.
+
+**Limite do modelo gratuito:** exige alguém clicando. Disparo automático (sem
+clique) exigiria a API oficial do WhatsApp Cloud, que é paga por conversa e
+está adiada por padrão na fase de bootstrap — decisão do dono.
+
 - `config_delivery` — 1 linha por tenant: aberto/fechado, horário de
   funcionamento, pedido mínimo, tempo de preparo, as **faixas de taxa**
   (jsonb: `[{ tipo: 'bairro'|'cep', ...valor, taxa }]`) e `permite_retirada`

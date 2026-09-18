@@ -386,9 +386,10 @@ export function comandasDoSalao(pendentes) {
  *
  * @param {object} pedido - linha de delivery_pedidos
  * @param {{nome?: string, tempoPreparo?: number}} loja
+ * @param {Array} itens - linhas de delivery_pedido_itens (opcional)
  * @returns {string}
  */
-export function mensagemPedidoAceito(pedido, loja = {}) {
+export function mensagemPedidoAceito(pedido, loja = {}, itens = []) {
   const nome = String(loja?.nome ?? "").trim();
   const cliente = String(pedido?.cliente_nome ?? "").trim();
   const retirada = pedido?.tipo_entrega === "retirada";
@@ -409,6 +410,16 @@ export function mensagemPedidoAceito(pedido, loja = {}) {
     );
   }
 
+  // O que foi pedido, conferível. É aqui que o cliente pega o item trocado
+  // ANTES de a comida sair — corrigir na cozinha custa um refazer; corrigir
+  // na porta custa a entrega inteira e o cliente.
+  const listados = listarItensParaMensagem(itens);
+  if (listados.length > 0) {
+    linhas.push("");
+    linhas.push("*Seu pedido:*");
+    for (const linha of listados) linhas.push(linha);
+  }
+
   linhas.push("");
   linhas.push(`Total: ${formatarReais(pedido?.total)} — ${formatarFormaPagamento(pedido?.forma_pagamento)}`);
   if (pedido?.forma_pagamento === "dinheiro" && Number(pedido?.troco_para) > 0) {
@@ -418,9 +429,125 @@ export function mensagemPedidoAceito(pedido, loja = {}) {
   if (retirada) {
     linhas.push("");
     linhas.push("É retirada no local — avisamos assim que estiver pronto.");
+  } else {
+    // O endereço volta escrito para o cliente CONFERIR. Entrega errada
+    // quase nunca é o entregador que se perdeu: é o número que saiu torto
+    // no formulário, e ninguém mais olhou para ele.
+    const onde = resumoEndereco(pedido);
+    if (onde) {
+      linhas.push("");
+      linhas.push(`*Entrega em:* ${onde}`);
+      linhas.push("Se algo estiver errado no endereço, é só responder aqui.");
+    }
   }
 
   return linhas.join("\n").trim();
+}
+
+/**
+ * Os itens do pedido em linhas de mensagem. Uma linha por item, com a
+ * quantidade na frente e os complementos escolhidos logo abaixo — é como
+ * a pessoa confere o que pediu sem abrir o site de novo.
+ *
+ * Preço por linha NÃO entra: o total já vai na mensagem, e repetir valor
+ * item a item transforma a confirmação numa nota fiscal que ninguém lê.
+ *
+ * @param {Array<{nome?: string, qtd?: number, complementos?: Array, obs?: string}>} itens
+ * @returns {string[]}
+ */
+export function listarItensParaMensagem(itens) {
+  return (Array.isArray(itens) ? itens : [])
+    .filter((i) => i && String(i.nome ?? "").trim())
+    .map((i) => {
+      const qtd = Math.max(1, Number(i.qtd) || 1);
+      let linha = `• ${qtd}× ${String(i.nome).trim()}`;
+      const extras = (Array.isArray(i.complementos) ? i.complementos : [])
+        .map((c) => (typeof c === "string" ? c : String(c?.nome ?? "")).trim())
+        .filter(Boolean);
+      if (extras.length > 0) linha += `\n   ${extras.join(", ")}`;
+      const obs = String(i.obs ?? "").trim();
+      if (obs) linha += `\n   _${obs}_`;
+      return linha;
+    });
+}
+
+/**
+ * Mensagem de "saiu para entrega". O momento em que o cliente começa a
+ * olhar pela janela — e, sem aviso, o momento em que ele liga para a loja
+ * perguntando se o pedido saiu. Uma linha aqui economiza essa ligação.
+ *
+ * Leva o endereço de destino de propósito: é a última chance de o cliente
+ * dizer "não é esse número" enquanto o entregador ainda está perto.
+ *
+ * @param {object} pedido
+ * @param {{nome?: string, entregador?: string}} loja
+ * @returns {string}
+ */
+export function mensagemPedidoEmRota(pedido, loja = {}) {
+  const nome = String(loja?.nome ?? "").trim();
+  const cliente = String(pedido?.cliente_nome ?? "").trim();
+  const entregador = String(loja?.entregador ?? "").trim();
+  const saudacao = cliente ? `Oi, ${cliente.split(" ")[0]}!` : "Oi!";
+
+  const linhas = [`${saudacao} ${nome ? `Aqui é do ${nome}.` : ""}`.trim()];
+  linhas.push("");
+  linhas.push(
+    entregador
+      ? `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega com ${entregador}. 🛵`
+      : `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega. 🛵`,
+  );
+
+  const onde = resumoEndereco(pedido);
+  if (onde) {
+    linhas.push("");
+    linhas.push(`*Endereço:* ${onde}`);
+  }
+
+  // Quanto ele precisa ter em mãos. Cliente que não separou o dinheiro
+  // segura o entregador na porta enquanto procura a carteira.
+  if (pedido?.forma_pagamento) {
+    linhas.push("");
+    const pagamento = `Pagamento na entrega: ${formatarReais(pedido?.total)} em ${formatarFormaPagamento(pedido.forma_pagamento).toLowerCase()}.`;
+    linhas.push(pagamento);
+    if (pedido.forma_pagamento === "dinheiro" && Number(pedido.troco_para) > 0) {
+      linhas.push(`Levamos troco para ${formatarReais(pedido.troco_para)}.`);
+    }
+  }
+
+  return linhas.join("\n").trim();
+}
+
+/**
+ * A mensagem certa para o momento em que o pedido está. É isso que deixa
+ * UM botão no cartão servir o pedido inteiro: quem aperta não escolhe
+ * qual texto mandar, o estado do pedido já escolheu.
+ *
+ * Status sem mensagem própria (cancelado, entregue) cai num texto neutro
+ * — abrir a conversa continua sendo útil, só não há o que anunciar.
+ *
+ * @param {object} pedido
+ * @param {{nome?: string, tempoPreparo?: number, entregador?: string}} loja
+ * @param {Array} itens
+ * @returns {string}
+ */
+export function mensagemDoStatus(pedido, loja = {}, itens = []) {
+  switch (pedido?.status) {
+    case "recebido":
+    case "em_preparo":
+      return mensagemPedidoAceito(pedido, loja, itens);
+    case "saiu_entrega":
+      return mensagemPedidoEmRota(pedido, loja);
+    default:
+      return `Olá! Aqui é do delivery, sobre o seu pedido ${pedido?.numero ?? ""}.`.trim();
+  }
+}
+
+/**
+ * Link do WhatsApp já com a mensagem do momento do pedido. `null` quando
+ * não há telefone utilizável — o botão some em vez de abrir aba morta.
+ */
+export function linkWhatsAppDoPedido(pedido, loja, itens) {
+  return linkWhatsApp(pedido?.cliente_telefone, mensagemDoStatus(pedido, loja, itens));
 }
 
 /**
@@ -428,6 +555,6 @@ export function mensagemPedidoAceito(pedido, loja = {}) {
  * escrita. `null` quando o pedido não tem telefone utilizável — aí o
  * botão simplesmente não aparece, em vez de abrir uma aba morta.
  */
-export function linkConfirmacaoWhatsApp(pedido, loja) {
-  return linkWhatsApp(pedido?.cliente_telefone, mensagemPedidoAceito(pedido, loja));
+export function linkConfirmacaoWhatsApp(pedido, loja, itens) {
+  return linkWhatsApp(pedido?.cliente_telefone, mensagemPedidoAceito(pedido, loja, itens));
 }
