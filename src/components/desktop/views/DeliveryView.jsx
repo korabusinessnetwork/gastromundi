@@ -143,6 +143,11 @@ import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
 import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+// TD015: as faixas de taxa entram e saem do meio da lista, então a chave de
+// renderização não pode ser a posição. O `uid` vive só no state desta tela:
+// `sanitizarConfig` reconstrói cada faixa antes de gravar, então ele morre na
+// fronteira do save sem precisar de limpeza explícita.
+import { comUid } from "@/lib/uidLista";
 import "./DeliveryView.css";
 
 const ABAS = [
@@ -634,7 +639,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
         const { error: erroVenda } = await registrarVendaDelivery(pedido.id);
         if (erroVenda) {
           return aviso(
-            "Não foi possível registrar a venda deste pedido. Ele continua em rota — tente de novo.",
+            "Não foi possível registrar a venda deste pedido. Ele continua em rota, tente de novo.",
             "err",
           );
         }
@@ -678,7 +683,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] })
 
       aviso(
         proximo === "entregue"
-          ? `Pedido ${pedido.numero} entregue — venda registrada.`
+          ? `Pedido ${pedido.numero} entregue, venda registrada.`
           : `Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`,
         "ok",
       );
@@ -1190,8 +1195,8 @@ function ModalImportar({ candidatos, importando, onFechar, onConfirmar }) {
         </div>
 
         <div className="delivery-view__aviso delivery-view__aviso--info">
-          Já vem tudo marcado. Desmarque o que não deve aparecer no cardápio online —
-          nome e preço continuam vindo do PDV.
+          Já vem tudo marcado. Desmarque o que não deve aparecer no cardápio online.
+          Nome e preço continuam vindo do PDV.
         </div>
 
         <div className="delivery-view__campo-linha">
@@ -1323,7 +1328,7 @@ function AbaCardapio({
             <div className="delivery-view__import-desc">
               {faltamImportar.length > 0
                 ? `Traz de uma vez os ${faltamImportar.length} produto(s) do sistema que ainda não estão no delivery. Depois é só colocar foto e descrição.`
-                : "Tudo em dia — todos os produtos do PDV já estão no delivery."}
+                : "Tudo em dia, todos os produtos do PDV já estão no delivery."}
             </div>
           </div>
           <div className="delivery-view__import-acoes">
@@ -1514,7 +1519,7 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
             <div className="delivery-view__card-desc delivery-view__card-desc--vazia">
-              Sem descrição — clique em editar para caprichar.
+              Sem descrição, clique em editar para caprichar.
             </div>
           )}
         </div>
@@ -1867,7 +1872,7 @@ function ModalProduto({
         {!criaProduto ? (
           <div className="delivery-view__aviso delivery-view__aviso--info">
             <strong>{prod?.name || "Produto"}</strong>
-            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""} — nome e preço vêm do
+            {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""}, nome e preço vêm do
             cadastro do PDV. Aqui você ajusta como ele aparece no delivery.
           </div>
         ) : (
@@ -1908,7 +1913,7 @@ function ModalProduto({
                 e tinha de descobrir sozinho a aba Complementos. */}
             {biblioteca.length === 0 && criandoGrupo == null && (
               <p className="delivery-view__hint">
-                Nenhum grupo de extras ainda. Crie o primeiro aqui mesmo —
+                Nenhum grupo de extras ainda. Crie o primeiro aqui mesmo,
                 depois ele fica disponível para os outros produtos também.
               </p>
             )}
@@ -2247,13 +2252,13 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
  */
 function explicarEscolhas(min, max) {
   if (min > 0) {
-    if (max === 0) return `Obrigatório — o cliente escolhe ao menos ${min}, quantas quiser acima disso`;
-    if (max === min) return `Obrigatório — o cliente precisa escolher ${min === 1 ? "1 opção" : `${min} opções`}`;
-    return `Obrigatório — o cliente precisa escolher de ${min} a ${max}`;
+    if (max === 0) return `Obrigatório, o cliente escolhe ao menos ${min}, quantas quiser acima disso`;
+    if (max === min) return `Obrigatório, o cliente precisa escolher ${min === 1 ? "1 opção" : `${min} opções`}`;
+    return `Obrigatório, o cliente precisa escolher de ${min} a ${max}`;
   }
-  if (max === 0) return "Opcional — o cliente escolhe quantas quiser";
-  if (max === 1) return "Opcional — o cliente pode escolher 1, se quiser";
-  return `Opcional — o cliente pode escolher até ${max}`;
+  if (max === 0) return "Opcional, o cliente escolhe quantas quiser";
+  if (max === 1) return "Opcional, o cliente pode escolher 1, se quiser";
+  return `Opcional, o cliente pode escolher até ${max}`;
 }
 
 /** Faixa curta para o selo do cartão: "1–3", "0–1", "2 ou mais". */
@@ -3401,7 +3406,7 @@ function FechamentoEntregadores({
       return aviso("Não há dinheiro suficiente na gaveta para este pagamento.", "err");
     }
     setPagandoId(linha.entregador_id);
-    const motivo = `Pagamento entregador ${linha.nome} — ${ids.length} ${ids.length > 1 ? "entregas" : "entrega"}`;
+    const motivo = `Pagamento entregador ${linha.nome}, ${ids.length} ${ids.length > 1 ? "entregas" : "entrega"}`;
     const { error } = await registrarMovimentoCaixa({
       tipo: "sangria",
       valor: linha.aPagar,
@@ -3515,7 +3520,7 @@ function FechamentoEntregadores({
                     <td className="delivery-view__num">{l.entregues}</td>
                     <td className="delivery-view__num">
                       {l.emRota > 0 ? (
-                        <span className="delivery-view__fechamento-emrota" title="Ainda na rua — não entram no pagamento até serem entregues">
+                        <span className="delivery-view__fechamento-emrota" title="Ainda na rua, não entram no pagamento até serem entregues">
                           {l.emRota}
                         </span>
                       ) : (
@@ -3668,7 +3673,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       setErroConfig("");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
-      setConfig(cfg);
+      setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
       setEnderecoOrigem(cfg.endereco_origem || "");
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
@@ -3684,7 +3689,8 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     const { data, error } = await salvarConfigDelivery(tenant.id, alvo);
     setSalvando(false);
     if (error) return aviso("Não foi possível salvar.", "err");
-    setConfig(data || alvo);
+    const salvo = data || alvo;
+    setConfig({ ...salvo, faixas_taxa: comUid(salvo.faixas_taxa ?? []) });
     logAction(currentUser?.username, "delivery:config", { msg: "Configurações de entrega atualizadas", name: currentUser?.name, role: currentUser?.role });
     aviso("Configurações salvas.", "ok");
   };
@@ -3739,7 +3745,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       aviso("Endereço localizado no mapa. Arraste o pino se quiser ajustar.", "ok");
     } else {
       salvar({ endereco_origem: texto });
-      aviso("Não encontramos esse endereço. Ele foi salvo — marque o ponto arrastando o pino no mapa.", "err");
+      aviso("Não encontramos esse endereço. Ele foi salvo, marque o ponto arrastando o pino no mapa.", "err");
     }
   };
 
@@ -3894,7 +3900,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             tela diz por quê, em vez de o dono achar que ligou e não ligou. */}
         {config.permite_retirada && !String(config.endereco_origem || "").trim() && (
           <div className="delivery-view__hint delivery-view__hint--erro">
-            Falta o endereço do estabelecimento — sem ele a retirada não aparece
+            Falta o endereço do estabelecimento: sem ele a retirada não aparece
             para o cliente. Preencha em “Endereço do estabelecimento”, no modo de
             taxa por distância.
           </div>
@@ -3933,7 +3939,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         {config.aceite_automatico && (
           <div className="delivery-view__hint">
             Você continua podendo cancelar um pedido. O que muda é que ninguém
-            precisa estar olhando a tela para ele começar a ser feito — o aviso
+            precisa estar olhando a tela para ele começar a ser feito. O aviso
             sonoro de pedido novo continua tocando igual.
           </div>
         )}
@@ -3948,7 +3954,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             </span>
             <span className="delivery-view__hint delivery-view__retirada-hint">
               Ao aceitar um pedido e ao marcar que saiu para entrega, abre o
-              WhatsApp do cliente com a mensagem já escrita — você confere e
+              WhatsApp do cliente com a mensagem já escrita, você confere e
               envia. Grátis, sem integração.
             </span>
           </span>
@@ -3967,7 +3973,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
         {config.whatsapp_no_aceite && (
           <div className="delivery-view__hint">
             Abre uma aba a cada aceite e a cada saída para entrega. Se você move
-            vários de uma vez, talvez prefira deixar desligado — o botão do
+            vários de uma vez, talvez prefira deixar desligado. O botão do
             WhatsApp no cartão do pedido continua ali para mandar quando quiser.
           </div>
         )}
@@ -4069,7 +4075,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                     type="button"
                     onClick={alternarBloqueio}
                     className={`delivery-view__cadeado${bloqueado ? " delivery-view__cadeado--travado" : ""}`}
-                    title={bloqueado ? "Endereço bloqueado — toque para liberar a edição" : "Bloquear edição do endereço"}
+                    title={bloqueado ? "Endereço bloqueado, toque para liberar a edição" : "Bloquear edição do endereço"}
                     aria-label={bloqueado ? "Liberar edição do endereço" : "Bloquear edição do endereço"}
                     aria-pressed={bloqueado}
                   >
@@ -4081,7 +4087,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
                 <div className="delivery-view__hint delivery-view__hint--campo">
                   {bloqueado
                     ? "Endereço bloqueado. Toque no cadeado para liberar a edição."
-                    : "Comece a digitar e escolha uma sugestão — o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
+                    : "Comece a digitar e escolha uma sugestão, o pino vai para lá. Você ainda pode arrastá-lo para o ajuste fino, ou travar com o cadeado."}
                 </div>
               )}
             </div>
@@ -4094,7 +4100,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             />
             {!origem && (
               <div className="delivery-view__hint delivery-view__hint--erro">
-                Marque o ponto de partida no mapa — sem ele o cálculo por distância não funciona.
+                Marque o ponto de partida no mapa, sem ele o cálculo por distância não funciona.
               </div>
             )}
           </div>
@@ -4105,7 +4111,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
             <div className="delivery-view__hint">Nenhuma faixa cadastrada ainda.</div>
           )}
           {faixasVisiveis.map((f, idx) => (
-            <div key={idx} className="delivery-view__faixa">
+            <div key={f.uid} className="delivery-view__faixa">
               <span className="delivery-view__faixa-texto">{faixaResumo(f)}</span>
               {isAdmin && (
                 <button onClick={() => removerFaixa(idx)} className="delivery-view__modal-fechar">

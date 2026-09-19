@@ -61,12 +61,20 @@ import {
 // worker de reenvio (reenviar-nfce). As ÚNICAS funções que tocam no segredo.
 import { assinarXmlDSig, transmitirSefazRS } from "../_shared/nfceTransmissao.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
+
+// Origem declarada em vez de curinga, ver _shared/cors.ts. Sem a
+// variável configurada o comportamento segue sendo "*", de propósito.
+const ORIGENS_PERMITIDAS = lerOrigensPermitidas(Deno.env.get("ORIGENS_PERMITIDAS"));
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = montarCorsHeaders(req.headers.get("Origin"), ORIGENS_PERMITIDAS);
+  function json(body: unknown, status = 200) {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -869,9 +877,3 @@ function descreverFaltando(faltando: Array<{ xProd: string; motivo: string }>): 
   return faltando.map((f) => `${f.xProd} (${f.motivo})`).join("; ");
 }
 
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}

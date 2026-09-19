@@ -31,7 +31,7 @@ describe("isPagamentoCartao", () => {
   });
 });
 
-describe("metodoUsaTef (Leva 12 — seleção por método)", () => {
+describe("metodoUsaTef (Leva 12, seleção por método)", () => {
   it("sem lista configurada, cai no padrão crédito/débito", () => {
     expect(metodoUsaTef("credito")).toBe(true);
     expect(metodoUsaTef("debito", undefined)).toBe(true);
@@ -71,7 +71,7 @@ describe("metodoUsaTef (Leva 12 — seleção por método)", () => {
 });
 
 describe("podeUsarTef (quais métodos podem ser marcados como maquininha)", () => {
-  it("dinheiro não pode — espécie nunca passa por terminal", () => {
+  it("dinheiro não pode, espécie nunca passa por terminal", () => {
     expect(podeUsarTef("dinheiro")).toBe(false);
     expect(podeUsarTef(" Dinheiro ")).toBe(false);
   });
@@ -90,7 +90,7 @@ describe("podeUsarTef (quais métodos podem ser marcados como maquininha)", () =
   });
 });
 
-describe("processarPagamentoTef (stub — sem terminal integrado)", () => {
+describe("processarPagamentoTef (stub, sem terminal integrado)", () => {
   it("retorna status 'stub' sem contatar nenhum terminal", async () => {
     const resultado = await processarPagamentoTef({ metodo: "credito", valor: 30 }, { usuario: "maria", comanda: "5" });
 

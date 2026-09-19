@@ -59,7 +59,7 @@ describe("controlaEstoque", () => {
   });
 });
 
-describe("EstoqueModulo — produto que não controla estoque", () => {
+describe("EstoqueModulo, produto que não controla estoque", () => {
   it("cardápio não conta alerta no cabeçalho", () => {
     montar();
     // Dois itens na lista, mas só o café zerado é problema.
@@ -95,7 +95,7 @@ describe("EstoqueModulo — produto que não controla estoque", () => {
  * celular — no meio do serviço, ninguém procura o "ç" e o "í" — não achava
  * "Açaí" e concluía que o item não estava cadastrado.
  */
-describe("EstoqueModulo — busca", () => {
+describe("EstoqueModulo, busca", () => {
   const ACAI = { id: 3, name: "Açaí", unidade_estoque: "kg", codigo_barras: "PLP-01" };
 
   const buscar = (termo) =>
@@ -114,7 +114,7 @@ describe("EstoqueModulo — busca", () => {
   });
 });
 
-describe("EstoqueModulo — ordem alfabética dentro do mesmo grupo", () => {
+describe("EstoqueModulo, ordem alfabética dentro do mesmo grupo", () => {
   const AGUA  = { id: 6, name: "Água",  unidade_estoque: "un" };
   const ZEBRA = { id: 7, name: "Zebra", unidade_estoque: "un" };
 
@@ -132,7 +132,7 @@ describe("EstoqueModulo — ordem alfabética dentro do mesmo grupo", () => {
  * a contagem cria a linha na tabela. A revisão precisa dizer isso, porque
  * "Estoque atual 0 → Diferença +12" descrevia um saldo que nunca existiu.
  */
-describe("EstoqueModulo — contagem de produto que não controlava estoque", () => {
+describe("EstoqueModulo, contagem de produto que não controlava estoque", () => {
   async function contar(nome, valor) {
     fireEvent.click(screen.getByRole("button", { name: /Iniciar contagem/ }));
     fireEvent.change(screen.getByLabelText(`Quantidade contada de ${nome}`), { target: { value: valor } });
@@ -147,6 +147,7 @@ describe("EstoqueModulo — contagem de produto que não controlava estoque", ()
     const revisao = cartao("Feijoada");
     expect(revisao).toHaveTextContent("passa a controlar estoque");
     // O saldo anterior não é 0: não havia saldo.
+    // O travessão aqui é o marcador de "não havia saldo", não pontuação: fica.
     expect(revisao).toHaveTextContent("Estoque atual—");
     expect(revisao).toHaveTextContent("Contado12 un");
   });
@@ -191,7 +192,7 @@ describe("EstoqueModulo — contagem de produto que não controlava estoque", ()
  *   3. a lista se reordenava debaixo do dedo dele (alerta primeiro), então o
  *      campo que ele ia tocar mudava de lugar.
  */
-describe("EstoqueModulo — contagem não muda debaixo do operador", () => {
+describe("EstoqueModulo, contagem não muda debaixo do operador", () => {
   const ARROZ = { id: 5, name: "Arroz", unidade_estoque: "kg" };
 
   /** Outro aparelho mexeu no estoque: o provider re-renderiza com saldo novo. */

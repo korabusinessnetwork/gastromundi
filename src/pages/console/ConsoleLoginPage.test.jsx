@@ -37,7 +37,7 @@ const abrir = async () => {
 
 const entrar = () => screen.getByRole("button", { name: /Entrar|Verificando|Conectando/i });
 
-describe("ConsoleLoginPage — quem atravessa a porta", () => {
+describe("ConsoleLoginPage, quem atravessa a porta", () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -84,6 +84,29 @@ describe("ConsoleLoginPage — quem atravessa a porta", () => {
     await user.click(entrar());
 
     expect(login).toHaveBeenCalledWith("dono", "SenhaCerta#123");
+  });
+
+  // Os campos vivem num `<form>` de verdade: é o que faz o navegador e o
+  // gerenciador de senha reconhecerem a tela como login e oferecerem guardar
+  // a credencial. O Enter passa a vir da submissão implícita, e é isso que
+  // este teste protege de uma refatoração que troque o form por uma div.
+  it("Enter no campo de senha envia o formulário", async () => {
+    const login = vi.fn(() => Promise.resolve({ ok: true }));
+    setAppMock({ currentUser: null, login });
+    await abrir();
+
+    const user = userEvent.setup();
+    await user.type(screen.getByPlaceholderText("Digite seu usuário"), "dono");
+    await user.type(screen.getByPlaceholderText("Digite sua senha"), "SenhaCerta#123{Enter}");
+
+    expect(login).toHaveBeenCalledWith("dono", "SenhaCerta#123");
+  });
+
+  it("o campo de usuário já vem com o foco", async () => {
+    setAppMock({ currentUser: null, login: vi.fn() });
+    await abrir();
+
+    expect(document.activeElement).toBe(screen.getByPlaceholderText("Digite seu usuário"));
   });
 
   it("erro devolvido por login aparece na tela", async () => {

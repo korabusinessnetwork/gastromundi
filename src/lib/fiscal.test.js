@@ -37,7 +37,7 @@ beforeEach(() => {
   getSessionMock.mockResolvedValue({ data: { session: { access_token: "tok-123" } } });
 });
 
-describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
+describe("emitirDocumentoFiscal, fluxo NFC-e (Edge Function)", () => {
   it("mapeia 'sem_chave' quando faltam os segredos (certificado/CSC)", async () => {
     vi.stubGlobal("fetch", mockFetch(200, { status: "sem_chave", chave: "4326...", detalhe: "faltam segredos" }));
     const r = await emitirDocumentoFiscal(VENDA, { usuario: "maria" });
@@ -84,7 +84,7 @@ describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
     expect(corpo.vendaId).toBe("v1");
   });
 
-  it("vendaId é null quando a venda não tem id — sem quebrar a invariante", async () => {
+  it("vendaId é null quando a venda não tem id, sem quebrar a invariante", async () => {
     const fetchSpy = mockFetch(200, { status: "autorizada" });
     vi.stubGlobal("fetch", fetchSpy);
     const r = await emitirDocumentoFiscal({ ...VENDA, id: undefined });
@@ -93,7 +93,7 @@ describe("emitirDocumentoFiscal — fluxo NFC-e (Edge Function)", () => {
     expect(r.status).toBe("autorizada");
   });
 
-  it("nunca lança — falha de rede vira status 'erro'", async () => {
+  it("nunca lança, falha de rede vira status 'erro'", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("network down"))));
     await expect(emitirDocumentoFiscal(VENDA)).resolves.toMatchObject({ status: "erro" });
   });

@@ -11,7 +11,7 @@ describe("notaReaproveitavel", () => {
     expect(notaReaproveitavel({ status: "pendente", xml_tipo: "assinado" })).toBe(true);
   });
 
-  it("pendente SEM xml assinado é FANTASMA (falha_pos_reserva) — NÃO reaproveitável", () => {
+  it("pendente SEM xml assinado é FANTASMA (falha_pos_reserva), NÃO reaproveitável", () => {
     expect(notaReaproveitavel({ status: "pendente", xml_tipo: null })).toBe(false);
     expect(notaReaproveitavel({ status: "pendente" })).toBe(false);
   });

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { codigoUf, calcularDigitoVerificador, montarChaveAcesso } from "./nfce";
 
-describe("nfce — codigoUf", () => {
+describe("nfce, codigoUf", () => {
   it("resolve o RS (cliente-alvo) para 43", () => {
     expect(codigoUf("RS")).toBe("43");
   });
@@ -14,7 +14,7 @@ describe("nfce — codigoUf", () => {
   });
 });
 
-describe("nfce — calcularDigitoVerificador (módulo 11)", () => {
+describe("nfce, calcularDigitoVerificador (módulo 11)", () => {
   it("43 zeros → resto 0 → DV 0 (regra: resto ≤ 1 vira 0)", () => {
     expect(calcularDigitoVerificador("0".repeat(43))).toBe("0");
   });
@@ -33,7 +33,7 @@ describe("nfce — calcularDigitoVerificador (módulo 11)", () => {
   });
 });
 
-describe("nfce — montarChaveAcesso", () => {
+describe("nfce, montarChaveAcesso", () => {
   const base = {
     uf: "RS",
     dataEmissao: new Date("2026-07-13T10:00:00"),

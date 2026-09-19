@@ -211,7 +211,7 @@ export default function HistoricoPagamentosModal({ linha, confirmadoPor, onFecha
                         </label>
                         {!motivoValido && (
                           <p className="nem-erro-campo">
-                            Escreva o motivo — ele fica gravado no histórico.
+                            Escreva o motivo, ele fica gravado no histórico.
                           </p>
                         )}
                         <div className="hpm-confirma__acoes">

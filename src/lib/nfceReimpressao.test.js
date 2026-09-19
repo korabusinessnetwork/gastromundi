@@ -21,7 +21,7 @@ function registro(over = {}) {
   };
 }
 
-describe("nfceReimpressao — reabrir o cupom da nota guardada (Leva 9)", () => {
+describe("nfceReimpressao, reabrir o cupom da nota guardada (Leva 9)", () => {
   it("podeReimprimir: só autorizada com chave de 44 dígitos", () => {
     expect(podeReimprimir(registro())).toBe(true);
     expect(podeReimprimir(registro({ status: "pendente" }))).toBe(false);

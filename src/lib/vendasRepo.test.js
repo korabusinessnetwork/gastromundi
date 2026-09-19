@@ -88,10 +88,6 @@ describe("buscarVendaCompleta", () => {
       // 20261002 — a venda lida diz de onde veio; sem a marca, é balcão.
       origem: "pdv",
       // 20261009 — a venda lida diz se foi cancelada; a linha não some mais.
-      cancelada: false,
-      motivoCancelamento: null,
-      canceladaPor: null,
-      canceladaEm: null,
       at: "2026-08-23T18:00:00.000Z",
       items: [
         { id: 7, name: "X-Burger", price: 20, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },

@@ -25,7 +25,7 @@ beforeEach(() => {
   mockSupabase.current.reset();
 });
 
-describe("calcularStatusAssinatura (fronteiras de data — carência de 3 dias)", () => {
+describe("calcularStatusAssinatura (fronteiras de data, carência de 3 dias)", () => {
   const vencimento = "2026-07-20";
   const carenciaDias = 3;
 
@@ -176,7 +176,7 @@ describe("confirmarRenovacaoAssinatura", () => {
   });
 });
 
-describe("assinaturaPermiteOperacao (Fase 5 — espelha assinatura_ativa/assinatura_atual_ativa do Postgres)", () => {
+describe("assinaturaPermiteOperacao (Fase 5, espelha assinatura_ativa/assinatura_atual_ativa do Postgres)", () => {
   it("'ativo' permite operar", () => {
     expect(assinaturaPermiteOperacao("ativo")).toBe(true);
   });
@@ -220,7 +220,7 @@ describe("assinaturaPermiteOperacao (Fase 5 — espelha assinatura_ativa/assinat
  * 20260719_assinaturas.sql), que é quem de fato bloqueia via RLS:
  *   hoje <= vencimento → ativo · hoje <= vencimento + carência → carência.
  */
-describe("calcularStatusAssinatura com `hoje` real (Date) — sem deslocar o dia", () => {
+describe("calcularStatusAssinatura com `hoje` real (Date), sem deslocar o dia", () => {
   const vencimento = "2026-08-15";
   const carenciaDias = 3;
 
@@ -366,7 +366,7 @@ describe("resumirPagamentos", () => {
     expect(linhas.map((l) => l.id)).toEqual(["novo", "velho"]);
   });
 
-  it("soma em centavos inteiros — três de 0,10 dão 30, não 30,000000000000004", () => {
+  it("soma em centavos inteiros, três de 0,10 dão 30, não 30,000000000000004", () => {
     // O motivo de o total não ser somado em reais: `valor` é numeric e chega
     // como float. 0.1+0.1+0.1 === 0.30000000000000004 em JS.
     const { totalCentavos } = resumirPagamentos([
@@ -455,7 +455,7 @@ describe("resumirPlanoDoTenant (a frase que o dono do restaurante lê)", () => {
     ...extra,
   });
 
-  it("sem assinatura devolve null — a tela mostra o texto de 'ainda não cadastrada'", () => {
+  it("sem assinatura devolve null, a tela mostra o texto de 'ainda não cadastrada'", () => {
     expect(resumirPlanoDoTenant(null)).toBeNull();
     expect(resumirPlanoDoTenant({ carenciaDias: 3, valorMensal: 300 })).toBeNull();
   });

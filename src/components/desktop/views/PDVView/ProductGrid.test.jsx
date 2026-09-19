@@ -19,7 +19,7 @@ import ProductGrid from "./ProductGrid";
 
 const PRODUTO = { id: 1, name: "Café", price: 5, category: "Bebidas" };
 
-describe("ProductGrid — catálogo vazio (estabelecimento novo)", () => {
+describe("ProductGrid, catálogo vazio (estabelecimento novo)", () => {
   it("explica o vazio e aponta onde cadastrar", () => {
     render(<ProductGrid products={[]} onAdd={vi.fn()} />);
 
@@ -35,7 +35,7 @@ describe("ProductGrid — catálogo vazio (estabelecimento novo)", () => {
   });
 });
 
-describe("ProductGrid — categoria vazia (catálogo com itens)", () => {
+describe("ProductGrid, categoria vazia (catálogo com itens)", () => {
   it("mantém a mensagem de filtro e a barra de categorias", () => {
     // Com produto cadastrado a barra existe e nenhuma categoria fica vazia
     // por padrão — o que importa aqui é que o texto de catálogo vazio NÃO

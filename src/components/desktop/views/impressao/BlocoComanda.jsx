@@ -28,9 +28,9 @@ const ALINHAMENTOS = [
 ];
 
 const OPCOES_ITENS = [
-  { chave: "unitario", rotulo: "Preço de cada unidade", ajuda: "Só na impressão pelo navegador — na térmica sai só o total do item." },
+  { chave: "unitario", rotulo: "Preço de cada unidade", ajuda: "Só na impressão pelo navegador, na térmica sai só o total do item." },
   { chave: "observacoes", rotulo: "Observações do pedido", ajuda: "“sem cebola”, “ponto da carne”." },
-  { chave: "escolhas", rotulo: "O que veio no combo", ajuda: "Lista embaixo do item o que o cliente escolheu — “2x Cheddar”, “1x Coca”." },
+  { chave: "escolhas", rotulo: "O que veio no combo", ajuda: "Lista embaixo do item o que o cliente escolheu: “2x Cheddar”, “1x Coca”." },
   { chave: "emoji", rotulo: "Emoji do produto", ajuda: "Impressora térmica não imprime emoji; no navegador, sim." },
 ];
 
@@ -39,7 +39,7 @@ const OPCOES_ITENS = [
 function resumoDoBloco(bloco, meta) {
   if (meta.props.includes("texto")) {
     const texto = String(bloco.texto ?? "").trim();
-    return texto ? texto.replace(/\n/g, " · ") : "Em branco — não sai no papel";
+    return texto ? texto.replace(/\n/g, " · ") : "Em branco, não sai no papel";
   }
   if (bloco.tipo === "espaco") return bloco.opcoes?.linhas > 1 ? `${bloco.opcoes.linhas} linhas` : "1 linha";
   return "";
@@ -135,7 +135,7 @@ export default function BlocoComanda({
             role="switch"
             aria-checked={visivel}
             aria-label={`Imprimir ${meta.rotulo}`}
-            title={visivel ? "Sai impresso — clique para esconder" : "Não sai impresso — clique para mostrar"}
+            title={visivel ? "Sai impresso, clique para esconder" : "Não sai impresso, clique para mostrar"}
             onClick={() => onAlterar({ visivel: !visivel })}
             className="bloco-comanda__botao"
           >
@@ -221,7 +221,7 @@ export default function BlocoComanda({
                 <span className="bloco-comanda__unidade">px</span>
               </div>
               <span className="bloco-comanda__ajuda">
-                De {MIN_TAMANHO_PX} a {MAX_TAMANHO_PX}. Vale na impressão pelo navegador — a
+                De {MIN_TAMANHO_PX} a {MAX_TAMANHO_PX}. Vale na impressão pelo navegador. A
                 impressora térmica imprime na fonte dela, sempre do mesmo tamanho.
               </span>
             </div>

@@ -437,7 +437,7 @@ export default function CheckoutEntrega({
               {nascimentoRuim ? (
                 <p className="linha-sacola__extra checkout-entrega__erro" role="alert">
                   Confira a data: dia de 1 a 31 e ano entre 1900 e {anoMax}. Se
-                  preferir, deixe os três campos em branco — é opcional.
+                  preferir, deixe os três campos em branco, é opcional.
                 </p>
               ) : (
                 <p className="linha-sacola__extra checkout-entrega__ajuda">
@@ -591,7 +591,7 @@ export default function CheckoutEntrega({
                   <span>
                     Este estabelecimento ainda não configurou as áreas de entrega
                     {permiteRetirada
-                      ? " — por enquanto dá para retirar no local."
+                      ? " , por enquanto dá para retirar no local."
                       : ". Fale com ele para combinar a entrega."}
                   </span>
                   {permiteRetirada && (
@@ -612,7 +612,7 @@ export default function CheckoutEntrega({
               {!calculandoTaxa && semCoordenada && (
                 <div className="vitrine__aviso vitrine__aviso--erro">
                   Não consegui localizar esse endereço no mapa. Confira a cidade e o
-                  bairro — com os dois preenchidos eu consigo calcular a entrega mesmo
+                  bairro: com os dois preenchidos eu consigo calcular a entrega mesmo
                   que a rua esteja com algum erro de digitação.
                 </div>
               )}

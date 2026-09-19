@@ -96,7 +96,7 @@ describe("os dois lados do produto falam a mesma língua", () => {
   // PDV (grupos_escolha) e delivery (grupos_complemento) são tabelas
   // diferentes com telas diferentes; o que o dono lê não pode divergir.
   it("máximo 0 nunca vira 'até 0' nem 'escolha 0' em nenhuma das telas", () => {
-    expect(instrucaoGrupo(0, 0)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo(0, 0)).toBe("Opcional, escolha quantas quiser");
     expect(instrucaoGrupo(2, 0)).toBe("Escolha ao menos 2");
     expect(rotuloRegraGrupo({ min: 0, max: 0 })).toBe("Opcional");
     expect(rotuloRegraGrupo({ min: 2, max: 0, itens: [{}, {}, {}] })).toBe("Escolha ao menos 2");

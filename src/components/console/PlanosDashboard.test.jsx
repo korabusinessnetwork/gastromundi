@@ -103,7 +103,7 @@ const BASE = {
   assinaturas: [ass("t-pago", 300), ass("t-zero", 0)],
 };
 
-describe("PlanosDashboard — coluna Mensalidade", () => {
+describe("PlanosDashboard, coluna Mensalidade", () => {
   beforeEach(() => {
     mockDefinir.mockReset();
     mockDefinir.mockResolvedValue({ data: { valor_mensal: 250 }, error: null });
@@ -173,7 +173,7 @@ describe("PlanosDashboard — coluna Mensalidade", () => {
   });
 });
 
-describe("PlanosDashboard — coluna Pagamento", () => {
+describe("PlanosDashboard, coluna Pagamento", () => {
   beforeEach(() => {
     mockRenovar.mockReset();
     mockRenovar.mockResolvedValue({
@@ -283,7 +283,7 @@ describe("PlanosDashboard — coluna Pagamento", () => {
   });
 });
 
-describe("PlanosDashboard — ver os pagamentos já lançados", () => {
+describe("PlanosDashboard, ver os pagamentos já lançados", () => {
   beforeEach(() => {
     mockListarPagamentos.mockReset();
     mockListarPagamentos.mockResolvedValue({ data: [], error: null });
@@ -326,7 +326,7 @@ describe("PlanosDashboard — ver os pagamentos já lançados", () => {
   });
 });
 
-describe("PlanosDashboard — a nota que explica a receita mensal", () => {
+describe("PlanosDashboard, a nota que explica a receita mensal", () => {
   it("no singular, com quem está sem preço", () => {
     montar(BASE);
     const nota = screen.getByText(/1 estabelecimento ativo está sem mensalidade definida/);

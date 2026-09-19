@@ -421,14 +421,14 @@ export function mensagemPedidoAceito(pedido, loja = {}, itens = []) {
   }
 
   linhas.push("");
-  linhas.push(`Total: ${formatarReais(pedido?.total)} — ${formatarFormaPagamento(pedido?.forma_pagamento)}`);
+  linhas.push(`Total: ${formatarReais(pedido?.total)}, ${formatarFormaPagamento(pedido?.forma_pagamento)}`);
   if (pedido?.forma_pagamento === "dinheiro" && Number(pedido?.troco_para) > 0) {
     linhas.push(`Levamos troco para ${formatarReais(pedido.troco_para)}.`);
   }
 
   if (retirada) {
     linhas.push("");
-    linhas.push("É retirada no local — avisamos assim que estiver pronto.");
+    linhas.push("É retirada no local, avisamos assim que estiver pronto.");
   } else {
     // O endereço volta escrito para o cliente CONFERIR. Entrega errada
     // quase nunca é o entregador que se perdeu: é o número que saiu torto

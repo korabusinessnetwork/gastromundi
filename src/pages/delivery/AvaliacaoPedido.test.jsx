@@ -94,7 +94,7 @@ describe("AvaliacaoPedido", () => {
 
   it("as estrelas dizem o que significam para quem usa leitor de tela", () => {
     montar();
-    expect(screen.getByRole("button", { name: /1 estrela — Ruim/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /5 estrelas — Ótimo/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /1 estrela, Ruim/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /5 estrelas, Ótimo/ })).toBeInTheDocument();
   });
 });

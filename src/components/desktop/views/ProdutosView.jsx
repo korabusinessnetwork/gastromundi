@@ -16,8 +16,13 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import CombosView from "./CombosView";
 import EditorGruposEscolha from "./EditorGruposEscolha";
 import { carregarGruposDoProduto, salvarGrupos } from "@/lib/gruposEscolha";
+import { novoUid } from "@/lib/uidLista";
 import "./ProdutosView.css";
 
+// TD015: a lista de fornecedores é editada linha a linha e removida do meio, e o
+// cartão em edição é apontado por posição (`editingCompra === idx`). Por isso cada
+// linha nasce com `uid`, que existe só no state: o save monta `unidades_compra`
+// campo a campo, então ele não chega ao banco.
 const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
 
 const EMPTY_FORM = {
@@ -218,7 +223,7 @@ export default function ProdutosView() {
     const { error } = await salvarCatExtra(catExtra.map(c => c === nomeAntigo ? novoNome : c));
     if (error) {
       setCatOpLoading(false);
-      setCatErro(`Não deu para renomear "${nomeAntigo}". Nada foi alterado — tente de novo.`);
+      setCatErro(`Não deu para renomear "${nomeAntigo}". Nada foi alterado, tente de novo.`);
       return;
     }
     const resultados = await Promise.all(products.filter(p => p.category === nomeAntigo).map(p => updateProduct(p.id, { category: novoNome })));
@@ -239,7 +244,7 @@ export default function ProdutosView() {
     const { error } = await salvarCatExtra(catExtra.filter(c => c !== nome));
     if (error) {
       setCatOpLoading(false);
-      setCatErro(`Não deu para excluir "${nome}". Nada foi alterado — tente de novo.`);
+      setCatErro(`Não deu para excluir "${nome}". Nada foi alterado, tente de novo.`);
       return;
     }
     // Produtos dentro da categoria não são excluídos: caem no balde "Sem
@@ -309,6 +314,7 @@ export default function ProdutosView() {
     let compras = [];
     if (Array.isArray(p.unidades_compra) && p.unidades_compra.length > 0) {
       compras = p.unidades_compra.map(u => ({
+        uid:     novoUid(),
         nome:    u.nome ?? "",
         unidade: u.unidade ?? "",
         fator:   u.fator != null ? String(u.fator) : "",
@@ -352,7 +358,7 @@ export default function ProdutosView() {
     const n = f.compras.length + 1;
     const nome = f.compras.filter(c => c.nome.startsWith("Fornecedor")).length > 0
       ? `Fornecedor ${n}` : "Fornecedor";
-    return { ...f, compras: [...f.compras, { ...EMPTY_COMPRA, nome }] };
+    return { ...f, compras: [...f.compras, { ...EMPTY_COMPRA, uid: novoUid(), nome }] };
   });
 
   const setCompra = (idx, k, v) => setForm(f => ({
@@ -581,6 +587,7 @@ export default function ProdutosView() {
             <thead>
               <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
                 {["", "Nome", "Categoria", "Unidade", "Preço", "Situação", ""].map((h, i) => (
+                  // TD015: cabeçalho literal da tabela de produtos, não vem de dado.
                   <th key={i} className="produtos-view__th" style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>
                 ))}
               </tr>
@@ -625,7 +632,7 @@ export default function ProdutosView() {
                         disabled={!isAdmin || alternandoId != null}
                         onClick={() => alternarVenda(p)}
                         title={vendendo
-                          ? "Está sendo vendido no PDV. Clique para desabilitar — o cadastro continua salvo."
+                          ? "Está sendo vendido no PDV. Clique para desabilitar, o cadastro continua salvo."
                           : "Não aparece no PDV. Clique para voltar a vender."}
                         className={`produtos-view__disp produtos-view__disp--${vendendo ? "on" : "off"}`}
                       >
@@ -769,7 +776,7 @@ export default function ProdutosView() {
                   const fator = parseFloat(c.fator) || 0;
                   const isEditing = editingCompra === idx;
                   return (
-                    <div key={idx} className="produtos-view__fornecedor-card" style={{ borderColor: alfa(C.blue, "33") }}>
+                    <div key={c.uid ?? idx} className="produtos-view__fornecedor-card" style={{ borderColor: alfa(C.blue, "33") }}>
                       {/* Cabeçalho com nome do fornecedor */}
                       <div className="produtos-view__fornecedor-cabecalho">
                         {isEditing ? (

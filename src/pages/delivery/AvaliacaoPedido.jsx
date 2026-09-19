@@ -68,7 +68,7 @@ export default function AvaliacaoPedido({ slug }) {
             key={n}
             type="button"
             onClick={() => setNota(n)}
-            aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"} — ${ROTULOS[n]}`}
+            aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}, ${ROTULOS[n]}`}
             aria-pressed={nota === n}
             className={`avaliacao__estrela${n <= nota ? " avaliacao__estrela--cheia" : ""}`}
           >

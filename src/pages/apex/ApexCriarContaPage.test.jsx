@@ -93,7 +93,7 @@ describe("ApexCriarContaPage", () => {
     expect(enviado.plano.total).toBeGreaterThan(0);
   });
 
-  it("aceita quem ainda não sabe o plano — decidir depois é uma resposta", async () => {
+  it("aceita quem ainda não sabe o plano, decidir depois é uma resposta", async () => {
     const user = userEvent.setup();
     renderizar();
 
@@ -151,7 +151,7 @@ describe("ApexCriarContaPage", () => {
     expect(screen.getByLabelText(/seu nome/i)).toHaveValue("Maria Silva");
   });
 
-  it("a confirmação diz o que REALMENTE acontece — não que a pessoa já entrou", async () => {
+  it("a confirmação diz o que REALMENTE acontece, não que a pessoa já entrou", async () => {
     const user = userEvent.setup();
     renderizar();
 
@@ -164,7 +164,7 @@ describe("ApexCriarContaPage", () => {
     expect(document.body.textContent).not.toMatch(/sua conta está pronta/i);
   });
 
-  it("não pede senha em lugar nenhum — a credencial nasce no provisionamento", () => {
+  it("não pede senha em lugar nenhum, a credencial nasce no provisionamento", () => {
     renderizar();
     expect(document.querySelector('input[type="password"]')).toBeNull();
     expect(document.body.textContent).not.toMatch(/escolha uma senha/i);

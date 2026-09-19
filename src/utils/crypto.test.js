@@ -46,7 +46,7 @@ describe("sanitizeInput", () => {
     expect(sanitizeInput("abcdefghij", 3)).toBe("abc");
   });
 
-  it("não lança com null/undefined — devolve string vazia", () => {
+  it("não lança com null/undefined, devolve string vazia", () => {
     expect(sanitizeInput(null)).toBe("");
     expect(sanitizeInput(undefined)).toBe("");
   });

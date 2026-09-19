@@ -141,7 +141,7 @@ describe("contaEmAberto", () => {
   });
 });
 
-describe("criarLancamento — validação de entrada", () => {
+describe("criarLancamento, validação de entrada", () => {
   // O mock de ./supabase é `{}`: qualquer lançamento que PASSE da validação
   // estoura em `supabase.from is not a function`. Isso é de propósito — se
   // alguma guarda for removida, o teste falha de qualquer jeito.
@@ -155,7 +155,7 @@ describe("criarLancamento — validação de entrada", () => {
     }
   });
 
-  it("recusa tipo fora de receita/despesa — dinheiro que não entra em card nenhum", async () => {
+  it("recusa tipo fora de receita/despesa, dinheiro que não entra em card nenhum", async () => {
     // calcularFluxoCaixa soma por tipo. Um lançamento com tipo "transferencia"
     // é gravado, aparece na lista e não é contado nem como entrada nem como
     // saída: o valor fica órfão. Barrar na criação é o único jeito.
@@ -223,7 +223,7 @@ describe("marcarVencidos", () => {
     expect(marcarVencidos(lancamentos, hoje)).toEqual([]);
   });
 
-  it("não marca a conta que vence hoje quando 'hoje' é um Date com hora do dia (regressão de fuso — produção usa new Date())", () => {
+  it("não marca a conta que vence hoje quando 'hoje' é um Date com hora do dia (regressão de fuso, produção usa new Date())", () => {
     // Produção chama processarVencidos sem hoje → new Date() = agora local COM hora.
     // Antes, new Date("2026-07-15") (meia-noite UTC) era < esse Date da tarde,
     // marcando a conta de hoje como vencida no próprio dia. Compara-se por data.

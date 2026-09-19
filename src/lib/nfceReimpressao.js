@@ -75,11 +75,11 @@ export function descreverEstadoReimpressao(registro) {
   if (!registro) return "Esta venda ainda não tem NFC-e emitida.";
   switch (registro.status) {
     case "autorizada":
-      return "NFC-e autorizada — pronta para reimprimir.";
+      return "NFC-e autorizada, pronta para reimprimir.";
     case "pendente":
       return "NFC-e na fila de contingência, aguardando autorização da SEFAZ.";
     case "rejeitada":
-      return "NFC-e rejeitada pela SEFAZ — não há cupom válido para reimprimir.";
+      return "NFC-e rejeitada pela SEFAZ, não há cupom válido para reimprimir.";
     case "cancelada":
       return "NFC-e cancelada.";
     default:

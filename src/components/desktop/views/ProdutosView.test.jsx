@@ -52,7 +52,7 @@ beforeEach(() => {
   configuracao();
 });
 
-describe("ProdutosView — categorias com leitura falha", () => {
+describe("ProdutosView, categorias com leitura falha", () => {
   it("avisa e trava a edição quando não deu para ler as categorias", async () => {
     const user = userEvent.setup();
     configuracao({ erroLeitura: { message: "permission denied", code: "42501" } });
@@ -76,7 +76,7 @@ describe("ProdutosView — categorias com leitura falha", () => {
   });
 });
 
-describe("ProdutosView — criar categoria", () => {
+describe("ProdutosView, criar categoria", () => {
   it("gravação recusada desfaz a categoria e avisa", async () => {
     const user = userEvent.setup();
     configuracao({ erroGravacao: { message: "rls" } });
@@ -106,7 +106,7 @@ describe("ProdutosView — criar categoria", () => {
   });
 });
 
-describe("ProdutosView — excluir categoria", () => {
+describe("ProdutosView, excluir categoria", () => {
   async function abrirConfirmacaoDeExcluir(user) {
     await abrirCategorias(user);
     const lista = document.querySelector(".produtos-view__cat-lista");
@@ -154,7 +154,7 @@ describe("ProdutosView — excluir categoria", () => {
   });
 });
 
-describe("ProdutosView — renomear categoria", () => {
+describe("ProdutosView, renomear categoria", () => {
   async function abrirEdicao(user) {
     await abrirCategorias(user);
     const lista = document.querySelector(".produtos-view__cat-lista");

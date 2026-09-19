@@ -111,7 +111,7 @@ export default function BotaoFeedback({ usuario }) {
               <>
                 <p className="feedback__ajuda">
                   Conte o problema ou a ideia com suas palavras. Vai junto que você
-                  estava em <strong>{tela}</strong> — não precisa explicar isso.
+                  estava em <strong>{tela}</strong> , não precisa explicar isso.
                 </p>
                 <textarea
                   autoFocus

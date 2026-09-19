@@ -69,7 +69,7 @@ describe("planejarImportacaoProdutos (idempotência por nome no tenant)", () => 
 });
 
 describe("paraPayloadProduto", () => {
-  it("mapeia pro shape da tabela products — sem tenant_id (vem do JWT)", () => {
+  it("mapeia pro shape da tabela products, sem tenant_id (vem do JWT)", () => {
     expect(paraPayloadProduto(itemPlanilha())).toEqual({
       name: "X-Salada",
       price: 24.9,

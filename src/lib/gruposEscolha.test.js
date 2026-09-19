@@ -462,19 +462,19 @@ describe("instrucaoGrupo", () => {
     expect(instrucaoGrupo(1, 1)).toBe("Escolha 1");
     expect(instrucaoGrupo(2, 2)).toBe("Escolha 2");
     expect(instrucaoGrupo(1, 3)).toBe("Escolha de 1 a 3");
-    expect(instrucaoGrupo(0, 1)).toBe("Opcional — escolha 1 se quiser");
-    expect(instrucaoGrupo(0, 3)).toBe("Opcional — até 3");
+    expect(instrucaoGrupo(0, 1)).toBe("Opcional, escolha 1 se quiser");
+    expect(instrucaoGrupo(0, 3)).toBe("Opcional, até 3");
   });
 
   it("máximo 0 é sem limite, e não 'escolha 0'", () => {
-    expect(instrucaoGrupo(0, 0)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo(0, 0)).toBe("Opcional, escolha quantas quiser");
     expect(instrucaoGrupo(2, 0)).toBe("Escolha ao menos 2");
   });
 
   it("valor sujo não vira texto quebrado", () => {
-    expect(instrucaoGrupo(undefined, undefined)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo(undefined, undefined)).toBe("Opcional, escolha quantas quiser");
     expect(instrucaoGrupo("1", "3")).toBe("Escolha de 1 a 3");
-    expect(instrucaoGrupo(-2, -5)).toBe("Opcional — escolha quantas quiser");
+    expect(instrucaoGrupo(-2, -5)).toBe("Opcional, escolha quantas quiser");
   });
 });
 

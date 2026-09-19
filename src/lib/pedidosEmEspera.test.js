@@ -82,7 +82,7 @@ describe("adicionarEspera", () => {
     expect(original[0].items[0].qty).toBe(1);
   });
 
-  it("P9 — items malformado (não-array) não quebra, entra/funde como lista vazia", () => {
+  it("P9, items malformado (não-array) não quebra, entra/funde como lista vazia", () => {
     const espera = criarEspera({ comanda: "1", items: [item("a", 10)] });
     espera.items = "não é array"; // ex.: dado corrompido vindo do localStorage
     expect(() => adicionarEspera([], espera)).not.toThrow();

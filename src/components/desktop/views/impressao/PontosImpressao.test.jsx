@@ -49,7 +49,7 @@ async function renderizarPronto() {
   await waitFor(() => expect(screen.queryByText("Carregando…")).not.toBeInTheDocument());
 }
 
-describe("PontosImpressao — aviso de ponto ainda não salvo", () => {
+describe("PontosImpressao, aviso de ponto ainda não salvo", () => {
   it("não avisa quando todos os pontos exibidos já estão salvos", async () => {
     configNoBanco = { pontosImpressao: DOIS_PONTOS_SALVOS };
     await renderizarPronto();
@@ -112,7 +112,7 @@ describe("PontosImpressao — aviso de ponto ainda não salvo", () => {
   });
 });
 
-describe("PontosImpressao — Ponte fechada x Ponte com erro", () => {
+describe("PontosImpressao, Ponte fechada x Ponte com erro", () => {
   it("Ponte fechada mostra a orientação de abrir o KoraPonte.exe", async () => {
     // `erroAmigavelPonte` (src/lib/ponte.js) já traduziu o erro de rede para
     // português e marcou `foraDoAr`. A tela tem que ramificar por essa marca:

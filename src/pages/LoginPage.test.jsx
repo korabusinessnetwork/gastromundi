@@ -50,7 +50,7 @@ const digitar = (rotulo, valor) => {
   fireEvent.change(screen.getByPlaceholderText(rotulo), { target: { value: valor } });
 };
 
-describe("LoginPage — pips de tentativa (Run 5, leva 8)", () => {
+describe("LoginPage, pips de tentativa (Run 5, leva 8)", () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.sessionStorage.clear();
@@ -75,7 +75,7 @@ describe("LoginPage — pips de tentativa (Run 5, leva 8)", () => {
     expect(pipsAcesos()).toBe(4);
   });
 
-  it("cada usuário tem os seus pips — trocar o nome troca a contagem", async () => {
+  it("cada usuário tem os seus pips, trocar o nome troca a contagem", async () => {
     setAttempts("maria", { count: 3, lockedUntil: null });
     await abrir();
 
@@ -106,7 +106,7 @@ describe("LoginPage — pips de tentativa (Run 5, leva 8)", () => {
     expect(screen.getByText(/senha incorretos/i)).toBeInTheDocument();
   });
 
-  it("erro que não gasta tentativa não acende pip — o link torto não é chute de senha", async () => {
+  it("erro que não gasta tentativa não acende pip, o link torto não é chute de senha", async () => {
     // Guarda da leva 7: endereço de acesso inválido nem chega à senha, então
     // não consome tentativa e não pode acender pip.
     const login = vi.fn(async () => ({ error: "Endereço de acesso inválido. Confira o link do estabelecimento." }));
@@ -148,7 +148,7 @@ describe("LoginPage — pips de tentativa (Run 5, leva 8)", () => {
 // abre ANTES de existir tenant carregado. Enquanto o fallback do sistema era
 // a marca de um cliente específico, todo mundo lia o nome de outra empresa na
 // própria porta de entrada (decisão 017).
-describe("LoginPage — marca da porta de entrada (Run 5, leva 11)", () => {
+describe("LoginPage, marca da porta de entrada (Run 5, leva 11)", () => {
   const titulo    = () => document.querySelector(".login-page__brand-title").textContent;
   const subtitulo = () => document.querySelector(".login-page__brand-subtitle").textContent;
 
@@ -162,7 +162,7 @@ describe("LoginPage — marca da porta de entrada (Run 5, leva 11)", () => {
     setAppMock({ currentUser: null, login: vi.fn(() => Promise.resolve({ ok: true })) });
   });
 
-  it("sem estabelecimento resolvido, mostra a marca da PLATAFORMA — nunca a de outro cliente", async () => {
+  it("sem estabelecimento resolvido, mostra a marca da PLATAFORMA, nunca a de outro cliente", async () => {
     await abrir();
 
     expect(titulo()).toBe("KORA");
@@ -202,7 +202,7 @@ describe("LoginPage — marca da porta de entrada (Run 5, leva 11)", () => {
 // Com o Console em endereço próprio, essa sessão é recusada. A recusa era
 // SILENCIOSA: quem digitava a senha certa via o botão voltar de "Verificando..."
 // para "Entrar" e mais nada — sem erro, sem tentativa gasta, sem pista.
-describe("LoginPage — conta da plataforma na porta do estabelecimento (Run 5, leva 11)", () => {
+describe("LoginPage, conta da plataforma na porta do estabelecimento (Run 5, leva 11)", () => {
   const PLATAFORMA = { id: 99, name: "Dono da Plataforma", username: "dono", role: "plataforma", permissions: {} };
 
   // `setAppMock` não dispara re-render, então não dá para simular a TRANSIÇÃO

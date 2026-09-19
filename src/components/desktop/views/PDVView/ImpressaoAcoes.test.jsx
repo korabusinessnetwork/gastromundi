@@ -29,7 +29,7 @@ beforeEach(() => {
   setAppMock({ tenant: { id: "t1", tema: {} } });
 });
 
-describe("ImpressaoAcoes — F015 (1 clique, estados visíveis)", () => {
+describe("ImpressaoAcoes, F015 (1 clique, estados visíveis)", () => {
   it("mostra os dois templates sempre visíveis (nada escondido)", () => {
     render(<ImpressaoAcoes montarVenda={() => ({})} />);
 

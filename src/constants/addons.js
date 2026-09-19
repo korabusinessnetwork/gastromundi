@@ -27,7 +27,7 @@ export const AVISOS_ADDON = {
   [ADDONS.NFE]:
     "A emissão só sai de verdade depois que o certificado A1 e o CSC deste " +
     "estabelecimento estiverem no servidor. Até lá, toda venda volta sem nota " +
-    "emitida — a venda em si não é afetada.",
+    "emitida, a venda em si não é afetada.",
   [ADDONS.TEF]:
     "Nenhuma maquininha está integrada ainda: o PDV apenas simula a aprovação " +
     "do cartão. E, com o add-on ligado, o PDV passa a bloquear cartão quando o " +

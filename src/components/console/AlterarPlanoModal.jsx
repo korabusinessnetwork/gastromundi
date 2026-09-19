@@ -191,7 +191,7 @@ export default function AlterarPlanoModal({ tenant, planos, onFechar, onAlterado
 
           {comparacao && perdidos.length === 0 && ganhos.length === 0 && (
             <p className="apm-igual" role="status">
-              Os dois planos liberam exatamente os mesmos módulos — muda só a
+              Os dois planos liberam exatamente os mesmos módulos, muda só a
               cobrança.
             </p>
           )}
@@ -203,7 +203,7 @@ export default function AlterarPlanoModal({ tenant, planos, onFechar, onAlterado
                 Não foi possível comparar os planos.
               </p>
               <p className="apm-perda__consequencia">
-                Não sabemos o que este estabelecimento perde na troca — pode
+                Não sabemos o que este estabelecimento perde na troca, pode
                 perder o site de pedidos, o financeiro ou os relatórios sem
                 aviso.
               </p>

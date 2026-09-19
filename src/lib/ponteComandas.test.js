@@ -90,7 +90,7 @@ describe("pedidoJaGravado", () => {
 });
 
 describe("resumirComandasAbertas", () => {
-  it("leva só nome, mesa e apelido — nada de itens, total ou cliente", () => {
+  it("leva só nome, mesa e apelido, nada de itens, total ou cliente", () => {
     const r = resumirComandasAbertas([
       { id: "c1", comanda: "5", mesa: "3", apelido: "João", status: "open", items: [item("Coca")], total: 10, cliente_id: "x" },
     ]);

@@ -251,9 +251,9 @@ export function instrucaoGrupo(min, max) {
     if (teto === piso) return `Escolha ${piso}`;
     return `Escolha de ${piso} a ${teto}`;
   }
-  if (teto === 0) return "Opcional — escolha quantas quiser";
-  if (teto === 1) return "Opcional — escolha 1 se quiser";
-  return `Opcional — até ${teto}`;
+  if (teto === 0) return "Opcional, escolha quantas quiser";
+  if (teto === 1) return "Opcional, escolha 1 se quiser";
+  return `Opcional, até ${teto}`;
 }
 
 /**
@@ -306,7 +306,7 @@ export const MODELOS_GRUPO = [
   {
     id: "extras",
     titulo: "Extras",
-    exemplo: "Bacon, cheddar, ovo — cada um soma",
+    exemplo: "Bacon, cheddar, ovo: cada um soma",
     campos: { minimo: 0, maximo: 0, regraPreco: "soma" },
   },
   {

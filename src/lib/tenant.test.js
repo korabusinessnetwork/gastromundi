@@ -254,7 +254,7 @@ describe("addonHabilitado (fonte única de gating de add-on no front)", () => {
     expect(addonHabilitado(["nfe"], "nfe")).toBe(true);
   });
 
-  it("false quando o add-on não está na lista (caso padrão — nenhum add-on ativo)", () => {
+  it("false quando o add-on não está na lista (caso padrão, nenhum add-on ativo)", () => {
     expect(addonHabilitado([], "nfe")).toBe(false);
     expect(addonHabilitado(["tef"], "nfe")).toBe(false);
   });
@@ -264,7 +264,7 @@ describe("addonHabilitado (fonte única de gating de add-on no front)", () => {
     expect(addonHabilitado(null, "tef")).toBe(false);
   });
 
-  it("add-on não depende de plano — não existe checagem de tier aqui", () => {
+  it("add-on não depende de plano, não existe checagem de tier aqui", () => {
     // mesma função serve pra qualquer tenant, independente do plano_codigo
     expect(addonHabilitado(["nfe", "tef"], "tef")).toBe(true);
   });

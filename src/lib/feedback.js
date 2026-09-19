@@ -29,7 +29,7 @@ export const LIMITE_TEXTO = 2000;
 export function validarFeedbackEquipe(texto) {
   const t = String(texto ?? "").trim();
   if (!t) return { valido: false, erro: "Escreva o que aconteceu." };
-  if (t.length < 5) return { valido: false, erro: "Conte um pouco mais — assim não dá para entender." };
+  if (t.length < 5) return { valido: false, erro: "Conte um pouco mais, assim não dá para entender." };
   return { valido: true, erro: null };
 }
 

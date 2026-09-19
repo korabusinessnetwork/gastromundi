@@ -147,7 +147,7 @@ afterEach(() => {
   expect(window.navigator.onLine).toBe(true);
 });
 
-describe("AppContext — gating de módulo por plano (Run 5, leva 10)", () => {
+describe("AppContext, gating de módulo por plano (Run 5, leva 10)", () => {
   it("plano carregado: libera o que está no plano e recusa o que não está", async () => {
     const app = await montar();
 
@@ -160,7 +160,7 @@ describe("AppContext — gating de módulo por plano (Run 5, leva 10)", () => {
     expect(app.current.moduloHabilitado("delivery")).toBe(false);
   });
 
-  it("plano com lista VAZIA recusa tudo — plano sem módulo não é plano desconhecido", async () => {
+  it("plano com lista VAZIA recusa tudo, plano sem módulo não é plano desconhecido", async () => {
     // Discriminação que importa: a correção olha se o tenant CARREGOU, não se a
     // lista tem itens. Trocar por "lista vazia também libera" daria o plano
     // inteiro de graça a um tenant recém-provisionado, sem plano montado ainda.
@@ -212,7 +212,7 @@ describe("AppContext — gating de módulo por plano (Run 5, leva 10)", () => {
     expect(app.current.moduloHabilitado("estoque")).toBe(true);
   });
 
-  it("add-on pago continua fechado sem tenant — NF-e não se libera por engano", async () => {
+  it("add-on pago continua fechado sem tenant, NF-e não se libera por engano", async () => {
     // Assimetria deliberada: módulo é tela (liberar por engano só mostra tela),
     // add-on é documento fiscal e transação no servidor. Sem saber, não emite.
     mockBootstrapTenant.mockResolvedValue({ data: null, error: ERRO_REDE });

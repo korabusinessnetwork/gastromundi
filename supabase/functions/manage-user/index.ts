@@ -26,12 +26,20 @@ import {
   normalizarUsername,
 } from "../_shared/validacaoProvisionamento.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
+
+// Origem declarada em vez de curinga, ver _shared/cors.ts. Sem a
+// variável configurada o comportamento segue sendo "*", de propósito.
+const ORIGENS_PERMITIDAS = lerOrigensPermitidas(Deno.env.get("ORIGENS_PERMITIDAS"));
 
 Deno.serve(async (req) => {
+  const corsHeaders = montarCorsHeaders(req.headers.get("Origin"), ORIGENS_PERMITIDAS);
+  function json(data: unknown, status = 200) {
+    return new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -214,9 +222,3 @@ Deno.serve(async (req) => {
   }
 });
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}

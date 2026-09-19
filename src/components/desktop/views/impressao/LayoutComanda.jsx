@@ -317,7 +317,7 @@ export default function LayoutComanda() {
       <p className="layout-comanda__intro">
         Monte a comanda do cliente do jeito que você quiser: arraste para mudar a ordem, clique
         num bloco para editar e use o olho para escolher o que sai impresso. O papel ao lado
-        muda junto. A via da cozinha não muda aqui — ela sai só com os itens, para o cozinheiro
+        muda junto. A via da cozinha não muda aqui, ela sai só com os itens, para o cozinheiro
         ler rápido.
       </p>
 
@@ -390,12 +390,12 @@ export default function LayoutComanda() {
 
             {status === "sucesso" && (
               <span className="layout-comanda__status layout-comanda__status--sucesso">
-                <LuCircleCheck size={13} /> Salvo — a próxima comanda já sai assim
+                <LuCircleCheck size={13} /> Salvo, a próxima comanda já sai assim
               </span>
             )}
             {status === "erro" && (
               <span className="layout-comanda__status layout-comanda__status--erro">
-                <LuCircleAlert size={13} /> Falha ao salvar — nada mudou
+                <LuCircleAlert size={13} /> Falha ao salvar, nada mudou
               </span>
             )}
             {!alterado && !salvando && status == null && (
@@ -439,7 +439,7 @@ export default function LayoutComanda() {
           {visao === "termica" && semColunasNaTermica && (
             <div className="layout-comanda__ajuda">
               Aqui os nomes dos produtos não cabem em coluna dentro de {colunas} caracteres, então
-              cada item sai em duas linhas — nome em cima, valor à direita embaixo. A largura das
+              cada item sai em duas linhas: nome em cima, valor à direita embaixo. A largura das
               colunas continua valendo para a impressão pelo navegador.
             </div>
           )}

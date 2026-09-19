@@ -114,7 +114,7 @@ afterEach(() => {
   vi.restoreAllMocks(); // desfaz o espião de window.open
 });
 
-describe("DeliveryView — falha ao atualizar não derruba o kanban (Run 6, leva 7)", () => {
+describe("DeliveryView, falha ao atualizar não derruba o kanban (Run 6, leva 7)", () => {
   it("com pedidos na tela, a falha vira faixa e o kanban continua", async () => {
     comErro([PEDIDO]);
     await montar();
@@ -175,7 +175,7 @@ describe("DeliveryView — falha ao atualizar não derruba o kanban (Run 6, leva
 // Rodada 4 — o botão existia desde f9fc34f abrindo "/cardapio" seco. Sem
 // subdomínio no ar, a vitrine resolve o slug pelo fallback: o dono da Casa
 // Coffee clicava e via a loja, a marca e os preços da GastroMundi (decisão 017).
-describe("DeliveryView — a prévia abre a loja DESTE estabelecimento", () => {
+describe("DeliveryView, a prévia abre a loja DESTE estabelecimento", () => {
   const tenantCom = (slug) => ({
     id: "t9",
     nome: "Casa Coffee",
@@ -203,7 +203,7 @@ describe("DeliveryView — a prévia abre a loja DESTE estabelecimento", () => {
     expect(abrir).toHaveBeenCalledWith("/cardapio?loja=casacoffee", "_blank", "noopener,noreferrer");
   });
 
-  it("tenant sem slug continua abrindo a vitrine — o botão nunca deixa de funcionar", async () => {
+  it("tenant sem slug continua abrindo a vitrine, o botão nunca deixa de funcionar", async () => {
     setAppMock({ tenant: tenantCom(null) });
     const abrir = espiarOpen();
     const user = userEvent.setup();

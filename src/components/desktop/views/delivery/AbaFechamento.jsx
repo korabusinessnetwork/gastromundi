@@ -95,7 +95,7 @@ export default function AbaFechamento({ aviso }) {
             <span>
               Esse valor já entrou no fechamento do caixa como venda, mas as notas
               só chegam na gaveta quando o entregador volta. Confira com a equipe
-              antes de fechar o caixa — senão o sistema vai acusar falta.
+              antes de fechar o caixa, senão o sistema vai acusar falta.
             </span>
           </div>
         </div>

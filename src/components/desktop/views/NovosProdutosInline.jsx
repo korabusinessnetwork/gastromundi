@@ -99,7 +99,7 @@ export default function NovosProdutosInline({ nomeInicial = "", categorias = [],
     <div className="novos-produtos">
       <div className="novos-produtos__titulo">Cadastrar produto novo</div>
       <p className="novos-produtos__ajuda">
-        Escreva um por linha — eles são criados de verdade e já entram neste grupo.
+        Escreva um por linha, eles são criados de verdade e já entram neste grupo.
       </p>
 
       <div className="novos-produtos__linhas">
@@ -155,7 +155,7 @@ export default function NovosProdutosInline({ nomeInicial = "", categorias = [],
         <span className="chave__texto">
           <span className="chave__titulo">Vender também avulso, no cardápio</span>
           <span className="chave__ajuda">
-            Ligado: é produto de cardápio — conta estoque, tem margem e pode ser vendido sozinho
+            Ligado: é produto de cardápio: conta estoque, tem margem e pode ser vendido sozinho
             (uma lata de refrigerante). Desligado: entra como Insumo e só existe dentro do combo.
           </span>
         </span>

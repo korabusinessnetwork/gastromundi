@@ -28,7 +28,7 @@ function registro(over = {}) {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("<CancelarNfce> — cancelamento da NFC-e (Leva 10)", () => {
+describe("<CancelarNfce>, cancelamento da NFC-e (Leva 10)", () => {
   it("autorizada e no prazo: exige justificativa + confirmação e chama a Edge", async () => {
     buscarNfcePorVenda.mockResolvedValue({ data: registro(), error: null });
     cancelarDocumentoFiscal.mockResolvedValue({ status: "cancelada", cStat: "135" });

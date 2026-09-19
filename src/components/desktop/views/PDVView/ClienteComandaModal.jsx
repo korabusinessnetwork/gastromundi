@@ -56,7 +56,7 @@ export default function ClienteComandaModal({
             placeholder="Busque por nome ou telefone"
           />
           <div className="cliente-comanda__dica">
-            O cliente vinculado é usado no fechamento — histórico de compras, fiado e CPF na nota.
+            O cliente vinculado é usado no fechamento, histórico de compras, fiado e CPF na nota.
           </div>
         </div>
 

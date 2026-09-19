@@ -201,7 +201,7 @@ describe("impressão que não pode sair duas vezes", () => {
     expect(idEnviado(1)).not.toBe(idEnviado(0));
   });
 
-  it("clicar de novo depois do erro repete o MESMO id — a Ponte reconhece e não imprime duas vezes", async () => {
+  it("clicar de novo depois do erro repete o MESMO id, a Ponte reconhece e não imprime duas vezes", async () => {
     const demorou = new Error("aborted");
     demorou.name = "AbortError";
     fetch.mockRejectedValueOnce(demorou);

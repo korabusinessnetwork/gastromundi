@@ -241,7 +241,7 @@ export const TIPOS_BLOCO = {
     rotulo: "Endereço",
     ajuda: "Escreva o endereço que sai impresso.",
     props: ["alinhamento", "tamanho", "texto"],
-    placeholder: "Rua, número, bairro — cidade/UF",
+    placeholder: "Rua, número, bairro, cidade/UF",
   },
   cnpj: {
     rotulo: "CNPJ",
@@ -256,7 +256,7 @@ export const TIPOS_BLOCO = {
   },
   comanda: {
     rotulo: "Número da comanda",
-    ajuda: "Comanda 42, Mesa 7 — como o pedido é identificado.",
+    ajuda: "Comanda 42, Mesa 7, como o pedido é identificado.",
     props: ["alinhamento", "tamanho", "negrito", "maiuscula"],
   },
   itens: {
@@ -291,7 +291,7 @@ export const TIPOS_BLOCO = {
   },
   pagamento: {
     rotulo: "Forma de pagamento",
-    ajuda: "Pix, cartão, dinheiro — como foi pago.",
+    ajuda: "Pix, cartão, dinheiro, como foi pago.",
     props: ["alinhamento", "tamanho"],
   },
   avisoNaoFiscal: {
@@ -301,7 +301,7 @@ export const TIPOS_BLOCO = {
   },
   rodape: {
     rotulo: "Mensagem final",
-    ajuda: "A última linha do papel — agradecimento, wi-fi, Instagram.",
+    ajuda: "A última linha do papel, agradecimento, wi-fi, Instagram.",
     props: ["alinhamento", "tamanho", "texto"],
     placeholder: "Ex.: Obrigado pela preferência!",
   },

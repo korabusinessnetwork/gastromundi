@@ -157,7 +157,7 @@ export default function MeusPedidos({
             <div className="vitrine__estado">
               <div className="vitrine__estado-emoji">🧾</div>
               <p>
-                Seus pedidos aparecem aqui assim que você fizer o primeiro — sem
+                Seus pedidos aparecem aqui assim que você fizer o primeiro, sem
                 precisar criar conta.
               </p>
             </div>

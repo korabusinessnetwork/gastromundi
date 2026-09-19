@@ -62,7 +62,7 @@ describe("validarPauta", () => {
     });
   });
 
-  it("exige intuito — pauta sem 'para quê' é o que o sistema evita", () => {
+  it("exige intuito, pauta sem 'para quê' é o que o sistema evita", () => {
     expect(validarPauta({ ...ok, intuito: "" })).toEqual({
       valido: false,
       erro: "Escreva para que serve esta pauta.",

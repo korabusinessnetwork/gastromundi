@@ -145,7 +145,7 @@ export function validarMovimento({ tipo, valor, motivo, disponivel } = {}) {
 
   const texto = String(motivo ?? "").trim();
   if (texto.length < MOTIVO_MIN) {
-    return { ok: false, erro: "Escreva o motivo — é ele que aparece na conferência do caixa." };
+    return { ok: false, erro: "Escreva o motivo, é ele que aparece na conferência do caixa." };
   }
 
   if (tipo === "sangria") {
@@ -154,7 +154,7 @@ export function validarMovimento({ tipo, valor, motivo, disponivel } = {}) {
       return { ok: false, erro: "Não há dinheiro na gaveta para retirar." };
     }
     if (v > emCaixa) {
-      return { ok: false, erro: `A gaveta tem R$ ${emCaixa.toFixed(2).replace(".", ",")} — não dá para retirar mais que isso.` };
+      return { ok: false, erro: `A gaveta tem R$ ${emCaixa.toFixed(2).replace(".", ",")}, não dá para retirar mais que isso.` };
     }
   }
 

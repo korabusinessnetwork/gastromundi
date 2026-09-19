@@ -55,7 +55,7 @@ function recorte(sql, marcador, tamanho = 400) {
 const arquivos = readdirSync(MIGRATIONS_DIR).filter((n) => n.endsWith(".sql"));
 const SQL = semComentarios(ler(MIGRATION));
 
-describe("caixa_movimentos — a tabela (F005)", () => {
+describe("caixa_movimentos, a tabela (F005)", () => {
   it("a migration existe e é idempotente", () => {
     expect(arquivos).toContain(MIGRATION);
     expect(SQL).toMatch(/CREATE TABLE IF NOT EXISTS public\.caixa_movimentos/);
@@ -100,12 +100,12 @@ describe("caixa_movimentos — a tabela (F005)", () => {
   });
 });
 
-describe("caixa_movimentos — RLS (F005)", () => {
+describe("caixa_movimentos, RLS (F005)", () => {
   it("RLS está habilitada", () => {
     expect(SQL).toMatch(/ALTER TABLE public\.caixa_movimentos ENABLE ROW LEVEL SECURITY;/);
   });
 
-  it("qualquer logado LÊ — quem fecha o caixa nem sempre é quem sangrou", () => {
+  it("qualquer logado LÊ, quem fecha o caixa nem sempre é quem sangrou", () => {
     expect(SQL).toMatch(
       /CREATE POLICY caixa_movimentos_select_auth\s+ON public\.caixa_movimentos FOR SELECT\s+USING \(auth\.role\(\) = 'authenticated'\);/
     );
@@ -120,7 +120,7 @@ describe("caixa_movimentos — RLS (F005)", () => {
     expect(SQL).not.toMatch(/FROM public\.users/);
   });
 
-  it("NÃO existe policy de UPDATE nem de DELETE — a ausência é a regra", () => {
+  it("NÃO existe policy de UPDATE nem de DELETE, a ausência é a regra", () => {
     expect(SQL).not.toMatch(/CREATE POLICY[\s\S]*?caixa_movimentos FOR UPDATE/);
     expect(SQL).not.toMatch(/CREATE POLICY[\s\S]*?caixa_movimentos FOR DELETE/);
 
@@ -144,7 +144,7 @@ describe("caixa_movimentos — RLS (F005)", () => {
   });
 });
 
-describe("caixa_movimentos — o cliente JS não desmente o banco (F005)", () => {
+describe("caixa_movimentos, o cliente JS não desmente o banco (F005)", () => {
   const lerFonte = (caminho) => readFileSync(join(RAIZ, caminho), "utf8").replace(/\r/g, "");
 
   it("os dois tipos da lib são os dois tipos do CHECK", () => {
@@ -156,7 +156,7 @@ describe("caixa_movimentos — o cliente JS não desmente o banco (F005)", () =>
     expect(tiposDoCheck).toBe(true);
   });
 
-  it("a leitura especifica colunas — nada de select * em tabela de caixa", () => {
+  it("a leitura especifica colunas, nada de select * em tabela de caixa", () => {
     const ctx = lerFonte("src/context/AppContext.jsx");
     const trechos = [...ctx.matchAll(/from\("caixa_movimentos"\)[\s\S]{0,200}/g)].map((m) => m[0]);
     expect(trechos.length).toBeGreaterThan(0);

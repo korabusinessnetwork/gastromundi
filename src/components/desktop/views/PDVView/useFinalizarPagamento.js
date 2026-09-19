@@ -9,7 +9,7 @@ import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasEscolhas } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
-import { reportarFalha } from "@/lib/observabilidade";
+import { reportarFalha, resumoErro } from "@/lib/observabilidade";
 import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 
@@ -58,7 +58,7 @@ export function useFinalizarPagamento() {
     // local e sobe quando a internet voltar.
     const exigeTef = (m) => addonHabilitado?.("tef") && metodoUsaTef(m, metodosTef);
     if (!redeOnline && (pagamentos ?? []).some((p) => exigeTef(p?.metodo))) {
-      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método — ou aguarde a conexão voltar.");
+      throw new Error("Sem internet: pagamento pela maquininha (TEF) fica indisponível. Cobre em dinheiro, Pix ou outro método, ou aguarde a conexão voltar.");
     }
     const itensAcumulados = Array.isArray(selected.items) ? selected.items : [];
     const itensLocais     = cartItems.map(({ _key, ...rest }) => rest);
@@ -113,7 +113,7 @@ export function useFinalizarPagamento() {
           const dados = isFiado(p.metodo)
             ? {
                 tipo: "receita", categoria: "vendas",
-                descricao: `Fiado — comanda ${selected.comanda}`,
+                descricao: `Fiado, comanda ${selected.comanda}`,
                 valor: valorPagamento, competencia: hoje,
                 vencimento: diaLocalDaqui(30),
                 status: "previsto",
@@ -121,7 +121,7 @@ export function useFinalizarPagamento() {
               }
             : {
                 tipo: "receita", categoria: "vendas",
-                descricao: `Venda — comanda ${selected.comanda}`,
+                descricao: `Venda, comanda ${selected.comanda}`,
                 valor: valorPagamento, competencia: hoje, status: "recebido",
                 origem: "venda", venda_id: sale.id, cliente_id: clienteId ?? null,
               };
@@ -132,7 +132,7 @@ export function useFinalizarPagamento() {
           if (isErroDeRede(error)) enfileirarOffline({ tipo: "insert_lancamento", dados, usuario: currentUser?.username });
         }
       } catch (err) {
-        console.error("financeiro (receita por venda):", err);
+        console.error("financeiro (receita por venda):", resumoErro(err));
       }
     })();
 
@@ -160,7 +160,7 @@ export function useFinalizarPagamento() {
         .catch((err) => {
           // emitirDocumentoFiscal já é "nunca lança"; o catch é rede de
           // segurança e ainda assim conclui a modal (nunca a deixa girando).
-          console.error("fiscal (nf-e):", err);
+          console.error("fiscal (nf-e):", resumoErro(err));
           enfileirarNota();
           onNfce?.({
             estado: "concluido",
@@ -173,7 +173,7 @@ export function useFinalizarPagamento() {
       for (const p of pagamentos ?? []) {
         if (!metodoUsaTef(p?.metodo, metodosTef)) continue;
         void processarPagamentoTef(p, { usuario: currentUser?.username, comanda: selected.comanda }).catch((err) => {
-          console.error("tef:", err);
+          console.error("tef:", resumoErro(err));
         });
       }
     }
@@ -191,7 +191,7 @@ export function useFinalizarPagamento() {
     }
     if (selected.mesa) {
       supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
-        .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", err));
+        .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", resumoErro(err)));
     }
 
     // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
@@ -264,7 +264,7 @@ export function useFinalizarPagamento() {
       reportarFalha(remocaoFalhou, { risco: "cobranca_dupla", acao: "removePending", comanda: selected.comanda, venda_id: sale.id });
       // Lança DEPOIS dos efeitos (mesa/estoque/log) para não perdê-los:
       // o CheckoutView exibe esta mensagem e o operador resolve manualmente.
-      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo — feche a comanda manualmente.`);
+      throw new Error(`Venda registrada, mas a comanda ${selected.comanda} não saiu da tela. NÃO cobre de novo, feche a comanda manualmente.`);
     }
 
     return sale;

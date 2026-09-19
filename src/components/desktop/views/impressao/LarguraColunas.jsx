@@ -119,7 +119,7 @@ export default function LarguraColunas({ larguras, mostrarUnitario, onAlterar })
               <button
                 type="button"
                 className="larguras__divisoria"
-                aria-label={`Largura entre ${ROTULO[coluna]} e ${ROTULO[chaves[i + 1]]} — arraste ou use as setas`}
+                aria-label={`Largura entre ${ROTULO[coluna]} e ${ROTULO[chaves[i + 1]]}, arraste ou use as setas`}
                 title="Arraste para mudar a largura"
                 onPointerDown={aoPegar(i)}
                 onKeyDown={aoTeclar(i)}

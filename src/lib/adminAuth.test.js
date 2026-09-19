@@ -94,7 +94,7 @@ describe("verificarSenhaAdmin", () => {
     expect(mockRpc).toHaveBeenCalledWith("verificar_senha_admin", { p_password: "1234" });
   });
 
-  it("senha errada é recusa sem erro — a tela mantém o 'Senha incorreta' dela", async () => {
+  it("senha errada é recusa sem erro, a tela mantém o 'Senha incorreta' dela", async () => {
     mockRpc.mockResolvedValue({ data: false, error: null });
 
     // `erro: null` é o que faz cada tela cair no texto próprio dela pelo `||`.

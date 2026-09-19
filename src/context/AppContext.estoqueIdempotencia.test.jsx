@@ -20,6 +20,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act } from "@testing-library/react";
 import { CHAVE_FILA_PENDING } from "@/lib/offline/fila";
+import { filaOffline, storageFilaOffline } from "@/lib/offline/filaApp";
 
 const mockSupabase = vi.hoisted(() => {
   // Callbacks de realtime por nome de canal — é o que permite ao teste simular
@@ -145,8 +146,10 @@ const comRpcPorNome = (mapa, padrao = RPC_OK) =>
 const argsRpc = (nome) =>
   mockSupabase.rpc.mock.calls.filter(([fn]) => fn === nome).map(([, args]) => args);
 
-const filaGravada = () => JSON.parse(window.localStorage.getItem(CHAVE_FILA_PENDING) ?? "[]");
-const semearFila = (ops) => window.localStorage.setItem(CHAVE_FILA_PENDING, JSON.stringify(ops));
+// A fila mora no IndexedDB (F021 fatia 2), não mais no `localStorage`. Ler e
+// semear pela porta da própria fila mantém o teste válido em qualquer banco.
+const filaGravada = () => filaOffline.listar();
+const semearFila = (ops) => storageFilaOffline.setItem(CHAVE_FILA_PENDING, JSON.stringify(ops));
 
 function montar() {
   const app = { current: null };
@@ -175,6 +178,7 @@ const chegaDoRealtime = async (payload) => {
 beforeEach(() => {
   vi.clearAllMocks();
   window.localStorage.clear();
+  filaOffline.limpar(); // a fila é singleton de módulo: não vaza de um teste para o outro
   chamadasTabela = [];
   falhasUmaVez = {};
   for (const nome of Object.keys(mockSupabase.canais)) delete mockSupabase.canais[nome];
@@ -182,7 +186,7 @@ beforeEach(() => {
   comRpc(RPC_OK);
 });
 
-describe("AppContext — idempotência da baixa de estoque (Leva D)", () => {
+describe("AppContext, idempotência da baixa de estoque (Leva D)", () => {
   it("toda baixa de produto carrega uma chave de idempotência para o servidor", async () => {
     comRpc(RPC_OK);
     const app = montar();
@@ -224,7 +228,7 @@ describe("AppContext — idempotência da baixa de estoque (Leva D)", () => {
     expect(segunda.opId).not.toBe(primeira.opId);
   });
 
-  it("no reenvio, a fila devolve a MESMA chave ao servidor — o reenvio não desconta de novo", async () => {
+  it("no reenvio, a fila devolve a MESMA chave ao servidor, o reenvio não desconta de novo", async () => {
     semearFila([{
       uid: "op-1", tipo: "rpc_baixar_estoque", produtoId: 7, qtd: 3, opId: "chave-da-baixa-original",
     }]);
@@ -301,7 +305,7 @@ const ENTRADA_OK = { data: [{ quantidade: 45, minimo: 5 }], error: null };
 
 const erroRpc = (error) => ({ data: null, error });
 
-describe("AppContext — entrada de estoque atômica (Run 4, leva 4)", () => {
+describe("AppContext, entrada de estoque atômica (Run 4, leva 4)", () => {
   it("manda o QUANTO ENTROU para o servidor, nunca o saldo total", async () => {
     comRpcPorNome({ entrada_estoque: ENTRADA_OK });
     const app = montar();
@@ -408,7 +412,7 @@ describe("AppContext — entrada de estoque atômica (Run 4, leva 4)", () => {
 //      estoque, o desfazer deixava a chave valendo 0. No resto do sistema, um
 //      produto sem linha é um produto que não controla estoque
 //      (`jarvasEngine.js`), então ele passava a aparecer como ruptura.
-describe("AppContext — saldo absoluto do estoque (Run 4, leva 7)", () => {
+describe("AppContext, saldo absoluto do estoque (Run 4, leva 7)", () => {
   it("recusa quantidade não numérica em vez de gravar NaN no saldo", async () => {
     const app = montar();
 
@@ -422,7 +426,7 @@ describe("AppContext — saldo absoluto do estoque (Run 4, leva 7)", () => {
     expect(app.current.estoque).not.toHaveProperty("1");
   });
 
-  it("valor vazio não zera o saldo — zerar exige o número 0", async () => {
+  it("valor vazio não zera o saldo, zerar exige o número 0", async () => {
     const app = montar();
 
     for (const valor of [null, "", "   "]) {
@@ -498,7 +502,7 @@ describe("aplicarNumeroRemoto", () => {
   });
 });
 
-describe("AppContext — realtime do estoque (Run 4, leva 11)", () => {
+describe("AppContext, realtime do estoque (Run 4, leva 11)", () => {
   /** Deixa o produto 7 com saldo 40 e mínimo 5, como estaria em produção. */
   async function comProduto7(app) {
     await act(async () => { await app.current.updateEstoque(7, 40); });
@@ -517,7 +521,7 @@ describe("AppContext — realtime do estoque (Run 4, leva 11)", () => {
     expect(app.current.estoqueMinimos[7]).toBe(8);
   });
 
-  it("evento sem o mínimo NÃO zera o mínimo — o alerta de estoque baixo continua de pé", async () => {
+  it("evento sem o mínimo NÃO zera o mínimo, o alerta de estoque baixo continua de pé", async () => {
     const app = montar();
     await comProduto7(app);
 
@@ -573,7 +577,7 @@ describe("AppContext — realtime do estoque (Run 4, leva 11)", () => {
 // Offline não entra nesta conta. A baixa sem rede vai para a fila e é
 // reaplicada com a mesma chave; alertar ali ensinaria o gestor a ignorar o
 // alerta, que é o pior resultado possível.
-describe("AppContext — alerta de baixa recusada (TD012)", () => {
+describe("AppContext, alerta de baixa recusada (TD012)", () => {
   const RECUSADA = erroRpc({ code: "42501", message: "new row violates row-level security policy" });
 
   /** Dá voltas de microtask para o alerta, que é disparado sem await. */
@@ -608,7 +612,7 @@ describe("AppContext — alerta de baixa recusada (TD012)", () => {
     expect(alerta.origem.dados.erro).toContain("row-level security");
   });
 
-  it("sem internet NÃO alerta — a baixa só entrou na fila para reenvio", async () => {
+  it("sem internet NÃO alerta, a baixa só entrou na fila para reenvio", async () => {
     comRpc(SEM_REDE);
     const app = montar();
 
@@ -688,7 +692,7 @@ describe("AppContext — alerta de baixa recusada (TD012)", () => {
 // essa linha, todo produto cadastrado pelo app era vendido sem descontar nada,
 // enquanto a tela de Estoque o mostrava com saldo "0". A linha passa a nascer
 // junto com o produto, e "RPC sem linha de volta" deixa de ser sucesso.
-describe("AppContext — produto nasce com linha de estoque", () => {
+describe("AppContext, produto nasce com linha de estoque", () => {
   it("cadastrar produto cria a linha de estoque junto", async () => {
     comRespostaNaTabela("products", "insert", { data: { id: 42, name: "Chopp" }, error: null });
     const app = montar();
@@ -700,7 +704,7 @@ describe("AppContext — produto nasce com linha de estoque", () => {
     expect(linhas[0].args[0]).toEqual({ produto_id: 42 });
   });
 
-  it("falha ao criar a linha não desfaz o produto — ele existe e é vendável", async () => {
+  it("falha ao criar a linha não desfaz o produto, ele existe e é vendável", async () => {
     comRespostaNaTabela("products", "insert", { data: { id: 43, name: "Água" }, error: null });
     comFalhaNaTabela("estoque", "upsert", { code: "42501", message: "row-level security" });
     const app = montar();

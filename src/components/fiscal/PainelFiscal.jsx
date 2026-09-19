@@ -61,7 +61,7 @@ const CAMPOS_ENDPOINTS = [
 const REGIMES = [
   { valor: "", label: "Selecione…" },
   { valor: 1, label: "Simples Nacional" },
-  { valor: 2, label: "Simples Nacional — excesso de sublimite" },
+  { valor: 2, label: "Simples Nacional, excesso de sublimite" },
   { valor: 3, label: "Regime Normal" },
 ];
 
@@ -162,7 +162,7 @@ export default function PainelFiscal() {
         </h1>
         <p className="painel-fiscal__subtitulo">
           Os dados fiscais do seu estabelecimento para emitir a NFC-e. Preencha
-          com atenção — é com isto que a nota sai no CNPJ certo.
+          com atenção, é com isto que a nota sai no CNPJ certo.
         </p>
       </header>
 
@@ -176,7 +176,7 @@ export default function PainelFiscal() {
           <div>
             <strong>SEFAZ em contingência{formatarDesde(campos.contingencia_desde)}.</strong>
             <span>
-              As vendas continuam saindo normalmente em contingência offline — os
+              As vendas continuam saindo normalmente em contingência offline, os
               cupons são válidos e as notas estão sendo enfileiradas para
               transmissão automática assim que o serviço da SEFAZ voltar.
             </span>
@@ -192,7 +192,7 @@ export default function PainelFiscal() {
           <strong>Certificado digital e senha do CSC ficam à parte, por segurança.</strong>
           <span>
             O certificado A1 (arquivo .pfx) e o <em>valor</em> do CSC não são
-            preenchidos aqui — eles são guardados em cofre seguro, fora do
+            preenchidos aqui, eles são guardados em cofre seguro, fora do
             aplicativo. Nesta tela você configura só a identidade fiscal e o
             <em> ID</em> do CSC (o identificador que aparece no QR Code, e não é secreto).
           </span>
@@ -265,7 +265,7 @@ export default function PainelFiscal() {
 
           <Campo
             campo={{ chave: "csc_id", label: "ID do CSC (idToken)", inputMode: "numeric", estreito: true,
-              hint: "Identificador de até 6 dígitos — aparece no QR Code. NÃO é o valor secreto do CSC.", opcional: true }}
+              hint: "Identificador de até 6 dígitos, aparece no QR Code. NÃO é o valor secreto do CSC.", opcional: true }}
             valor={campos.csc_id} erro={mostrar("csc_id")}
             onChange={(v) => alterar("csc_id", v)}
           />
@@ -280,7 +280,7 @@ export default function PainelFiscal() {
               <span>Emissão fiscal ativa</span>
             </label>
             <span className="painel-fiscal__hint">
-              Ligue só quando tudo estiver configurado — a partir daí as vendas emitem NFC-e.
+              Ligue só quando tudo estiver configurado, a partir daí as vendas emitem NFC-e.
             </span>
           </div>
         </div>
@@ -291,7 +291,7 @@ export default function PainelFiscal() {
         <legend className="painel-fiscal__legenda">Endpoints da SEFAZ</legend>
         <p className="painel-fiscal__ajuda-secao">
           URLs dos webservices, fornecidas pela SEFAZ do seu estado (SEFAZ-RS).
-          São públicas — não são segredo.
+          São públicas, não são segredo.
         </p>
         <div className="painel-fiscal__grade painel-fiscal__grade--largo">
           {CAMPOS_ENDPOINTS.map((f) => (

@@ -51,7 +51,7 @@ function semComentarios(conteudo) {
 
 const arquivos = readdirSync(MIGRATIONS_DIR).filter((n) => n.endsWith(".sql"));
 
-describe("Delivery — guard do espelho em pending no cancelamento (DL22)", () => {
+describe("Delivery, guard do espelho em pending no cancelamento (DL22)", () => {
   it("a migração corretiva existe e roda depois de toda versão da RPC que escreve o vínculo", () => {
     expect(arquivos).toContain(CORRETIVA);
 

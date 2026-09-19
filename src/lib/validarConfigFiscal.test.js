@@ -18,7 +18,7 @@ const base = () => ({
   ativo: false,
 });
 
-describe("validarCnpj — dígitos verificadores (módulo 11)", () => {
+describe("validarCnpj, dígitos verificadores (módulo 11)", () => {
   it("aceita um CNPJ válido, com e sem máscara", () => {
     expect(validarCnpj("11222333000181")).toBe(true);
     expect(validarCnpj("11.222.333/0001-81")).toBe(true);
@@ -40,7 +40,7 @@ describe("validarCnpj — dígitos verificadores (módulo 11)", () => {
   });
 });
 
-describe("validarConfigFiscal — obrigatórios e formatos", () => {
+describe("validarConfigFiscal, obrigatórios e formatos", () => {
   it("config completa e válida → ok, sem erros", () => {
     const { ok, erros } = validarConfigFiscal(base());
     expect(ok).toBe(true);

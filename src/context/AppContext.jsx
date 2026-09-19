@@ -4,6 +4,7 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
+import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/lib/loginTentativas";
 import { ehConsoleHost } from "@/lib/consoleHost";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
@@ -23,12 +24,15 @@ import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
+import { separarCampos, COLUNAS_ESCRITA_USERS, COLUNAS_ESCRITA_PENDING, COLUNAS_REPLAY_PENDING } from "@/lib/camposPermitidos";
 import { drenarFila } from "@/lib/offline/fila";
-// Fila local de operações offline (Leva 11) — singleton de módulo sobre
-// localStorage: sobrevive a reload/fechamento do app e é compartilhada por
-// todas as instâncias do provider (só existe uma no app real) e pela tela de
-// notas emitidas, que conta as pendências fiscais guardadas nela.
-import { filaOffline, contarPendenciasFiscais } from "@/lib/offline/filaApp";
+// Fila local de operações offline (Leva 11) — singleton de módulo sobre o
+// IndexedDB (F021 fatia 2): sobrevive a reload/fechamento do app e é
+// compartilhada por todas as instâncias do provider (só existe uma no app
+// real) e pela tela de notas emitidas, que conta as pendências fiscais
+// guardadas nela. O banco responde depois do primeiro render, por isso o
+// contador reassina em `assinarFilaOffline`.
+import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
@@ -44,6 +48,10 @@ import {
 } from "@/utils/session";
 
 const AppContext = createContext(null);
+
+// Código Postgres de coluna inexistente: o app pediu uma coluna que a
+// migration correspondente ainda não criou no banco.
+const PG_COLUNA_INEXISTENTE = "42703";
 
 
 // Monta o mapa de permissões por cargo CIENTE do tenant: parte do default
@@ -139,6 +147,10 @@ export function AppProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pendenciasOffline],
   );
+  // A fila mora no IndexedDB (F021 fatia 2), que responde depois do primeiro
+  // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
+  // traz o que ficou da sessão anterior, o número chega por aqui.
+  useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
   // Leva 13 — endereço da página do Palm servida pela Ponte KORA
   // (http://IP:porta/palm?t=token). Persistido em config para o Palm
   // saber para onde ir quando a internet cair.
@@ -321,18 +333,31 @@ export function AppProvider({ children }) {
     };
   }
 
-  // TD009 (etapa 2) — leituras agora vêm de vendas/venda_itens/venda_pagamentos
-  // (remontadas no shape legado via montarVendaLegada); sales segue recebendo
-  // a gravação dupla como backup. Se a leitura nova falhar por qualquer
-  // motivo, cai para a query antiga em sales (resiliência na transição).
+  // TD009 (etapa 2) — leituras vêm de vendas/venda_itens/venda_pagamentos
+  // (remontadas no shape legado via montarVendaLegada). Etapa 3: `sales` não
+  // recebe mais escrita nenhuma; a query antiga fica só como fallback de
+  // resiliência, e cobre o período anterior ao corte.
   async function buscarSalesData() {
     const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     try {
-      const { data: vendasData, error: eVendas } = await supabase
+      const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem";
+      const lerVendas = (colunas) => supabase
         .from("vendas")
-        .select("id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem,cancelada,motivo_cancelamento,cancelada_por,cancelada_em")
+        .select(colunas)
         .gte("at", desde)
         .order("at", { ascending: false });
+
+      let { data: vendasData, error: eVendas } = await lerVendas(
+        `${COLUNAS_BASE},cancelada,motivo_cancelamento,cancelada_por,cancelada_em`
+      );
+      // Migration 20260920 ainda não aplicada: relê sem as colunas de
+      // cancelamento em vez de cair no fallback de `sales`, que hoje só tem
+      // o histórico antigo — sem isso, um banco desatualizado sumiria com as
+      // vendas do dia na tela do caixa.
+      if (eVendas?.code === PG_COLUNA_INEXISTENTE) {
+        console.warn("[bootstrap] colunas de cancelamento ausentes em vendas (migration 20260920 pendente)");
+        ({ data: vendasData, error: eVendas } = await lerVendas(COLUNAS_BASE));
+      }
       if (eVendas) throw eVendas;
 
       const ids = (vendasData ?? []).map(v => v.id);
@@ -425,6 +450,13 @@ export function AppProvider({ children }) {
   // indisponível e repete sem ela — o bootstrap não pode quebrar por causa
   // de uma feature opcional (mesmo padrão de buscarPendingData/Leva 14).
   const COLUNAS_USERS = "id,name,username,role,auth_id,active";
+  // Colunas de retorno das ESCRITAS em `users`. `.select()` sem argumento é
+  // `select *`, que o CLAUDE.md proíbe em tabela sensível: trazia de volta
+  // tudo que a linha tiver, incluindo o que a tela nem usa (hoje `tenant_id`,
+  // amanhã o que a próxima migration acrescentar). `permissions` entra só
+  // quando a migration 20260828 já rodou, mesmo critério de `buscarUsers`.
+  const colunasRetornoUsers = () =>
+    permsColunaIndisponivelRef.current ? COLUNAS_USERS : `${COLUNAS_USERS},permissions`;
   async function buscarUsers() {
     const res = await supabase.from("users")
       .select(`${COLUNAS_USERS},permissions`).eq("active", true);
@@ -836,7 +868,13 @@ export function AppProvider({ children }) {
   // reenviar não duplica nem estoura chave única.
   const executarOpOffline = (op) => {
     if (op.tipo === "insert") return supabase.from("pending").upsert(op.payload, { onConflict: "id" });
-    if (op.tipo === "update") return supabase.from("pending").update(op.changes).eq("id", op.id);
+    // A operação dormiu no localStorage até a rede voltar, e o navegador deixa
+    // qualquer um editar o localStorage. Filtrar de novo na saída custa nada e
+    // garante que o que volta da fila tem a mesma forma do que entrou nela.
+    if (op.tipo === "update") {
+      const { campos } = separarCampos(op.changes, COLUNAS_REPLAY_PENDING);
+      return supabase.from("pending").update(campos).eq("id", op.id);
+    }
     if (op.tipo === "delete") return supabase.from("pending").delete().eq("id", op.id);
     // Cobrança offline (não-TEF): venda fechada sem internet. Upsert por id
     // — se a primeira tentativa gravou mas a resposta se perdeu, reenviar
@@ -876,29 +914,51 @@ export function AppProvider({ children }) {
     return { error: { message: "fetch failed", motivo_fiscal: resultado?.status ?? "erro" } };
   };
 
+  // TD009 (etapa 3) — o reenvio grava só nas tabelas relacionais. `sales`
+  // não recebe mais venda nenhuma.
+  //
+  // Idempotência (fecha a pendência 6 do ADR-013): o cabeçalho em `vendas`
+  // bate em violação de unicidade quando a venda já subiu, e as filhas não
+  // são reinseridas. Antes, o `upsert` protegia a LINHA mas não o EVENTO —
+  // cada passada do dreno reemitia `venda.finalizada` e o Jarvas via a
+  // mesma venda várias vezes. Agora o evento só sai quando a venda foi
+  // gravada de fato.
   const reenviarVendaOffline = async (op) => {
     const sale = op.payload.data;
-    const { error } = await supabase.from("sales").upsert({ id: op.payload.id, data: sale }, { onConflict: "id" });
-    if (error) return { error };
-    // DÍVIDA (auditoria P3/P4): reenvio pode reaplicar efeitos — precisa de chave de idempotência na RPC
-    // (o upsert acima não duplica a venda, mas o evento e o dual-write abaixo podem reemitir no dreno).
-    emitirEvento("venda.finalizada", "pdv", {
-      venda_id: sale.id,
-      total: sale.total ?? null,
-      metodo: sale.metodo ?? sale.payment ?? null,
-      itens: Array.isArray(sale.items) ? sale.items.length : null,
-    }, currentUser?.username);
-    void persistirVendaNormalizada(supabase, sale, {
+    const resultado = await persistirVendaNormalizada(supabase, sale, {
       onFalha: ({ etapa, error: e, venda_id }) => {
-        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, e);
+        // Rede caiu no meio do dreno: a op fica na fila e volta na próxima
+        // passada. Isso é o dreno funcionando, não inconsistência de dado.
+        if (isErroDeRede(e)) return;
+        console.error(`gravação de venda (${etapa}) venda ${venda_id}:`, e);
         reportarFalha(e, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id, origem: "reenvioOffline" });
-        emitirEvento("venda.dualwrite.falhou", "pdv", {
+        emitirEvento("venda.gravacao.incompleta", "pdv", {
           venda_id,
           etapa,
           erro: e?.message ?? e?.code ?? String(e),
         }, currentUser?.username);
       },
     });
+
+    // Cabeçalho não gravou = a venda não existe. Devolve o erro para o dreno
+    // decidir: erro de rede para a fila inteira e preserva a venda; erro
+    // definitivo (RLS, constraint) tira a op e vira aviso na tela.
+    if (!resultado.cabecalhoGravado) {
+      return { error: resultado.falhas[0]?.error ?? { message: "falha ao gravar a venda reenviada" } };
+    }
+
+    // Cabeçalho gravou e alguma filha falhou: a venda EXISTE e está
+    // incompleta. Manter na fila reprocessaria só o cabeçalho (unicidade),
+    // sem nunca consertar a filha — então a op sai e a inconsistência já
+    // foi registrada pelo onFalha acima.
+    if (!resultado.jaExistia) {
+      emitirEvento("venda.finalizada", "pdv", {
+        venda_id: sale.id,
+        total: sale.total ?? null,
+        metodo: sale.metodo ?? sale.payment ?? null,
+        itens: Array.isArray(sale.items) ? sale.items.length : null,
+      }, currentUser?.username);
+    }
     return { error: null };
   };
 
@@ -979,6 +1039,10 @@ export function AppProvider({ children }) {
     const clean = sanitizeInput(username);
     const att   = getAttempts(clean);
 
+    // O contador local responde na hora e não custa viagem, então ele continua
+    // sendo a primeira parada. Ele não é mais a barreira, é o eco da última
+    // resposta do servidor: quem limpar o storage passa daqui e esbarra na
+    // consulta abaixo, que é a que decide de verdade (TD008).
     if (att.lockedUntil && att.lockedUntil > Date.now()) {
       const secs = Math.ceil((att.lockedUntil - Date.now()) / 1000);
       return { error: `Conta bloqueada. Aguarde ${secs}s.` };
@@ -994,18 +1058,41 @@ export function AppProvider({ children }) {
     // não consome tentativa nem vai à rede — e a mensagem fala do endereço, não
     // da credencial.
     if (!email) return { error: "Endereço de acesso inválido. Confira o link do estabelecimento." };
+
+    // A barreira de verdade: o contador do banco, que o navegador não alcança.
+    // Vem antes do `signInWithPassword` para bloqueio não gastar viagem à rede
+    // de auth. Se a RPC não responder, `disponivel` vem false e o login segue
+    // pelo contador local, como era antes (falha aberta, decisão do spec).
+    const bloqueio = await consultarBloqueio(email);
+    if (bloqueio.disponivel && bloqueio.bloqueado) {
+      setAttempts(clean, { count: MAX_ATTEMPTS, lockedUntil: Date.now() + bloqueio.segundos * 1000 });
+      return { error: `Conta bloqueada. Aguarde ${bloqueio.segundos}s.` };
+    }
+
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password: sanitizeInput(password, 100),
     });
 
     if (authError) {
-      const count       = (att.count || 0) + 1;
-      const lockedUntil = count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null;
+      // Quem conta é o servidor; o local só guarda o que ele respondeu, para os
+      // pips da tela terem o número certo antes da próxima ida ao banco.
+      const servidor = await registrarFalha(email);
+      const count = servidor.disponivel && servidor.restantes !== null
+        ? MAX_ATTEMPTS - servidor.restantes
+        : (att.count || 0) + 1;
+      const lockedUntil = servidor.disponivel
+        ? (servidor.bloqueado ? Date.now() + servidor.segundos * 1000 : null)
+        : (count >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : null);
+
       setAttempts(clean, { count, lockedUntil });
       if (lockedUntil) return { error: "Muitas tentativas. Bloqueado por 2 minutos." };
-      return { error: `Usuário ou senha incorretos. ${MAX_ATTEMPTS - count} tentativa(s) restante(s).` };
+      return { error: `Usuário ou senha incorretos. ${Math.max(MAX_ATTEMPTS - count, 0)} tentativa(s) restante(s).` };
     }
+
+    // Senha certa: zera o contador do servidor. Só agora dá para chamar, porque
+    // a função tira a identidade do token da sessão que acabou de nascer.
+    registrarSucesso();
 
     const { usuario: userData } = await buscarDadosUsuario(authData.user.id);
     if (!userData) {
@@ -1105,6 +1192,23 @@ export function AppProvider({ children }) {
   const updatePending = async (id, changes, { baseItems } = {}) => {
     const podeMesclar = Array.isArray(changes.items) && Array.isArray(baseItems);
     if (Array.isArray(changes.items)) changes = { ...changes, items: garantirUidItens(changes.items) };
+
+    // Allowlist antes de qualquer coisa. Aqui ela pesa mais que nos outros
+    // pontos: com a rede fora, este `changes` é gravado no localStorage pela
+    // fila offline e só volta ao banco no dreno, depois de ter passado por um
+    // armazenamento que o navegador deixa qualquer um editar. Filtrar na
+    // entrada é o que garante que o que sai da fila tem a mesma forma do que
+    // entrou nela.
+    //
+    // Filtrado UMA vez, aqui: daqui para baixo os dois caminhos de gravação
+    // (o atômico por RPC e o comum) e a fila offline usam o mesmo `changes`.
+    {
+      const { campos: permitidos, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_PENDING);
+      if (ignorados.length > 0) {
+        reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updatePending", tabela: "pending", id, ignorados });
+      }
+      changes = permitidos;
+    }
 
     // Só vai pelo caminho atômico a mudança que a função sabe gravar:
     // exatamente itens, com ou sem um total numérico. Qualquer outro campo
@@ -1271,7 +1375,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateProduct", tabela: "products", id });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — sem permissão ou produto inexistente." } };
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.map(p => p.id === id ? { ...p, ...changes } : p));
     return { error: null };
@@ -1284,7 +1388,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeProduct", tabela: "products", id });
-      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão ou produto inexistente." } };
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida, sem permissão ou produto inexistente." } };
     }
     setProductsLocal(prev => prev.filter(p => p.id !== id));
     return { error: null };
@@ -1319,13 +1423,35 @@ export function AppProvider({ children }) {
   };
 
   // ── Actions: Sales ────────────────────────────────────────────
+  // TD009 (etapa 3) — a venda é gravada SÓ nas tabelas relacionais.
+  // `sales` era a fonte de verdade e a gravação relacional era backup
+  // fire-and-forget; invertida a fonte, o contrato inverteu junto: aqui se
+  // espera o resultado e se decide a partir dele.
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
-    const { error } = await supabase.from("sales").insert({ id: sale.id, data: sale });
-    if (error) {
+
+    const resultado = await persistirVendaNormalizada(supabase, sale, {
+      onFalha: ({ etapa, error, venda_id }) => {
+        // Sem internet a venda vai para a fila offline logo abaixo e sobe
+        // depois: caminho previsto, não inconsistência. Registrar aqui
+        // encheria a trilha do Jarvas toda vez que o wi-fi do salão cai.
+        if (isErroDeRede(error)) return;
+        console.error(`gravação de venda (${etapa}) venda ${venda_id}:`, error);
+        reportarFalha(error, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id });
+        // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
+        emitirEvento("venda.gravacao.incompleta", "pdv", {
+          venda_id,
+          etapa,
+          erro: error?.message ?? error?.code ?? String(error),
+        }, currentUser?.username);
+      },
+    });
+
+    if (!resultado.cabecalhoGravado) {
+      const error = resultado.falhas[0]?.error ?? { message: "Falha ao gravar a venda." };
       // Sem internet (métodos não-TEF): a venda fica na fila local e sobe
-      // sozinha quando a conexão voltar. Evento + gravação dupla ficam para
-      // o reenvio confirmado (executarOpOffline), senão duplicariam.
+      // sozinha quando a conexão voltar. O evento fica para o reenvio
+      // confirmado (executarOpOffline), senão duplicaria.
       if (isErroDeRede(error)) {
         enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
         return { error: null, offline: true };
@@ -1335,35 +1461,26 @@ export function AppProvider({ children }) {
       // alguém recarregar a página: o caixa fechava o dia com dinheiro que
       // nunca foi gravado. addPending/updatePending/removePending já
       // desfaziam; a única ação que mexe em dinheiro era a que não desfazia.
+      // (o reportarFalha já saiu no onFalha acima, com a etapa que falhou)
       setSalesLocal(prev => prev.filter(v => v.id !== sale.id));
       console.error("addSale error:", JSON.stringify(error, null, 2));
-      reportarFalha(error, { acao: "addSale", tabela: "sales", venda_id: sale.id });
       throw error;
     }
-    emitirEvento("venda.finalizada", "pdv", {
-      venda_id: sale.id,
-      total: sale.total ?? null,
-      metodo: sale.metodo ?? sale.payment ?? null,
-      itens: Array.isArray(sale.items) ? sale.items.length : null,
-    }, currentUser?.username);
 
-    // TD009 (etapa 1) — gravação dupla nas tabelas relacionais novas.
-    // sales continua a fonte de verdade: falha aqui nunca pode quebrar a
-    // venda. persistirVendaNormalizada checa o .error de cada insert (o
-    // supabase-js não lança em RLS/constraint) e nos avisa via onFalha —
-    // fim do furo silencioso que gerou buracos na janela do 20260722.
-    void persistirVendaNormalizada(supabase, sale, {
-      onFalha: ({ etapa, error, venda_id }) => {
-        console.error(`dual-write vendas (${etapa}) venda ${venda_id}:`, error);
-        reportarFalha(error, { acao: "persistirVendaNormalizada", etapa, tabela: "vendas", venda_id });
-        // Trilha durável: em vez de só console, deixa rastro pro Jarvas.
-        emitirEvento("venda.dualwrite.falhou", "pdv", {
-          venda_id,
-          etapa,
-          erro: error?.message ?? error?.code ?? String(error),
-        }, currentUser?.username);
-      },
-    });
+    // Cabeçalho gravou e uma filha falhou: a venda EXISTE e está incompleta.
+    // Não se desfaz nem se lança — mandar o operador refazer duplicaria a
+    // receita. A inconsistência já foi registrada no onFalha acima, e o
+    // retorno diz a verdade sobre o dinheiro: a venda aconteceu.
+    // `jaExistia` cobre o clique duplo em finalizar: venda já gravada não
+    // vira um segundo `venda.finalizada` para o Jarvas.
+    if (!resultado.jaExistia) {
+      emitirEvento("venda.finalizada", "pdv", {
+        venda_id: sale.id,
+        total: sale.total ?? null,
+        metodo: sale.metodo ?? sale.payment ?? null,
+        itens: Array.isArray(sale.items) ? sale.items.length : null,
+      }, currentUser?.username);
+    }
 
     // Mesmo contrato das demais actions: { error } sempre presente.
     return { error: null };
@@ -1371,53 +1488,68 @@ export function AppProvider({ children }) {
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
   //
-  // Cancelar é MARCAR, nunca apagar (migração 20261009). Antes esta função
-  // deletava venda_pagamentos, venda_itens, vendas e o lançamento
-  // financeiro: o blob em `sales` sobrevivia marcado, mas a itemização
-  // sumia das tabelas que o app usa para ler, e um fiado cancelado
-  // desaparecia do Financeiro em vez de ficar como cancelado. Uma venda
-  // que existiu e foi desfeita é informação — quanto, de quem, por quem e
-  // por quê —, não sujeira a limpar.
+  // Cancelar é MARCAR, nunca apagar (TD009 etapa 3 + migração 20261009).
+  // Antes esta função apagava venda_pagamentos, venda_itens, vendas e o
+  // lançamento financeiro: o blob em `sales` guardava a auditoria, e apagar
+  // as linhas tirava a venda dos relatórios sem precisar de migration. Sem
+  // o blob, apagar apagaria a venda cancelada do banco inteiro.
   //
-  // O banco agora recusa o DELETE nessas tabelas (policy RESTRICTIVE), de
+  // Hoje as quatro colunas de `vendas` (20260920) guardam o estado, e itens
+  // e pagamentos ficam de pé como trilha. O LANÇAMENTO também deixou de ser
+  // apagado (20261009): um fiado desfeito precisa continuar aparecendo no
+  // Financeiro como desfeito, senão o histórico do cliente fica com um
+  // buraco sem nome. Uma venda que existiu e foi cancelada é informação,
+  // quanto, de quem, por quem e por quê, não sujeira a limpar.
+  //
+  // O banco passou a recusar DELETE nessas tabelas (policy RESTRICTIVE), de
   // modo que voltar ao caminho antigo não passa nem por engano.
   const cancelarVendaFechada = async (vendaId, motivo) => {
     const alvo = sales.find(s => s && s.id === vendaId);
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
     if (alvo.cancelada) return { error: { code: "ja_cancelada", message: "Esta venda já foi cancelada." } };
 
+    const canceladaPor = currentUser?.name ?? currentUser?.username ?? null;
+    const canceladaEm = new Date().toISOString();
     const cancelada = {
       ...alvo,
       cancelada: true,
       motivoCancelamento: motivo,
-      canceladaPor: currentUser?.name ?? currentUser?.username ?? null,
-      canceladaEm: new Date().toISOString(),
+      canceladaPor,
+      canceladaEm,
     };
 
     // .select() após o update: PostgREST devolve sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo ou o id não existe (mesmo padrão do
     // updateUser) — sem checar, a UI fingiria que cancelou.
     const { data: linhas, error } = await supabase
-      .from("sales")
-      .update({ data: cancelada })
+      .from("vendas")
+      .update({
+        cancelada: true,
+        motivo_cancelamento: motivo,
+        cancelada_por: canceladaPor,
+        cancelada_em: canceladaEm,
+      })
       .eq("id", vendaId)
       .select("id");
-    if (error) return { error };
-    if (!linhas || linhas.length === 0) {
-      reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "sales", venda_id: vendaId });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada — venda inexistente ou sem permissão." } };
+    if (error) {
+      // 42703 = coluna inexistente: a migration 20260920 não foi aplicada.
+      // Falha explícita de propósito. Fingir sucesso seria pior que o erro:
+      // o operador acharia que cancelou e a venda seguiria somando no
+      // relatório. Não há fallback pelo caminho antigo — a venda nova nem
+      // existe mais em `sales` para receber a marca no blob.
+      if (error.code === PG_COLUNA_INEXISTENTE) {
+        reportarInconsistencia("cancelamento sem a coluna no banco", { acao: "cancelarVendaFechada", tabela: "vendas", venda_id: vendaId });
+        return { error: {
+          code: "migration_pendente",
+          message: "Cancelamento indisponível: a atualização do banco (20260920_vendas_cancelamento) ainda não foi aplicada. Avise o responsável pelo sistema.",
+        } };
+      }
+      return { error };
     }
-
-    // Espelho relacional: a linha fica, marcada. Falha aqui não desfaz o
-    // cancelamento (o blob é a fonte de verdade) — só registra.
-    const carimbo = {
-      cancelada: true,
-      motivo_cancelamento: motivo,
-      cancelada_por: cancelada.canceladaPor,
-      cancelada_em: cancelada.canceladaEm,
-    };
-    const { error: eVen } = await supabase.from("vendas").update(carimbo).eq("id", vendaId);
-    if (eVen) console.error("cancelarVendaFechada vendas:", eVen);
+    if (!linhas || linhas.length === 0) {
+      reportarInconsistencia("write afetou 0 linhas", { acao: "cancelarVendaFechada", tabela: "vendas", venda_id: vendaId });
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, venda inexistente ou sem permissão." } };
+    }
 
     // O lançamento vira cancelado em vez de sumir: a conta a receber de um
     // fiado desfeito precisa continuar aparecendo no Financeiro como
@@ -1451,9 +1583,15 @@ export function AppProvider({ children }) {
     // OVERRIDE do funcionário (parcial; null = segue o cargo). Se a coluna
     // ainda não existe (migration 20260828 pendente), some do payload
     // (fail-open) e o usuário nasce seguindo o cargo.
-    const { id: _ignored, ...payload } = user;
+    // A allowlist substitui o `const { id: _ignored, ...payload }` que havia
+    // aqui: tirar só o `id` deixava passar qualquer outra chave que o objeto
+    // trouxesse, `tenant_id` inclusive. Ver src/lib/camposPermitidos.js.
+    const { campos: payload, ignorados } = separarCampos(user, COLUNAS_ESCRITA_USERS);
+    if (ignorados.length > 0) {
+      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "addUser", tabela: "users", ignorados });
+    }
     if (permsColunaIndisponivelRef.current) delete payload.permissions;
-    const { data, error } = await supabase.from("users").insert(payload).select().single();
+    const { data, error } = await supabase.from("users").insert(payload).select(colunasRetornoUsers()).single();
     if (data) setUsersLocal(prev => [...prev, {
       ...data,
       permissoesOverride: data.permissions ?? null,
@@ -1465,7 +1603,10 @@ export function AppProvider({ children }) {
   const updateUser = async (id, changes) => {
     // `permissions` (override do funcionário) É persistido — a menos que a
     // coluna ainda não exista no banco (fail-open, migration pendente).
-    const payload = { ...changes };
+    const { campos: payload, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_USERS);
+    if (ignorados.length > 0) {
+      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updateUser", tabela: "users", id, ignorados });
+    }
     if (permsColunaIndisponivelRef.current) delete payload.permissions;
     // .select() após o update: PostgREST retorna sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo (ex.: editor aberto para gerente, mas a
@@ -1476,24 +1617,28 @@ export function AppProvider({ children }) {
       .from("users")
       .update(payload)
       .eq("id", id)
-      .select();
+      .select(colunasRetornoUsers());
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateUser", tabela: "users", id });
       return {
         error: {
           code: "no_rows_updated",
-          message: "Nenhuma linha atualizada — sem permissão (apenas admin edita usuários) ou usuário inexistente.",
+          message: "Nenhuma linha atualizada, sem permissão (apenas admin edita usuários) ou usuário inexistente.",
         },
       };
     }
     setUsersLocal(prev => prev.map(u => {
       if (u.id !== id) return u;
-      const merged = { ...u, ...changes };
+      // Espelha o que FOI ao banco (payload), não o que o chamador pediu
+      // (changes): com a allowlist, os dois podem diferir, e a tela mostrando
+      // campo que não foi gravado é o "sucesso falso" que o resto desta
+      // função existe para evitar.
+      const merged = { ...u, ...payload };
       // Se o override veio nesta edição, adota-o (null = volta a seguir o
       // cargo); senão, preserva o override que o usuário já tinha.
-      const override = Object.prototype.hasOwnProperty.call(changes, "permissions")
-        ? (changes.permissions ?? null)
+      const override = Object.prototype.hasOwnProperty.call(payload, "permissions")
+        ? (payload.permissions ?? null)
         : u.permissoesOverride;
       return {
         ...merged,
@@ -1513,7 +1658,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeUser", tabela: "users", id });
-      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida — sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
+      return { error: { code: "no_rows_deleted", message: "Nenhuma linha removida, sem permissão (apenas admin remove usuários) ou usuário inexistente." } };
     }
     setUsersLocal(prev => prev.filter(u => u.id !== id));
     return { error: null };
@@ -1527,7 +1672,7 @@ export function AppProvider({ children }) {
   // daquele cargo (cargo ⊕ override de cada um) para refletir na hora.
   const salvarPermissoesCargo = async (role, permissoesCompletas) => {
     if (!ROLES[role]) return { error: { message: "Cargo inválido." } };
-    if (!tenant?.id) return { error: { message: "Estabelecimento ainda carregando — tente de novo." } };
+    if (!tenant?.id) return { error: { message: "Estabelecimento ainda carregando, tente de novo." } };
     const payload = {
       tenant_id: tenant.id,
       role,
@@ -1541,7 +1686,7 @@ export function AppProvider({ children }) {
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "salvarPermissoesCargo", tabela: "role_permissions", role });
-      return { error: { code: "no_rows_updated", message: "Nenhuma linha gravada — só um administrador edita permissões de cargo." } };
+      return { error: { code: "no_rows_updated", message: "Nenhuma linha gravada, só um administrador edita permissões de cargo." } };
     }
     const efetivoCargo = mesclarPermissoes(getPermissions(role), permissoesCompletas);
     const novoMapa = { ...rolePermissions, [role]: efetivoCargo };
@@ -1578,7 +1723,7 @@ export function AppProvider({ children }) {
     // fechado o caixa com este modal já na tela: o movimento entraria numa
     // sessão que o fechamento não vai mais somar.
     if (!caixaAberto) {
-      return { error: { message: "O caixa está fechado — abra o caixa antes de movimentar dinheiro." } };
+      return { error: { message: "O caixa está fechado, abra o caixa antes de movimentar dinheiro." } };
     }
 
     const { ok, erro } = validarMovimento({ tipo, valor, motivo, disponivel });

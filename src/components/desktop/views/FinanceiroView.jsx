@@ -131,7 +131,7 @@ export default function FinanceiroView() {
     // dono acha que não salvou e lança de novo — dinheiro duplicado.
     const dia = novoLancamento?.competencia;
     if (dia && (dia < periodo.de || dia > periodo.ate)) {
-      setAviso(`Lançamento salvo para ${rotuloDiaBR(dia)} — fora do período que está na tela.`);
+      setAviso(`Lançamento salvo para ${rotuloDiaBR(dia)}, fora do período que está na tela.`);
     } else {
       setAviso("");
     }

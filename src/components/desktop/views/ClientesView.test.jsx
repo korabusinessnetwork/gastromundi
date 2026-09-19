@@ -61,7 +61,7 @@ describe("ClientesView", () => {
     });
     mockSupabase.current.setTableResult("vendas", { data: [], error: null });
     mockSupabase.current.setTableResult("lancamentos", {
-      data: [{ id: "l1", valor: 30, status: "previsto", vencimento: "2026-08-01", descricao: "Fiado — comanda 5" }],
+      data: [{ id: "l1", valor: 30, status: "previsto", vencimento: "2026-08-01", descricao: "Fiado, comanda 5" }],
       error: null,
     });
 

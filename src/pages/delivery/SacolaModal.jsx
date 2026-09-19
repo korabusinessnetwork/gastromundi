@@ -60,7 +60,7 @@ export default function SacolaModal({
                     key={item._linha}
                   >
                     {/* Cabeça da linha: o que é, e quanto custa. O ícone dá à
-                        sacola a mesma cara do cardápio de onde o item veio —
+                        sacola a mesma cara do cardápio de onde o item veio:
                         uma lista de texto puro não parece a escolha que a
                         pessoa acabou de fazer. */}
                     <div className="linha-sacola__cabeca">
@@ -73,7 +73,7 @@ export default function SacolaModal({
                         {item.obs && <p className="linha-sacola__extra">Obs.: {item.obs}</p>}
                         {fora && (
                           <p className="linha-sacola__selo linha-sacola__selo--fora">
-                            Saiu do cardápio — remova para continuar
+                            Saiu do cardápio, remova para continuar
                           </p>
                         )}
                         {item.situacao === "preco" && (

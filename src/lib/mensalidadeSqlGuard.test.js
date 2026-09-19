@@ -93,7 +93,7 @@ const definemRpc = arquivos
 const ultima = definemRpc[definemRpc.length - 1];
 const sql = ultima ? semComentarios(ler(ultima)) : "";
 
-describe("Console — guard da mensalidade da plataforma (R7L8)", () => {
+describe("Console, guard da mensalidade da plataforma (R7L8)", () => {
   it("a migração existe e define a RPC com a assinatura que o front chama", () => {
     expect(arquivos).toContain(CORRETIVA);
     expect(definemRpc).toContain(CORRETIVA);
@@ -194,7 +194,7 @@ describe("Console — guard da mensalidade da plataforma (R7L8)", () => {
     expect(iFound).toBeGreaterThan(iUpdate);
   });
 
-  it("mexe só em valor_mensal — não renova nem desbloqueia por tabela", () => {
+  it("mexe só em valor_mensal, não renova nem desbloqueia por tabela", () => {
     // Tocar em `status`/`data_vencimento` aqui seria renovação de graça por
     // fora da 20260909, que é justamente quem controla renovação.
     const corpoUpdate = recorte(sql, "UPDATE public.assinaturas", "RETURNING * INTO v_ass;");

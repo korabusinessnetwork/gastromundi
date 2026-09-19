@@ -61,13 +61,13 @@ describe("slugDoSubdominio", () => {
   // nullish, então furava o `??` de `emailDoLogin` (e-mail `usuario@.local`)
   // enquanto o `!!` da tela de login a tratava como "sem reivindicação" e
   // pintava a marca do fallback: URL de um estabelecimento, tela de outro.
-  it("rótulo vazio não é reivindicação nenhuma — volta null, nunca string vazia", () => {
+  it("rótulo vazio não é reivindicação nenhuma, volta null, nunca string vazia", () => {
     for (const host of [".kora.codes", "..kora.codes", ".a.kora.codes"]) {
       expect(slugDoSubdominio(host), host).toBe(null);
     }
   });
 
-  it("nunca devolve string vazia — só um rótulo ou null", () => {
+  it("nunca devolve string vazia, só um rótulo ou null", () => {
     for (const host of ["", "  ", ".", "..", "localhost", ".kora.codes", "kora.codes", "casacoffee.kora.codes"]) {
       const r = slugDoSubdominio(host);
       expect(r === null || (typeof r === "string" && r.length > 0), `host "${host}" devolveu ${JSON.stringify(r)}`).toBe(true);
@@ -78,7 +78,7 @@ describe("slugDoSubdominio", () => {
     expect(slugDoSubdominio(".kora.codes", "kora.codes")).toBe(null);
   });
 
-  it("rótulo estranho CONTINUA sendo reivindicação — não pode cair no fallback", () => {
+  it("rótulo estranho CONTINUA sendo reivindicação, não pode cair no fallback", () => {
     // Sem isso a tela deixaria entrar no tenant do fallback em vez de mostrar
     // "endereço não encontrado".
     expect(slugDoSubdominio("casa_coffee.kora.codes")).toBe("casa_coffee");
@@ -122,7 +122,7 @@ describe("slugDaQuery", () => {
 });
 
 describe("slugDaVitrine", () => {
-  it("subdomínio ganha da query — endereço publicado não se sequestra por URL", () => {
+  it("subdomínio ganha da query, endereço publicado não se sequestra por URL", () => {
     expect(slugDaVitrine("casacoffee.kora.codes", "?loja=gastromundi")).toEqual({
       slug: "casacoffee",
       origem: "subdominio",
@@ -148,7 +148,7 @@ describe("slugDaVitrine", () => {
     });
   });
 
-  it("subdomínio digitado errado continua reivindicando — a vitrine mostra 'sem loja', não a loja do fallback", () => {
+  it("subdomínio digitado errado continua reivindicando, a vitrine mostra 'sem loja', não a loja do fallback", () => {
     expect(slugDaVitrine("gastrumundi.kora.codes", "")).toEqual({
       slug: "gastrumundi",
       origem: "subdominio",
@@ -178,7 +178,7 @@ describe("emailDoLogin", () => {
     expect(emailDoLogin("admin", "casa-.kora.codes")).toBeNull();
   });
 
-  it("rótulo vazio não vira `admin@.local` — cai no fallback do resolver", () => {
+  it("rótulo vazio não vira `admin@.local`, cai no fallback do resolver", () => {
     // Aqui não há reivindicação de verdade, então o namespace de sempre serve.
     expect(emailDoLogin("admin", ".kora.codes")).toBe("admin@gastromundi.local");
   });

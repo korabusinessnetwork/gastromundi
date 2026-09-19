@@ -101,7 +101,7 @@ function blocosDaFuncao(sql, nomeFuncao) {
     .map((bloco) => bloco.texto);
 }
 
-describe("Delivery público — guard do gate de plano (DL30)", () => {
+describe("Delivery público, guard do gate de plano (DL30)", () => {
   it("a migração existe e roda depois de tudo em que ela se apoia", () => {
     expect(arquivos).toContain(CORRETIVA);
 
@@ -208,7 +208,7 @@ describe("Delivery público — guard do gate de plano (DL30)", () => {
     }
   });
 
-  it("as quatro portas anônimas passam pelo helper — em toda versão", () => {
+  it("as quatro portas anônimas passam pelo helper, em toda versão", () => {
     // Esta é a checagem que sustenta o conserto de um ponto só. Uma RPC
     // pública que resolva o tenant por conta própria fica FORA do gate.
     for (const rpc of RPCS_ANONIMAS) {
@@ -246,7 +246,7 @@ describe("Delivery público — guard do gate de plano (DL30)", () => {
     ).toBe(true);
   });
 
-  it("branding_por_slug fica fora do gate — é a marca da tela de login", () => {
+  it("branding_por_slug fica fora do gate, é a marca da tela de login", () => {
     const [arquivoBranding] = arquivosQueDefinem("branding_por_slug");
     expect(arquivoBranding, "branding_por_slug não existe").toBeTruthy();
 

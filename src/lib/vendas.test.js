@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2, validarAjuste } from "./vendas";
 
-describe("validarAjuste — desconto que zerava a conta calado", () => {
+describe("validarAjuste, desconto que zerava a conta calado", () => {
   const CONTA = 262.5;
 
   it("barra o percentual acima de 100 (era total R$ 0,00 sem aviso)", () => {
@@ -12,11 +12,11 @@ describe("validarAjuste — desconto que zerava a conta calado", () => {
     expect(r.erro).toContain("Valor Fixo");
   });
 
-  it("barra o acréscimo acima de 100% — mesmo dedo, prejuízo do outro lado", () => {
+  it("barra o acréscimo acima de 100%, mesmo dedo, prejuízo do outro lado", () => {
     expect(validarAjuste({ tipo: "acrescimo", mode: "percentual", valor: "500" }, CONTA).valido).toBe(false);
   });
 
-  it("aceita exatamente 100% — dar a conta de cortesia é decisão legítima", () => {
+  it("aceita exatamente 100%, dar a conta de cortesia é decisão legítima", () => {
     const r = validarAjuste({ tipo: "desconto", mode: "percentual", valor: String(AJUSTE_PERCENTUAL_MAX) }, CONTA);
     expect(r).toEqual({ valido: true, erro: null });
   });
@@ -45,14 +45,14 @@ describe("validarAjuste — desconto que zerava a conta calado", () => {
   });
 });
 
-describe("ajusteExigeSenha — senha de gerente no desconto", () => {
+describe("ajusteExigeSenha, senha de gerente no desconto", () => {
   it("exige senha em TODO desconto, sem faixa de tolerância", () => {
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "5" })).toBe(true);
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "percentual", valor: "100" })).toBe(true);
     expect(ajusteExigeSenha({ tipo: "desconto", mode: "fixo", valor: "0.50" })).toBe(true);
   });
 
-  it("acréscimo não passa pela senha — aumenta o total, não esvazia o caixa", () => {
+  it("acréscimo não passa pela senha, aumenta o total, não esvazia o caixa", () => {
     expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "percentual", valor: "10" })).toBe(false);
     expect(ajusteExigeSenha({ tipo: "acrescimo", mode: "fixo", valor: "8" })).toBe(false);
   });
@@ -60,7 +60,7 @@ describe("ajusteExigeSenha — senha de gerente no desconto", () => {
   // A tela calcula com a MESMA comparação (`tipo === "desconto" ? -val : val`),
   // então tipo malformado não vira desconto — soma. Dispensar a senha nesses
   // casos não abre buraco: não há valor saindo da conta para autorizar.
-  it("tipo malformado não é desconto — nem no cálculo, nem aqui", () => {
+  it("tipo malformado não é desconto, nem no cálculo, nem aqui", () => {
     for (const ajuste of [null, undefined, {}, { tipo: "" }, { tipo: "DESCONTO" }]) {
       expect(ajusteExigeSenha(ajuste)).toBe(false);
     }
@@ -86,7 +86,7 @@ describe("round2 (P7)", () => {
 });
 
 describe("mapearVendaParaLinhas", () => {
-  it("P7 — arredonda subtotal/total/taxa/ajuste com erro de centavo de ponto flutuante", () => {
+  it("P7, arredonda subtotal/total/taxa/ajuste com erro de centavo de ponto flutuante", () => {
     const sale = {
       id: "vfloat",
       subtotal: 0.1 + 0.2, // 0.30000000000000004
@@ -221,10 +221,6 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "Maria",
       clienteId: null,
       origem: "pdv",
-      cancelada: false,
-      motivoCancelamento: null,
-      canceladaPor: null,
-      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Hambúrguer", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -254,10 +250,6 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: null,
       clienteId: null,
       origem: "pdv",
-      cancelada: false,
-      motivoCancelamento: null,
-      canceladaPor: null,
-      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Água", price: 5, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -283,10 +275,6 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "joao",
       clienteId: null,
       origem: "pdv",
-      cancelada: false,
-      motivoCancelamento: null,
-      canceladaPor: null,
-      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 4, name: "Pizza", price: 40, qty: 1, cancelado: true, motivoCancelamento: "Pedido errado", canceladoPor: "joao" },
@@ -325,10 +313,6 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       cashier: "joao",
       clienteId: "cli-123",
       origem: "pdv",
-      cancelada: false,
-      motivoCancelamento: null,
-      canceladaPor: null,
-      canceladaEm: null,
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Suco", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -340,9 +324,49 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
 
     expect(reconstruida).toEqual(original);
   });
+
+  // TD009 etapa 3 — o cancelamento saiu do blob de `sales` e virou coluna em
+  // `vendas`. Sem estes campos na volta, a venda cancelada reaparecia no
+  // relatório depois de um F5: as telas filtram `cancelada` no cliente, e o
+  // filtro não tinha o que ler.
+  it("venda cancelada volta com o cancelamento no shape legado", () => {
+    const reconstruida = montarVendaLegada({
+      venda: {
+        id: "vc1",
+        comanda: "9",
+        subtotal: 40,
+        total: 40,
+        at: "2026-09-10T18:00:00.000Z",
+        cancelada: true,
+        motivo_cancelamento: "cliente desistiu",
+        cancelada_por: "Maria",
+        cancelada_em: "2026-09-10T18:05:00.000Z",
+      },
+      itens: [],
+      pagamentos: [],
+    });
+
+    expect(reconstruida).toMatchObject({
+      cancelada: true,
+      motivoCancelamento: "cliente desistiu",
+      canceladaPor: "Maria",
+      canceladaEm: "2026-09-10T18:05:00.000Z",
+    });
+  });
+
+  it("venda normal não ganha campos de cancelamento (shape legado intacto)", () => {
+    const reconstruida = montarVendaLegada({
+      venda: { id: "vn1", comanda: "9", subtotal: 40, total: 40, at: "2026-09-10T18:00:00.000Z", cancelada: false },
+      itens: [],
+      pagamentos: [],
+    });
+
+    expect(reconstruida).not.toHaveProperty("cancelada");
+    expect(reconstruida).not.toHaveProperty("canceladaPor");
+  });
 });
 
-describe("persistirVendaNormalizada (dual-write — detecção de falha)", () => {
+describe("persistirVendaNormalizada (dual-write, detecção de falha)", () => {
   // Fake client: registra cada insert e devolve o `{ error }` configurado
   // por tabela (ou null). Espelha o supabase-js: NÃO lança em erro de
   // RLS/constraint — resolve com { error }. Um valor-função permite
@@ -378,7 +402,7 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
-    expect(res).toEqual({ ok: true, falhas: [] });
+    expect(res).toEqual({ ok: true, jaExistia: false, cabecalhoGravado: true, falhas: [] });
     expect(onFalha).not.toHaveBeenCalled();
     expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
   });
@@ -392,6 +416,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     // (a) o erro é detectado/registrado — fim do furo silencioso
     expect(res.ok).toBe(false);
+    // TD009 etapa 3: sem cabeçalho a venda não existe, e é isso que manda o
+    // addSale desfazer o otimista em vez de dar a venda por gravada.
+    expect(res.cabecalhoGravado).toBe(false);
     expect(res.falhas).toEqual([{ etapa: "vendas", error: erro }]);
     expect(onFalha).toHaveBeenCalledWith({ etapa: "vendas", error: erro, venda_id: "vp1" });
     // filhas não são tentadas quando o header falha
@@ -405,7 +432,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
 
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
-    expect(res).toEqual({ ok: true, falhas: [] });
+    // TD009 etapa 3: `jaExistia` é o que impede o reenvio offline de reemitir
+    // `venda.finalizada` a cada passada do dreno (pendência 6 do ADR-013).
+    expect(res).toEqual({ ok: true, jaExistia: true, cabecalhoGravado: true, falhas: [] });
     expect(onFalha).not.toHaveBeenCalled();
     // não reinsere itens/pagamentos (evita duplicar linhas sem chave natural)
     expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
@@ -419,6 +448,9 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
     const res = await persistirVendaNormalizada(client, saleBase, { onFalha });
 
     expect(res.ok).toBe(false);
+    // a venda EXISTE e ficou incompleta: quem chama registra a inconsistência
+    // e NÃO desfaz, senão o operador refaria uma venda que já foi cobrada.
+    expect(res.cabecalhoGravado).toBe(true);
     expect(res.falhas).toEqual([{ etapa: "venda_itens", error: erro }]);
     expect(client.calls.map((c) => c.table)).toEqual(["vendas", "venda_itens", "venda_pagamentos"]);
   });
@@ -435,7 +467,7 @@ describe("persistirVendaNormalizada (dual-write — detecção de falha)", () =>
       lancou = true;
     }
 
-    // (b) addSale nunca lança: a finalização (sales, já gravada) segue normal
+    // (b) persistirVendaNormalizada nunca lança: quem chama decide pelo retorno
     expect(lancou).toBe(false);
     expect(res.ok).toBe(false);
     expect(res.falhas[0].etapa).toBe("excecao");

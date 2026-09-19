@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("SidebarBranding — Fase 6 (white-label, ADR-007)", () => {
+describe("SidebarBranding, Fase 6 (white-label, ADR-007)", () => {
   it("sem tema custom, mostra o nome CADASTRADO do estabelecimento com o tagline 'by Kora'", () => {
     // Run 5, leva 11: o teste antigo usava um tenant chamado "GastroMundi",
     // que era exatamente o fallback hardcodado — passava com e sem o defeito.

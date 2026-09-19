@@ -488,7 +488,7 @@ function RevisaoLista({ diffs }) {
   return (
     <div className="mod-lista">
       <p className="estoque-modulo__revisaoAjuda">
-        Confira antes de gravar — só os itens com diferença aparecem aqui.
+        Confira antes de gravar, só os itens com diferença aparecem aqui.
       </p>
       {diffs.map((item) => (
         <div key={item.id} className="mod-cartao">

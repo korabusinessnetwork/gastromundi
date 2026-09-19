@@ -207,7 +207,7 @@ describe("SeletorEscolhas — máximo 0 é sem limite", () => {
 
   it("a instrução diz 'quantas quiser', não 'até 0'", () => {
     montar([grupo({ minimo: 0, maximo: 0 })]);
-    expect(screen.getByText("Opcional — escolha quantas quiser")).toBeInTheDocument();
+    expect(screen.getByText("Opcional, escolha quantas quiser")).toBeInTheDocument();
   });
 });
 

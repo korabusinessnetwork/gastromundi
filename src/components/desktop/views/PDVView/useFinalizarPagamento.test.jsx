@@ -190,7 +190,7 @@ describe("useFinalizarPagamento (regressão do incidente)", () => {
   });
 });
 
-describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", () => {
+describe("useFinalizarPagamento, receita automática (Financeiro fase 1)", () => {
   it("pagamento normal vira receita 'recebido', categoria vendas, origem venda", async () => {
     const { finalizarPagamento } = setup();
 
@@ -305,7 +305,7 @@ describe("useFinalizarPagamento — receita automática (Financeiro fase 1)", ()
   });
 });
 
-describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () => {
+describe("useFinalizarPagamento, add-ons pagos (Fase 3, decisão 019)", () => {
   it("SEM add-on habilitado (padrão hoje): não dispara nem NF-e nem TEF, pagamento segue idêntico", async () => {
     const { finalizarPagamento } = setup({ addonHabilitado: () => false });
 
@@ -460,7 +460,7 @@ describe("useFinalizarPagamento — add-ons pagos (Fase 3, decisão 019)", () =>
   });
 });
 
-describe("useFinalizarPagamento — Leva 12 (offline-first no checkout)", () => {
+describe("useFinalizarPagamento, Leva 12 (offline-first no checkout)", () => {
   const pagamentoCredito = { ...payload, pagamentos: [{ metodo: "credito", valor: 30 }] };
 
   it("sem internet, pagamento TEF é BLOQUEADO antes de gravar qualquer coisa", async () => {
@@ -550,7 +550,7 @@ describe("useFinalizarPagamento — Leva 12 (offline-first no checkout)", () => 
   });
 });
 
-describe("useFinalizarPagamento — venda de balcão (semComanda)", () => {
+describe("useFinalizarPagamento, venda de balcão (semComanda)", () => {
   it("não tenta remover pending quando a venda não veio de comanda", async () => {
     const { appMock, finalizarPagamento } = setup();
 
@@ -580,7 +580,7 @@ describe("useFinalizarPagamento — venda de balcão (semComanda)", () => {
   });
 });
 
-describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escrita", () => {
+describe("useFinalizarPagamento, Fase 4 (billing) NÃO bloqueia nenhuma escrita", () => {
   it("finaliza a venda normalmente mesmo com a assinatura 'bloqueada' (enforcement é só na Fase 5)", async () => {
     const { appMock, finalizarPagamento } = setup({
       assinatura: { status: "bloqueado", diasParaVencer: -10, carenciaDias: 3 },
@@ -596,7 +596,7 @@ describe("useFinalizarPagamento — Fase 4 (billing) NÃO bloqueia nenhuma escri
 // chamador sem arredondar e ia cru para o banco/recibo, e o retorno das
 // baixas de estoque era descartado — a venda saía como sucesso total
 // enquanto o estoque ficava sem descontar, sem ninguém saber.
-describe("useFinalizarPagamento — Leva D (total arredondado e baixas que falharam)", () => {
+describe("useFinalizarPagamento, Leva D (total arredondado e baixas que falharam)", () => {
   it("total com sujeira de ponto flutuante é gravado arredondado, não 48.599999999999994", async () => {
     const { appMock, finalizarPagamento } = setup();
 

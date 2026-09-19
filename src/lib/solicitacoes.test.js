@@ -98,7 +98,7 @@ describe("registrarSolicitacaoConta", () => {
     });
   });
 
-  it("aceita cadastro sem plano escolhido — decidir depois é uma resposta", async () => {
+  it("aceita cadastro sem plano escolhido, decidir depois é uma resposta", async () => {
     await registrarSolicitacaoConta({ ...VALIDO, plano: null });
     const args = supabase.rpc.mock.calls[0][1];
     expect(args.p_plano_codigo).toBeNull();

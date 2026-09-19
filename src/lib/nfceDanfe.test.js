@@ -41,7 +41,7 @@ describe("formatarChaveEmGrupos", () => {
   });
 });
 
-describe("montarDanfeNfce — totais e itens", () => {
+describe("montarDanfeNfce, totais e itens", () => {
   it("soma produtos, desconto e total corretamente", () => {
     const d = montarDanfeNfce(BASE);
     expect(d.itens).toHaveLength(2);
@@ -74,7 +74,7 @@ describe("montarDanfeNfce — totais e itens", () => {
   });
 });
 
-describe("montarDanfeNfce — pagamentos e troco", () => {
+describe("montarDanfeNfce, pagamentos e troco", () => {
   it("rotula a forma de pagamento e mostra o troco quando > 0", () => {
     const d = montarDanfeNfce(BASE);
     expect(d.pagamentos[0]).toEqual({ rotulo: "Dinheiro", valor: "40,00" });
@@ -91,7 +91,7 @@ describe("montarDanfeNfce — pagamentos e troco", () => {
   });
 });
 
-describe("montarDanfeNfce — chave formatada", () => {
+describe("montarDanfeNfce, chave formatada", () => {
   it("expõe a chave em grupos de 4 e os dígitos crus", () => {
     const d = montarDanfeNfce(BASE);
     expect(d.chaveAcesso).toBe(CHAVE);
@@ -99,12 +99,12 @@ describe("montarDanfeNfce — chave formatada", () => {
   });
 });
 
-describe("montarDanfeNfce — tarja de homologação", () => {
+describe("montarDanfeNfce, tarja de homologação", () => {
   it("inclui a tarja SEM VALOR FISCAL quando tpAmb=2", () => {
     const d = montarDanfeNfce({ ...BASE, tpAmb: 2 });
     expect(d.ambiente).toBe("homologacao");
     expect(d.avisos).toContain(
-      "EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO — SEM VALOR FISCAL",
+      "EMITIDA EM AMBIENTE DE HOMOLOGAÇÃO, SEM VALOR FISCAL",
     );
   });
 
@@ -115,7 +115,7 @@ describe("montarDanfeNfce — tarja de homologação", () => {
   });
 });
 
-describe("montarDanfeNfce — consumidor identificado x anônimo", () => {
+describe("montarDanfeNfce, consumidor identificado x anônimo", () => {
   it("anônimo quando não há CPF/CNPJ", () => {
     const d = montarDanfeNfce(BASE);
     expect(d.consumidor).toEqual({
@@ -135,7 +135,7 @@ describe("montarDanfeNfce — consumidor identificado x anônimo", () => {
   });
 });
 
-describe("montarDanfeNfce — estado pendente x autorizada", () => {
+describe("montarDanfeNfce, estado pendente x autorizada", () => {
   it("pendente quando não há protocolo (nota não autorizada)", () => {
     const d = montarDanfeNfce(BASE);
     expect(d.autorizada).toBe(false);
@@ -159,7 +159,7 @@ describe("montarDanfeNfce — estado pendente x autorizada", () => {
   });
 });
 
-describe("montarDanfeNfce — validações", () => {
+describe("montarDanfeNfce, validações", () => {
   it("exige ao menos um item", () => {
     expect(() => montarDanfeNfce({ ...BASE, itens: [] })).toThrow(/item/i);
   });

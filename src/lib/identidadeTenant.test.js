@@ -43,12 +43,12 @@ beforeEach(() => {
 });
 
 describe("caminhoLogoTenant", () => {
-  it("monta {tenant}/identidade/logo.png — determinístico, um por tenant", () => {
+  it("monta {tenant}/identidade/logo.png, determinístico, um por tenant", () => {
     expect(caminhoLogoTenant("t1")).toBe("t1/identidade/logo.png");
     expect(caminhoLogoTenant("abc-uuid")).toBe("abc-uuid/identidade/logo.png");
   });
 
-  it("a PRIMEIRA pasta é o tenant — é nela que a policy do Storage casa", () => {
+  it("a PRIMEIRA pasta é o tenant, é nela que a policy do Storage casa", () => {
     expect(caminhoLogoTenant("t1").split("/")[0]).toBe("t1");
   });
 
@@ -68,17 +68,17 @@ describe("limparNomeExibicao / nomeExibicaoValido", () => {
     expect(limparNomeExibicao(undefined)).toBe("");
   });
 
-  it("aceita até o limite e recusa acima — o mesmo teto que a RPC valida", () => {
+  it("aceita até o limite e recusa acima, o mesmo teto que a RPC valida", () => {
     expect(nomeExibicaoValido("a".repeat(MAX_NOME_EXIBICAO))).toBe(true);
     expect(nomeExibicaoValido("a".repeat(MAX_NOME_EXIBICAO + 1))).toBe(false);
   });
 
-  it("vazio é válido — significa 'usar o nome cadastrado', não erro", () => {
+  it("vazio é válido, significa 'usar o nome cadastrado', não erro", () => {
     expect(nomeExibicaoValido("")).toBe(true);
     expect(nomeExibicaoValido("   ")).toBe(true);
   });
 
-  it("conta o nome já aparado — espaço nas pontas não estoura o limite", () => {
+  it("conta o nome já aparado, espaço nas pontas não estoura o limite", () => {
     expect(nomeExibicaoValido(`   ${"a".repeat(MAX_NOME_EXIBICAO)}   `)).toBe(true);
   });
 });
@@ -103,12 +103,12 @@ describe("identidadeMudou", () => {
     expect(identidadeMudou(salvo, { nome: salvo.nome, logoUrl: "" })).toBe(true);
   });
 
-  it("nulo e vazio são a mesma coisa — não inventa mudança no bootstrap", () => {
+  it("nulo e vazio são a mesma coisa, não inventa mudança no bootstrap", () => {
     expect(identidadeMudou({ nome: "", logoUrl: "" }, { nome: null, logoUrl: undefined })).toBe(false);
   });
 });
 
-describe("enviarLogoTenant — guardas antes de gastar rede", () => {
+describe("enviarLogoTenant, guardas antes de gastar rede", () => {
   it("recusa arquivo que não é imagem, sem chamar o Storage", async () => {
     const { url, error } = await enviarLogoTenant({
       file: { type: "application/pdf", size: 10 },
@@ -131,7 +131,7 @@ describe("enviarLogoTenant — guardas antes de gastar rede", () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
-  it("sem tenant não tenta subir — não haveria caminho isolado", async () => {
+  it("sem tenant não tenta subir, não haveria caminho isolado", async () => {
     const { url, error } = await enviarLogoTenant({ file: { type: "image/png", size: 10 }, tenantId: "" });
 
     expect(url).toBe(null);
@@ -158,7 +158,7 @@ describe("enviarLogoTenant — guardas antes de gastar rede", () => {
   });
 });
 
-describe("salvarIdentidadeTenant — contrato da RPC", () => {
+describe("salvarIdentidadeTenant, contrato da RPC", () => {
   it("chama a RPC pelo nome, com o nome aparado", async () => {
     await salvarIdentidadeTenant({ nomeExibicao: "  Bar do Zé  ", logoUrl: "https://cdn/x.png" });
 
@@ -168,7 +168,7 @@ describe("salvarIdentidadeTenant — contrato da RPC", () => {
     });
   });
 
-  it("NÃO manda id de tenant — o alvo é sempre quem está logado", async () => {
+  it("NÃO manda id de tenant, o alvo é sempre quem está logado", async () => {
     await salvarIdentidadeTenant({ nomeExibicao: "X", logoUrl: "" });
 
     const [, args] = rpc.mock.calls[0];
@@ -221,7 +221,7 @@ describe("salvarIdentidadeTenant — contrato da RPC", () => {
 });
 
 describe("constantes", () => {
-  it("o logo cabe no cabeçalho — lado máximo pequeno de propósito", () => {
+  it("o logo cabe no cabeçalho, lado máximo pequeno de propósito", () => {
     expect(MAX_LADO_LOGO).toBe(512);
   });
 });

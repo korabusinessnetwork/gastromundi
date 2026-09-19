@@ -271,6 +271,21 @@
 
 .sfila__historico-obs { flex-basis: 100%; font-style: italic; }
 
+/* Rodapé do bloco de já decididos: a conta e o botão de ver mais, empilhados
+   e centrados, para não competir com os cartões pendentes acima. */
+.sfila__historico-mais {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+.sfila__historico-conta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
 .sfila__icone--ok { color: var(--gm-green); }
 .sfila__icone--recusado { color: var(--gm-red); }
 

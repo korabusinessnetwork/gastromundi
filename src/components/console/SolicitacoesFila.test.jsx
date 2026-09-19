@@ -47,13 +47,13 @@ const DECIDIDA = {
 };
 
 describe("SolicitacoesFila", () => {
-  it("quem pediu primeiro aparece primeiro — é quem espera há mais tempo", () => {
+  it("quem pediu primeiro aparece primeiro, é quem espera há mais tempo", () => {
     render(<SolicitacoesFila solicitacoes={[PENDENTE, MAIS_ANTIGO]} />);
     const cartoes = screen.getAllByRole("listitem");
     expect(within(cartoes[0]).getByText("Padaria Aurora")).toBeInTheDocument();
   });
 
-  it("mostra o endereço pedido — é ele que vira o subdomínio e o login da equipe", () => {
+  it("mostra o endereço pedido, é ele que vira o subdomínio e o login da equipe", () => {
     render(<SolicitacoesFila solicitacoes={[PENDENTE]} />);
     expect(screen.getByText("bardoze")).toBeInTheDocument();
   });
@@ -108,7 +108,7 @@ describe("SolicitacoesFila", () => {
     expect(screen.getByRole("button", { name: "Recusar" })).toBeDisabled();
   });
 
-  it("falha de leitura DIZ que não sabe — nunca 'nenhum pedido esperando'", () => {
+  it("falha de leitura DIZ que não sabe, nunca 'nenhum pedido esperando'", () => {
     render(<SolicitacoesFila solicitacoes={[]} erro={true} />);
     expect(screen.getByRole("alert")).toHaveTextContent(/não foi possível carregar/i);
     expect(screen.queryByText(/nenhum pedido esperando/i)).not.toBeInTheDocument();
@@ -126,5 +126,32 @@ describe("SolicitacoesFila", () => {
     expect(screen.getByText("já é cliente")).toBeInTheDocument();
     // E não aparece como pendente esperando decisão.
     expect(screen.queryByRole("button", { name: /aprovar e criar/i })).not.toBeInTheDocument();
+  });
+
+  // O histórico só cresce: cada conta aberta e cada recusa ficam ali para
+  // sempre. Sem corte, quem abre a aba para responder os pendentes rola
+  // centenas de linhas mortas.
+  it("o histórico sai por blocos, dizendo quantos existem ao todo", async () => {
+    const decididas = Array.from({ length: 12 }, (_, i) => ({
+      ...DECIDIDA,
+      id: `d${i}`,
+      estabelecimento: `Decidido ${i}`,
+      observacao: null,
+    }));
+    render(<SolicitacoesFila solicitacoes={decididas} />);
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(10);
+    expect(screen.getByText(/Mostrando 10 de 12 pedidos já decididos/i)).toBeInTheDocument();
+    // O corte não pode esconder que existe mais: o botão diz quantos faltam.
+    await userEvent.click(screen.getByRole("button", { name: /Ver mais 2 pedidos/i }));
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(12);
+    expect(screen.queryByText(/Mostrando 10 de 12/i)).not.toBeInTheDocument();
+  });
+
+  it("histórico curto não ganha rodapé de bloco", () => {
+    render(<SolicitacoesFila solicitacoes={[DECIDIDA]} />);
+    expect(screen.queryByText(/Mostrando/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Ver mais/i })).not.toBeInTheDocument();
   });
 });

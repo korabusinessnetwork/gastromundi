@@ -113,7 +113,7 @@ describe("enviarViaProducao", () => {
     expect(documento).not.toHaveProperty("pontoNome");
   });
 
-  it("config antiga com impressoraQz não quebra — o campo legado é ignorado", async () => {
+  it("config antiga com impressoraQz não quebra, o campo legado é ignorado", async () => {
     configurarConfig({
       impressaoEmRede: true,
       perfilImpressora: { larguraMm: 80, driver: "escpos-qztray", impressoraQz: "EPSON-ANTIGA" },
@@ -190,7 +190,7 @@ describe("enviarViaProducao com vários pontos de impressão", () => {
     ]);
   });
 
-  it("todo item sai em exatamente um papel — nenhum se perde, nenhum duplica", async () => {
+  it("todo item sai em exatamente um papel, nenhum se perde, nenhum duplica", async () => {
     configurarConfig({
       perfilImpressora: PERFIL_TERMICA,
       pontosImpressao: DOIS_PONTOS,
@@ -358,7 +358,7 @@ describe("id de impressão nascido da ação, não do texto do papel", () => {
     expect(idBar).not.toBe(idCozinha);
   });
 
-  it("a mesma ação pedida de novo repete o id — é assim que a Ponte segura o papel dobrado", async () => {
+  it("a mesma ação pedida de novo repete o id, é assim que a Ponte segura o papel dobrado", async () => {
     configurarConfig({ perfilImpressora: PERFIL_TERMICA });
     const pedidoLancado = lancamento("ped-a", "2026-07-26T18:00:00.000Z", UM_X_BURGUER);
 
@@ -503,7 +503,7 @@ describe("imprimirLancamento", () => {
     expect(imprimirDocumento).not.toHaveBeenCalled();
   });
 
-  it("devolve o erro do driver sem lançar — o pedido já está gravado", async () => {
+  it("devolve o erro do driver sem lançar, o pedido já está gravado", async () => {
     configurarConfig({ perfilImpressora: PERFIL_TERMICA });
     imprimirDocumento.mockResolvedValue({ error: { message: "Ponte KORA fechada." } });
 

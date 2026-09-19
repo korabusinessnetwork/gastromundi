@@ -83,7 +83,7 @@ export default function NovoGrupoExtrasInline({ nomeInicial = "", onCriado, onCa
     setSalvando(false);
     onCriado?.(
       { ...grupo, itens: validas.map((o) => ({ nome: o.nome.trim() })) },
-      falhou > 0 ? `${falhou} opção(ões) não foram salvas — confira na aba Complementos.` : null,
+      falhou > 0 ? `${falhou} opção(ões) não foram salvas, confira na aba Complementos.` : null,
     );
   };
 

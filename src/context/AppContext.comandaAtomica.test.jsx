@@ -19,6 +19,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act } from "@testing-library/react";
 import { CHAVE_FILA_PENDING } from "@/lib/offline/fila";
+import { storageFilaOffline } from "@/lib/offline/filaApp";
 
 const mockSupabase = vi.hoisted(() => ({
   from: vi.fn(),
@@ -118,7 +119,10 @@ const SEM_MIGRATION = { data: null, error: { code: "PGRST202", message: "Could n
 const SEM_REDE = { data: null, error: { message: "TypeError: Failed to fetch" } };
 const RLS_NEGOU = { data: null, error: { code: "42501", message: "new row violates row-level security policy" } };
 
-const filaGravada = () => JSON.parse(window.localStorage.getItem(CHAVE_FILA_PENDING) ?? "[]");
+// A fila saiu do localStorage e foi para o IndexedDB (F021 fatia 2). Lemos
+// pela MESMA porta que ela usa, que é o motivo de `storageFilaOffline` ser
+// exportado — assim o teste não volta a quebrar na próxima troca de banco.
+const filaGravada = () => JSON.parse(storageFilaOffline.getItem(CHAVE_FILA_PENDING) ?? "[]");
 
 function montar() {
   const app = { current: null };

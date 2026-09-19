@@ -443,6 +443,7 @@ export default function RelatorioView() {
       (Array.isArray(v.items) ? v.items : [])
         .filter(it => it.cancelado)
         .forEach(it => linhas.push({
+          uid:           it.uid,
           comanda:       v.comanda ?? "—",
           cashier:       v.cashier ?? "—",
           canceladoPor:  it.canceladoPor || "—",
@@ -462,6 +463,7 @@ export default function RelatorioView() {
       (Array.isArray(p.items) ? p.items : [])
         .filter(it => it.cancelado)
         .forEach(it => linhas.push({
+          uid:           it.uid,
           comanda:       p.comanda ?? "—",
           cashier:       p.garcom  ?? "—",
           canceladoPor:  it.canceladoPor || "—",
@@ -636,7 +638,7 @@ export default function RelatorioView() {
     ]);
     const totais = `Faturamento: R$ ${adminConsolidado.totalAtual.toFixed(2)} · ${adminConsolidado.count} venda(s)`
       + (adminConsolidado.variacao != null ? ` · ${adminConsolidado.variacao >= 0 ? "+" : ""}${adminConsolidado.variacao.toFixed(1)}% vs período anterior` : "");
-    if (fmt === "pdf") exportToPDF("Relatório Admin — Faturamento por Operador", headers, rows, periodo, { totais });
+    if (fmt === "pdf") exportToPDF("Relatório Admin, Faturamento por Operador", headers, rows, periodo, { totais });
     else               exportToXLSX("Relatorio Admin", headers, rows, periodo);
   };
 
@@ -1202,8 +1204,10 @@ export default function RelatorioView() {
                   </thead>
                   <tbody>
                     {cancelamentos.map((c, i) => (
+                      // TD015: o `uid` vem do item da comanda (`comandaItens.js`). O `?? i` cobre
+                      // venda antiga, fechada antes de os itens passarem a nascer com identidade.
                       <tr
-                        key={i}
+                        key={c.uid ?? i}
                         onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                         style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
@@ -1496,7 +1500,7 @@ export default function RelatorioView() {
                 color: varColor(C.red), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                Área restrita — estas informações são confidenciais. Não compartilhe com terceiros.
+                Área restrita, estas informações são confidenciais. Não compartilhe com terceiros.
               </div>
               <button
                 onClick={exportCredenciais}
@@ -1577,7 +1581,7 @@ export default function RelatorioView() {
               com o quê.
             */}
             <div className="relatorio-view__cred-nota" style={{ marginTop: 12, color: varColor(C.muted) }}>
-              Senhas nunca são exibidas aqui — ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
+              Senhas nunca são exibidas aqui, ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
             </div>
           </div>
         )}
@@ -1615,7 +1619,7 @@ export default function RelatorioView() {
                 borderRadius: 12, padding: "10px 14px", color: varColor(C.accent), fontWeight: 600,
               }}>
                 <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
-                Visão administrativa consolidada — inclui todos os operadores. Confidencial.
+                Visão administrativa consolidada, inclui todos os operadores. Confidencial.
               </div>
               <ExportBar onPDF={() => exportAdmin("pdf")} onXLSX={() => exportAdmin("xlsx")} />
             </div>

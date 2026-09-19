@@ -236,7 +236,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
             ))}
           </select>
           <div className="editor-grupos__ajuda">
-            O cliente escolhe entre todos os produtos ativos desta categoria — cada um baixa o próprio
+            O cliente escolhe entre todos os produtos ativos desta categoria, cada um baixa o próprio
             estoque. Produto novo nesta categoria passa a aparecer sozinho, sem você mexer aqui.
             {ehSabor ? " Cada opção vale o preço que o produto já tem no cadastro." : ""}
           </div>
@@ -292,7 +292,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
                       role="switch"
                       aria-checked={ligada}
                       aria-label={`Oferecer ${p?.name ?? "esta opção"}`}
-                      title={ligada ? "Sendo oferecida — clique para desligar (o acréscimo fica salvo)" : "Não está sendo oferecida — clique para ligar"}
+                      title={ligada ? "Sendo oferecida, clique para desligar (o acréscimo fica salvo)" : "Não está sendo oferecida, clique para ligar"}
                       onClick={() => setAtivo(idx, !ligada)}
                       className="editor-grupos__item-ligar"
                     >
@@ -370,7 +370,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
           <div className="editor-grupos__ajuda">
             {ehSabor
               ? "Aqui o número é o PREÇO da opção, não um acréscimo. Deixe em branco para usar o preço que o produto já tem no cadastro."
-              : "O acréscimo é quanto aquela opção soma ao preço — deixe zerado quando não muda nada."}
+              : "O acréscimo é quanto aquela opção soma ao preço, deixe zerado quando não muda nada."}
           </div>
         </div>
       )}
@@ -397,7 +397,7 @@ function GrupoCard({ grupo, products, onChange, onRemover }) {
       </div>
       <div className="editor-grupos__ajuda">
         {instrucaoGrupo(grupo.minimo ?? 0, grupo.maximo ?? 1)}. Baixe o máximo até
-        “sem limite” quando o cliente puder repetir à vontade — pizza de quantos
+        “sem limite” quando o cliente puder repetir à vontade, pizza de quantos
         sabores quiser, por exemplo.
       </div>
 
