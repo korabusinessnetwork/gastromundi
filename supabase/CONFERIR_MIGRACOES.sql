@@ -125,7 +125,9 @@ WITH marcas (n, migracao, marca_existe) AS (
     (34, '20261012_delivery_aceite_automatico',
          EXISTS (SELECT 1 FROM information_schema.columns
                   WHERE table_schema='public' AND table_name='config_delivery'
-                    AND column_name='aceite_automatico'))
+                    AND column_name='aceite_automatico')),
+    (35, '20261013_opcao_com_quantidade',
+         to_regprocedure('public.qtd_da_opcao(jsonb,text)') IS NOT NULL)
 )
 SELECT
   n                                                    AS "nº",
@@ -162,11 +164,12 @@ WITH marcas AS (
   + (EXISTS (SELECT 1 FROM information_schema.columns
               WHERE table_schema='public' AND table_name='config_delivery'
                 AND column_name='aceite_automatico'))::int
+  + (to_regprocedure('public.qtd_da_opcao(jsonb,text)') IS NOT NULL)::int
   AS marcos_grandes
 )
 SELECT
-  marcos_grandes || ' de 15 marcos grandes presentes' AS "resumo rápido",
-  CASE WHEN marcos_grandes = 15
+  marcos_grandes || ' de 16 marcos grandes presentes' AS "resumo rápido",
+  CASE WHEN marcos_grandes = 16
        THEN 'Parece bem atualizado — mesmo assim, rode o APLICAR_MIGRACOES_PENDENTES.sql para fechar as pontas.'
        ELSE 'Faltam migrações. Rode o APLICAR_MIGRACOES_PENDENTES.sql inteiro.' END AS "o que fazer"
 FROM marcas;

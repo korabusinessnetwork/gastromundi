@@ -49,9 +49,12 @@ export default function SacolaModal({
           ) : (
             <>
               {itens.map((item) => {
+                // "2x Filezinho" e não "Filezinho": desde que dá para pedir
+                // a mesma opção mais de uma vez, a lista sem o número não
+                // confere com o preço que a linha está cobrando.
                 const extras = (item.complementosEscolhidos ?? [])
-                  .map((c) => c.nome)
-                  .filter(Boolean)
+                  .filter((c) => c?.nome)
+                  .map((c) => (Number(c.qtd) > 1 ? `${c.qtd}x ${c.nome}` : c.nome))
                   .join(", ");
                 const fora = item.situacao === "fora";
                 return (

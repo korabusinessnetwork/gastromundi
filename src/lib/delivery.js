@@ -230,6 +230,31 @@ export function grupoSatisfeito(grupo, qtdEscolhida) {
 }
 
 /**
+ * Quantas UNIDADES foram escolhidas num grupo.
+ *
+ * A vitrine passou a guardar quantas de cada opção (`{ opcaoId: qtd }`),
+ * porque "2 de calabresa e 1 de portuguesa" é um pedido de três fatias e
+ * não de duas opções — é assim que o PDV já contava, e era só a vitrine
+ * que insistia em contar opções distintas.
+ *
+ * A forma antiga (lista de ids) continua valendo: uma sacola guardada no
+ * sessionStorage antes desta versão cai aqui, e ali cada id vale 1.
+ *
+ * @param {Record<string, number>|Array<string>|null|undefined} escolha
+ * @returns {number}
+ */
+export function unidadesDoGrupo(escolha) {
+  if (Array.isArray(escolha)) return escolha.length;
+  if (escolha && typeof escolha === "object") {
+    return Object.values(escolha).reduce(
+      (total, n) => total + Math.max(0, Number(n) || 0),
+      0
+    );
+  }
+  return 0;
+}
+
+/**
  * Achata a árvore de grupos (raiz → subgrupos → ...) numa lista plana, em
  * ordem de exibição (pré-ordem/DFS). Cada subgrupo é um grupo NORMAL com id
  * único, então achatar preserva o espaço de seleção plano (grupoId → ids).
@@ -261,7 +286,7 @@ export function achatarGrupos(grupos) {
  */
 export function grupoArvoreSatisfeita(grupo, selecoesPorGrupo) {
   if (!grupo) return true;
-  const proprio = grupoSatisfeito(grupo, (selecoesPorGrupo?.[grupo.id] ?? []).length);
+  const proprio = grupoSatisfeito(grupo, unidadesDoGrupo(selecoesPorGrupo?.[grupo.id]));
   if (!proprio) return false;
   return (grupo.subgrupos ?? []).every((sub) =>
     grupoArvoreSatisfeita(sub, selecoesPorGrupo)
@@ -339,6 +364,59 @@ export function rotuloRegraGrupo(grupo) {
 }
 
 /**
+ * O mesmo selo do grupo, agora sabendo quanto já foi escolhido. É a
+ * diferença entre um cartaz parado ("Escolha 3") e alguém dizendo o que
+ * falta enquanto a pessoa escolhe ("Faltam 2", "✓ pronto").
+ *
+ * No teto, a frase é a resposta à única pergunta que o cliente está
+ * fazendo ali ("por que não entra mais?"), então ela tem prioridade sobre
+ * o "pronto": o grupo completo já se anuncia pelo botão de adicionar.
+ *
+ * @param {{min?: number, max?: number, itens?: Array}} grupo
+ * @param {number} unidades quantas unidades já foram escolhidas no grupo
+ * @returns {string}
+ */
+export function rotuloProgressoGrupo(grupo, unidades) {
+  if (grupoImpossivel(grupo)) return "Indisponível no momento";
+  const min = Math.max(0, Number(grupo?.min) || 0);
+  const maxRaw = Number(grupo?.max);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
+  const u = Math.max(0, Number(unidades) || 0);
+
+  // Escolha única troca sozinha (tocar em outra substitui), então o teto
+  // nunca vira um beco ali e a frase de "tire uma" não faz sentido.
+  if (max > 1 && u >= max) return `Máximo ${max}, tire uma para trocar`;
+  if (min > 0 && u < min) {
+    if (u === 0) return rotuloRegraGrupo(grupo);
+    const faltam = min - u;
+    return faltam === 1 ? "Falta 1" : `Faltam ${faltam}`;
+  }
+  if (min > 0) return "✓ pronto";
+  return rotuloRegraGrupo(grupo);
+}
+
+/**
+ * Casa o texto digitado na busca com o nome da opção, ignorando acento e
+ * caixa: quem procura "acai" tem de achar "Açaí". Busca vazia casa com
+ * tudo, porque campo em branco não é filtro.
+ *
+ * @param {string} nome
+ * @param {string} termo
+ * @returns {boolean}
+ */
+export function combinaComBusca(nome, termo) {
+  const limpar = (t) =>
+    String(t ?? "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // remove acentos
+      .toLowerCase()
+      .trim();
+  const busca = limpar(termo);
+  if (!busca) return true;
+  return limpar(nome).includes(busca);
+}
+
+/**
  * Primeiro grupo ainda não satisfeito — usado para GUIAR o cliente até o
  * campo que falta (prevenção/condução de erro > mensagem seca).
  * @param {{grupos?: Array<{id: string}>}} produto
@@ -350,8 +428,7 @@ export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
   // tela, então rolamos para o PRIMEIRO campo que falta (pai antes dos
   // filhos), incluindo subgrupos em qualquer profundidade.
   for (const g of achatarGrupos(produto?.grupos ?? [])) {
-    const qtd = (selecoesPorGrupo?.[g.id] ?? []).length;
-    if (!grupoSatisfeito(g, qtd)) return g.id;
+    if (!grupoSatisfeito(g, unidadesDoGrupo(selecoesPorGrupo?.[g.id]))) return g.id;
   }
   return null;
 }
@@ -534,6 +611,30 @@ export function separarRuaNumero(endereco) {
  * recalcula tudo. Envia só a intenção (o que o cliente escolheu).
  * @param {{cliente: object, entrega: object, pagamento: object, itens: Array}} dados
  */
+/**
+ * As opções escolhidas do jeito que a RPC espera.
+ *
+ * O formato de sempre é uma lista de ids, uma entrada por opção. Ele não
+ * sabe dizer "duas de calabresa": o servidor junta ids repetidos, e a
+ * segunda fatia sumiria sem ninguém notar.
+ *
+ * Quando o cliente pede a MESMA opção mais de uma vez, a lista passa a
+ * levar `{ id, qtd }`. Quando não pede (que é o pedido de todo dia), sai
+ * exatamente a lista de ids de antes — de propósito: o navegador guarda o
+ * app em cache, então uma tela nova pode chegar a um banco onde a
+ * migração ainda não rodou, e nesse encontro só o que é novo falha, em
+ * vez de derrubar todo pedido que tenha um complemento.
+ *
+ * @param {Array<{id: (string|number), qtd?: number}>|null|undefined} escolhidos
+ * @returns {Array<string|number|{id: (string|number), qtd: number}>}
+ */
+export function complementosDoPayload(escolhidos) {
+  const lista = escolhidos ?? [];
+  const qtdDe = (c) => Math.max(1, Number(c?.qtd) || 1);
+  if (!lista.some((c) => qtdDe(c) > 1)) return lista.map((c) => c.id);
+  return lista.map((c) => ({ id: c.id, qtd: qtdDe(c) }));
+}
+
 export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispositivo }) {
   const lat = coordenada(entrega?.lat);
   const lng = coordenada(entrega?.lng);
@@ -593,7 +694,7 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispos
       produto_id: item?.produto_id ?? null,
       combo_id: item?.combo_id ?? null,
       qtd: Math.max(1, Number(item?.qtd) || 1),
-      complementos: (item?.complementosEscolhidos ?? []).map((c) => c.id),
+      complementos: complementosDoPayload(item?.complementosEscolhidos),
       obs: (item?.obs ?? "").trim() || null,
     })),
   };

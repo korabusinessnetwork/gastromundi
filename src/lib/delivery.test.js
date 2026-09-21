@@ -33,6 +33,10 @@ import {
   grupoImpossivel,
   produtoImpossivel,
   rotuloRegraGrupo,
+  rotuloProgressoGrupo,
+  unidadesDoGrupo,
+  combinaComBusca,
+  complementosDoPayload,
   primeiroGrupoPendente,
   montarPayloadPedido,
   valorDigitado,
@@ -1497,5 +1501,188 @@ describe("precoDosComplementos — cada grupo cobra pela sua regra", () => {
     // 40 de base + 60 do grupo = 100 o unitário, 200 a linha.
     expect(precoUnitario(item)).toBe(100);
     expect(precoLinha(item)).toBe(200);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Escolha por quantidade: o grupo conta porções, não opções distintas.
+//
+// "Escolha 3 cortes" quase nunca é um de cada. Contando opções, dois
+// filezinhos e uma tulipinha valiam 2 e o pedido ficava barrado; e a
+// segunda porção nem tinha como ser pedida.
+// ══════════════════════════════════════════════════════════════════
+describe("unidadesDoGrupo", () => {
+  it("soma as quantidades do mapa de escolhas", () => {
+    expect(unidadesDoGrupo({ fil: 2, tul: 1 })).toBe(3);
+  });
+
+  it("lista de ids continua valendo, cada id é uma unidade", () => {
+    // Sacola guardada no sessionStorage antes desta versão.
+    expect(unidadesDoGrupo(["fil", "tul"])).toBe(2);
+  });
+
+  it("vazio, nulo ou lixo valem zero", () => {
+    expect(unidadesDoGrupo({})).toBe(0);
+    expect(unidadesDoGrupo(null)).toBe(0);
+    expect(unidadesDoGrupo(undefined)).toBe(0);
+    expect(unidadesDoGrupo("três")).toBe(0);
+    expect(unidadesDoGrupo({ fil: "dois" })).toBe(0);
+  });
+
+  it("quantidade negativa não abate o que os outros somaram", () => {
+    expect(unidadesDoGrupo({ fil: -5, tul: 2 })).toBe(2);
+  });
+});
+
+describe("grupoArvoreSatisfeita e primeiroGrupoPendente contam unidades", () => {
+  const produto = {
+    grupos: [{ id: "cortes", nome: "Cortes", min: 3, max: 3, itens: [] }],
+  };
+
+  it("duas porções de uma opção só ainda não fecham um mínimo de 3", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 2 } })).toBe(false);
+    expect(primeiroGrupoPendente(produto, { cortes: { fil: 2 } })).toBe("cortes");
+  });
+
+  it("três porções fecham, venham de uma opção ou de três", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 3 } })).toBe(true);
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 1, tul: 1, cox: 1 } })).toBe(true);
+    expect(primeiroGrupoPendente(produto, { cortes: { fil: 3 } })).toBeNull();
+  });
+
+  it("passar do máximo em unidades também não satisfaz", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 4 } })).toBe(false);
+  });
+});
+
+describe("rotuloProgressoGrupo", () => {
+  const cortes = { min: 3, max: 3, itens: [{}, {}, {}] };
+
+  it("sem nada escolhido, repete a instrução do grupo", () => {
+    expect(rotuloProgressoGrupo(cortes, 0)).toBe("Escolha 3");
+  });
+
+  it("no meio do caminho, diz quanto falta", () => {
+    expect(rotuloProgressoGrupo(cortes, 1)).toBe("Faltam 2");
+    expect(rotuloProgressoGrupo(cortes, 2)).toBe("Falta 1");
+  });
+
+  it("no teto, responde a pergunta que o cliente está fazendo", () => {
+    expect(rotuloProgressoGrupo(cortes, 3)).toBe("Máximo 3, tire uma para trocar");
+  });
+
+  it("obrigatório completo sem teto à vista sai como pronto", () => {
+    expect(rotuloProgressoGrupo({ min: 2, max: 0, itens: [{}, {}] }, 2)).toBe("✓ pronto");
+  });
+
+  it("grupo opcional continua dizendo que é opcional", () => {
+    expect(rotuloProgressoGrupo({ min: 0, max: 3, itens: [{}] }, 1)).toBe("Opcional · até 3");
+    expect(rotuloProgressoGrupo({ min: 0, max: 0, itens: [{}] }, 0)).toBe("Opcional");
+  });
+
+  it("escolha única nunca pede para tirar uma, porque tocar já troca", () => {
+    expect(rotuloProgressoGrupo({ min: 1, max: 1, itens: [{}, {}] }, 1)).toBe("✓ pronto");
+  });
+
+  it("grupo impossível continua avisando antes de pedir o impossível", () => {
+    expect(rotuloProgressoGrupo({ min: 1, max: 1, itens: [] }, 0)).toBe(
+      "Indisponível no momento",
+    );
+  });
+});
+
+describe("combinaComBusca", () => {
+  it("ignora acento e caixa", () => {
+    expect(combinaComBusca("Açaí com granola", "acai")).toBe(true);
+    expect(combinaComBusca("COXINHA DA ASA", "coxinha")).toBe(true);
+  });
+
+  it("casa no meio do nome", () => {
+    expect(combinaComBusca("Coxinha da asa", "asa")).toBe(true);
+  });
+
+  it("busca vazia casa com tudo, campo em branco não é filtro", () => {
+    expect(combinaComBusca("Tulipinha", "")).toBe(true);
+    expect(combinaComBusca("Tulipinha", "   ")).toBe(true);
+    expect(combinaComBusca("Tulipinha", null)).toBe(true);
+  });
+
+  it("o que não casa, não casa", () => {
+    expect(combinaComBusca("Tulipinha", "picanha")).toBe(false);
+  });
+});
+
+describe("complementosDoPayload", () => {
+  it("sem repetição, sai a lista de ids de sempre", () => {
+    // O navegador guarda o app em cache: uma tela nova pode chegar a um
+    // banco onde a migração ainda não rodou, e o pedido de todo dia tem
+    // de continuar passando lá.
+    expect(
+      complementosDoPayload([
+        { id: "a", qtd: 1 },
+        { id: "b" },
+      ]),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("com repetição, a quantidade vai junto", () => {
+    expect(
+      complementosDoPayload([
+        { id: "a", qtd: 2 },
+        { id: "b", qtd: 1 },
+      ]),
+    ).toEqual([
+      { id: "a", qtd: 2 },
+      { id: "b", qtd: 1 },
+    ]);
+  });
+
+  it("quantidade torta nunca vira zero ou negativo", () => {
+    expect(complementosDoPayload([{ id: "a", qtd: 0 }])).toEqual(["a"]);
+    expect(complementosDoPayload([{ id: "a", qtd: -3 }])).toEqual(["a"]);
+    expect(complementosDoPayload([{ id: "a", qtd: "duas" }])).toEqual(["a"]);
+  });
+
+  it("nada escolhido é lista vazia", () => {
+    expect(complementosDoPayload([])).toEqual([]);
+    expect(complementosDoPayload(null)).toEqual([]);
+  });
+});
+
+describe("montarPayloadPedido leva a quantidade das opções", () => {
+  const base = {
+    cliente: { nome: "Ana", telefone: "11912345678" },
+    entrega: { tipo: "retirada" },
+    pagamento: { forma: "pix" },
+  };
+
+  it("duas porções da mesma opção chegam como {id, qtd}", () => {
+    const payload = montarPayloadPedido({
+      ...base,
+      itens: [
+        {
+          produto_id: 5,
+          qtd: 1,
+          complementosEscolhidos: [
+            { id: "fil", qtd: 2 },
+            { id: "cox", qtd: 1 },
+          ],
+        },
+      ],
+    });
+    expect(payload.itens[0].complementos).toEqual([
+      { id: "fil", qtd: 2 },
+      { id: "cox", qtd: 1 },
+    ]);
+  });
+
+  it("uma de cada continua saindo como lista de ids", () => {
+    const payload = montarPayloadPedido({
+      ...base,
+      itens: [
+        { produto_id: 5, qtd: 1, complementosEscolhidos: [{ id: "fil", qtd: 1 }] },
+      ],
+    });
+    expect(payload.itens[0].complementos).toEqual(["fil"]);
   });
 });

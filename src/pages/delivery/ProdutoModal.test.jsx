@@ -50,7 +50,22 @@ const cta = () => document.querySelector(".modal-rodape .btn--primario");
 /** O selo de regra do grupo de índice `i` (o "Escolha 1", "✓ pronto"…). */
 const selo = (i = 0) => document.querySelectorAll(".grupo__regra")[i];
 
-const opcaoBotao = (nome) => screen.getByRole("button", { name: new RegExp(nome) });
+/**
+ * O botão da opção. Nome EXATO, não expressão regular: desde que cada
+ * opção tem contador, "Granola" convive na mesma linha com "Somar um
+ * Granola" e "Tirar um Granola", e um /Granola/ casaria com os três.
+ */
+const opcaoBotao = (nome) => screen.getByRole("button", { name: nome });
+
+/** O "−" da opção, que é por onde se tira uma unidade. */
+const tirarUm = (nome) => screen.getByRole("button", { name: `Tirar um ${nome}` });
+
+/** O "+" da opção. */
+const somarUm = (nome) => screen.getByRole("button", { name: `Somar um ${nome}` });
+
+/** Quantas unidades daquela opção estão escolhidas, como a tela mostra. */
+const contador = (nome) =>
+  tirarUm(nome).parentElement.querySelector(".opcao-qtd__valor").textContent;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -192,22 +207,28 @@ describe("ProdutoModal, grupo no máximo (Run 6, leva 2)", () => {
     await user.click(opcaoBotao("Leite condensado"));
     await user.click(opcaoBotao("Banana"));
 
-    expect(selo()).toHaveTextContent("Máximo 3, desmarque para trocar");
+    expect(selo()).toHaveTextContent("Máximo 3, tire uma para trocar");
     expect(opcaoBotao("Morango")).toBeDisabled();
     expect(opcaoBotao("Morango")).toHaveClass("opcao--bloqueada");
   });
 
-  it("as opções já escolhidas continuam clicáveis, é assim que o cliente troca", async () => {
+  // A opção deixou de ser marcado/desmarcado: tocar nela SOMA uma unidade,
+  // e quem tira é o "−". No teto, portanto, tocar na opção já escolhida não
+  // faz mais nada, e deixá-la clicável seria o toque que não responde que
+  // esta mesma suíte existe para evitar. O que o teste guarda continua
+  // sendo a propriedade de sempre: no máximo, dá para trocar sem recomeçar,
+  // e o que já entrou continua inteiro na tela.
+  it("no máximo, o que já entrou continua à mão e sai pelo '−'", async () => {
     const { user } = abrir(ATE_TRES);
 
     await user.click(opcaoBotao("Granola"));
     await user.click(opcaoBotao("Leite condensado"));
     await user.click(opcaoBotao("Banana"));
 
-    expect(opcaoBotao("Granola")).toBeEnabled();
     expect(opcaoBotao("Granola")).not.toHaveClass("opcao--bloqueada");
+    expect(tirarUm("Granola")).toBeEnabled();
 
-    await user.click(opcaoBotao("Granola")); // desmarca
+    await user.click(tirarUm("Granola"));
 
     expect(selo()).toHaveTextContent("Opcional · até 3");
     expect(opcaoBotao("Morango")).toBeEnabled();
@@ -283,11 +304,11 @@ describe("ProdutoModal, grupo no máximo (Run 6, leva 2)", () => {
 
     expect(opcaoBotao("Farofa")).toBeDisabled();
     expect(opcaoBotao("Beterraba")).toBeEnabled();
-    expect(selo(0)).toHaveTextContent("Máximo 2, desmarque para trocar");
+    expect(selo(0)).toHaveTextContent("Máximo 2, tire uma para trocar");
     expect(selo(1)).toHaveTextContent("Opcional · até 2");
 
     const saladas = within(document.querySelectorAll(".grupo")[1]);
-    expect(saladas.getByRole("button", { name: /Alface/ })).toBeEnabled();
+    expect(saladas.getByRole("button", { name: "Alface" })).toBeEnabled();
   });
 });
 
@@ -403,8 +424,8 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
 
   it("'a mais cara' cobra UMA pizza, não a soma dos sabores", async () => {
     const { user } = abrir(pizza("maior"));
-    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
-    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
 
     // 40 de base + 60 do sabor mais caro. Somando daria R$ 140.
     expect(precoNoBotao()).toBe("R$ 100,00");
@@ -412,16 +433,16 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
 
   it("'média' é a outra convenção de meio a meio", async () => {
     const { user } = abrir(pizza("media"));
-    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
-    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
 
     expect(precoNoBotao()).toBe("R$ 90,00"); // 40 + (40+60)/2
   });
 
   it("sem regra continua somando — o complemento do delivery não mudou", async () => {
     const { user } = abrir(pizza(undefined));
-    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
-    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
 
     expect(precoNoBotao()).toBe("R$ 140,00");
   });
@@ -430,7 +451,7 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
     // "+ R$ 60" numa pizza de R$ 60 faz o cliente somar duas vezes de
     // cabeça e achar que vai pagar R$ 100 pela metade portuguesa.
     abrir(pizza("maior"));
-    const botao = screen.getByRole("button", { name: /Portuguesa/ });
+    const botao = opcaoBotao("Portuguesa");
     expect(within(botao).getByText("R$ 60,00")).toBeInTheDocument();
     expect(within(botao).queryByText(/^\+/)).toBeNull();
   });
@@ -451,7 +472,7 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
         },
       ],
     });
-    const botao = screen.getByRole("button", { name: /Bacon/ });
+    const botao = opcaoBotao("Bacon");
     expect(within(botao).getByText("+ R$ 4,00")).toBeInTheDocument();
   });
 
@@ -460,15 +481,15 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
     // quando o dono mexe no grupo hoje — e a sacola faz a mesma conta
     // que o modal mostrou.
     const { user, onAdicionar } = abrir(pizza("maior"));
-    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
-    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
     // "Adicionar observação" também casa com /Adicionar/ — o CTA é o do rodapé.
     await user.click(document.querySelector(".btn--primario"));
 
     const item = onAdicionar.mock.calls[0][0];
     expect(item.complementosEscolhidos).toEqual([
-      { id: "cala", nome: "Calabresa", preco: 40, grupoId: "sabores", regra: "maior" },
-      { id: "port", nome: "Portuguesa", preco: 60, grupoId: "sabores", regra: "maior" },
+      { id: "cala", nome: "Calabresa", preco: 40, qtd: 1, grupoId: "sabores", regra: "maior" },
+      { id: "port", nome: "Portuguesa", preco: 60, qtd: 1, grupoId: "sabores", regra: "maior" },
     ]);
   });
 
@@ -488,10 +509,253 @@ describe("ProdutoModal — o grupo cobra pela regra dele", () => {
         },
       ],
     });
-    await user.click(screen.getByRole("button", { name: /Calabresa/ }));
-    await user.click(screen.getByRole("button", { name: /Portuguesa/ }));
-    await user.click(screen.getByRole("button", { name: /Catupiry/ }));
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
+    await user.click(opcaoBotao("Catupiry"));
 
     expect(precoNoBotao()).toBe("R$ 108,00"); // 40 + 60 + 8
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// A opção deixou de ser marcado/desmarcado.
+//
+// "Escolha 3 cortes" numa caixa de frango quase nunca é um de cada: é
+// dois de filezinho e um de coxinha da asa. A vitrine só sabia marcar e
+// desmarcar, então o segundo filezinho não tinha como ser pedido, e o
+// mínimo do grupo contava OPÇÕES distintas, não as três porções que o
+// cliente ia receber. O PDV já contava unidades desde o "double cheddar";
+// era a vitrine que ficara para trás.
+// ══════════════════════════════════════════════════════════════════
+describe("ProdutoModal, quantidade por opção", () => {
+  const caixa = (regra, min = 3, max = 3) => ({
+    produto_id: 20,
+    nome: "Misto Caixa G",
+    preco: 90,
+    grupos: [
+      {
+        id: "cortes",
+        nome: "Cortes de frango",
+        min,
+        max,
+        regra,
+        itens: [
+          opcao("fil", "Filezinho", 4),
+          opcao("tul", "Tulipinha", 2),
+          opcao("cox", "Coxinha da asa"),
+        ],
+      },
+    ],
+  });
+
+  const precoNoBotao = () => document.querySelector(".btn__preco").textContent;
+
+  it("a mesma opção entra duas vezes, e o contador mostra quantas", async () => {
+    const { user } = abrir(caixa("soma"));
+
+    expect(contador("Filezinho")).toBe("0");
+
+    await user.click(opcaoBotao("Filezinho")); // tocar na linha soma uma
+    await user.click(somarUm("Filezinho"));
+
+    expect(contador("Filezinho")).toBe("2");
+    // 90 de base + 2 filezinhos de R$ 4.
+    expect(precoNoBotao()).toBe("R$ 98,00");
+  });
+
+  it("o mínimo conta porções, não opções diferentes", async () => {
+    const { user } = abrir(caixa("soma"));
+
+    await user.click(opcaoBotao("Filezinho"));
+    await user.click(somarUm("Filezinho"));
+
+    // Duas porções escolhidas, ainda que de uma opção só: falta uma.
+    expect(selo()).toHaveTextContent("Falta 1");
+    expect(cta()).toHaveTextContent("Escolha os obrigatórios");
+
+    await user.click(opcaoBotao("Tulipinha"));
+
+    expect(selo()).toHaveTextContent("Máximo 3, tire uma para trocar");
+    expect(cta()).toHaveTextContent("Adicionar");
+  });
+
+  it("o teto também conta porções, então o '+' para na terceira", async () => {
+    const { user } = abrir(caixa("soma"));
+
+    await user.click(opcaoBotao("Filezinho"));
+    await user.click(somarUm("Filezinho"));
+    await user.click(somarUm("Filezinho"));
+
+    expect(contador("Filezinho")).toBe("3");
+    expect(somarUm("Filezinho")).toBeDisabled();
+    expect(opcaoBotao("Tulipinha")).toBeDisabled();
+    expect(opcaoBotao("Tulipinha")).toHaveClass("opcao--bloqueada");
+
+    await user.click(tirarUm("Filezinho"));
+
+    expect(contador("Filezinho")).toBe("2");
+    expect(opcaoBotao("Tulipinha")).toBeEnabled();
+  });
+
+  it("o '−' começa desligado e a opção nunca fica negativa", async () => {
+    const { user } = abrir(caixa("soma"));
+
+    expect(tirarUm("Tulipinha")).toBeDisabled();
+
+    await user.click(opcaoBotao("Tulipinha"));
+    await user.click(tirarUm("Tulipinha"));
+
+    expect(contador("Tulipinha")).toBe("0");
+    expect(tirarUm("Tulipinha")).toBeDisabled();
+  });
+
+  it("a quantidade vai junto para a sacola", async () => {
+    const { user, onAdicionar } = abrir(caixa("soma"));
+
+    await user.click(opcaoBotao("Filezinho"));
+    await user.click(somarUm("Filezinho"));
+    await user.click(opcaoBotao("Coxinha da asa"));
+    await user.click(cta());
+
+    expect(onAdicionar.mock.calls[0][0].complementosEscolhidos).toEqual([
+      { id: "fil", nome: "Filezinho", preco: 4, qtd: 2, grupoId: "cortes", regra: "soma" },
+      { id: "cox", nome: "Coxinha da asa", preco: 0, qtd: 1, grupoId: "cortes", regra: "soma" },
+    ]);
+  });
+
+  it("em 'a mais cara' repetir não multiplica, porque é fração de um só", async () => {
+    // Duas fatias de calabresa e uma de portuguesa continuam sendo UMA
+    // pizza: o grupo cobra o sabor mais caro, não a conta das fatias.
+    const { user } = abrir({
+      produto_id: 21,
+      nome: "Pizza Grande",
+      preco: 40,
+      grupos: [
+        {
+          id: "sabores",
+          nome: "Sabores",
+          min: 3,
+          max: 3,
+          regra: "maior",
+          itens: [opcao("cala", "Calabresa", 40), opcao("port", "Portuguesa", 60)],
+        },
+      ],
+    });
+
+    await user.click(opcaoBotao("Calabresa"));
+    await user.click(somarUm("Calabresa"));
+    await user.click(opcaoBotao("Portuguesa"));
+
+    expect(precoNoBotao()).toBe("R$ 100,00"); // 40 + 60, não 40 + 140
+  });
+
+  it("em grupo de escolha única não existe contador, tocar troca", async () => {
+    const { user } = abrir({
+      produto_id: 22,
+      nome: "Refrigerante",
+      preco: 8,
+      grupos: [
+        {
+          id: "sabor",
+          nome: "Sabor",
+          min: 1,
+          max: 1,
+          itens: [opcao("gua", "Guaraná"), opcao("col", "Cola")],
+        },
+      ],
+    });
+
+    expect(document.querySelector(".opcao-qtd")).toBeNull();
+
+    await user.click(opcaoBotao("Guaraná"));
+    await user.click(opcaoBotao("Cola"));
+
+    expect(opcaoBotao("Cola")).toHaveAttribute("aria-pressed", "true");
+    expect(opcaoBotao("Guaraná")).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Grupo grande: busca e passo.
+//
+// Uma caixa de frango com vinte cortes vira uma parede de rolagem, e um
+// produto com quatro grupos parece um formulário sem fim — rolar não diz
+// se falta muito.
+// ══════════════════════════════════════════════════════════════════
+describe("ProdutoModal, grupo grande e passos", () => {
+  const dezOpcoes = Array.from({ length: 10 }, (_, i) =>
+    opcao(`i${i}`, i === 0 ? "Coxinha da asa" : `Corte ${i}`),
+  );
+
+  const GRANDE = {
+    produto_id: 30,
+    nome: "Misto Caixa G",
+    preco: 90,
+    grupos: [
+      { id: "cortes", nome: "Cortes de frango", min: 1, max: 3, itens: dezOpcoes },
+      { id: "acomp", nome: "Acompanhamento", min: 1, max: 1, itens: [opcao("bat", "Batata frita")] },
+    ],
+  };
+
+  const busca = () => screen.getByRole("searchbox", { name: /Cortes de frango/ });
+
+  it("grupo grande ganha busca, grupo pequeno não", () => {
+    abrir(GRANDE);
+
+    expect(document.querySelectorAll(".grupo__busca")).toHaveLength(1);
+    expect(busca()).toBeInTheDocument();
+  });
+
+  it("a busca ignora acento e caixa", async () => {
+    const { user } = abrir(GRANDE);
+
+    await user.type(busca(), "coxinha");
+
+    expect(opcaoBotao("Coxinha da asa")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Corte 5" })).toBeNull();
+  });
+
+  it("o que já foi escolhido não some ao filtrar", async () => {
+    const { user } = abrir(GRANDE);
+
+    await user.click(opcaoBotao("Corte 5"));
+    await user.type(busca(), "coxinha");
+
+    // Ver o próprio pedido desaparecer ao digitar faz o cliente escolher
+    // de novo e sair com o dobro.
+    expect(opcaoBotao("Corte 5")).toBeInTheDocument();
+    expect(contador("Corte 5")).toBe("1");
+  });
+
+  it("busca sem resultado diz que é a busca", async () => {
+    const { user } = abrir(GRANDE);
+
+    await user.type(busca(), "picanha");
+
+    expect(screen.getByText("Nada com esse nome por aqui.")).toBeInTheDocument();
+  });
+
+  it("cada grupo diz em qual passo está, e quantos são", () => {
+    abrir(GRANDE);
+
+    const passos = [...document.querySelectorAll(".grupo__passo")].map((n) => n.textContent);
+    expect(passos).toEqual(["Passo 1 de 2", "Passo 2 de 2"]);
+  });
+
+  it("produto de um grupo só não mostra passo, porque não há por onde se perder", () => {
+    abrir({
+      produto_id: 31,
+      nome: "Refrigerante",
+      preco: 8,
+      grupos: [{ id: "sabor", nome: "Sabor", min: 1, max: 1, itens: [opcao("gua", "Guaraná")] }],
+    });
+
+    expect(document.querySelector(".grupo__passo")).toBeNull();
+  });
+
+  it("o selo do obrigatório aparece junto do nome do grupo", () => {
+    abrir(GRANDE);
+
+    expect(document.querySelectorAll(".grupo__obrigatorio")).toHaveLength(2);
   });
 });
