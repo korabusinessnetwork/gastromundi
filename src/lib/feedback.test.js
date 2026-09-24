@@ -13,6 +13,10 @@ import {
   listarFeedbacks,
   marcarResolvido,
   mediaDasNotas,
+  filtrarFeedbacks,
+  contarFeedbacks,
+  quandoChegou,
+  rotuloDaNota,
   LIMITE_TEXTO,
 } from "./feedback";
 import { supabase } from "./supabase";
@@ -173,5 +177,109 @@ describe("mediaDasNotas", () => {
   it("o feedback da equipe não tem nota e não entra na média", () => {
     expect(mediaDasNotas([{ origem: "equipe", texto: "quebrou" }, { nota: 4 }]))
       .toEqual({ media: 4, quantas: 1 });
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// A leitura dos feedbacks.
+//
+// Os dois canais gravavam desde a migração 20261010 e não havia tela
+// para ler: a feature estava pela metade, e a metade que faltava era a
+// que serve ao dono.
+// ══════════════════════════════════════════════════════════════════
+const LISTA = [
+  { id: "1", origem: "equipe",  texto: "não salva",   resolvido: false },
+  { id: "2", origem: "equipe",  texto: "lento",       resolvido: true },
+  { id: "3", origem: "cliente", texto: "veio frio",   resolvido: false, nota: 2 },
+  { id: "4", origem: "cliente", texto: "ótimo",       resolvido: true,  nota: 5 },
+  { id: "5", origem: "cliente", texto: "bom",         resolvido: false, nota: 4 },
+];
+
+describe("filtrarFeedbacks", () => {
+  it("por origem", () => {
+    expect(filtrarFeedbacks(LISTA, { origem: "equipe" }).map((f) => f.id)).toEqual(["1", "2"]);
+    expect(filtrarFeedbacks(LISTA, { origem: "cliente" }).map((f) => f.id)).toEqual(["3", "4", "5"]);
+  });
+
+  it("por situação", () => {
+    expect(filtrarFeedbacks(LISTA, { situacao: "abertos" }).map((f) => f.id)).toEqual(["1", "3", "5"]);
+    expect(filtrarFeedbacks(LISTA, { situacao: "resolvidos" }).map((f) => f.id)).toEqual(["2", "4"]);
+  });
+
+  it("os dois eixos ao mesmo tempo, que é a pergunta de verdade", () => {
+    // "O que os clientes disseram e ainda não foi respondido."
+    expect(
+      filtrarFeedbacks(LISTA, { origem: "cliente", situacao: "abertos" }).map((f) => f.id),
+    ).toEqual(["3", "5"]);
+  });
+
+  it("sem filtro devolve tudo", () => {
+    expect(filtrarFeedbacks(LISTA)).toHaveLength(5);
+    expect(filtrarFeedbacks(LISTA, { origem: "todas", situacao: "todos" })).toHaveLength(5);
+  });
+
+  it("valor inesperado não esvazia a lista", () => {
+    // Sumir tudo por causa de um estado estranho da tela parece que os
+    // feedbacks foram apagados.
+    expect(filtrarFeedbacks(LISTA, { origem: "sei-la", situacao: "sei-la" })).toHaveLength(5);
+  });
+
+  it("lista ausente ou com buraco não quebra", () => {
+    expect(filtrarFeedbacks(null)).toEqual([]);
+    expect(filtrarFeedbacks(undefined)).toEqual([]);
+    expect(filtrarFeedbacks([null, LISTA[0]])).toHaveLength(1);
+  });
+});
+
+describe("contarFeedbacks", () => {
+  it("conta cada recorte que vai dentro de um botão", () => {
+    expect(contarFeedbacks(LISTA)).toEqual({
+      total: 5, equipe: 2, cliente: 3, abertos: 3, resolvidos: 2,
+    });
+  });
+
+  it("lista vazia conta zero em tudo", () => {
+    expect(contarFeedbacks([])).toEqual({
+      total: 0, equipe: 0, cliente: 0, abertos: 0, resolvidos: 0,
+    });
+    expect(contarFeedbacks(null).total).toBe(0);
+  });
+});
+
+describe("quandoChegou", () => {
+  const agora = new Date("2026-09-20T12:00:00Z");
+
+  it("fala em dias, que é a medida que importa num relato", () => {
+    expect(quandoChegou("2026-09-20T09:00:00Z", agora)).toBe("hoje");
+    expect(quandoChegou("2026-09-19T09:00:00Z", agora)).toBe("ontem");
+    expect(quandoChegou("2026-09-17T09:00:00Z", agora)).toBe("há 3 dias");
+  });
+
+  it("a partir de uma semana vira data, que é como se fala de algo antigo", () => {
+    expect(quandoChegou("2026-09-10T09:00:00Z", agora)).toBe("10/09/2026");
+  });
+
+  it("data no futuro (relógio torto) não vira número negativo na tela", () => {
+    expect(quandoChegou("2026-09-25T09:00:00Z", agora)).toBe("hoje");
+  });
+
+  it("data ilegível vira vazio, não 'Invalid Date'", () => {
+    expect(quandoChegou("", agora)).toBe("");
+    expect(quandoChegou(null, agora)).toBe("");
+    expect(quandoChegou("sei-la", agora)).toBe("");
+  });
+});
+
+describe("rotuloDaNota", () => {
+  it("é a mesma palavra que o cliente escolheu na vitrine", () => {
+    expect(rotuloDaNota(1)).toBe("Ruim");
+    expect(rotuloDaNota(3)).toBe("Ok");
+    expect(rotuloDaNota(5)).toBe("Ótimo");
+  });
+
+  it("fora da escala não inventa palavra", () => {
+    expect(rotuloDaNota(0)).toBe("");
+    expect(rotuloDaNota(9)).toBe("");
+    expect(rotuloDaNota(null)).toBe("");
   });
 });

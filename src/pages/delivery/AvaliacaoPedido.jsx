@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { enviarAvaliacaoCliente, LIMITE_TEXTO } from "@/lib/feedback";
+import { enviarAvaliacaoCliente, rotuloDaNota, LIMITE_TEXTO } from "@/lib/feedback";
 import "./AvaliacaoPedido.css";
 
 /**
@@ -26,8 +26,6 @@ import "./AvaliacaoPedido.css";
  * informação), comentário claramente opcional, e um agradecimento que
  * encerra em vez de deixar a pessoa sem saber se foi.
  */
-
-const ROTULOS = ["", "Ruim", "Fraco", "Ok", "Bom", "Ótimo"];
 
 export default function AvaliacaoPedido({ slug }) {
   const [nota, setNota] = useState(0);
@@ -68,7 +66,7 @@ export default function AvaliacaoPedido({ slug }) {
             key={n}
             type="button"
             onClick={() => setNota(n)}
-            aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}, ${ROTULOS[n]}`}
+            aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}, ${rotuloDaNota(n)}`}
             aria-pressed={nota === n}
             className={`avaliacao__estrela${n <= nota ? " avaliacao__estrela--cheia" : ""}`}
           >
@@ -79,7 +77,7 @@ export default function AvaliacaoPedido({ slug }) {
 
       {/* A nota por extenso: cor e preenchimento sozinhos não são
           informação para quem não distingue bem as duas coisas. */}
-      {nota > 0 && <p className="avaliacao__rotulo">{ROTULOS[nota]}</p>}
+      {nota > 0 && <p className="avaliacao__rotulo">{rotuloDaNota(nota)}</p>}
 
       {nota > 0 && (
         <>
