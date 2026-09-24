@@ -3,6 +3,7 @@ import { emitirEvento } from "./jarvas";
 import { baixarConta } from "./financeiro";
 import { apenasDigitos, validarDocumento } from "./documento";
 import { telefoneValido, apenasDigitosTelefone } from "./telefone";
+import { dataNascimentoUtil } from "./delivery";
 
 /**
  * Clientes — F010 (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -71,6 +72,11 @@ export async function cadastrarCliente(dados, usuario) {
   // Guarda só os dígitos (sem máscara); o tipo só faz sentido com documento.
   const documento = apenasDigitos(dados.documento) || null;
   const documento_tipo = documento ? (dados.documentoTipo === "cnpj" ? "cnpj" : "cpf") : null;
+  // Opcional, e nunca barra o cadastro: data impossível vira vazio em vez
+  // de erro. É a mesma regra do delivery (dataNascimentoUtil), porque é a
+  // MESMA coluna — o cliente que pediu online e o que foi cadastrado no
+  // balcão não podem seguir critérios diferentes.
+  const data_nascimento = dataNascimentoUtil(dados.dataNascimento);
 
   const { data: existentes, error: eBusca } = await supabase
     .from("clientes")
@@ -93,6 +99,7 @@ export async function cadastrarCliente(dados, usuario) {
     documento_tipo,
     endereco: dados.endereco?.trim() || null,
     observacoes: dados.observacoes?.trim() || null,
+    data_nascimento,
     criado_por: usuario ?? null,
   };
 
@@ -121,6 +128,11 @@ export async function atualizarCliente(id, dados, usuario) {
     payload.documento_tipo = doc ? (dados.documentoTipo === "cnpj" ? "cnpj" : "cpf") : null;
   }
   if (dados.endereco !== undefined) payload.endereco = dados.endereco?.trim() || null;
+  // `undefined` = a tela não mexeu no campo; string vazia = a pessoa
+  // apagou de propósito, e aí a data sai mesmo.
+  if (dados.dataNascimento !== undefined) {
+    payload.data_nascimento = dataNascimentoUtil(dados.dataNascimento);
+  }
   if (dados.observacoes !== undefined) payload.observacoes = dados.observacoes?.trim() || null;
 
   const { data, error } = await supabase.from("clientes").update(payload).eq("id", id).select().single();
@@ -138,7 +150,7 @@ export async function atualizarCliente(id, dados, usuario) {
 export async function listarClientes({ busca } = {}) {
   let query = supabase
     .from("clientes")
-    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, created_at")
+    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, data_nascimento, criado_por, created_at")
     .eq("anonimizado", false)
     .order("nome");
   const termo = busca?.trim();
@@ -172,7 +184,7 @@ export async function buscarClientePorId(id) {
   if (!id) return { data: null, error: null };
   const { data, error } = await supabase
     .from("clientes")
-    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, created_at")
+    .select("id, nome, telefone, documento, documento_tipo, endereco, observacoes, data_nascimento, criado_por, created_at")
     .eq("id", id)
     .eq("anonimizado", false)
     .maybeSingle();
@@ -301,7 +313,7 @@ export async function registrarPagamentoFiado(lancamentoId, usuario) {
 export function sanitizarTermoBusca(termo) {
   if (!termo) return "";
   // Remove caracteres perigosos no PostgREST: , ( ) " \ * %
-  return String(termo).replace(/[,()"\\\*%]/g, " ").trim();
+  return String(termo).replace(/[,()"\\*%]/g, " ").trim();
 }
 
 /**
@@ -315,4 +327,83 @@ export function calcularSaldoDevedor(lancamentosFiado) {
   return (lancamentosFiado ?? [])
     .filter((l) => l.status === "previsto" || l.status === "vencido")
     .reduce((s, l) => s + (Number(l.valor) || 0), 0);
+}
+
+// ── Filtros da tela de clientes ────────────────────────────────────
+
+/**
+ * De onde veio o cadastro. O delivery grava `criado_por = 'delivery'`
+ * quando cria o cliente no primeiro pedido (migração 20261006); tudo o
+ * mais nasceu de alguém logado no PDV, e ali `criado_por` é o usuário.
+ *
+ * Não é uma coluna nova de propósito: a informação já existia, só não
+ * estava sendo lida. Uma coluna a mais precisaria ser preenchida em todos
+ * os caminhos, e o primeiro esquecido viraria cliente "sem origem".
+ *
+ * @param {{criado_por?: string|null}} cliente
+ * @returns {'delivery'|'pdv'}
+ */
+export function origemDoCliente(cliente) {
+  return cliente?.criado_por === "delivery" ? "delivery" : "pdv";
+}
+
+/**
+ * Mês do aniversário (1-12), ou null. Lê a data como TEXTO, sem montar
+ * `Date`: `new Date("1990-05-10")` é meia-noite UTC e, num fuso a oeste,
+ * volta como 9 de maio — o cliente perderia o próprio aniversário por um
+ * dia, justamente na lista que existe para não deixar isso acontecer.
+ *
+ * @param {{data_nascimento?: string|null}} cliente
+ * @returns {number|null}
+ */
+export function mesDoAniversario(cliente) {
+  const bruto = String(cliente?.data_nascimento ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}/.test(bruto)) return null;
+  const mes = Number(bruto.slice(5, 7));
+  return mes >= 1 && mes <= 12 ? mes : null;
+}
+
+/** Nomes dos meses para o filtro de aniversário e para o rótulo do cartão. */
+export const MESES_PT = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+/**
+ * "10 de maio", ou null quando não há data. Lê dia e mês como texto pelo
+ * mesmo motivo de `mesDoAniversario`: montar `Date` mudaria o dia de quem
+ * mora a oeste de Greenwich.
+ *
+ * @param {{data_nascimento?: string|null}} cliente
+ * @returns {string|null}
+ */
+export function rotuloAniversario(cliente) {
+  const mes = mesDoAniversario(cliente);
+  if (!mes) return null;
+  const dia = Number(String(cliente.data_nascimento).slice(8, 10));
+  if (!(dia >= 1 && dia <= 31)) return null;
+  return `${dia} de ${MESES_PT[mes - 1].toLowerCase()}`;
+}
+
+/**
+ * Aplica os filtros da tela sobre a lista já carregada. Pura — a busca
+ * por nome/telefone continua no servidor (listarClientes), porque ela
+ * precisa alcançar quem não está na página; estes três recortam o que
+ * já veio.
+ *
+ * @param {Array<object>} clientes
+ * @param {{origem?: 'todos'|'pdv'|'delivery', mesAniversario?: number|'todos', comEndereco?: boolean}} filtros
+ * @returns {Array<object>}
+ */
+export function filtrarClientes(clientes, filtros = {}) {
+  const lista = Array.isArray(clientes) ? clientes : [];
+  const origem = filtros.origem ?? "todos";
+  const mes = filtros.mesAniversario ?? "todos";
+  return lista.filter((c) => {
+    if (origem !== "todos" && origemDoCliente(c) !== origem) return false;
+    if (mes !== "todos" && mesDoAniversario(c) !== Number(mes)) return false;
+    // Para promoção com entrega: quem não tem endereço não dá para atender.
+    if (filtros.comEndereco && !String(c?.endereco ?? "").trim()) return false;
+    return true;
+  });
 }

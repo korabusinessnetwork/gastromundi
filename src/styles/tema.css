@@ -108,6 +108,44 @@
   --gm-pad: min(14.9px + 0.86vw, 48px);
 }
 
+/* Cor de texto PADRÃO do documento.
+ *
+ * Sem esta regra o `body` fica com a cor inicial do navegador — PRETO, porque
+ * a página não declara `color-scheme` — e todo elemento que esquece de
+ * declarar `color` sai preto no fundo escuro, ou seja, invisível. Foi assim
+ * que os números do "o cliente escolhe de 1 a 2 opções" (editor de grupos de
+ * escolha) sumiram: o `<span>` do valor não tinha `color` e herdava o preto.
+ *
+ * Corrigir aqui e não no componente é de propósito: o defeito não é daquela
+ * tela, é do documento não ter cor de texto. Um `color` esquecido em qualquer
+ * componente novo produziria exatamente o mesmo sumiço.
+ *
+ * O tenant continua mandando: a cor sai de --gm-text, sobrescrevível como
+ * qualquer token (decisão 017). */
+/* O app é uma casca do tamanho exato da tela (DesktopLayout usa 100dvh) e
+   quem rola é sempre um painel de dentro. O DOCUMENTO, portanto, nunca
+   deveria rolar — mas `overflow: hidden` só no `body` (index.html) não
+   impede: rolagem programática (o navegador levando o foco para dentro da
+   tela, um `scrollIntoView`) ainda move o `html`. Quando isso acontecia, o
+   topo da barra lateral subia para fora da tela e sobrava uma faixa
+   descoberta embaixo. Travar no `html` fecha o caminho.
+   As telas que rolam de verdade — a landing do apex, as Pautas — já rolam
+   por um contêiner próprio, não pelo documento. */
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  color: var(--gm-text);
+  /* O app cobre a tela inteira, então normalmente ninguém vê o fundo do
+     documento — até o dia em que alguma coisa rola a página um pouco além
+     dele. Aí o pedaço descoberto saía BRANCO, porque o `body` nunca pintou
+     fundo nenhum: branco puro no meio de um app escuro, com cara de tela
+     quebrada. Pintar aqui custa uma linha e fecha a categoria inteira. */
+  background: var(--gm-bg);
+}
+
 /* Celular muito pequeno (<360): único degrau real da curva antiga — o
    getSizes caía de 18px para 12px de uma vez, porque aí cada pixel de
    conteúdo conta. clamp() não faz degrau, então esta exceção fica explícita.

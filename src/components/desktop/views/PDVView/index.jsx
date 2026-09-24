@@ -20,8 +20,12 @@ import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { supabase } from "@/lib/supabase";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/lib/combos";
+import { resolverItensFixos } from "@/lib/comboItensFixos";
+import { carregarTodosGrupos } from "@/lib/gruposEscolha";
+import { carregarTodosItensFixos } from "@/lib/comboItensFixos";
 import { buscarClientePorId } from "@/lib/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
+import { comandasDoSalao } from "@/lib/deliveryPedidos";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import "./PDVView.css";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
@@ -37,6 +41,7 @@ import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
 import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
+import { formatarReais } from "@/lib/dinheiro";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -143,25 +148,45 @@ export default function PDVView({ notify }) {
   const [barcodeValue,      setBarcodeValue]      = useState("");
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
-  const abertas = pending.filter(o => o.status !== "closed");
+  // O pedido de delivery NÃO é comanda do salão: ninguém vai servi-lo na
+  // mesa, e desde 20261002 quem fecha a venda dele é a própria aba
+  // Delivery. O espelho continua em `pending` porque é ele que a Cozinha
+  // lê e a impressora imprime — só deixou de aparecer aqui, onde não
+  // havia o que fazer com ele além de confundir quem atende.
+  const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
 
-  // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
-  // Carrega uma vez por entrada na tela; a receita (subprodutos com
-  // controla_estoque) viaja junto no item do carrinho para a baixa de
-  // estoque dos componentes na finalização.
+  // ── Combos e grupos de escolha — vendáveis no PDV ─────────────
+  // Carrega uma vez por entrada na tela. O combo flexível é nome + preço +
+  // grupos de escolha; cada grupo vem indexado por dono em carregarTodosGrupos
+  // (porCombo/porProduto). Ao vender, as escolhas viajam no item do carrinho
+  // e baixam o estoque dos produtos reais escolhidos na finalização.
   const [combos, setCombos] = useState([]);
+  const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
     let ativo = true;
-    supabase
-      .from("combos")
-      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
-      .eq("ativo", true)
-      .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
-        if (ativo) setCombos(data ?? []);
-      });
+    Promise.all([
+      supabase.from("combos").select("id, nome, preco_total").eq("ativo", true),
+      carregarTodosGrupos(),
+      carregarTodosItensFixos(),
+    ]).then(([combosRes, gruposRes, fixosRes]) => {
+      if (!ativo) return;
+      if (combosRes.error) console.error("[pdv] erro ao carregar combos:", resumoErro(combosRes.error));
+      if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", resumoErro(gruposRes.error));
+      if (fixosRes.error) console.error("[pdv] erro ao carregar itens fixos dos combos:", resumoErro(fixosRes.error));
+      const porCombo = gruposRes.porCombo ?? {};
+      const fixosPorCombo = fixosRes.porCombo ?? {};
+      // Os itens fixos já saem daqui RESOLVIDOS contra o catálogo: é a
+      // única volta em que `products` está à mão, e resolver aqui deixa
+      // montarItemCombo puro (ele só concatena o que já está pronto).
+      setCombos((combosRes.data ?? []).map(c => ({
+        ...c,
+        grupos: porCombo[c.id] ?? [],
+        escolhasFixas: resolverItensFixos(fixosPorCombo[c.id] ?? [], products),
+      })));
+      setGruposPorProduto(gruposRes.porProduto ?? {});
+    });
     return () => { ativo = false; };
-  }, []);
+  }, [products]);
 
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda
@@ -363,7 +388,7 @@ export default function PDVView({ notify }) {
       setBarcodeFeedback("notfound");
     }
     setTimeout(() => setBarcodeFeedback(null), 2500);
-  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [products, mode]);
 
   useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
 
@@ -416,7 +441,7 @@ export default function PDVView({ notify }) {
           if (erroImpressao) notify?.(`Pedido lançado, mas não saiu na produção: ${erroImpressao.message}`, "err");
         })
         .catch(() => {});
-      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · R$ ${total.toFixed(2)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
+      logAction(currentUser?.username, "itens:lancar", { msg: `Itens lançados na ${fmtComanda(ordem.comanda)} · ${novos.length} tipo(s) · ${formatarReais(total)}`, name: currentUser?.name, role: currentUser?.role, comanda: ordem.comanda, tipos: novos.length, total });
       setToast(true);
       setTimeout(() => setToast(false), 6000);
       handleBack();
@@ -469,7 +494,8 @@ export default function PDVView({ notify }) {
         onNfce: ({ estado, resultado, venda }) =>
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
-      handleBack();
+      // Não volta à grade aqui: o CheckoutView mostra a confirmação pós-venda
+      // (comprovante + "Concluir"). A navegação de saída é o onConcluir abaixo.
       return { error: null };
     } catch (err) {
       // Só o resumo mascarado: o objeto cru leva o payload da cobrança
@@ -1198,7 +1224,7 @@ export default function PDVView({ notify }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div className="pdv__produtos-area">
-                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} gruposPorProduto={gruposPorProduto} onAdd={handleAddProduct} />
               </div>
             )}
 
@@ -1247,6 +1273,7 @@ export default function PDVView({ notify }) {
             ]}
             onConfirm={handleConfirmPayment}
             onBack={() => setMode("pedido")}
+            onConcluir={handleBack}
             onRemoverItem={handleRemoverItemCheckout}
           />
         )}
@@ -1542,7 +1569,7 @@ export default function PDVView({ notify }) {
                             </div>
                             {o.total > 0 && (
                               <div className="pdv__transfer-card-valor pdv__transfer-lista-valor">
-                                R$ {Number(o.total).toFixed(2)}
+                                {formatarReais(Number(o.total))}
                               </div>
                             )}
                           </button>
@@ -1588,7 +1615,7 @@ export default function PDVView({ notify }) {
                           </div>
                           {encontrada.total > 0 && (
                             <div className="pdv__transfer-card-valor pdv__transfer-preview-valor">
-                              R$ {Number(encontrada.total).toFixed(2)}
+                              {formatarReais(Number(encontrada.total))}
                             </div>
                           )}
                         </div>
@@ -1893,7 +1920,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
-  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  // Mesma régua da lista: o delivery não é comanda do salão. Contá-lo aqui
+  // diria "R$ 300 em aberto" com zero comandas na tela — e esse dinheiro
+  // não é do caixa até a entrega, quando a aba Delivery registra a venda.
+  const abertas = comandasDoSalao(pending).filter(p => p.status !== "closed");
   const totalAberto = abertas.reduce((s, p) => {
     const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
@@ -1922,6 +1952,10 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
+  // Paleta categórica de método de pagamento: cada método tem sua cor, e
+  // nenhuma delas é semântica. O âmbar do Pix fica literal de propósito
+  // (TD018) — vira `--gm-warn` e o chip do Pix passaria a seguir a cor de
+  // alerta do estabelecimento, destoando dos outros três.
   const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
 
   const verificarSenha = async () => {
@@ -2007,8 +2041,8 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
             {/* KPIs */}
             <div className="pdv__saldo-kpis" style={{ gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr" }}>
               {[
-                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
-                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
+                { label: "Vendas Finalizadas",    value: `${formatarReais(totalVendas)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
+                { label: "Em Aberto (estimado)",  value: `${formatarReais(totalAberto)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
               ].map(k => (
                 <div key={k.label} className="pdv__saldo-kpi">
                   <div className="pdv__saldo-kpi-label">{k.label}</div>
@@ -2047,7 +2081,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   </div>
                 </div>
                 <div className="pdv__saldo-kpi-valor">
-                  {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                  {totalCancelado > 0 ? `- ${formatarReais(totalCancelado)}` : formatarReais(0)}
                 </div>
               </div>
             </div>
@@ -2059,7 +2093,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                 <div className="pdv__saldo-kpi-sub">Fechadas + em aberto · cancelamentos não incluídos</div>
               </div>
               <div className="pdv__saldo-total-valor">
-                R$ {(totalVendas + totalAberto).toFixed(2)}
+                {formatarReais((totalVendas + totalAberto))}
               </div>
             </div>
 
@@ -2076,7 +2110,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                         {rotuloMetodo(metodo, customLabels)}
                       </span>
                       <span className="pdv__saldo-metodo-valor">
-                        R$ {Number(val).toFixed(2)}
+                        {formatarReais(Number(val))}
                       </span>
                     </div>
                   ))}
@@ -2106,7 +2140,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                   </div>
                   <div className="pdv__saldo-accordion-dir">
                     <span className="pdv__saldo-accordion-total">
-                      {totalCancelado > 0 ? `- R$ ${totalCancelado.toFixed(2)}` : "R$ 0,00"}
+                      {totalCancelado > 0 ? `- ${formatarReais(totalCancelado)}` : formatarReais(0)}
                     </span>
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -2143,7 +2177,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                           )}
                         </div>
                         <div className="pdv__saldo-item-preco">
-                          - R$ {((item.price ?? 0) * (item.qty ?? 1)).toFixed(2)}
+                          - {formatarReais(((item.price ?? 0) * (item.qty ?? 1)))}
                         </div>
                       </div>
                     ))}
@@ -2170,7 +2204,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
                         </div>
                         <div className="pdv__saldo-comanda-dir">
                           <div className="pdv__saldo-comanda-valor" style={{ color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
-                            {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
+                            {subtotal > 0 ? `${formatarReais(subtotal)}` : "Sem itens"}
                           </div>
                           <div className="pdv__saldo-comanda-meta">
                             {ativos.reduce((s, i) => s + (i.qty ?? 1), 0)} item(ns)

@@ -96,7 +96,7 @@ describe("CheckoutPagamento, troco digitado com vírgula (Run 6, leva 1)", () =>
 
   it("R$ 1.234,56 (milhar à brasileira) também vira troco", () => {
     abrir({ dados: { forma: "dinheiro", trocoPara: "1.234,56" } });
-    expect(screen.getByText("R$ 1202,06")).toBeInTheDocument();
+    expect(screen.getByText("R$ 1.202,06")).toBeInTheDocument();
   });
 
   it("valor com vírgula ABAIXO do total avisa e trava o pedido", () => {

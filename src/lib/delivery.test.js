@@ -8,11 +8,19 @@ vi.mock("./supabase", async () => {
 });
 
 import {
+  dataNascimentoUtil,
+  montarDataISO,
+  separarDataISO,
+  juntarRuaNumero,
+  separarRuaNumero,
+  consultasDeGeocodificacao,
+  localizarEndereco,
   apenasDigitosCep,
   formatarCep,
   cepCompleto,
   formatarPreco,
   somaComplementos,
+  precoDosComplementos,
   precoUnitario,
   precoLinha,
   calcularSubtotal,
@@ -25,6 +33,10 @@ import {
   grupoImpossivel,
   produtoImpossivel,
   rotuloRegraGrupo,
+  rotuloProgressoGrupo,
+  unidadesDoGrupo,
+  combinaComBusca,
+  complementosDoPayload,
   primeiroGrupoPendente,
   montarPayloadPedido,
   valorDigitado,
@@ -58,7 +70,9 @@ describe("formatarPreco", () => {
   it("formata em reais com vírgula decimal", () => {
     expect(formatarPreco(12.5)).toBe("R$ 12,50");
     expect(formatarPreco(0)).toBe("R$ 0,00");
-    expect(formatarPreco(1234.9)).toBe("R$ 1234,90");
+    // O separador de milhar veio junto com o formatador comum
+    // (src/lib/dinheiro.js): "R$ 1234,90" se lê errado.
+    expect(formatarPreco(1234.9)).toBe("R$ 1.234,90");
   });
   it("valor inválido vira R$ 0,00", () => {
     expect(formatarPreco(null)).toBe("R$ 0,00");
@@ -368,6 +382,31 @@ describe("primeiroGrupoPendente", () => {
   });
 });
 
+describe("revisarSacola — o ícone acompanha o cardápio de agora", () => {
+  it("a linha guardada ontem ganha o emoji do produto de hoje", () => {
+    const cardapio = {
+      produtos: [{ produto_id: 7, nome: "Pizza", preco: 25, emoji: "🍕", grupos: [] }],
+      combos: [],
+    };
+    // Sacola antiga, gravada antes de a vitrine passar a guardar o ícone.
+    const itens = [{ produto_id: 7, combo_id: null, nome: "Pizza", preco: 25, qtd: 1 }];
+
+    const { linhas } = revisarSacola(itens, cardapio);
+
+    expect(linhas[0].emoji).toBe("🍕");
+  });
+
+  it("o ícone acompanha a troca feita pelo dono no cadastro", () => {
+    const cardapio = {
+      produtos: [{ produto_id: 7, nome: "Pizza", preco: 25, emoji: "🍕", grupos: [] }],
+      combos: [],
+    };
+    const itens = [{ produto_id: 7, combo_id: null, nome: "Pizza", preco: 25, qtd: 1, emoji: "🥧" }];
+
+    expect(revisarSacola(itens, cardapio).linhas[0].emoji).toBe("🍕");
+  });
+});
+
 describe("montarPayloadPedido", () => {
   it("não envia preço; envia só a intenção do cliente", () => {
     const payload = montarPayloadPedido({
@@ -385,11 +424,47 @@ describe("montarPayloadPedido", () => {
       ],
     });
     expect(payload).toEqual({
-      cliente: { nome: "Ana", telefone: "5199" },
-      entrega: { cep: "90000000", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
+      cliente: { nome: "Ana", telefone: "5199", data_nascimento: null },
+      entrega: { tipo: "entrega", cep: "90000000", cidade: "", bairro: "Centro", endereco: "Rua X, 10", complemento: null },
       pagamento: { forma: "dinheiro", troco_para: 50, levar_maquininha: false },
       itens: [{ produto_id: 7, combo_id: null, qtd: 2, complementos: ["c1"], obs: "sem cebola" }],
     });
+
+    // A retirada é o outro caminho: nada de endereço, e o servidor sabe
+    // disso pelo `tipo`.
+  });
+
+  it("retirada não manda endereço nenhum — o cliente é quem vai até lá", () => {
+    const payload = montarPayloadPedido({
+      cliente: { nome: "Ana", telefone: "" },
+      // Mesmo com o formulário de entrega preenchido de uma tentativa
+      // anterior, o que vale é a escolha: mandar CEP e rua de quem vai
+      // buscar seria guardar endereço de cliente sem nenhum uso.
+      entrega: {
+        tipo: "retirada",
+        cep: "90000-000",
+        bairro: "Centro",
+        endereco: "Rua X, 10",
+        complemento: "ap 3",
+        lat: -30,
+        lng: -51,
+      },
+      pagamento: { forma: "pix" },
+      itens: [{ produto_id: 7, qtd: 1 }],
+    });
+
+    expect(payload.entrega).toEqual({ tipo: "retirada" });
+  });
+
+  it("sem escolher nada, o pedido continua sendo de entrega (era o único caminho)", () => {
+    const payload = montarPayloadPedido({
+      cliente: { nome: "Ana" },
+      entrega: { cep: "90000000", endereco: "Rua X, 10" },
+      pagamento: { forma: "pix" },
+      itens: [{ produto_id: 7, qtd: 1 }],
+    });
+
+    expect(payload.entrega.tipo).toBe("entrega");
   });
 
   it("troco_para só vai quando é dinheiro e > 0; maquininha só quando é cartão", () => {
@@ -1019,5 +1094,595 @@ describe("prazo dos serviços de terceiro (Run 6, leva 11)", () => {
 
     await vi.advanceTimersByTimeAsync(1000);
     expect(await promessa).toEqual({ data: null, error: null });
+  });
+});
+
+describe("consultasDeGeocodificacao", () => {
+  // No modo "taxa por distância" o pedido só sai se a coordenada for
+  // encontrada. Antes era UMA consulta, "rua, bairro", SEM a cidade: uma
+  // letra trocada na rua derrubava o pedido, e o botão ficava morto sem
+  // dizer o que corrigir.
+  const qs = (p) => consultasDeGeocodificacao(p).map((c) => c.q);
+
+  const completo = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre/RS",
+    cep: "90000-000",
+  };
+
+  it("a cidade entra em TODAS as consultas de rua", () => {
+    // Sem ela o Nominatim procura a rua no Brasil inteiro: ou não acha, ou
+    // acha a de outra cidade e a taxa sai de uma distância que não é real.
+    for (const q of qs(completo)) {
+      if (q.startsWith("Rua das Flores")) expect(q).toContain("Porto Alegre");
+    }
+  });
+
+  it("vai da mais precisa para a mais tolerante", () => {
+    expect(qs(completo)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS", // sem o número da casa
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("marca como aproximada só o que não é a rua", () => {
+    const p = consultasDeGeocodificacao(completo);
+    expect(p.filter((c) => c.precisao === "exata").map((c) => c.q)).toEqual([
+      "Rua das Flores, 100, Centro, Porto Alegre/RS",
+      "Rua das Flores, 100, Porto Alegre/RS",
+      "Rua das Flores, Centro, Porto Alegre/RS",
+    ]);
+    expect(p.filter((c) => c.precisao === "aproximada").map((c) => c.q)).toEqual([
+      "90000000",
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("NÃO existe degrau só com a cidade", () => {
+    // O centro da cidade pode estar a quilômetros do cliente: a taxa sairia
+    // muito errada, e errada para baixo é prejuízo do estabelecimento.
+    expect(qs({ cidade: "Porto Alegre/RS" })).toEqual([]);
+    expect(qs(completo)).not.toContain("Porto Alegre/RS");
+  });
+
+  it("nem degrau só com o bairro, que cai no mesmo problema da rua sem cidade", () => {
+    expect(qs({ bairro: "Centro" })).toEqual([]);
+  });
+
+  it("sem cidade ainda tenta o que dá, em vez de desistir", () => {
+    expect(qs({ endereco: "Rua das Flores, 100", bairro: "Centro" })).toEqual([
+      "Rua das Flores, 100, Centro",
+      "Rua das Flores, 100",
+      "Rua das Flores, Centro",
+    ]);
+  });
+
+  it("só o bairro e a cidade já dão um degrau — é o caso de quem não sabe a rua", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre/RS" })).toEqual([
+      "Centro, Porto Alegre/RS",
+    ]);
+  });
+
+  it("não repete consulta idêntica", () => {
+    // Sem bairro, "rua+bairro+cidade" e "rua+cidade" viram a mesma coisa.
+    expect(qs({ endereco: "Rua das Flores", cidade: "Porto Alegre" })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+  });
+
+  it("CEP incompleto não vira consulta", () => {
+    expect(qs({ bairro: "Centro", cidade: "Porto Alegre", cep: "9000" }))
+      .not.toContain("9000");
+  });
+
+  it("espaço sobrando e campo vazio não quebram nada", () => {
+    expect(qs({ endereco: "  Rua   das   Flores  ", cidade: " Porto Alegre " })).toEqual([
+      "Rua das Flores, Porto Alegre",
+    ]);
+    expect(qs({})).toEqual([]);
+    expect(qs(null)).toEqual([]);
+  });
+});
+
+describe("localizarEndereco — o prazo da escada", () => {
+  // Cada consulta ao Nominatim já tem 8s de prazo. Cinco degraus em fila
+  // seriam até 40s com a tela presa em "Calculando…" — a escada resolveria
+  // o erro de digitação criando uma espera pior.
+  const partes = {
+    endereco: "Rua das Flores, 100",
+    bairro: "Centro",
+    cidade: "Porto Alegre",
+    cep: "90000-000",
+  };
+
+  const relogio = (passoMs) => {
+    let t = 0;
+    return () => (t += passoMs) - passoMs; // devolve o instante ANTES do passo
+  };
+
+  it("serviço rápido: percorre a escada inteira até achar", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      // Só o último degrau (bairro + cidade) responde.
+      const achou = tentativas === 5;
+      return { ok: true, json: async () => (achou ? [{ lat: "-30.0", lon: "-51.2" }] : []) };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(5);
+    expect(data).toMatchObject({ lat: -30, lng: -51.2, precisao: "aproximada" });
+  });
+
+  it("serviço pendurado: gasta UM prazo e para, em vez de cinco", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [] };
+    });
+
+    // Cada tentativa "leva" 8s — é o serviço consumindo o prazo inteiro.
+    const { data } = await localizarEndereco(partes, { agora: relogio(8000) });
+
+    expect(tentativas).toBe(1);
+    expect(data).toBeNull();
+  });
+
+  it("achou de primeira: não gasta as outras quatro chamadas", async () => {
+    let tentativas = 0;
+    globalThis.fetch = vi.fn(async () => {
+      tentativas += 1;
+      return { ok: true, json: async () => [{ lat: "-30.0", lon: "-51.2" }] };
+    });
+
+    const { data } = await localizarEndereco(partes, { agora: relogio(50) });
+
+    expect(tentativas).toBe(1);
+    expect(data.precisao).toBe("exata");
+  });
+
+  it("nada para consultar não vira chamada nenhuma", async () => {
+    globalThis.fetch = vi.fn();
+    const { data } = await localizarEndereco({}, { agora: relogio(50) });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(data).toBeNull();
+  });
+});
+
+describe("dataNascimentoUtil", () => {
+  // O campo é OPCIONAL e serve para o futuro (aniversário), não para
+  // barrar a compra de hoje. Por isso a função não diz "inválido": diz se
+  // dá para aproveitar. O que não dá simplesmente não vai, e o pedido segue.
+  it("aproveita uma data plausível", () => {
+    expect(dataNascimentoUtil("1990-05-10")).toBe("1990-05-10");
+  });
+
+  it("não aproveita o que está vazio ou pela metade", () => {
+    for (const ruim of ["", "   ", null, undefined, "1990", "1990-05", "10/05/1990"]) {
+      expect(dataNascimentoUtil(ruim)).toBeNull();
+    }
+  });
+
+  it("não aproveita dia que não existe no mês", () => {
+    // O Date aceita "2025-02-31" e rola para março: sem conferir de volta,
+    // o cliente nasceria em 3 de março sem nunca ter digitado isso.
+    expect(dataNascimentoUtil("2025-02-31")).toBeNull();
+    expect(dataNascimentoUtil("2025-13-01")).toBeNull();
+  });
+
+  it("não aproveita data no futuro", () => {
+    const amanha = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(amanha)).toBeNull();
+  });
+
+  it("não aproveita idade impossível", () => {
+    expect(dataNascimentoUtil("1800-01-01")).toBeNull();
+  });
+
+  it("hoje é aproveitável — recém-nascido é caso raro, não erro", () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    expect(dataNascimentoUtil(hoje)).toBe(hoje);
+  });
+});
+
+describe("montarDataISO / separarDataISO", () => {
+  // Três campos existem porque o calendário do navegador abre no mês
+  // atual: chegar a 1962 era uma viagem. Digitar o ano é um gesto.
+  it("monta a data a partir dos três campos", () => {
+    expect(montarDataISO("7", "1", "1962")).toBe("1962-01-07");
+  });
+
+  it("completa o zero à esquerda de dia e mês", () => {
+    expect(montarDataISO("5", "9", "1988")).toBe("1988-09-05");
+    expect(montarDataISO("05", "09", "1988")).toBe("1988-09-05");
+  });
+
+  it("parte faltando não vira data pela metade", () => {
+    // Montar "1962-01-" faria dataNascimentoUtil receber lixo em vez de
+    // receber vazio — e o campo é opcional, incompleto não é erro.
+    expect(montarDataISO("", "1", "1962")).toBe("");
+    expect(montarDataISO("7", "", "1962")).toBe("");
+    expect(montarDataISO("7", "1", "")).toBe("");
+  });
+
+  it("ano de dois dígitos não passa — 62 não é 1962 nem 2062", () => {
+    expect(montarDataISO("7", "1", "62")).toBe("");
+  });
+
+  it("volta para os três campos, sem zero à esquerda", () => {
+    expect(separarDataISO("1962-01-07")).toEqual({ dia: "7", mes: "1", ano: "1962" });
+  });
+
+  it("o que não é data vira três campos vazios", () => {
+    for (const ruim of ["", null, undefined, "1962", "07/01/1962"]) {
+      expect(separarDataISO(ruim)).toEqual({ dia: "", mes: "", ano: "" });
+    }
+  });
+
+  it("ida e volta preserva a data", () => {
+    const { dia, mes, ano } = separarDataISO("1990-05-10");
+    expect(montarDataISO(dia, mes, ano)).toBe("1990-05-10");
+  });
+});
+
+describe("juntarRuaNumero / separarRuaNumero", () => {
+  it("junta na linha única de sempre", () => {
+    expect(juntarRuaNumero("Rua das Flores", "100")).toBe("Rua das Flores, 100");
+  });
+
+  it("sem número manda a rua sozinha — não inventa s/n", () => {
+    expect(juntarRuaNumero("Estrada do Mato", "")).toBe("Estrada do Mato");
+  });
+
+  it("sem rua não há endereço", () => {
+    expect(juntarRuaNumero("", "100")).toBe("");
+  });
+
+  it("separa o endereço que o aparelho lembrava", () => {
+    expect(separarRuaNumero("Rua das Flores, 100")).toEqual({
+      rua: "Rua das Flores",
+      numero: "100",
+    });
+  });
+
+  it("separa também sem a vírgula", () => {
+    expect(separarRuaNumero("Rua santa cruz do sul 80")).toEqual({
+      rua: "Rua santa cruz do sul",
+      numero: "80",
+    });
+  });
+
+  it("aceita número com letra e s/n", () => {
+    expect(separarRuaNumero("Av. Brasil, 100A").numero).toBe("100A");
+    expect(separarRuaNumero("Av. Brasil, s/n").numero).toBe("s/n");
+  });
+
+  it("número no MEIO do nome da rua fica na rua", () => {
+    // "Rua 25 de Março" não tem número de porta. Chutar aqui apagaria
+    // parte do endereço na frente do cliente.
+    expect(separarRuaNumero("Rua 25 de Março")).toEqual({
+      rua: "Rua 25 de Março",
+      numero: "",
+    });
+  });
+
+  it("na dúvida tudo fica na rua — rua truncada não entrega", () => {
+    expect(separarRuaNumero("Estrada do Mato Grande")).toEqual({
+      rua: "Estrada do Mato Grande",
+      numero: "",
+    });
+  });
+
+  it("ida e volta preserva o endereço", () => {
+    const { rua, numero } = separarRuaNumero("Rua das Flores, 100");
+    expect(juntarRuaNumero(rua, numero)).toBe("Rua das Flores, 100");
+  });
+});
+
+describe("montarPayloadPedido — rua e número", () => {
+  const base = {
+    cliente: { nome: "Ana", telefone: "51986557795" },
+    pagamento: { forma: "pix" },
+    itens: [{ produto_id: 1, qtd: 1 }],
+  };
+
+  it("manda a linha única montada dos dois campos", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      entrega: { tipo: "entrega", rua: "Rua das Flores", numero: "100" },
+    });
+    expect(p.entrega.endereco).toBe("Rua das Flores, 100");
+  });
+
+  it("aparelho que lembrava o endereço pronto continua valendo", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      entrega: { tipo: "entrega", endereco: "Rua Antiga, 7" },
+    });
+    expect(p.entrega.endereco).toBe("Rua Antiga, 7");
+  });
+});
+
+describe("montarPayloadPedido — data de nascimento", () => {
+  const base = {
+    entrega: { tipo: "retirada" },
+    pagamento: { forma: "pix" },
+    itens: [{ produto_id: 1, qtd: 1 }],
+  };
+
+  it("vai junto quando o cliente informou", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "1990-05-10" },
+    });
+    expect(p.cliente.data_nascimento).toBe("1990-05-10");
+  });
+
+  it("vira null quando não informou — é o que diz ao servidor para não mexer no cadastro", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+  });
+
+  it("lixo não viaja: o pedido sai igual, sem a data", () => {
+    const p = montarPayloadPedido({
+      ...base,
+      cliente: { nome: "Ana", telefone: "11999998888", dataNascimento: "31/02/2025" },
+    });
+    expect(p.cliente.data_nascimento).toBeNull();
+    expect(p.cliente.nome).toBe("Ana");
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// A regra de cobrança do grupo chega à vitrine.
+//
+// Até aqui a vitrine SOMAVA tudo. Certo para extras, errado para
+// fração: "escolha 4 sabores" com quatro sabores de R$ 40 cobrava
+// R$ 160 — quatro pizzas. É a mesma conta do PDV (precoDoGrupo),
+// importada, não uma segunda implementação que concorda por enquanto.
+// ══════════════════════════════════════════════════════════════════
+describe("precoDosComplementos — cada grupo cobra pela sua regra", () => {
+  it("sem regra é somar — o complemento do delivery não muda de comportamento", () => {
+    expect(precoDosComplementos([{ preco: 4 }, { preco: 3 }])).toBe(7);
+  });
+
+  it("grupo de sabores cobra a mais cara, não a soma", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "maior", preco: 40 },
+      { grupoId: "g1", regra: "maior", preco: 60 },
+    ])).toBe(60);
+  });
+
+  it("média é a outra convenção de meio a meio", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "media", preco: 40 },
+      { grupoId: "g1", regra: "media", preco: 60 },
+    ])).toBe(50);
+  });
+
+  it("grupos diferentes SEMPRE se somam entre si", () => {
+    // Sabores (a mais cara) + borda (soma) na mesma pizza: 60 + 8.
+    expect(precoDosComplementos([
+      { grupoId: "sabores", regra: "maior", preco: 40 },
+      { grupoId: "sabores", regra: "maior", preco: 60 },
+      { grupoId: "borda", regra: "soma", preco: 8 },
+    ])).toBe(68);
+  });
+
+  it("regra desconhecida cai em somar em vez de zerar a conta", () => {
+    expect(precoDosComplementos([
+      { grupoId: "g1", regra: "sei-la", preco: 4 },
+      { grupoId: "g1", regra: "sei-la", preco: 3 },
+    ])).toBe(7);
+  });
+
+  it("nada escolhido não custa nada", () => {
+    expect(precoDosComplementos([])).toBe(0);
+    expect(precoDosComplementos(null)).toBe(0);
+  });
+
+  it("o carrinho usa a mesma conta — o modal e a sacola não divergem", () => {
+    const item = {
+      preco: 40,
+      qtd: 2,
+      complementosEscolhidos: [
+        { grupoId: "sabores", regra: "maior", preco: 40 },
+        { grupoId: "sabores", regra: "maior", preco: 60 },
+      ],
+    };
+    // 40 de base + 60 do grupo = 100 o unitário, 200 a linha.
+    expect(precoUnitario(item)).toBe(100);
+    expect(precoLinha(item)).toBe(200);
+  });
+});
+
+// ══════════════════════════════════════════════════════════════════
+// Escolha por quantidade: o grupo conta porções, não opções distintas.
+//
+// "Escolha 3 cortes" quase nunca é um de cada. Contando opções, dois
+// filezinhos e uma tulipinha valiam 2 e o pedido ficava barrado; e a
+// segunda porção nem tinha como ser pedida.
+// ══════════════════════════════════════════════════════════════════
+describe("unidadesDoGrupo", () => {
+  it("soma as quantidades do mapa de escolhas", () => {
+    expect(unidadesDoGrupo({ fil: 2, tul: 1 })).toBe(3);
+  });
+
+  it("lista de ids continua valendo, cada id é uma unidade", () => {
+    // Sacola guardada no sessionStorage antes desta versão.
+    expect(unidadesDoGrupo(["fil", "tul"])).toBe(2);
+  });
+
+  it("vazio, nulo ou lixo valem zero", () => {
+    expect(unidadesDoGrupo({})).toBe(0);
+    expect(unidadesDoGrupo(null)).toBe(0);
+    expect(unidadesDoGrupo(undefined)).toBe(0);
+    expect(unidadesDoGrupo("três")).toBe(0);
+    expect(unidadesDoGrupo({ fil: "dois" })).toBe(0);
+  });
+
+  it("quantidade negativa não abate o que os outros somaram", () => {
+    expect(unidadesDoGrupo({ fil: -5, tul: 2 })).toBe(2);
+  });
+});
+
+describe("grupoArvoreSatisfeita e primeiroGrupoPendente contam unidades", () => {
+  const produto = {
+    grupos: [{ id: "cortes", nome: "Cortes", min: 3, max: 3, itens: [] }],
+  };
+
+  it("duas porções de uma opção só ainda não fecham um mínimo de 3", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 2 } })).toBe(false);
+    expect(primeiroGrupoPendente(produto, { cortes: { fil: 2 } })).toBe("cortes");
+  });
+
+  it("três porções fecham, venham de uma opção ou de três", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 3 } })).toBe(true);
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 1, tul: 1, cox: 1 } })).toBe(true);
+    expect(primeiroGrupoPendente(produto, { cortes: { fil: 3 } })).toBeNull();
+  });
+
+  it("passar do máximo em unidades também não satisfaz", () => {
+    expect(produtoPodeAdicionar(produto, { cortes: { fil: 4 } })).toBe(false);
+  });
+});
+
+describe("rotuloProgressoGrupo", () => {
+  const cortes = { min: 3, max: 3, itens: [{}, {}, {}] };
+
+  it("sem nada escolhido, repete a instrução do grupo", () => {
+    expect(rotuloProgressoGrupo(cortes, 0)).toBe("Escolha 3");
+  });
+
+  it("no meio do caminho, diz quanto falta", () => {
+    expect(rotuloProgressoGrupo(cortes, 1)).toBe("Faltam 2");
+    expect(rotuloProgressoGrupo(cortes, 2)).toBe("Falta 1");
+  });
+
+  it("no teto, responde a pergunta que o cliente está fazendo", () => {
+    expect(rotuloProgressoGrupo(cortes, 3)).toBe("Máximo 3, tire uma para trocar");
+  });
+
+  it("obrigatório completo sem teto à vista sai como pronto", () => {
+    expect(rotuloProgressoGrupo({ min: 2, max: 0, itens: [{}, {}] }, 2)).toBe("✓ pronto");
+  });
+
+  it("grupo opcional continua dizendo que é opcional", () => {
+    expect(rotuloProgressoGrupo({ min: 0, max: 3, itens: [{}] }, 1)).toBe("Opcional · até 3");
+    expect(rotuloProgressoGrupo({ min: 0, max: 0, itens: [{}] }, 0)).toBe("Opcional");
+  });
+
+  it("escolha única nunca pede para tirar uma, porque tocar já troca", () => {
+    expect(rotuloProgressoGrupo({ min: 1, max: 1, itens: [{}, {}] }, 1)).toBe("✓ pronto");
+  });
+
+  it("grupo impossível continua avisando antes de pedir o impossível", () => {
+    expect(rotuloProgressoGrupo({ min: 1, max: 1, itens: [] }, 0)).toBe(
+      "Indisponível no momento",
+    );
+  });
+});
+
+describe("combinaComBusca", () => {
+  it("ignora acento e caixa", () => {
+    expect(combinaComBusca("Açaí com granola", "acai")).toBe(true);
+    expect(combinaComBusca("COXINHA DA ASA", "coxinha")).toBe(true);
+  });
+
+  it("casa no meio do nome", () => {
+    expect(combinaComBusca("Coxinha da asa", "asa")).toBe(true);
+  });
+
+  it("busca vazia casa com tudo, campo em branco não é filtro", () => {
+    expect(combinaComBusca("Tulipinha", "")).toBe(true);
+    expect(combinaComBusca("Tulipinha", "   ")).toBe(true);
+    expect(combinaComBusca("Tulipinha", null)).toBe(true);
+  });
+
+  it("o que não casa, não casa", () => {
+    expect(combinaComBusca("Tulipinha", "picanha")).toBe(false);
+  });
+});
+
+describe("complementosDoPayload", () => {
+  it("sem repetição, sai a lista de ids de sempre", () => {
+    // O navegador guarda o app em cache: uma tela nova pode chegar a um
+    // banco onde a migração ainda não rodou, e o pedido de todo dia tem
+    // de continuar passando lá.
+    expect(
+      complementosDoPayload([
+        { id: "a", qtd: 1 },
+        { id: "b" },
+      ]),
+    ).toEqual(["a", "b"]);
+  });
+
+  it("com repetição, a quantidade vai junto", () => {
+    expect(
+      complementosDoPayload([
+        { id: "a", qtd: 2 },
+        { id: "b", qtd: 1 },
+      ]),
+    ).toEqual([
+      { id: "a", qtd: 2 },
+      { id: "b", qtd: 1 },
+    ]);
+  });
+
+  it("quantidade torta nunca vira zero ou negativo", () => {
+    expect(complementosDoPayload([{ id: "a", qtd: 0 }])).toEqual(["a"]);
+    expect(complementosDoPayload([{ id: "a", qtd: -3 }])).toEqual(["a"]);
+    expect(complementosDoPayload([{ id: "a", qtd: "duas" }])).toEqual(["a"]);
+  });
+
+  it("nada escolhido é lista vazia", () => {
+    expect(complementosDoPayload([])).toEqual([]);
+    expect(complementosDoPayload(null)).toEqual([]);
+  });
+});
+
+describe("montarPayloadPedido leva a quantidade das opções", () => {
+  const base = {
+    cliente: { nome: "Ana", telefone: "11912345678" },
+    entrega: { tipo: "retirada" },
+    pagamento: { forma: "pix" },
+  };
+
+  it("duas porções da mesma opção chegam como {id, qtd}", () => {
+    const payload = montarPayloadPedido({
+      ...base,
+      itens: [
+        {
+          produto_id: 5,
+          qtd: 1,
+          complementosEscolhidos: [
+            { id: "fil", qtd: 2 },
+            { id: "cox", qtd: 1 },
+          ],
+        },
+      ],
+    });
+    expect(payload.itens[0].complementos).toEqual([
+      { id: "fil", qtd: 2 },
+      { id: "cox", qtd: 1 },
+    ]);
+  });
+
+  it("uma de cada continua saindo como lista de ids", () => {
+    const payload = montarPayloadPedido({
+      ...base,
+      itens: [
+        { produto_id: 5, qtd: 1, complementosEscolhidos: [{ id: "fil", qtd: 1 }] },
+      ],
+    });
+    expect(payload.itens[0].complementos).toEqual(["fil"]);
   });
 });

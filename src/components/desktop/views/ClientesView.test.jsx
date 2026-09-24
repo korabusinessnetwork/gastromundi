@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/context/AppContext", async () => {
@@ -202,6 +202,94 @@ describe("ClientesView", () => {
       await user.click(screen.getByRole("button", { name: /ocultar/i }));
       expect(screen.queryByText("529.982.247-25")).not.toBeInTheDocument();
       expect(screen.getAllByText("***.982.247-**").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("origem e filtros", () => {
+    const listaMista = [
+      { id: "c1", nome: "Ana Balcão", telefone: "11911110000", criado_por: "caixa1", data_nascimento: "1990-05-10", endereco: "Rua A, 10" },
+      { id: "c2", nome: "Bruno Delivery", telefone: "11922220000", criado_por: "delivery", data_nascimento: "1985-05-02", endereco: "Rua B, 20" },
+      { id: "c3", nome: "Carla Delivery", telefone: "11933330000", criado_por: "delivery", data_nascimento: "1992-11-30", endereco: null },
+    ];
+
+    it("mostra de onde veio cada cliente e filtra por origem", async () => {
+      const user = userEvent.setup();
+      mockSupabase.current.setTableResult("clientes", { data: listaMista, error: null });
+
+      renderWithProviders(<ClientesView />);
+      await waitFor(() => expect(screen.getByText("Ana Balcão")).toBeInTheDocument());
+
+      // o selo aparece em cada cartão, e a contagem já vem no próprio filtro
+      expect(document.querySelectorAll(".clientes-view__selo--delivery")).toHaveLength(2);
+      expect(document.querySelectorAll(".clientes-view__selo--pdv")).toHaveLength(1);
+      expect(screen.getByRole("button", { name: /^frente de caixa 1$/i })).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /^delivery 2$/i }));
+
+      expect(screen.queryByText("Ana Balcão")).not.toBeInTheDocument();
+      expect(screen.getByText("Bruno Delivery")).toBeInTheDocument();
+      expect(screen.getByText("Carla Delivery")).toBeInTheDocument();
+    });
+
+    it("filtra aniversariantes do mês e por quem tem endereço, e o limpar volta tudo", async () => {
+      const user = userEvent.setup();
+      mockSupabase.current.setTableResult("clientes", { data: listaMista, error: null });
+
+      renderWithProviders(<ClientesView />);
+      await waitFor(() => expect(screen.getByText("Ana Balcão")).toBeInTheDocument());
+
+      await user.selectOptions(screen.getByLabelText(/mês de aniversário/i), "5");
+      expect(screen.getByText("Ana Balcão")).toBeInTheDocument();
+      expect(screen.getByText("Bruno Delivery")).toBeInTheDocument();
+      expect(screen.queryByText("Carla Delivery")).not.toBeInTheDocument();
+      expect(screen.getByText(/mostrando 2 de 3/i)).toBeInTheDocument();
+
+      // maio + delivery = só o Bruno
+      await user.click(screen.getByRole("button", { name: /^delivery 2$/i }));
+      expect(screen.queryByText("Ana Balcão")).not.toBeInTheDocument();
+      expect(screen.getByText("Bruno Delivery")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /limpar filtros/i }));
+      expect(screen.getByText("Ana Balcão")).toBeInTheDocument();
+      expect(screen.getByText("Carla Delivery")).toBeInTheDocument();
+    });
+
+    it("lista vazia por filtro não se passa por cadastro vazio — oferece limpar", async () => {
+      const user = userEvent.setup();
+      mockSupabase.current.setTableResult("clientes", { data: listaMista, error: null });
+
+      renderWithProviders(<ClientesView />);
+      await waitFor(() => expect(screen.getByText("Ana Balcão")).toBeInTheDocument());
+
+      await user.selectOptions(screen.getByLabelText(/mês de aniversário/i), "3");
+
+      expect(screen.getByText(/nenhum cliente com esses filtros/i)).toBeInTheDocument();
+      expect(screen.queryByText(/nenhum cliente cadastrado/i)).not.toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: /limpar filtros/i }).length).toBeGreaterThan(0);
+    });
+
+    it("cadastro no balcão grava a data de nascimento", async () => {
+      const user = userEvent.setup();
+      mockSupabase.current.setTableResult("clientes", { data: [], error: null });
+
+      renderWithProviders(<ClientesView />);
+      await waitFor(() => expect(screen.getByText(/nenhum cliente cadastrado/i)).toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: /novo cliente/i }));
+      await user.type(screen.getByPlaceholderText("Nome do cliente"), "Maria Souza");
+      await user.type(screen.getByPlaceholderText("(00) 00000-0000"), "11988887777");
+      // <input type="date"> não recebe texto tecla a tecla no jsdom.
+      fireEvent.change(screen.getByLabelText(/data de nascimento/i), { target: { value: "1990-05-10" } });
+
+      // O mock acumula as chamadas entre os testes deste arquivo; zerar aqui
+      // garante que o insert conferido abaixo é o deste cadastro.
+      mockSupabase.current.calls.splice(0);
+      await user.click(screen.getByRole("button", { name: /^cadastrar$/i }));
+
+      await waitFor(() => {
+        const insert = mockSupabase.current.calls.find((c) => c.table === "clientes" && c.method === "insert");
+        expect(insert?.args[0]).toMatchObject({ nome: "Maria Souza", data_nascimento: "1990-05-10" });
+      });
     });
   });
 });

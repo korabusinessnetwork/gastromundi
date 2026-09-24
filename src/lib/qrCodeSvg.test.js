@@ -73,3 +73,35 @@ describe("montarSvgQrCode", () => {
     });
   });
 });
+
+// ── Propriedades do desenho, que vieram da branch de combos/delivery ──
+// Elas não se sobrepõem às de cima: aquelas cuidam do SVG ser SEGURO,
+// estas de ele ser o QR CERTO. As duas coisas importam num cupom fiscal.
+describe("montarSvgQrCode, o desenho em si", () => {
+  const URL_NFCE =
+    "https://www.nfce.fazenda.sp.gov.br/qrcode?p=35260812345678000199650010000000011000000017|2|1|1|abc123";
+
+  it("é desenho puro: nada no markup é buscado da rede na hora de imprimir", async () => {
+    // Impressora térmica costuma estar numa máquina sem internet. Um
+    // <image> ou url() aqui sairia como retângulo vazio no cupom.
+    const svg = await montarSvgQrCode(URL_NFCE);
+    expect(svg).not.toMatch(/<image|href|url\(/i);
+  });
+
+  it("o mesmo texto sempre gera o mesmo QR (cupom reimpresso é idêntico ao original)", async () => {
+    expect(await montarSvgQrCode(URL_NFCE)).toBe(await montarSvgQrCode(URL_NFCE));
+  });
+
+  it("textos diferentes geram QRs diferentes", async () => {
+    expect(await montarSvgQrCode("a")).not.toBe(await montarSvgQrCode("b"));
+  });
+
+  it("a margem é configurável e muda o SVG", async () => {
+    const semMargem = await montarSvgQrCode(URL_NFCE, { margin: 0 });
+    expect(semMargem).not.toBe(await montarSvgQrCode(URL_NFCE));
+  });
+
+  it("número vira texto em vez de quebrar", async () => {
+    expect((await montarSvgQrCode(12345)).startsWith("<svg")).toBe(true);
+  });
+});

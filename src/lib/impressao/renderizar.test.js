@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esc, logoUrlSegura, renderizarRecibo, renderizarViaProducao } from "./renderizar";
+import { esc, logoUrlSegura, renderizarRecibo, renderizarViaProducao, renderizarComprovanteCaixa } from "./renderizar";
 
 describe("esc", () => {
   it("escapa os metacaracteres de HTML", () => {
@@ -84,8 +84,50 @@ describe("renderizarRecibo", () => {
 
     expect(html).not.toContain("<img");
     expect(html).not.toContain("javascript:");
-    expect(html).toContain("cabecalho__nome");
+    expect(html).toContain('class="cabecalho__nome b-centro b-negrito" style="font-size:17px"');
     expect(html).toContain("GastroMundi");
+  });
+
+  // A largura fixa das colunas (que é o que impede o valor de sair fora
+  // do papel de 58mm) está presa a esta classe — sem ela a tabela volta
+  // à largura automática, e a tabela dos comprovantes de caixa não pode
+  // herdar essas larguras.
+  it("marca a lista de itens com a classe que ancora a largura das colunas", () => {
+    const html = renderizarRecibo(dadosBase);
+
+    expect(html).toContain('<table class="itens">');
+  });
+
+  it("lista a composição do combo abaixo do item, com a quantidade de cada escolha", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }] }],
+    });
+
+    expect(html).toContain("2x Cheddar");
+    expect(html).toContain("1x Coca");
+    expect(html).toContain("composicao");
+  });
+
+  it("desligar “O que veio no combo” tira a composição do papel", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      layout: [{ tipo: "itens", opcoes: { escolhas: false } }],
+      itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }] }],
+    });
+
+    expect(html).toContain("Combo do Dia");
+    expect(html).not.toContain("2x Cheddar");
+  });
+
+  it("escapa nome de escolha malicioso (vem do cadastro de produto)", () => {
+    const html = renderizarRecibo({
+      ...dadosBase,
+      itens: [{ nome: "Combo", qty: 1, preco: 10, emoji: "", obs: [], escolhas: [{ nome: "<img src=x onerror=alert(1)>", qtd: 1 }] }],
+    });
+
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 
   it("escapa nome de produto e observação maliciosos (stored XSS na impressão)", () => {
@@ -110,6 +152,26 @@ describe("renderizarViaProducao", () => {
     expect(html).toContain("X-Burguer");
     expect(html).toContain("sem cebola");
     expect(html).not.toContain("R$");
+  });
+
+  it("mostra a composição do combo — sem ela a bancada lê só “1x Combo”", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "Combo do Dia", qty: 1, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }] }],
+    });
+
+    expect(html).toContain("2x Cheddar");
+    expect(html).toContain("1x Coca");
+  });
+
+  it("escapa nome de escolha malicioso na via de produção", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "Combo", qty: 1, emoji: "", obs: [], escolhas: [{ nome: "<svg onload=alert(1)>", qtd: 1 }] }],
+    });
+
+    expect(html).not.toContain("<svg");
+    expect(html).toContain("&lt;svg onload=alert(1)&gt;");
   });
 
   it("escapa observação maliciosa na via de produção", () => {
@@ -183,5 +245,59 @@ describe("renderizarViaProducao", () => {
 
     expect(html).not.toContain("<img src=x");
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+});
+
+describe("renderizarComprovanteCaixa", () => {
+  const dadosCaixa = {
+    identidade: { nome: "GastroMundi", logoUrl: null, endereco: "Rua A, 10", cnpj: "00.000.000/0001-00", rodape: "Confira antes de assinar" },
+    titulo: "SANGRIA",
+    emitidoEm: "2026-07-21T12:00:00.000Z",
+    destaque: { rotulo: "Valor retirado", valor: 50 },
+    linhas: [{ rotulo: "Saldo depois", valor: 200, forte: true }],
+    notas: [{ rotulo: "Motivo", texto: "Troco do turno" }],
+  };
+
+  // Sangria, suprimento e fechamento não passam pelo editor de blocos, e
+  // por isso não podem reusar as classes da comanda: quando os blocos
+  // chegaram, as `.cabecalho*` largaram alinhamento e tamanho (lá quem
+  // manda é o dono), e esses papéis passaram a sair com o nome do
+  // estabelecimento encostado à esquerda, em corpo de texto normal.
+  it("usa o cabeçalho próprio do caixa, não as classes da comanda", () => {
+    const html = renderizarComprovanteCaixa(dadosCaixa);
+
+    expect(html).toContain('class="caixa-cabecalho"');
+    expect(html).toContain('class="caixa-cabecalho__nome"');
+    expect(html).toContain('class="caixa-cabecalho__linha"');
+    expect(html).toContain('class="caixa-identidade"');
+    expect(html).toContain('class="caixa-rodape"');
+    // Com `class="…"` porque o CSS vai inteiro dentro do HTML: procurar
+    // só o nome da classe casaria com a folha de estilo, não com a marcação.
+    expect(html).not.toContain('class="cabecalho"');
+    expect(html).not.toContain('class="cabecalho__nome"');
+    expect(html).not.toContain('class="identidade-fiscal"');
+  });
+
+  // Decisão 018: o alinhamento do título mora no CSS, não num `style=`
+  // no meio do template.
+  it("não carrega estilo inline no título", () => {
+    const html = renderizarComprovanteCaixa(dadosCaixa);
+
+    expect(html).toContain('<div class="caixa-cabecalho__titulo">SANGRIA</div>');
+    expect(html).not.toContain("style=\"text-align:center;font-weight:bold;\"");
+  });
+
+  it("usa o logo do caixa quando a identidade tem imagem válida", () => {
+    const html = renderizarComprovanteCaixa({
+      ...dadosCaixa,
+      identidade: { ...dadosCaixa.identidade, logoUrl: "https://cdn.exemplo.com/logo.png" },
+    });
+
+    expect(html).toContain('class="caixa-cabecalho__logo"');
+    expect(html).not.toContain('class="caixa-cabecalho__nome"');
+  });
+
+  it("nunca lança com dados incompletos", () => {
+    expect(() => renderizarComprovanteCaixa({ identidade: {}, titulo: "FECHAMENTO" })).not.toThrow();
   });
 });

@@ -23,6 +23,9 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import BotaoReimprimirPedido from "./BotaoReimprimirPedido";
+import AbaFechamento from "./delivery/AbaFechamento";
+import NovoGrupoExtrasInline from "./delivery/NovoGrupoExtrasInline";
 import { logAction } from "@/lib/logger";
 import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
@@ -46,6 +49,7 @@ import {
   LuMapPin,
   LuPhone,
   LuMessageCircle,
+  LuZap,
   LuChevronRight,
   LuChevronDown,
   LuArrowLeft,
@@ -71,11 +75,12 @@ import {
   agruparPorStatus,
   resumoEndereco,
   formatarTelefone,
-  linkWhatsApp,
   resumoPagamento,
   tempoDecorrido,
   carregarItensPedido,
   atualizarStatusPedido,
+  registrarVendaDelivery,
+  linkWhatsAppDoPedido,
   STATUS_CANCELADO,
 } from "@/lib/deliveryPedidos";
 import {
@@ -114,6 +119,25 @@ import {
   temFaixasKm,
 } from "@/lib/deliveryAdmin";
 import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
+import {
+  listarEntregadores,
+  criarEntregador,
+  atualizarEntregador,
+  definirAtivoEntregador,
+  atribuirEntregadorPedido,
+  entregadoresAtivos,
+  valorPadraoParaPedido,
+  sanitizarValorEntrega,
+  nomeEntregadorValido,
+  calcularFechamento,
+  filtrarPedidosPorPeriodo,
+  idsAPagarDoEntregador,
+  registrarPagamentoEntregador,
+} from "@/lib/entregadores";
+import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
+import { inicioSessao } from "@/components/modals/FechamentoModal";
+import { movimentosDaSessao, dinheiroDisponivel } from "@/lib/caixaMovimentos";
+import { totalPorMetodo } from "@/utils/pagamentos";
 import MapaRaioEntrega from "./delivery/MapaRaioEntrega";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
@@ -128,8 +152,10 @@ import "./DeliveryView.css";
 
 const ABAS = [
   { id: "pedidos",      label: "Pedidos" },
+  { id: "fechamento",   label: "Fechamento" },
   { id: "cardapio",     label: "Cardápio" },
   { id: "complementos", label: "Complementos" },
+  { id: "entregadores", label: "Entregadores" },
   { id: "entrega",      label: "Entrega e taxas" },
 ];
 
@@ -151,7 +177,21 @@ const cssCor = (base) =>
   typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
-  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const {
+    products,
+    tenant,
+    currentUser,
+    moduloHabilitado,
+    addProduct,
+    updateProduct,
+    recarregarProdutos,
+    caixaAberto,
+    registrarMovimentoCaixa,
+    fundoAtual,
+    sales,
+    sessaoAbertaEm,
+    movimentosCaixa,
+  } = useApp();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -173,6 +213,11 @@ export default function DeliveryView({ notify } = {}) {
   // sem obrigar o operador a entrar na aba "Entrega e taxas".
   const [configDelivery, setConfigDelivery] = useState(null);
   const [salvandoAberto, setSalvandoAberto] = useState(false);
+
+  // Entregadores do tenant (cadastro + atribuição no pedido). Fica aqui no
+  // topo porque duas abas dependem da MESMA lista: "Pedidos" usa no seletor
+  // de atribuição do cartão e "Entregadores" no cadastro/fechamento.
+  const [entregadores, setEntregadores] = useState([]);
 
   const aviso = useCallback(
     (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
@@ -200,6 +245,16 @@ export default function DeliveryView({ notify } = {}) {
       ativo = false;
     };
   }, [carregarLinhas]);
+
+  const carregarEntregadores = useCallback(async () => {
+    const { data, error } = await listarEntregadores();
+    if (error) return; // silencioso: a aba mostra o próprio estado de erro
+    setEntregadores(data);
+  }, []);
+
+  useEffect(() => {
+    carregarEntregadores();
+  }, [carregarEntregadores]);
 
   // Carrega a config só pra saber se a loja está aberta (botão do topo).
   useEffect(() => {
@@ -236,6 +291,22 @@ export default function DeliveryView({ notify } = {}) {
   );
 
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+
+  // Dinheiro na gaveta AGORA — mesma conta do PDV (DesktopLayout): fundo de
+  // troco + vendas em dinheiro da sessão − sangrias + suprimentos. É o teto do
+  // que dá pra pagar ao entregador sem estourar o caixa. Recalcula quando
+  // vendas/movimentos/fundo/sessão mudam.
+  const dinheiroNaGaveta = useMemo(() => {
+    const inicio = inicioSessao(sessaoAbertaEm);
+    const vendasDinheiro = (sales ?? [])
+      .filter((s) => s && !s.cancelada && new Date(s.at).getTime() >= inicio)
+      .reduce((soma, v) => soma + (totalPorMetodo(v).dinheiro ?? 0), 0);
+    return dinheiroDisponivel({
+      fundo: fundoAtual,
+      vendasDinheiro,
+      movimentos: movimentosDaSessao(movimentosCaixa, inicio),
+    });
+  }, [sales, fundoAtual, sessaoAbertaEm, movimentosCaixa]);
 
   // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
   // o Supabase recusar. Só admin/gerente mexe.
@@ -403,8 +474,16 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos
+            isAdmin={isAdmin}
+            ehAddon={ehAddon}
+            aviso={aviso}
+            currentUser={currentUser}
+            entregadores={entregadores}
+          />
         )}
+
+        {aba === "fechamento" && <AbaFechamento aviso={aviso} />}
 
         {aba === "cardapio" && (
           <AbaCardapio
@@ -427,6 +506,19 @@ export default function DeliveryView({ notify } = {}) {
 
         {aba === "complementos" && (
           <AbaComplementos isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
+        )}
+
+        {aba === "entregadores" && (
+          <AbaEntregadores
+            isAdmin={isAdmin}
+            entregadores={entregadores}
+            recarregar={carregarEntregadores}
+            aviso={aviso}
+            currentUser={currentUser}
+            caixaAberto={caixaAberto}
+            dinheiroNaGaveta={dinheiroNaGaveta}
+            registrarMovimentoCaixa={registrarMovimentoCaixa}
+          />
         )}
 
         {aba === "entrega" && (
@@ -464,9 +556,22 @@ const lerPrefAvisos = () => {
   }
 };
 
-function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
+function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] }) {
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
+
+  // A config do delivery decide duas coisas desta aba: se a confirmação
+  // no WhatsApp abre ao aceitar, e quanto tempo de preparo prometer na
+  // mensagem. Falha ao carregar não trava nada — as duas são opcionais.
+  const { tenant } = useApp();
+  const [config, setConfig] = useState(null);
+  useEffect(() => {
+    let ativo = true;
+    carregarConfigDelivery().then(({ data }) => {
+      if (ativo) setConfig(data ?? null);
+    });
+    return () => { ativo = false; };
+  }, []);
 
   // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
   // alerta o que chega DEPOIS que a tela já carregou a lista base.
@@ -524,16 +629,67 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     async (pedido) => {
       const proximo = proximoStatus(pedido.status);
       if (!proximo) return;
+
+      // ENTREGUE é o fim do dinheiro: é aqui que o pedido vira venda, com
+      // registro próprio (origem = 'delivery'). A venda vem ANTES do
+      // status: se ela falhar, o pedido continua como estava e o operador
+      // tenta de novo. Ao contrário, um pedido marcado como entregue com a
+      // venda faltando some do painel levando o dinheiro junto.
+      if (proximo === "entregue") {
+        const { error: erroVenda } = await registrarVendaDelivery(pedido.id);
+        if (erroVenda) {
+          return aviso(
+            "Não foi possível registrar a venda deste pedido. Ele continua em rota, tente de novo.",
+            "err",
+          );
+        }
+      }
+
       const { error } = await atualizarStatusPedido(pedido.id, proximo, {
         de: pedido.status,
         operador: currentUser?.username,
         numero: pedido.numero,
       });
       if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+
+      // Aceitar é o momento em que o cliente ainda não sabe se a loja viu o
+      // pedido dele — é a angústia dos primeiros minutos. A confirmação
+      // abre escrita, para o operador conferir e enviar num toque. Só abre
+      // quando o dono ligou a chave e quando há telefone utilizável: aba
+      // que se abre sozinha sem nada dentro é pior que aba nenhuma.
+      if (config?.whatsapp_no_aceite && (proximo === "em_preparo" || proximo === "saiu_entrega")) {
+        // A mensagem é a do estado em que o pedido ACABOU de entrar, não a
+        // do estado em que estava — quem acabou de sair para entrega não
+        // pode receber "recebemos seu pedido".
+        //
+        // Os itens são buscados aqui: a confirmação vale muito mais com a
+        // lista do que sem ela, e é justamente na confirmação que o cliente
+        // pega o item trocado enquanto ainda dá para refazer na cozinha.
+        // Falha ao buscar não impede o aviso — ele sai sem a lista.
+        const { data: itensDoPedido } = await carregarItensPedido(pedido.id);
+        const link = linkWhatsAppDoPedido(
+          { ...pedido, status: proximo },
+          {
+            nome: tenant?.nome,
+            tempoPreparo: config?.tempo_preparo_min,
+            entregador: entregadores.find(
+              (e) => String(e.id) === String(pedido.entregador_id),
+            )?.nome,
+          },
+          itensDoPedido ?? [],
+        );
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      aviso(
+        proximo === "entregue"
+          ? `Pedido ${pedido.numero} entregue, venda registrada.`
+          : `Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`,
+        "ok",
+      );
       await recarregar();
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, config, tenant, entregadores]
   );
 
   const cancelar = useCallback(
@@ -549,6 +705,23 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     },
     [aviso, recarregar, currentUser]
   );
+
+  // Atribui/troca entregador (e valor fotografado) num pedido. entregadorId
+  // nulo desatribui. Recarrega pra refletir na hora (o realtime também traz,
+  // mas o clique do operador precisa de resposta imediata).
+  const atribuir = useCallback(
+    async (pedido, entregadorId, valor = null) => {
+      const { error } = await atribuirEntregadorPedido(pedido.id, entregadorId || null, valor);
+      if (error) return aviso("Não foi possível atribuir o entregador. Tente novamente.", "err");
+      await recarregar();
+    },
+    [aviso, recarregar]
+  );
+
+  // Só os ativos no seletor, mas garantindo que o entregador já atribuído a um
+  // pedido apareça mesmo se tiver sido desativado depois (senão o cartão
+  // mostraria "sem entregador" para um pedido que tem um).
+  const ativos = useMemo(() => entregadoresAtivos(entregadores), [entregadores]);
 
   return (
     <>
@@ -590,7 +763,19 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
         <div className="delivery-view__vazio">
           <div className="delivery-view__vazio-emoji">📡</div>
           <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
-          <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
+          {/* "Verifique a conexão" era um chute, e chute errado manda o
+              operador procurar no lugar errado. O Postgres diz o motivo
+              com todas as letras — repassar o texto dele é o que separa
+              "a internet caiu" de "falta rodar a migração". */}
+          <div className="delivery-view__vazio-desc">
+            {erro?.message || "Verifique a conexão e toque em “Atualizar”."}
+          </div>
+          {/column .* does not exist/i.test(erro?.message ?? "") && (
+            <div className="delivery-view__vazio-desc">
+              O banco está atrás do sistema: falta rodar as migrações pendentes
+              (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -644,8 +829,12 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
+                          entregadores={entregadores}
+                          entregadoresAtivos={ativos}
+                          loja={{ nome: tenant?.nome, tempoPreparo: config?.tempo_preparo_min }}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
+                          onAtribuirEntregador={atribuir}
                         />
                       ))}
                     </div>
@@ -660,7 +849,17 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({
+  pedido,
+  isAdmin,
+  ehAddon,
+  entregadores = [],
+  entregadoresAtivos: ativos = [],
+  loja = {},
+  onAvancar,
+  onCancelar,
+  onAtribuirEntregador,
+}) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);
@@ -669,10 +868,57 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
   const base = baseCorStatus(pedido.status);
   const acao = rotuloAcao(pedido.status);
   const endereco = resumoEndereco(pedido);
-  const zap = linkWhatsApp(
-    pedido.cliente_telefone,
-    `Olá! Aqui é do delivery, sobre o seu pedido ${pedido.numero}.`
+  // ── Entregador atribuído a este pedido ──────────────────────────
+  const cancelado = pedido.status === STATUS_CANCELADO;
+  const atribuidoId = pedido.entregador_id ? String(pedido.entregador_id) : "";
+  const entregadorAtual = atribuidoId
+    ? entregadores.find((e) => String(e.id) === atribuidoId) || null
+    : null;
+  const nomeAtual = entregadorAtual?.nome || (atribuidoId ? "Entregador removido" : "");
+
+  // O botão é um só; quem escolhe o texto é o ESTADO do pedido (confirmação
+  // enquanto está em preparo, "saiu para entrega" depois). Operador não
+  // devia ter de escolher qual mensagem mandar — ele já sabe onde o pedido
+  // está, e a tela também.
+  //
+  // Os itens só entram depois que o cartão foi aberto (é quando eles são
+  // buscados). Fechado, a mensagem sai sem a lista em vez de não sair.
+  const zap = linkWhatsAppDoPedido(
+    pedido,
+    { ...loja, entregador: nomeAtual || undefined },
+    itens ?? [],
   );
+
+  // Opções do seletor: os ativos + o já atribuído (mesmo se desativado depois),
+  // pra não sumir com quem está tocando este pedido.
+  const opcoes = useMemo(() => {
+    const lista = [...ativos];
+    if (atribuidoId && !lista.some((e) => String(e.id) === atribuidoId)) {
+      lista.push(entregadorAtual || { id: atribuidoId, nome: nomeAtual });
+    }
+    return lista;
+  }, [ativos, atribuidoId, entregadorAtual, nomeAtual]);
+
+  // Valor da corrida (fotografado). Campo editável espelha o salvo e
+  // ressincroniza quando a fonte muda (troca de entregador / realtime).
+  const valorSalvo = sanitizarValorEntrega(pedido.valor_entregador);
+  const [valorTxt, setValorTxt] = useState(valorSalvo ? String(valorSalvo) : "");
+  useEffect(() => {
+    setValorTxt(valorSalvo ? String(valorSalvo) : "");
+  }, [atribuidoId, valorSalvo]);
+  const valorMudou = !!atribuidoId && sanitizarValorEntrega(valorTxt) !== valorSalvo;
+
+  const escolherEntregador = (id) => {
+    if (!onAtribuirEntregador) return;
+    if (!id) return onAtribuirEntregador(pedido, null);
+    const ent = entregadores.find((e) => String(e.id) === String(id));
+    onAtribuirEntregador(pedido, id, valorPadraoParaPedido(ent));
+  };
+
+  const salvarValor = () => {
+    if (!onAtribuirEntregador || !atribuidoId) return;
+    onAtribuirEntregador(pedido, atribuidoId, sanitizarValorEntrega(valorTxt));
+  };
 
   const toggleItens = async () => {
     const proximo = !aberto;
@@ -700,6 +946,12 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
       {/* Cliente */}
       <div className="delivery-view__pedido-cliente">
         {pedido.cliente_nome || "Cliente"}
+        {/* Sem esta etiqueta o pedido de retirada era idêntico a um de
+            entrega, com o endereço da PRÓPRIA loja no lugar do endereço do
+            cliente — e alguém sairia para entregar no balcão de onde saiu. */}
+        {pedido.tipo_entrega === "retirada" && (
+          <span className="delivery-view__pedido-retirada">Retirada</span>
+        )}
       </div>
 
       {/* Telefone → WhatsApp (só toque; número é do cliente) */}
@@ -732,11 +984,18 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
         <LuBanknote size={13} /> {resumoPagamento(pedido)}
       </div>
 
-      {/* Itens (sob demanda) */}
-      <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
-        {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
-        {aberto ? "Ocultar itens" : "Ver itens"}
-      </button>
+      {/* Itens (sob demanda) + reimpressão da via.
+          A via sai sozinha quando o pedido chega, mas a impressora fica sem
+          papel, alguém joga o papel fora, a bancada precisa de outra cópia.
+          Antes a única saída era achar a comanda na tela da Cozinha — e ela
+          nem aparece mais nas comandas do PDV. */}
+      <div className="delivery-view__pedido-acoes-linha">
+        <button onClick={toggleItens} className="delivery-view__pedido-itens-toggle">
+          {aberto ? <LuChevronDown size={14} /> : <LuChevronRight size={14} />}
+          {aberto ? "Ocultar itens" : "Ver itens"}
+        </button>
+        <BotaoReimprimirPedido pedido={pedido} />
+      </div>
       {aberto && (
         <div className="delivery-view__pedido-itens">
           {carregandoItens ? (
@@ -758,6 +1017,74 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
       <div className="delivery-view__pedido-total">
         Total <strong>{formatarReais(pedido.total)}</strong>
       </div>
+
+      {/* Entregador — quem leva o pedido (atribuição + valor da corrida).
+          Oculto em pedido cancelado. Admin escolhe e ajusta o valor; demais
+          veem só quem está com o pedido. */}
+      {!cancelado && (
+        <div className="delivery-view__pedido-entregador">
+          <span className="delivery-view__pedido-entregador-rotulo">
+            <LuBike size={13} /> Entregador
+          </span>
+
+          {isAdmin && onAtribuirEntregador ? (
+            opcoes.length === 0 ? (
+              <span className="delivery-view__entregador-vazio">
+                Cadastre entregadores na aba “Entregadores”.
+              </span>
+            ) : (
+              <select
+                className="delivery-view__entregador-select"
+                value={atribuidoId}
+                onChange={(e) => escolherEntregador(e.target.value)}
+                title="Escolha quem vai levar este pedido"
+              >
+                <option value="">Sem entregador</option>
+                {opcoes.map((e) => (
+                  <option key={e.id} value={e.id}>{e.nome}</option>
+                ))}
+              </select>
+            )
+          ) : (
+            <span className="delivery-view__entregador-nome">
+              {nomeAtual || "Sem entregador"}
+            </span>
+          )}
+
+          {isAdmin && atribuidoId && (
+            <div className="delivery-view__entregador-valor">
+              <span className="delivery-view__entregador-valor-cifrao">R$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="delivery-view__entregador-valor-input"
+                value={valorTxt}
+                onChange={(e) => setValorTxt(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && valorMudou) salvarValor(); }}
+                title="Quanto pagar ao entregador por esta corrida"
+                aria-label="Valor desta corrida"
+              />
+              <span className="delivery-view__entregador-valor-legenda">por esta entrega</span>
+              {valorMudou && (
+                <button
+                  type="button"
+                  className="delivery-view__btn delivery-view__btn--sm delivery-view__entregador-valor-salvar"
+                  onClick={salvarValor}
+                  title="Salvar o valor desta corrida"
+                >
+                  <LuCheck size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {!isAdmin && atribuidoId && valorSalvo > 0 && (
+            <span className="delivery-view__entregador-valor-ro">
+              {formatarReais(valorSalvo)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Ações — só admin/gerente toca o pedido */}
       {isAdmin && !ehTerminal(pedido.status) && (
@@ -803,6 +1130,144 @@ function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// Escolher O QUE importar do PDV
+//
+// Antes o botão trazia TODOS os produtos de uma vez, sem perguntar. Num
+// cardápio de cem itens, quem queria publicar dez tinha de importar os
+// cem e sair removendo — e cada remoção é um clique com confirmação.
+// Aqui a lista vem toda marcada (o caso comum continua sendo "traz
+// tudo", e ele segue a um clique), com busca e categoria para desmarcar
+// o que não vai.
+// ════════════════════════════════════════════════════════════════
+function ModalImportar({ candidatos, importando, onFechar, onConfirmar }) {
+  const fundoImp = fecharAoClicarFora(onFechar);
+  const [busca, setBusca] = useState("");
+  const [cat, setCat] = useState("Todas");
+  const [marcados, setMarcados] = useState(() => new Set(candidatos.map((p) => String(p.id))));
+
+  const categorias = useMemo(
+    () => ["Todas", ...new Set(candidatos.map((p) => p.category).filter(Boolean))].sort(
+      (a, b) => (a === "Todas" ? -1 : b === "Todas" ? 1 : a.localeCompare(b, "pt-BR")),
+    ),
+    [candidatos],
+  );
+
+  const visiveis = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return candidatos.filter(
+      (p) =>
+        (cat === "Todas" || p.category === cat) &&
+        (!t || (p.name ?? "").toLowerCase().includes(t)),
+    );
+  }, [candidatos, busca, cat]);
+
+  const alternar = (id) =>
+    setMarcados((prev) => {
+      const nova = new Set(prev);
+      const k = String(id);
+      if (nova.has(k)) nova.delete(k);
+      else nova.add(k);
+      return nova;
+    });
+
+  // "Marcar todos" age só sobre o que está VISÍVEL. Mexer no que o filtro
+  // escondeu seria alterar o que a pessoa não está vendo.
+  const idsVisiveis = visiveis.map((p) => String(p.id));
+  const todosVisiveisMarcados = idsVisiveis.length > 0 && idsVisiveis.every((id) => marcados.has(id));
+  const alternarVisiveis = () =>
+    setMarcados((prev) => {
+      const nova = new Set(prev);
+      for (const id of idsVisiveis) {
+        if (todosVisiveisMarcados) nova.delete(id);
+        else nova.add(id);
+      }
+      return nova;
+    });
+
+  return createPortal(
+    <div className="delivery-view__overlay" {...fundoImp}>
+      <div className="delivery-view__modal">
+        <div className="delivery-view__modal-topo">
+          <div className="delivery-view__modal-titulo">Importar do PDV</div>
+          <button onClick={onFechar} className="delivery-view__modal-fechar" aria-label="Fechar">
+            <LuX size={18} />
+          </button>
+        </div>
+
+        <div className="delivery-view__aviso delivery-view__aviso--info">
+          Já vem tudo marcado. Desmarque o que não deve aparecer no cardápio online.
+          Nome e preço continuam vindo do PDV.
+        </div>
+
+        <div className="delivery-view__campo-linha">
+          <div className="delivery-view__campo delivery-view__campo--flex">
+            <input
+              className="delivery-view__input"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar produto…"
+              aria-label="Buscar produto para importar"
+            />
+          </div>
+          <div className="delivery-view__campo delivery-view__campo--flex">
+            <select
+              className="delivery-view__input"
+              value={cat}
+              onChange={(e) => setCat(e.target.value)}
+              aria-label="Filtrar por categoria"
+            >
+              {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="delivery-view__import-cabeca">
+          <button type="button" onClick={alternarVisiveis} className="delivery-view__btn delivery-view__btn--sm">
+            {todosVisiveisMarcados ? "Desmarcar estes" : "Marcar estes"}
+          </button>
+          <span className="delivery-view__hint">
+            {marcados.size} de {candidatos.length} marcados
+          </span>
+        </div>
+
+        <div className="delivery-view__import-lista">
+          {visiveis.length === 0 ? (
+            <div className="delivery-view__hint">Nenhum produto com esse filtro.</div>
+          ) : (
+            visiveis.map((p) => (
+              <label key={p.id} className="delivery-view__import-item">
+                <input
+                  type="checkbox"
+                  checked={marcados.has(String(p.id))}
+                  onChange={() => alternar(p.id)}
+                />
+                <span className="delivery-view__item-nome">{p.emoji ?? "📦"} {p.name}</span>
+                <span className="delivery-view__hint">{p.category}</span>
+                <span className="delivery-view__item-preco">{formatarReais(p.price)}</span>
+              </label>
+            ))
+          )}
+        </div>
+
+        <div className="delivery-view__modal-botoes">
+          <button onClick={onFechar} className="delivery-view__btn delivery-view__btn--secundario">
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirmar([...marcados])}
+            disabled={importando || marcados.size === 0}
+            className="delivery-view__btn delivery-view__btn--primario"
+          >
+            {importando ? "Importando…" : `Importar ${marcados.size}`}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 // ABA 1 — Cardápio (importação no addon / cadastro no standalone)
 // ════════════════════════════════════════════════════════════════
 function AbaCardapio({
@@ -810,17 +1275,39 @@ function AbaCardapio({
   products, linhas, tenant, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
 }) {
   const [importando, setImportando] = useState(false);
+  const [escolhendoImport, setEscolhendoImport] = useState(false);
   const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+  // Busca e categoria do cardápio já publicado. Com trinta itens numa grade
+  // de cinco colunas, achar "Coca" era rolar a tela procurando com o olho.
+  const [busca, setBusca] = useState("");
+  const [catFiltro, setCatFiltro] = useState("Todas");
 
-  const importar = async () => {
+  const categorias = useMemo(
+    () => ["Todas", ...new Set(itens.map((it) => it.produto?.category).filter(Boolean))].sort(
+      (a, b) => (a === "Todas" ? -1 : b === "Todas" ? 1 : a.localeCompare(b, "pt-BR")),
+    ),
+    [itens],
+  );
+
+  const itensFiltrados = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return itens.filter(
+      (it) =>
+        (catFiltro === "Todas" || it.produto?.category === catFiltro) &&
+        (!t || (it.produto?.name ?? "").toLowerCase().includes(t)),
+    );
+  }, [itens, busca, catFiltro]);
+
+  const importar = async (ids) => {
     if (importando || faltamImportar.length === 0) return;
     setImportando(true);
-    const { data, error } = await importarProdutosDelivery(products, linhas);
+    const { data, error } = await importarProdutosDelivery(products, linhas, ids);
     setImportando(false);
     if (error) {
       aviso("Não foi possível importar agora. Tente novamente.", "err");
       return;
     }
+    setEscolhendoImport(false);
     logAction(currentUser?.username, "delivery:importar", {
       msg: `Importou ${data.importados} produto(s) do PDV para o delivery`,
       name: currentUser?.name, role: currentUser?.role,
@@ -844,14 +1331,27 @@ function AbaCardapio({
                 : "Tudo em dia, todos os produtos do PDV já estão no delivery."}
             </div>
           </div>
-          <button
-            onClick={importar}
-            disabled={importando || faltamImportar.length === 0}
-            className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
-          >
-            <LuDownload size={15} />
-            {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
-          </button>
+          <div className="delivery-view__import-acoes">
+            <button
+              onClick={() => setEscolhendoImport(true)}
+              disabled={importando || faltamImportar.length === 0}
+              className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
+            >
+              <LuDownload size={15} />
+              {faltamImportar.length > 0 ? `Escolher e importar (${faltamImportar.length})` : "Importado"}
+            </button>
+            {/* Criar direto daqui, mesmo integrado ao PDV. Um item que só
+                existe no delivery (combo do site, promoção da semana)
+                obrigava a ir ao Cadastro Produtos, criar, voltar e
+                importar. O produto nasce no PDV também — é o mesmo
+                catálogo —, e já entra publicado no cardápio online. */}
+            <button
+              onClick={() => setModal({ modo: "novo" })}
+              className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--acao-topo"
+            >
+              <LuPlus size={15} /> Novo produto
+            </button>
+          </div>
         </div>
       )}
 
@@ -863,6 +1363,29 @@ function AbaCardapio({
           >
             <LuPlus size={15} /> Novo produto
           </button>
+        </div>
+      )}
+
+      {/* Busca e categoria do que já está publicado. Só aparecem quando há
+          o bastante para valer a pena procurar — num cardápio de cinco
+          itens, dois campos de filtro são mais estorvo do que ajuda. */}
+      {!carregando && itens.length > 8 && (
+        <div className="delivery-view__filtros">
+          <input
+            className="delivery-view__input"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar no cardápio…"
+            aria-label="Buscar no cardápio do delivery"
+          />
+          <select
+            className="delivery-view__input"
+            value={catFiltro}
+            onChange={(e) => setCatFiltro(e.target.value)}
+            aria-label="Filtrar o cardápio por categoria"
+          >
+            {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
       )}
 
@@ -884,7 +1407,7 @@ function AbaCardapio({
         </div>
       ) : (
         <div className="delivery-view__cards">
-          {itens.map((it) => (
+          {itensFiltrados.map((it) => (
             <CardProduto
               key={it.id}
               item={it}
@@ -908,7 +1431,21 @@ function AbaCardapio({
               }}
             />
           ))}
+          {itensFiltrados.length === 0 && (
+            <div className="delivery-view__hint delivery-view__filtro-vazio">
+              Nenhum produto com esse filtro. Limpe a busca ou troque a categoria.
+            </div>
+          )}
         </div>
+      )}
+
+      {escolhendoImport && (
+        <ModalImportar
+          candidatos={faltamImportar}
+          importando={importando}
+          onFechar={() => setEscolhendoImport(false)}
+          onConfirmar={importar}
+        />
       )}
 
       {modal && (
@@ -949,7 +1486,35 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
           <div className="delivery-view__card-emoji">{emoji}</div>
         )}
         <div className="delivery-view__card-corpo">
-          <div className="delivery-view__card-nome">{nome}</div>
+          {/* Disponibilidade fica AQUI, ao lado do nome, e não dentro do
+              "Editar". Tirar um item do ar é a coisa mais frequente do dia
+              (acabou o ingrediente) e precisa ser um clique na grade, não
+              abrir modal, achar a chave, salvar e fechar. Dentro do editar
+              ela também virava rascunho: só valia depois do "Salvar". */}
+          <div className="delivery-view__card-nome-linha">
+            <div className="delivery-view__card-nome">{nome}</div>
+            <button
+              onClick={onToggle}
+              disabled={!isAdmin}
+              role="switch"
+              aria-checked={!!item.disponivel}
+              aria-label={`Oferecer ${nome} no cardápio online`}
+              title={item.disponivel
+                ? "Está no cardápio online. Clique para tirar do ar."
+                : "Fora do cardápio online. Clique para voltar a oferecer."}
+              className={`delivery-view__disp delivery-view__disp--compacto delivery-view__disp--${item.disponivel ? "on" : "off"}`}
+            >
+              {/* Só o trilho e a bolinha, sem a palavra. Aqui o card tem
+                  300px e a chave com texto comia 130 deles: "Hmaburguer de
+                  cheedar" virava "Hmabur…", e cardápio em que não se lê o
+                  nome do produto não serve. O estado continua dito por
+                  extenso no title e no aria-label; na tabela de Produtos,
+                  que tem coluna própria, a palavra aparece. */}
+              <span className="delivery-view__disp-trilho" aria-hidden="true">
+                <span className="delivery-view__disp-bola" />
+              </span>
+            </button>
+          </div>
           {item.descricao ? (
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
@@ -966,15 +1531,6 @@ function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) 
         <span className="delivery-view__card-preco">
           {preco != null ? formatarReais(preco) : "—"}
         </span>
-        <button
-          onClick={onToggle}
-          disabled={!isAdmin}
-          className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
-          title="Ligar/desligar no cardápio"
-        >
-          <span className="delivery-view__card-dot" />
-          {item.disponivel ? "Disponível" : "Indisponível"}
-        </button>
       </div>
 
       {isAdmin && (
@@ -1042,7 +1598,62 @@ function ModalProduto({
   const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
   const fotoInputRef = useRef(null);
   const fotoAlvoRef = useRef(null);
-  const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
+  // Extras (grupos de complemento) que aparecem NESTE produto. Antes,
+  // criar o produto aqui e dar extras a ele eram duas viagens: salvava,
+  // ia na aba Complementos, abria cada grupo e marcava o produto na lista
+  // "aparece nestes produtos". Agora é a mesma tela, e ao criar já sai com
+  // os extras ligados.
+  const [biblioteca, setBiblioteca] = useState([]);
+  const [carregandoExtras, setCarregandoExtras] = useState(true);
+  // Biblioteca VAZIA e biblioteca que FALHOU não são a mesma coisa: vazia é
+  // "ainda não existe grupo" (dá para criar um); falhou é "não sei o que
+  // existe", e oferecer criar levaria o dono a duplicar um grupo que já tem.
+  const [extrasIndisponiveis, setExtrasIndisponiveis] = useState(false);
+  const [extras, setExtras] = useState(() => new Set());
+  // Painel de criar grupo sem sair daqui. null = fechado.
+  const [criandoGrupo, setCriandoGrupo] = useState(null);
+  // Os vínculos como estavam ao abrir: o salvar aplica só a DIFERENÇA, em
+  // vez de apagar tudo e regravar. Regravar mexeria em vínculos que esta
+  // tela nem mostrou, e cada escrita é uma chance de falhar no meio.
+  const extrasOriginais = useRef(new Set());
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await listarBibliotecaGrupos();
+      if (!ativo) return;
+      setCarregandoExtras(false);
+      // Falha aqui não trava o cadastro do produto: a seção some e o dono
+      // liga os extras depois, pela aba Complementos, como sempre fez.
+      if (error) { setExtrasIndisponiveis(true); return; }
+      setExtrasIndisponiveis(false);
+      setBiblioteca(data ?? []);
+      const meus = new Set(
+        (data ?? [])
+          .filter((g) => (g.produtoIds ?? []).some((id) => String(id) === String(item?.produto_id)))
+          .map((g) => String(g.id)),
+      );
+      setExtras(meus);
+      extrasOriginais.current = meus;
+    })();
+    return () => { ativo = false; };
+  }, [item?.produto_id]);
+
+  const alternarExtra = (id) =>
+    setExtras((prev) => {
+      const nova = new Set(prev);
+      const k = String(id);
+      if (nova.has(k)) nova.delete(k);
+      else nova.add(k);
+      return nova;
+    });
+
+  // Disponibilidade NÃO se edita aqui — o botão mora no card, na grade.
+  // O valor de agora é carregado só para o salvar não zerá-lo: o payload de
+  // `salvarProdutoDelivery` é a linha inteira, então omitir o campo apagaria
+  // o "indisponível" que o dono acabou de marcar na grade. Produto novo
+  // nasce disponível.
+  const disponivel = item?.disponivel ?? true;
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -1131,10 +1742,17 @@ function ModalProduto({
     [products]
   );
 
+  // Produto novo é cadastrado aqui em `products` mesmo no modo integrado:
+  // é o mesmo catálogo do PDV, e obrigar a pessoa a sair para o Cadastro
+  // Produtos e voltar para importar era o caminho torto que existia.
+  // Editar no integrado continua sem tocar em `products` — nome e preço
+  // são do PDV.
+  const criaProduto = !ehAddon || modo === "novo";
+
   const salvar = async () => {
     if (salvando) return;
-    // Standalone precisa de nome+preço (o produto é criado aqui).
-    if (!ehAddon) {
+    // Quem cria o produto precisa de nome+preço.
+    if (criaProduto) {
       if (!nome.trim()) return setErro("Informe o nome do produto.");
       const p = parseFloat(String(preco).replace(",", "."));
       if (isNaN(p) || p <= 0) return setErro("Preço deve ser maior que zero.");
@@ -1144,8 +1762,8 @@ function ModalProduto({
 
     let produtoId = item?.produto_id;
 
-    // Standalone: cria/atualiza o produto em products (este é o cadastro dele).
-    if (!ehAddon) {
+    // Cria/atualiza o produto em products (este é o cadastro dele).
+    if (criaProduto) {
       const payload = {
         name: nome.trim().toUpperCase(),
         price: parseFloat(String(preco).replace(",", ".")),
@@ -1205,10 +1823,33 @@ function ModalProduto({
       disponivel,
       ordem: item?.ordem ?? 0,
     });
-    setSalvando(false);
-    if (error) return setErro(error.message || "Não foi possível salvar no delivery.");
+    if (error) {
+      setSalvando(false);
+      return setErro(error.message || "Não foi possível salvar no delivery.");
+    }
 
-    if (!ehAddon) await recarregarProdutos();
+    // Extras: só o que MUDOU. O produto e a camada de delivery já estão
+    // gravados, então uma falha aqui não desfaz o cadastro — avisa e deixa
+    // o resto salvo, em vez de fingir que nada aconteceu.
+    const antes = extrasOriginais.current;
+    const ligar = [...extras].filter((id) => !antes.has(id));
+    const desligar = [...antes].filter((id) => !extras.has(id));
+    let falhouExtra = false;
+    for (const id of ligar) {
+      const { error: e } = await vincularGrupoProduto(id, produtoId);
+      if (e) falhouExtra = true;
+    }
+    for (const id of desligar) {
+      const { error: e } = await desvincularGrupoProduto(id, produtoId);
+      if (e) falhouExtra = true;
+    }
+
+    setSalvando(false);
+    if (falhouExtra) {
+      return setErro("O produto foi salvo, mas não deu para ajustar os extras. Tente de novo pela aba Complementos.");
+    }
+
+    if (criaProduto) await recarregarProdutos();
     aviso(modo === "novo" ? "Produto adicionado ao delivery." : "Alterações salvas.", "ok");
     onSalvo();
   };
@@ -1226,8 +1867,9 @@ function ModalProduto({
           </button>
         </div>
 
-        {/* Standalone: dados do produto. Addon: só referência do PDV. */}
-        {ehAddon ? (
+        {/* Produto novo: os campos do cadastro. Editando no integrado: só a
+            referência do PDV, porque nome e preço são de lá. */}
+        {!criaProduto ? (
           <div className="delivery-view__aviso delivery-view__aviso--info">
             <strong>{prod?.name || "Produto"}</strong>
             {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""}, nome e preço vêm do
@@ -1255,6 +1897,73 @@ function ModalProduto({
               <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
             </div>
           </>
+        )}
+
+        {/* Extras deste produto. Mesma biblioteca da aba Complementos — o
+            grupo continua sendo reutilizável em vários produtos; aqui só se
+            marca em quais ele aparece. Sem isto, criar um produto e dar
+            extras a ele eram duas viagens de tela. */}
+        {!carregandoExtras && !extrasIndisponiveis && (
+          <div className="delivery-view__campo">
+            <label className="delivery-view__label">
+              Extras deste produto <span className="delivery-view__hint">(opcional)</span>
+            </label>
+            {/* Biblioteca vazia escondia a seção INTEIRA — quem cadastrava o
+                primeiro produto do delivery não via nem que extras existiam,
+                e tinha de descobrir sozinho a aba Complementos. */}
+            {biblioteca.length === 0 && criandoGrupo == null && (
+              <p className="delivery-view__hint">
+                Nenhum grupo de extras ainda. Crie o primeiro aqui mesmo,
+                depois ele fica disponível para os outros produtos também.
+              </p>
+            )}
+            <div className="delivery-view__extras-lista">
+              {biblioteca.map((g) => {
+                const nItens = (g.itens ?? []).length;
+                const obrigatorio = Number(g.min_escolhas) > 0;
+                return (
+                  <label key={g.id} className="delivery-view__import-item">
+                    <input
+                      type="checkbox"
+                      checked={extras.has(String(g.id))}
+                      onChange={() => alternarExtra(g.id)}
+                    />
+                    <span className="delivery-view__item-nome">{g.nome}</span>
+                    <span className="delivery-view__hint">
+                      {obrigatorio ? "Obrigatório" : "Opcional"} · {nItens}{" "}
+                      {nItens === 1 ? "item" : "itens"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {criandoGrupo == null ? (
+              <button
+                type="button"
+                onClick={() => setCriandoGrupo("")}
+                className="delivery-view__extras-criar"
+              >
+                <LuPlus size={14} /> Criar grupo de extras
+              </button>
+            ) : (
+              <NovoGrupoExtrasInline
+                nomeInicial={criandoGrupo}
+                onCancelar={() => setCriandoGrupo(null)}
+                onCriado={(grupo, avisoParcial) => {
+                  // Entra na lista JÁ marcado: quem acabou de criar o grupo
+                  // para este produto não quer marcá-lo de novo.
+                  setBiblioteca((prev) => [...prev, grupo]);
+                  setExtras((prev) => new Set(prev).add(String(grupo.id)));
+                  setCriandoGrupo(null);
+                  if (avisoParcial) aviso?.(avisoParcial, "err");
+                }}
+              />
+            )}
+            <span className="delivery-view__hint">
+              O mesmo grupo pode aparecer em vários produtos. Para editar as opções
+              de um grupo que já existe, use a aba Complementos.
+            </span>
+          </div>
         )}
 
         {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
@@ -1338,16 +2047,6 @@ function ModalProduto({
           <label className="delivery-view__label">Descrição</label>
           <textarea className="delivery-view__textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
         </div>
-        <label className="delivery-view__switch">
-          <span>Disponível no cardápio</span>
-          <span className="delivery-view__toggle">
-            <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} />
-            <span className="delivery-view__toggle-trilho" aria-hidden="true">
-              <span className="delivery-view__toggle-botao" />
-            </span>
-          </span>
-        </label>
-
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro">
             ⚠️ {erro}
@@ -1546,6 +2245,27 @@ function AbaComplementos({ isAdmin, itens, products, aviso }) {
 // resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
 // aparece. Tocar abre o editor. Nada de campo editável aqui — a edição
 // mora no menu limpo (GrupoEditor), pra grade ficar fácil de escanear.
+/**
+ * O que a dupla mín/máx significa, em português do balcão. Máximo 0 é
+ * SEM LIMITE — é assim que se cadastra "quantos sabores o cliente quiser".
+ * Usada na frase do editor (enquanto se digita) e no selo do cartão.
+ */
+function explicarEscolhas(min, max) {
+  if (min > 0) {
+    if (max === 0) return `Obrigatório, o cliente escolhe ao menos ${min}, quantas quiser acima disso`;
+    if (max === min) return `Obrigatório, o cliente precisa escolher ${min === 1 ? "1 opção" : `${min} opções`}`;
+    return `Obrigatório, o cliente precisa escolher de ${min} a ${max}`;
+  }
+  if (max === 0) return "Opcional, o cliente escolhe quantas quiser";
+  if (max === 1) return "Opcional, o cliente pode escolher 1, se quiser";
+  return `Opcional, o cliente pode escolher até ${max}`;
+}
+
+/** Faixa curta para o selo do cartão: "1–3", "0–1", "2 ou mais". */
+function faixaEscolhas(min, max) {
+  return max > 0 ? `${min}–${max}` : `${min} ou mais`;
+}
+
 function GrupoCardMini({ grupo, onAbrir }) {
   const nItens = (grupo.itens || []).length;
   const nProdutos = (grupo.produtoIds || []).length;
@@ -1568,7 +2288,11 @@ function GrupoCardMini({ grupo, onAbrir }) {
       <span
         className={`delivery-view__grupo-selo delivery-view__grupo-selo--${obrigatorio ? "obrigatorio" : "opcional"}`}
       >
-        {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
+        {obrigatorio ? "Obrigatório" : "Opcional"} ·{" "}
+        {faixaEscolhas(
+          Math.max(0, Number(grupo.min_escolhas) || 0),
+          Math.max(0, Number(grupo.max_escolhas ?? 1) || 0),
+        )}
       </span>
 
       <div className="delivery-view__grupo-stats">
@@ -1734,7 +2458,6 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
     setSubgrupoIds((grupo.subgrupoIds ?? []).map(String));
     setSelecionadoProd(null);
     setNovoPreco("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grupo]);
 
   // Há algo diferente do que está salvo? Controla o botão "Salvar" e o
@@ -1742,7 +2465,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
   const sujo = useMemo(() => {
     if ((nome ?? "").trim() !== (grupo.nome ?? "")) return true;
     if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
-    if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
+    if ((Number(max) || 0) !== (Number(grupo.max_escolhas) || 0)) return true;
     if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
     // Ordem importa (reordenar arrastando também é alteração a salvar):
     // compara os ids preservando a sequência, não como conjunto ordenado.
@@ -1858,7 +2581,8 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
     // 1) Config do grupo (nome, mín, máx).
     const g = await salvarGrupoComplemento({
       id: grupo.id, nome: nome.trim() || grupo.nome,
-      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+      // Máximo 0 (ou em branco) é "sem limite" — ver o campo lá embaixo.
+      min_escolhas: Number(min) || 0, max_escolhas: Math.max(0, Number(max) || 0), ordem: grupo.ordem,
     });
     if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
 
@@ -2002,9 +2726,20 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
             );
           })}
         </div>
+        {/* Máximo 0 (ou em branco) = sem limite. O que o zero significa não
+            fica escondido no campo: a frase logo abaixo já diz "quantas
+            quiser" enquanto se digita, antes de salvar. */}
         <label className="delivery-view__hint delivery-view__editor-max">
           máx
-          <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+          <input
+            className="delivery-view__input delivery-view__input--qtd"
+            type="number"
+            min="0"
+            value={max}
+            onChange={(e) => setMax(e.target.value)}
+            disabled={!isAdmin}
+            title="0 = sem limite"
+          />
         </label>
         {isAdmin && (
           <button
@@ -2017,9 +2752,7 @@ function GrupoEditor({ isAdmin, grupo, biblioteca = [], products, itensCardapio 
         )}
       </div>
       <div className="delivery-view__hint delivery-view__editor-explica">
-        {Number(min) > 0
-          ? `Obrigatório, o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
-          : `Opcional, o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
+        {explicarEscolhas(Number(min) || 0, Math.max(0, Number(max) || 0))}
       </div>
 
       {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).
@@ -2306,6 +3039,577 @@ function SeletorProdutosMulti({ itens, produtoIds, vinculando, onAlternar }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// ABA — Entregadores (equipe de entrega + fechamento do dia)
+// ════════════════════════════════════════════════════════════════
+//
+// Duas coisas numa aba, por sub-seção (Princípio nº 1 — uma tela, um
+// assunto claro):
+//   • Equipe: cadastrar/editar/ativar entregadores (nome, telefone e o
+//     valor padrão por entrega). Desativar preserva histórico — nunca
+//     apaga, senão o fechamento passado sumia.
+//   • Fechamento do dia: escolhe o período e mostra, por entregador,
+//     quantas entregas confirmadas, quantas em rota e QUANTO PAGAR. Paga
+//     só a corrida concluída (status 'entregue') — dinheiro é conservador.
+//
+// A lista de entregadores vem de cima (DeliveryView) — a mesma que o
+// seletor do cartão de pedido usa, sem recarregar duplicado.
+function AbaEntregadores({
+  isAdmin,
+  entregadores,
+  recarregar,
+  aviso,
+  currentUser,
+  caixaAberto,
+  dinheiroNaGaveta,
+  registrarMovimentoCaixa,
+}) {
+  const [secao, setSecao] = useState("equipe");
+
+  return (
+    <div className="delivery-view__entregadores">
+      <div className="delivery-view__sub-abas">
+        <button
+          type="button"
+          onClick={() => setSecao("equipe")}
+          className={`delivery-view__sub-aba${secao === "equipe" ? " delivery-view__sub-aba--ativa" : ""}`}
+        >
+          Equipe
+        </button>
+        <button
+          type="button"
+          onClick={() => setSecao("fechamento")}
+          className={`delivery-view__sub-aba${secao === "fechamento" ? " delivery-view__sub-aba--ativa" : ""}`}
+        >
+          Pagamento
+        </button>
+      </div>
+
+      {secao === "equipe" ? (
+        <EquipeEntregadores
+          isAdmin={isAdmin}
+          entregadores={entregadores}
+          recarregar={recarregar}
+          aviso={aviso}
+        />
+      ) : (
+        <FechamentoEntregadores
+          entregadores={entregadores}
+          aviso={aviso}
+          isAdmin={isAdmin}
+          currentUser={currentUser}
+          caixaAberto={caixaAberto}
+          dinheiroNaGaveta={dinheiroNaGaveta}
+          registrarMovimentoCaixa={registrarMovimentoCaixa}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Equipe: cadastro / edição / ativar-desativar ────────────────────
+function EquipeEntregadores({ isAdmin, entregadores, recarregar, aviso }) {
+  const [novoNome, setNovoNome] = useState("");
+  const [novoTel, setNovoTel] = useState("");
+  const [novoValor, setNovoValor] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const podeAdicionar = nomeEntregadorValido(novoNome) && !salvando;
+
+  const adicionar = async () => {
+    if (!podeAdicionar) return;
+    setSalvando(true);
+    const { error } = await criarEntregador({
+      nome: novoNome,
+      telefone: novoTel,
+      valor_por_entrega: novoValor,
+    });
+    setSalvando(false);
+    if (error) return aviso(error.message || "Não foi possível cadastrar o entregador.", "err");
+    setNovoNome("");
+    setNovoTel("");
+    setNovoValor("");
+    aviso("Entregador cadastrado.", "ok");
+    await recarregar();
+  };
+
+  const ordenados = useMemo(
+    () =>
+      [...(entregadores || [])].sort((a, b) =>
+        String(a.nome ?? "").localeCompare(String(b.nome ?? ""), "pt-BR")
+      ),
+    [entregadores]
+  );
+
+  return (
+    <>
+      {isAdmin && (
+        <div className="delivery-view__entregador-form">
+          <div className="delivery-view__entregador-form-campos">
+            <input
+              type="text"
+              className="delivery-view__input"
+              placeholder="Nome do entregador"
+              value={novoNome}
+              onChange={(e) => setNovoNome(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+            />
+            <input
+              type="tel"
+              className="delivery-view__input"
+              placeholder="Telefone (opcional)"
+              value={novoTel}
+              onChange={(e) => setNovoTel(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+            />
+            <div className="delivery-view__entregador-valor-campo">
+              <span className="delivery-view__entregador-valor-cifrao">R$</span>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="delivery-view__input delivery-view__input--valor"
+                placeholder="0,00"
+                value={novoValor}
+                onChange={(e) => setNovoValor(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && podeAdicionar) adicionar(); }}
+                title="Valor padrão por entrega (você pode ajustar por pedido)"
+              />
+              <span className="delivery-view__entregador-valor-legenda">por entrega</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--primario"
+            onClick={adicionar}
+            disabled={!podeAdicionar}
+            title={podeAdicionar ? "Cadastrar entregador" : "Informe ao menos o nome"}
+          >
+            <LuPlus size={15} /> Adicionar
+          </button>
+        </div>
+      )}
+
+      {ordenados.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🛵</div>
+          <div className="delivery-view__vazio-titulo">Nenhum entregador cadastrado</div>
+          <div className="delivery-view__vazio-desc">
+            {isAdmin
+              ? "Cadastre seus entregadores acima para atribuí-los aos pedidos."
+              : "Peça a um administrador para cadastrar a equipe de entrega."}
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__entregador-lista">
+          {ordenados.map((e) => (
+            <EntregadorLinha
+              key={e.id}
+              entregador={e}
+              isAdmin={isAdmin}
+              recarregar={recarregar}
+              aviso={aviso}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function EntregadorLinha({ entregador, isAdmin, recarregar, aviso }) {
+  const [editando, setEditando] = useState(false);
+  const [nome, setNome] = useState(entregador.nome || "");
+  const [tel, setTel] = useState(entregador.telefone || "");
+  const [valor, setValor] = useState(
+    entregador.valor_por_entrega ? String(entregador.valor_por_entrega) : ""
+  );
+  const [salvando, setSalvando] = useState(false);
+  const ativo = entregador.ativo !== false;
+
+  const iniciarEdicao = () => {
+    setNome(entregador.nome || "");
+    setTel(entregador.telefone || "");
+    setValor(entregador.valor_por_entrega ? String(entregador.valor_por_entrega) : "");
+    setEditando(true);
+  };
+
+  const salvar = async () => {
+    if (!nomeEntregadorValido(nome) || salvando) return;
+    setSalvando(true);
+    const { error } = await atualizarEntregador(entregador.id, {
+      nome,
+      telefone: tel,
+      valor_por_entrega: valor,
+    });
+    setSalvando(false);
+    if (error) return aviso(error.message || "Não foi possível salvar.", "err");
+    setEditando(false);
+    aviso("Entregador atualizado.", "ok");
+    await recarregar();
+  };
+
+  const alternarAtivo = async () => {
+    const { error } = await definirAtivoEntregador(entregador.id, !ativo);
+    if (error) return aviso("Não foi possível mudar o status do entregador.", "err");
+    aviso(ativo ? "Entregador desativado." : "Entregador reativado.", "ok");
+    await recarregar();
+  };
+
+  if (editando) {
+    return (
+      <div className="delivery-view__entregador-linha delivery-view__entregador-linha--edit">
+        <input
+          type="text"
+          className="delivery-view__input"
+          value={nome}
+          onChange={(e) => setNome(e.target.value)}
+          placeholder="Nome"
+          autoFocus
+        />
+        <input
+          type="tel"
+          className="delivery-view__input"
+          value={tel}
+          onChange={(e) => setTel(e.target.value)}
+          placeholder="Telefone (opcional)"
+        />
+        <div className="delivery-view__entregador-valor-campo">
+          <span className="delivery-view__entregador-valor-cifrao">R$</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            className="delivery-view__input delivery-view__input--valor"
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder="0,00"
+          />
+        </div>
+        <div className="delivery-view__entregador-linha-acoes">
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario"
+            onClick={salvar}
+            disabled={!nomeEntregadorValido(nome) || salvando}
+          >
+            <LuCheck size={13} /> Salvar
+          </button>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm"
+            onClick={() => setEditando(false)}
+          >
+            <LuX size={13} /> Cancelar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`delivery-view__entregador-linha${ativo ? "" : " delivery-view__entregador-linha--inativo"}`}>
+      <div className="delivery-view__entregador-linha-info">
+        <span className="delivery-view__entregador-linha-nome">
+          <LuBike size={14} /> {entregador.nome}
+          {!ativo && <span className="delivery-view__entregador-tag-inativo">inativo</span>}
+        </span>
+        <span className="delivery-view__entregador-linha-detalhe">
+          {entregador.telefone ? formatarTelefone(entregador.telefone) : "Sem telefone"}
+          {" · "}
+          {formatarReais(entregador.valor_por_entrega || 0)} por entrega
+        </span>
+      </div>
+      {isAdmin && (
+        <div className="delivery-view__entregador-linha-acoes">
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--icone"
+            onClick={iniciarEdicao}
+            title="Editar entregador"
+          >
+            <LuPencil size={14} />
+          </button>
+          <button
+            type="button"
+            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--icone"
+            onClick={alternarAtivo}
+            title={ativo ? "Desativar (não aparece no seletor de pedidos)" : "Reativar entregador"}
+          >
+            {ativo ? <LuPowerOff size={14} /> : <LuPower size={14} />}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Fechamento do dia: quanto pagar cada entregador no período ───────
+const diaLocalISO = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
+};
+
+function FechamentoEntregadores({
+  entregadores,
+  aviso,
+  isAdmin,
+  currentUser,
+  caixaAberto,
+  dinheiroNaGaveta,
+  registrarMovimentoCaixa,
+}) {
+  const [inicio, setInicio] = useState(diaLocalISO);
+  const [fim, setFim] = useState(diaLocalISO);
+  const [pedidos, setPedidos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
+  const [confirmandoId, setConfirmandoId] = useState(null); // linha aguardando confirmação
+  const [pagandoId, setPagandoId] = useState(null);         // linha com pagamento em curso
+
+  const carregar = useCallback(async () => {
+    setCarregando(true);
+    const { data, error } = await listarPedidosDelivery();
+    setCarregando(false);
+    if (error) {
+      setErro(true);
+      aviso("Não foi possível carregar os pedidos do fechamento.", "err");
+      return;
+    }
+    setErro(false);
+    setPedidos(data);
+  }, [aviso]);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const { linhas, totalGeral, totalAPagar, totalJaPago, totalEntregues, totalEmRota, noPeriodo } = useMemo(() => {
+    // Limites em horário LOCAL: início 00:00, fim 23:59:59.999 do dia escolhido.
+    const ini = inicio ? new Date(`${inicio}T00:00:00`) : null;
+    const f = fim ? new Date(`${fim}T23:59:59.999`) : null;
+    const doPeriodo = filtrarPedidosPorPeriodo(pedidos, ini, f);
+    // noPeriodo sobe junto para o pagamento resolver os ids das corridas 1:1
+    // com o valor da sangria (idsAPagarDoEntregador).
+    return { ...calcularFechamento(doPeriodo, entregadores), noPeriodo: doPeriodo };
+  }, [pedidos, inicio, fim, entregadores]);
+
+  // Paga um entregador: sai da gaveta como SANGRIA (dinheiro de verdade) e
+  // carimba as corridas como pagas para não pagar a mesma entrega de novo.
+  // Só admin/gerente (autorizam a si mesmos, sem digitar senha). A ordem é
+  // sangria → carimbo: se o carimbo falhar, o dinheiro já saiu e as corridas
+  // seguem "a pagar" — o aviso manda conferir antes de repetir (o oposto,
+  // carimbar primeiro, marcaria como pago sem o dinheiro sair).
+  const pagar = useCallback(async (linha) => {
+    if (!isAdmin || pagandoId) return;
+    const ids = idsAPagarDoEntregador(noPeriodo, linha.entregador_id);
+    if (ids.length === 0) return aviso("Nada a pagar para este entregador.", "err");
+    if (!caixaAberto) return aviso("Abra o caixa antes de pagar o entregador.", "err");
+    if (dinheiroNaGaveta < linha.aPagar) {
+      return aviso("Não há dinheiro suficiente na gaveta para este pagamento.", "err");
+    }
+    setPagandoId(linha.entregador_id);
+    const motivo = `Pagamento entregador ${linha.nome}, ${ids.length} ${ids.length > 1 ? "entregas" : "entrega"}`;
+    const { error } = await registrarMovimentoCaixa({
+      tipo: "sangria",
+      valor: linha.aPagar,
+      motivo,
+      autorizadoPor: currentUser?.username,
+      disponivel: dinheiroNaGaveta,
+    });
+    if (error) {
+      setPagandoId(null);
+      return aviso(error.message || "Não foi possível registrar a saída de caixa.", "err");
+    }
+    const { error: erroCarimbo } = await registrarPagamentoEntregador(ids);
+    setPagandoId(null);
+    setConfirmandoId(null);
+    if (erroCarimbo) {
+      aviso(
+        "A saída de caixa foi registrada, mas não consegui marcar as corridas como pagas. Confira o caixa antes de pagar de novo.",
+        "err"
+      );
+      await carregar();
+      return;
+    }
+    aviso(`Pago ${formatarReais(linha.aPagar)} a ${linha.nome}.`, "ok");
+    await carregar();
+  }, [isAdmin, pagandoId, noPeriodo, caixaAberto, dinheiroNaGaveta, registrarMovimentoCaixa, currentUser, aviso, carregar]);
+
+  return (
+    <>
+      <div className="delivery-view__fechamento-filtros">
+        <label className="delivery-view__fechamento-campo">
+          <span>De</span>
+          <input
+            type="date"
+            className="delivery-view__input"
+            value={inicio}
+            max={fim || undefined}
+            onChange={(e) => setInicio(e.target.value)}
+          />
+        </label>
+        <label className="delivery-view__fechamento-campo">
+          <span>Até</span>
+          <input
+            type="date"
+            className="delivery-view__input"
+            value={fim}
+            min={inicio || undefined}
+            onChange={(e) => setFim(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--atualizar"
+          onClick={carregar}
+          title="Atualizar os pedidos do período"
+        >
+          <LuRefreshCw size={13} /> Atualizar
+        </button>
+      </div>
+
+      {carregando ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__carregando">Carregando fechamento…</div>
+        </div>
+      ) : erro ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">📡</div>
+          <div className="delivery-view__vazio-titulo">Não conseguimos carregar</div>
+          <div className="delivery-view__vazio-desc">Toque em “Atualizar” para tentar de novo.</div>
+        </div>
+      ) : linhas.length === 0 ? (
+        <div className="delivery-view__vazio">
+          <div className="delivery-view__vazio-emoji">🧾</div>
+          <div className="delivery-view__vazio-titulo">Nada a pagar no período</div>
+          <div className="delivery-view__vazio-desc">
+            Nenhuma entrega atribuída a um entregador neste intervalo.
+          </div>
+        </div>
+      ) : (
+        <div className="delivery-view__fechamento-tabela-wrap">
+          <table className="delivery-view__fechamento-tabela">
+            <thead>
+              <tr>
+                <th>Entregador</th>
+                <th className="delivery-view__num">Entregues</th>
+                <th className="delivery-view__num">Em rota</th>
+                <th className="delivery-view__num">A pagar</th>
+                {isAdmin && <th className="delivery-view__fechamento-acao-col">Pagamento</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((l) => {
+                const confirmando = confirmandoId === l.entregador_id;
+                const pagandoEsta = pagandoId === l.entregador_id;
+                const semDinheiro = dinheiroNaGaveta < l.aPagar;
+                // Por que o botão está desabilitado — texto direto no title,
+                // prevenção de erro > mensagem depois (Princípio nº 1).
+                const motivoBloqueio = !caixaAberto
+                  ? "Abra o caixa para pagar o entregador."
+                  : semDinheiro
+                    ? "Não há dinheiro suficiente na gaveta."
+                    : "";
+                const podePagar = l.aPagar > 0 && caixaAberto && !semDinheiro;
+                return (
+                  <tr key={l.entregador_id}>
+                    <td>
+                      <span className="delivery-view__fechamento-nome">
+                        <LuBike size={14} /> {l.nome}
+                      </span>
+                    </td>
+                    <td className="delivery-view__num">{l.entregues}</td>
+                    <td className="delivery-view__num">
+                      {l.emRota > 0 ? (
+                        <span className="delivery-view__fechamento-emrota" title="Ainda na rua, não entram no pagamento até serem entregues">
+                          {l.emRota}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="delivery-view__num delivery-view__fechamento-valor">
+                      {l.aPagar > 0 ? formatarReais(l.aPagar) : "—"}
+                      {l.jaPago > 0 && (
+                        <span className="delivery-view__fechamento-pago-nota" title="Já saiu do caixa neste período">
+                          {formatarReais(l.jaPago)} pago
+                        </span>
+                      )}
+                    </td>
+                    {isAdmin && (
+                      <td className="delivery-view__fechamento-acao">
+                        {l.aPagar <= 0 ? (
+                          <span className="delivery-view__fechamento-quitado" title="Todas as entregas do período já foram pagas">
+                            <LuCheck size={13} /> Pago
+                          </span>
+                        ) : confirmando ? (
+                          <span className="delivery-view__fechamento-confirma">
+                            <span className="delivery-view__fechamento-confirma-txt">
+                              Sair {formatarReais(l.aPagar)} do caixa?
+                            </span>
+                            <button
+                              type="button"
+                              className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--primario"
+                              onClick={() => pagar(l)}
+                              disabled={pagandoEsta}
+                            >
+                              {pagandoEsta ? "Pagando…" : "Confirmar"}
+                            </button>
+                            <button
+                              type="button"
+                              className="delivery-view__btn delivery-view__btn--sm"
+                              onClick={() => setConfirmandoId(null)}
+                              disabled={pagandoEsta}
+                            >
+                              Cancelar
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            className="delivery-view__btn delivery-view__btn--sm delivery-view__btn--pagar"
+                            onClick={() => setConfirmandoId(l.entregador_id)}
+                            disabled={!podePagar}
+                            title={motivoBloqueio || `Pagar ${formatarReais(l.aPagar)} a ${l.nome} (sai do caixa)`}
+                          >
+                            <LuBanknote size={14} /> Pagar
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td className="delivery-view__num">{totalEntregues}</td>
+                <td className="delivery-view__num">{totalEmRota || "—"}</td>
+                <td className="delivery-view__num delivery-view__fechamento-valor">
+                  {formatarReais(totalAPagar)}
+                  {totalJaPago > 0 && (
+                    <span className="delivery-view__fechamento-pago-nota">
+                      {formatarReais(totalJaPago)} pago
+                    </span>
+                  )}
+                </td>
+                {isAdmin && <td />}
+              </tr>
+            </tfoot>
+          </table>
+          <p className="delivery-view__fechamento-nota">
+            Paga-se apenas a corrida concluída (entregue). Pedidos em rota
+            aparecem para acompanhamento e entram no pagamento quando forem
+            confirmados. Ao confirmar o pagamento, o valor sai do caixa como
+            uma retirada (sangria) e as corridas ficam marcadas como pagas.
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 // ABA 3 — Entrega e taxas (config_delivery)
 // ════════════════════════════════════════════════════════════════
 function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
@@ -2348,13 +3652,25 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [faixaKmAte, setFaixaKmAte] = useState("");
   const [faixaTaxa, setFaixaTaxa] = useState("");
 
+  // O motivo da falha fica NA TELA, não num toast que some. Sem ele, uma
+  // coluna que o banco ainda não tem deixava esta aba em "Carregando…"
+  // para sempre, sem uma palavra sobre o que faltava — e a taxa de entrega
+  // simplesmente não abria.
+  const [erroConfig, setErroConfig] = useState("");
+  const [tentativa, setTentativa] = useState(0);
+
   useEffect(() => {
     let ativo = true;
     (async () => {
+      setCarregando(true);
       const { data, error } = await carregarConfigDelivery();
       if (!ativo) return;
       setCarregando(false);
-      if (error) return aviso("Não foi possível carregar as configurações.", "err");
+      if (error) {
+        setErroConfig(error.message || "Não foi possível carregar as configurações.");
+        return;
+      }
+      setErroConfig("");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
@@ -2362,7 +3678,7 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
     return () => { ativo = false; };
-  }, [aviso]);
+  }, [tentativa]);
 
   const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
 
@@ -2498,8 +3814,35 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     [config?.origem_lat, config?.origem_lng]
   );
 
-  if (carregando || !config) {
+  if (carregando) {
     return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
+  }
+
+  if (erroConfig || !config) {
+    // Coluna que o banco ainda não tem é o caso mais comum aqui, e o
+    // Postgres diz isso com todas as letras ("column ... does not exist").
+    // Repassar o texto dele é o que transforma "não funciona" em "faltou
+    // rodar a migração" sem ninguém precisar abrir o console.
+    const faltaColuna = /column .* does not exist/i.test(erroConfig);
+    return (
+      <div className="delivery-view__aviso delivery-view__aviso--erro">
+        <div>Não foi possível carregar a configuração de entrega.</div>
+        {erroConfig && <div className="delivery-view__hint">{erroConfig}</div>}
+        {faltaColuna && (
+          <div className="delivery-view__hint">
+            O banco está atrás do sistema: falta rodar as migrações pendentes
+            (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setTentativa((n) => n + 1)}
+          className="delivery-view__btn delivery-view__btn--sm"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    );
   }
 
   const readOnly = !isAdmin;
@@ -2522,6 +3865,118 @@ function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
           <label className="delivery-view__label">Tempo de preparo (min)</label>
           <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
+      </div>
+
+      {/* Retirada no local — vem ANTES da taxa de propósito: é o caminho
+          que não depende de faixa nenhuma configurada, e quem está abrindo
+          a loja hoje consegue vender por ele antes de desenhar as áreas
+          de entrega. */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuStore size={16} color={varColor(C.accent)} /> Retirada no local
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O cliente escolhe buscar no balcão e não paga taxa. Aparece como opção
+              na página do cardápio.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.permite_retirada}
+              disabled={readOnly}
+              onChange={(e) => salvar({ permite_retirada: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+
+        {/* Ligado sem endereço, o cliente leria "retire no local" sem saber
+            onde é o local — então o servidor não oferece a opção e aqui a
+            tela diz por quê, em vez de o dono achar que ligou e não ligou. */}
+        {config.permite_retirada && !String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint delivery-view__hint--erro">
+            Falta o endereço do estabelecimento: sem ele a retirada não aparece
+            para o cliente. Preencha em “Endereço do estabelecimento”, no modo de
+            taxa por distância.
+          </div>
+        )}
+        {config.permite_retirada && String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint">
+            O cliente vai buscar em: <strong>{config.endereco_origem}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Aceite automático de pedidos */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuZap size={16} color={varColor(C.accent)} /> Aceitar pedidos automaticamente
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O pedido já entra em <strong>Em preparo</strong>, sem alguém precisar
+              apertar &quot;Aceitar&quot;. Para cozinha que faz tudo o que entra.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.aceite_automatico}
+              disabled={readOnly}
+              onChange={(e) => salvar({ aceite_automatico: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.aceite_automatico && (
+          <div className="delivery-view__hint">
+            Você continua podendo cancelar um pedido. O que muda é que ninguém
+            precisa estar olhando a tela para ele começar a ser feito. O aviso
+            sonoro de pedido novo continua tocando igual.
+          </div>
+        )}
+      </div>
+
+      {/* Confirmação no WhatsApp ao aceitar o pedido */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuMessageCircle size={16} color={varColor(C.accent)} /> Confirmar no WhatsApp
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              Ao aceitar um pedido e ao marcar que saiu para entrega, abre o
+              WhatsApp do cliente com a mensagem já escrita, você confere e
+              envia. Grátis, sem integração.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.whatsapp_no_aceite}
+              disabled={readOnly}
+              onChange={(e) => salvar({ whatsapp_no_aceite: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.whatsapp_no_aceite && (
+          <div className="delivery-view__hint">
+            Abre uma aba a cada aceite e a cada saída para entrega. Se você move
+            vários de uma vez, talvez prefira deixar desligado. O botão do
+            WhatsApp no cartão do pedido continua ali para mandar quando quiser.
+          </div>
+        )}
       </div>
 
       {/* Taxa de entrega */}

@@ -130,6 +130,15 @@
   margin-top: auto;
 }
 
+/* Produto com seleção: o preço é o mínimo (o item escolhido pode acrescer).
+   "a partir de" avisa que o valor pode subir — menor e sem o peso do preço
+   cheio, para não parecer o preço final. */
+.produto-card__preco--apartir {
+  font-size: var(--fs-sm);   /* role: label/apoio */
+  line-height: var(--lh-sm);
+  font-weight: 700;
+}
+
 /* B4 — card de combo: mesmo card, com selo e borda de destaque para o
    operador distinguir do produto avulso num relance */
 .produto-card--combo {

@@ -133,6 +133,61 @@ describe("mexer no layout muda o papel na hora, antes de salvar", () => {
   });
 });
 
+describe("largura das colunas da lista de itens", () => {
+  // Teclado em vez de arrastar: jsdom não tem layout, então um gesto de
+  // ponteiro mediria uma barra de largura zero. As setas passam pelo
+  // MESMO cálculo do arrasto — o que se testa aqui é a regra, não o
+  // gesto.
+  const divisoria = (nome) => within(acharBloco("Lista dos itens")).getByRole("button", { name: new RegExp(nome) });
+
+  it("alargar a coluna do nome estreita a de quantidade, e o papel muda junto", async () => {
+    await abrirEditor();
+    await userEvent.click(screen.getByText("Lista dos itens"));
+
+    const larguraDe = (html, indice) => Number(html.match(/<col style="width:([\d.]+)%"/g)[indice].match(/([\d.]+)/)[1]);
+    const antes = papel();
+
+    divisoria("Largura entre Item e Qtd").focus();
+    await userEvent.keyboard("{ArrowRight}{ArrowRight}");
+
+    await waitFor(() => {
+      const depois = papel();
+      expect(larguraDe(depois, 0)).toBeGreaterThan(larguraDe(antes, 0));
+      expect(larguraDe(depois, 1)).toBeLessThan(larguraDe(antes, 1));
+    });
+  });
+
+  it("nenhuma coluna some de tanto arrastar — o piso segura", async () => {
+    await abrirEditor();
+    await userEvent.click(screen.getByText("Lista dos itens"));
+
+    divisoria("Largura entre Item e Qtd").focus();
+    for (let i = 0; i < 40; i += 1) await userEvent.keyboard("{ArrowRight}");
+
+    await waitFor(() => {
+      const larguras = [...papel().matchAll(/<col style="width:([\d.]+)%"/g)].map((m) => Number(m[1]));
+      expect(larguras).toHaveLength(4);
+      for (const l of larguras) expect(l).toBeGreaterThan(0);
+      expect(larguras.reduce((t, n) => t + n, 0)).toBeCloseTo(100, 0);
+    });
+  });
+
+  it("a largura escolhida é gravada com o resto do layout", async () => {
+    await abrirEditor();
+    await userEvent.click(screen.getByText("Lista dos itens"));
+
+    divisoria("Largura entre Item e Qtd").focus();
+    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar layout" }));
+
+    await waitFor(() => expect(mockSalvarConfig).toHaveBeenCalledTimes(1));
+    const larguras = mockSalvarConfig.mock.calls[0][0].layoutComanda.find((b) => b.tipo === "itens").opcoes.larguras;
+
+    expect(Object.keys(larguras)).toEqual(["nome", "qtd", "unitario", "total"]);
+    expect(Object.values(larguras).reduce((t, n) => t + n, 0)).toBeCloseTo(100, 0);
+  });
+});
+
 describe("as duas saídas de impressão", () => {
   it("a aba da térmica mostra o texto puro, na largura real do papel", async () => {
     await abrirEditor();

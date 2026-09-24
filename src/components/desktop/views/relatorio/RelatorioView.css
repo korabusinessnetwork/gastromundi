@@ -581,3 +581,17 @@
   font-size: var(--fs-sm);   /* role: nota de rodapé (era sz.fontSm + 1) */
   line-height: var(--lh-sm);
 }
+
+/* Selo de origem da venda (balcão x delivery) na tabela resumida —
+   só informa, não é botão. */
+.relatorio-view__selo-origem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}

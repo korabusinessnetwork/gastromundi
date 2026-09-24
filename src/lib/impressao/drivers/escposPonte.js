@@ -1,5 +1,5 @@
 import { colunasEscpos } from "../largura";
-import { formatarComprovanteEscpos, formatarViaProducaoEscpos } from "../escposFormatador";
+import { formatarComprovanteEscpos, formatarViaProducaoEscpos, formatarComprovanteCaixaEscpos } from "../escposFormatador";
 import { enviarImpressaoPonte } from "../../ponte";
 
 /**
@@ -24,9 +24,9 @@ import { enviarImpressaoPonte } from "../../ponte";
 const AVISO_SEM_IMPRESSORA = "Escolha a impressora em Configurações → Impressão.";
 
 function linhasDocumento(documento, colunas) {
-  return documento?.tipo === "via_producao"
-    ? formatarViaProducaoEscpos(documento, colunas)
-    : formatarComprovanteEscpos(documento, colunas);
+  if (documento?.tipo === "via_producao") return formatarViaProducaoEscpos(documento, colunas);
+  if (documento?.tipo === "comprovante_caixa") return formatarComprovanteCaixaEscpos(documento, colunas);
+  return formatarComprovanteEscpos(documento, colunas);
 }
 
 // Destino incompleto (tipo windows sem nome, rede sem host) é tão

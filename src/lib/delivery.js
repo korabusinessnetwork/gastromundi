@@ -10,6 +10,12 @@
 // Funções puras (carrinho, CEP, payload) nascem com teste (delivery.test.js).
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
+import { ehUuid } from "@/lib/deliveryDispositivo";
+import { apenasDigitosTelefone } from "@/lib/telefone";
+// As três regras de cobrança de grupo (somar / a mais cara / média) têm
+// UMA implementação só. A vitrine e o PDV cobram igual porque é
+// literalmente a mesma função — não duas que concordam por enquanto.
+import { precoDoGrupo } from "@/lib/combos";
 
 // ── CEP ────────────────────────────────────────────────────────────
 
@@ -37,10 +43,8 @@ export function cepCompleto(bruto) {
  * Só para MOSTRAR — nunca é o valor que vale (o servidor recalcula).
  * @param {number} valor
  */
-export function formatarPreco(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
+import { formatarReais as formatarPreco } from "./dinheiro";
+export { formatarPreco };
 
 /**
  * Lê o que o cliente DIGITOU num campo de dinheiro. O teclado brasileiro
@@ -63,15 +67,117 @@ export function valorDigitado(texto) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ── Data de nascimento (cadastro do cliente) ───────────────────────
+
+/**
+ * A data de nascimento é OPCIONAL e existe para o futuro (aniversário do
+ * cliente), não para barrar a compra de hoje. Por isso esta função não
+ * diz "inválido": ela diz se dá para APROVEITAR o que foi digitado. Data
+ * vazia, pela metade, no futuro ou de idade impossível simplesmente não
+ * é aproveitada, e o pedido segue igual.
+ *
+ * Recebe o formato do <input type="date"> ("AAAA-MM-DD"), que é o mesmo
+ * que o Postgres aceita — o campo não é digitado à mão em pt-BR.
+ *
+ * @param {string} texto
+ * @returns {string|null} a data pronta para gravar, ou null
+ */
+/**
+ * Monta "AAAA-MM-DD" a partir de dia, mês e ano digitados em campos
+ * separados. Só monta quando os TRÊS estão preenchidos; incompleto
+ * devolve "" para `dataNascimentoUtil` recusar depois.
+ *
+ * Existe porque o `<input type="date">` era péssimo para data de
+ * nascimento: o calendário abre no mês atual e chegar a 1962 é uma
+ * viagem de centenas de cliques. Três campos deixam o ano ser digitado.
+ *
+ * Não valida o dia contra o mês nem o ano contra o futuro — isso é de
+ * `dataNascimentoUtil`, que continua sendo a única regra.
+ *
+ * @param {string|number} dia
+ * @param {string|number} mes  1 a 12
+ * @param {string|number} ano  4 dígitos
+ * @returns {string} "AAAA-MM-DD", ou "" quando falta alguma parte
+ */
+export function montarDataISO(dia, mes, ano) {
+  const d = String(dia ?? "").trim();
+  const m = String(mes ?? "").trim();
+  const a = String(ano ?? "").trim();
+  if (!d || !m || !a) return "";
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(a)) return "";
+  return `${a}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+/**
+ * Desmonta "AAAA-MM-DD" nos três campos da tela. O inverso de
+ * `montarDataISO`, para reabrir o formulário com o que já foi digitado.
+ *
+ * @param {string} iso
+ * @returns {{dia: string, mes: string, ano: string}} partes vazias quando não dá
+ */
+export function separarDataISO(iso) {
+  const bruto = String(iso ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return { dia: "", mes: "", ano: "" };
+  const [ano, mes, dia] = bruto.split("-");
+  // Sem zero à esquerda: o campo é digitado por gente, e "07" num input
+  // numérico é o tipo de detalhe que faz a pessoa apagar e redigitar.
+  return { dia: String(Number(dia)), mes: String(Number(mes)), ano };
+}
+
+export function dataNascimentoUtil(texto) {
+  const bruto = String(texto ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return null;
+  // Tudo em UTC e comparado como TEXTO. Data de nascimento é dia de
+  // calendário, não instante: montar Date no fuso local faz "hoje" virar
+  // "amanhã" (ou ontem) conforme a hora e onde a pessoa está, e o campo
+  // recusaria uma data perfeitamente boa dependendo do relógio.
+  const d = new Date(`${bruto}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  // "2026-02-31" o Date aceita e rola para março: comparar de volta é o
+  // que pega dia que não existe no mês.
+  if (d.toISOString().slice(0, 10) !== bruto) return null;
+  const hoje = new Date();
+  const hojeISO = hoje.toISOString().slice(0, 10);
+  if (bruto > hojeISO) return null;
+  // Texto ISO compara na ordem certa por ser sempre AAAA-MM-DD.
+  const limiteISO = `${hoje.getUTCFullYear() - 120}${hojeISO.slice(4)}`;
+  if (bruto < limiteISO) return null;
+  return bruto;
+}
+
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
+
+/**
+ * Quanto as opções escolhidas acrescentam, RESPEITANDO A REGRA DE CADA
+ * GRUPO. Grupos diferentes sempre se somam entre si; dentro do grupo, é
+ * a regra dele que decide (ver `precoDoGrupo`, a mesma conta do PDV).
+ *
+ * Um grupo de complemento do delivery não tem regra e cai em 'soma' —
+ * que é exatamente o que ele sempre fez. O que muda é o grupo de
+ * escolha vindo do cadastro do produto, onde "escolha 4 sabores" cobra
+ * a pizza mais cara em vez de quatro pizzas.
+ *
+ * @param {Array<{preco?: number, qtd?: number, grupoId?: string, regra?: string}>} complementos
+ */
+export function precoDosComplementos(complementos) {
+  const porGrupo = new Map();
+  for (const c of complementos ?? []) {
+    // Sem grupo é 'soma', e somar é associativo: um balde só dá o mesmo.
+    const chave = c?.grupoId ?? "__sem_grupo__";
+    if (!porGrupo.has(chave)) porGrupo.set(chave, { regra: c?.regra, itens: [] });
+    porGrupo.get(chave).itens.push({ preco: c?.preco, qtd: c?.qtd });
+  }
+  let total = 0;
+  for (const { regra, itens } of porGrupo.values()) total += precoDoGrupo(itens, regra);
+  return total;
+}
 
 /**
  * Soma dos complementos escolhidos de um item do carrinho.
  * @param {{complementosEscolhidos?: Array<{preco?: number}>}} item
  */
 export function somaComplementos(item) {
-  const lista = item?.complementosEscolhidos ?? [];
-  return lista.reduce((acc, c) => acc + (Number(c?.preco) || 0), 0);
+  return precoDosComplementos(item?.complementosEscolhidos);
 }
 
 /** Preço unitário (base + complementos) de um item do carrinho. */
@@ -124,6 +230,31 @@ export function grupoSatisfeito(grupo, qtdEscolhida) {
 }
 
 /**
+ * Quantas UNIDADES foram escolhidas num grupo.
+ *
+ * A vitrine passou a guardar quantas de cada opção (`{ opcaoId: qtd }`),
+ * porque "2 de calabresa e 1 de portuguesa" é um pedido de três fatias e
+ * não de duas opções — é assim que o PDV já contava, e era só a vitrine
+ * que insistia em contar opções distintas.
+ *
+ * A forma antiga (lista de ids) continua valendo: uma sacola guardada no
+ * sessionStorage antes desta versão cai aqui, e ali cada id vale 1.
+ *
+ * @param {Record<string, number>|Array<string>|null|undefined} escolha
+ * @returns {number}
+ */
+export function unidadesDoGrupo(escolha) {
+  if (Array.isArray(escolha)) return escolha.length;
+  if (escolha && typeof escolha === "object") {
+    return Object.values(escolha).reduce(
+      (total, n) => total + Math.max(0, Number(n) || 0),
+      0
+    );
+  }
+  return 0;
+}
+
+/**
  * Achata a árvore de grupos (raiz → subgrupos → ...) numa lista plana, em
  * ordem de exibição (pré-ordem/DFS). Cada subgrupo é um grupo NORMAL com id
  * único, então achatar preserva o espaço de seleção plano (grupoId → ids).
@@ -155,7 +286,7 @@ export function achatarGrupos(grupos) {
  */
 export function grupoArvoreSatisfeita(grupo, selecoesPorGrupo) {
   if (!grupo) return true;
-  const proprio = grupoSatisfeito(grupo, (selecoesPorGrupo?.[grupo.id] ?? []).length);
+  const proprio = grupoSatisfeito(grupo, unidadesDoGrupo(selecoesPorGrupo?.[grupo.id]));
   if (!proprio) return false;
   return (grupo.subgrupos ?? []).every((sub) =>
     grupoArvoreSatisfeita(sub, selecoesPorGrupo)
@@ -233,6 +364,59 @@ export function rotuloRegraGrupo(grupo) {
 }
 
 /**
+ * O mesmo selo do grupo, agora sabendo quanto já foi escolhido. É a
+ * diferença entre um cartaz parado ("Escolha 3") e alguém dizendo o que
+ * falta enquanto a pessoa escolhe ("Faltam 2", "✓ pronto").
+ *
+ * No teto, a frase é a resposta à única pergunta que o cliente está
+ * fazendo ali ("por que não entra mais?"), então ela tem prioridade sobre
+ * o "pronto": o grupo completo já se anuncia pelo botão de adicionar.
+ *
+ * @param {{min?: number, max?: number, itens?: Array}} grupo
+ * @param {number} unidades quantas unidades já foram escolhidas no grupo
+ * @returns {string}
+ */
+export function rotuloProgressoGrupo(grupo, unidades) {
+  if (grupoImpossivel(grupo)) return "Indisponível no momento";
+  const min = Math.max(0, Number(grupo?.min) || 0);
+  const maxRaw = Number(grupo?.max);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
+  const u = Math.max(0, Number(unidades) || 0);
+
+  // Escolha única troca sozinha (tocar em outra substitui), então o teto
+  // nunca vira um beco ali e a frase de "tire uma" não faz sentido.
+  if (max > 1 && u >= max) return `Máximo ${max}, tire uma para trocar`;
+  if (min > 0 && u < min) {
+    if (u === 0) return rotuloRegraGrupo(grupo);
+    const faltam = min - u;
+    return faltam === 1 ? "Falta 1" : `Faltam ${faltam}`;
+  }
+  if (min > 0) return "✓ pronto";
+  return rotuloRegraGrupo(grupo);
+}
+
+/**
+ * Casa o texto digitado na busca com o nome da opção, ignorando acento e
+ * caixa: quem procura "acai" tem de achar "Açaí". Busca vazia casa com
+ * tudo, porque campo em branco não é filtro.
+ *
+ * @param {string} nome
+ * @param {string} termo
+ * @returns {boolean}
+ */
+export function combinaComBusca(nome, termo) {
+  const limpar = (t) =>
+    String(t ?? "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // remove acentos
+      .toLowerCase()
+      .trim();
+  const busca = limpar(termo);
+  if (!busca) return true;
+  return limpar(nome).includes(busca);
+}
+
+/**
  * Primeiro grupo ainda não satisfeito — usado para GUIAR o cliente até o
  * campo que falta (prevenção/condução de erro > mensagem seca).
  * @param {{grupos?: Array<{id: string}>}} produto
@@ -244,8 +428,7 @@ export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
   // tela, então rolamos para o PRIMEIRO campo que falta (pai antes dos
   // filhos), incluindo subgrupos em qualquer profundidade.
   for (const g of achatarGrupos(produto?.grupos ?? [])) {
-    const qtd = (selecoesPorGrupo?.[g.id] ?? []).length;
-    if (!grupoSatisfeito(g, qtd)) return g.id;
+    if (!grupoSatisfeito(g, unidadesDoGrupo(selecoesPorGrupo?.[g.id]))) return g.id;
   }
   return null;
 }
@@ -337,6 +520,10 @@ export function revisarSacola(itens, cardapio) {
     const precoMudou = centavos(atual.preco) !== centavos(item?.preco);
     return {
       ...item,
+      // O emoji vem do cardápio de AGORA, não da sacola: assim a sacola
+      // guardada de ontem também mostra o ícone, e ele acompanha o produto
+      // se o dono trocar o emoji no cadastro.
+      emoji: atual.emoji ?? item?.emoji ?? null,
       preco: Number(atual.preco) || 0,
       complementosEscolhidos: complementosAtuais,
       situacao: precoMudou || complementoMudouPreco ? "preco" : "ok",
@@ -368,30 +555,134 @@ function coordenada(valor) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ── Rua e número (campos separados na tela, uma linha no pedido) ────
+
+/**
+ * Junta rua e número na linha única que o servidor, o mapa e a etiqueta
+ * do entregador sempre usaram: "Rua das Flores, 100".
+ *
+ * A tela pergunta em dois campos (é onde o erro acontece: o número ia
+ * grudado na rua e sumia junto quando a pessoa corrigia a grafia), mas o
+ * pedido continua guardando uma linha só — mudar o formato gravado
+ * quebraria o histórico e a geocodificação.
+ *
+ * Sem número não inventa nada: quem mora em endereço sem número manda a
+ * rua sozinha, e o complemento diz o resto.
+ *
+ * @param {string} rua
+ * @param {string} numero
+ * @returns {string} a linha pronta, ou "" quando não há rua
+ */
+export function juntarRuaNumero(rua, numero) {
+  const r = String(rua ?? "").trim().replace(/\s+/g, " ");
+  const n = String(numero ?? "").trim().replace(/\s+/g, " ");
+  if (!r) return "";
+  return n ? `${r}, ${n}` : r;
+}
+
+/**
+ * Desmonta a linha única em rua e número, para reabrir o formulário com
+ * o endereço que o aparelho lembrava de antes desta tela existir.
+ *
+ * Só separa o que é reconhecidamente número de porta no FIM da linha
+ * ("100", "100A", "s/n"). Na dúvida devolve tudo em `rua`: chutar errado
+ * aqui apaga parte do endereço na frente do cliente, e um número que
+ * ficou na rua ainda entrega — uma rua truncada, não.
+ *
+ * @param {string} endereco
+ * @returns {{rua: string, numero: string}}
+ */
+export function separarRuaNumero(endereco) {
+  const bruto = String(endereco ?? "").trim().replace(/\s+/g, " ");
+  if (!bruto) return { rua: "", numero: "" };
+  // Vírgula é a marca explícita de "aqui começa o número" — e só vale
+  // quando o que vem depois PARECE número de porta.
+  const comVirgula = bruto.match(/^(.*?),\s*(\d+[A-Za-z]?|s\/?n\.?)$/i);
+  if (comVirgula) return { rua: comVirgula[1].trim(), numero: comVirgula[2].trim() };
+  // Sem vírgula, só um número solto no fim. "Rua 25 de Março" não cai
+  // aqui porque o número não está no fim.
+  const semVirgula = bruto.match(/^(.*\S)\s+(\d+[A-Za-z]?)$/);
+  if (semVirgula) return { rua: semVirgula[1].trim(), numero: semVirgula[2].trim() };
+  return { rua: bruto, numero: "" };
+}
+
 /**
  * Monta o payload jsonb do pedido. NÃO envia preço/total: o servidor
  * recalcula tudo. Envia só a intenção (o que o cliente escolheu).
  * @param {{cliente: object, entrega: object, pagamento: object, itens: Array}} dados
  */
-export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
+/**
+ * As opções escolhidas do jeito que a RPC espera.
+ *
+ * O formato de sempre é uma lista de ids, uma entrada por opção. Ele não
+ * sabe dizer "duas de calabresa": o servidor junta ids repetidos, e a
+ * segunda fatia sumiria sem ninguém notar.
+ *
+ * Quando o cliente pede a MESMA opção mais de uma vez, a lista passa a
+ * levar `{ id, qtd }`. Quando não pede (que é o pedido de todo dia), sai
+ * exatamente a lista de ids de antes — de propósito: o navegador guarda o
+ * app em cache, então uma tela nova pode chegar a um banco onde a
+ * migração ainda não rodou, e nesse encontro só o que é novo falha, em
+ * vez de derrubar todo pedido que tenha um complemento.
+ *
+ * @param {Array<{id: (string|number), qtd?: number}>|null|undefined} escolhidos
+ * @returns {Array<string|number|{id: (string|number), qtd: number}>}
+ */
+export function complementosDoPayload(escolhidos) {
+  const lista = escolhidos ?? [];
+  const qtdDe = (c) => Math.max(1, Number(c?.qtd) || 1);
+  if (!lista.some((c) => qtdDe(c) > 1)) return lista.map((c) => c.id);
+  return lista.map((c) => ({ id: c.id, qtd: qtdDe(c) }));
+}
+
+export function montarPayloadPedido({ cliente, entrega, pagamento, itens, dispositivo }) {
   const lat = coordenada(entrega?.lat);
   const lng = coordenada(entrega?.lng);
   const trocoPara = valorDigitado(pagamento?.trocoPara);
+  const retirada = entrega?.tipo === "retirada";
   return {
+    // Identidade anônima do aparelho — é ela que deixa a pessoa acompanhar
+    // o pedido e ver o histórico sem criar conta. Ausente (armazenamento
+    // bloqueado), o pedido segue normal e só não entra no histórico.
+    ...(ehUuid(dispositivo) ? { dispositivo_id: dispositivo } : {}),
     cliente: {
       nome: (cliente?.nome ?? "").trim(),
-      telefone: (cliente?.telefone ?? "").trim() || null,
+      // Só os dígitos, como o cadastro de clientes já guarda (clientes.js):
+      // o painel formata na hora de mostrar, e o link de WhatsApp precisa do
+      // número limpo. Gravar "(11) 91234-5678" faria a mesma pessoa virar
+      // dois contatos diferentes conforme quem digitou a máscara.
+      telefone: apenasDigitosTelefone(cliente?.telefone) || null,
+      // Opcional, e só vai quando dá para aproveitar (ver
+      // dataNascimentoUtil). O servidor cria o cadastro do cliente no
+      // primeiro pedido daquele telefone e guarda a data ali — a mesma
+      // pessoa pedindo de novo não é perguntada outra vez.
+      data_nascimento: dataNascimentoUtil(cliente?.dataNascimento),
     },
-    entrega: {
-      cep: apenasDigitosCep(entrega?.cep),
-      bairro: (entrega?.bairro ?? "").trim(),
-      endereco: (entrega?.endereco ?? "").trim(),
-      complemento: (entrega?.complemento ?? "").trim() || null,
-      // Coordenadas só entram quando o modo é por km e o navegador
-      // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
-      // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
-      ...(lat !== null && lng !== null ? { lat, lng } : {}),
-    },
+    entrega: retirada
+      ? // Retirada: o cliente vai buscar. Mandar CEP, endereço e coordenada
+        // dele seria mandar dado de endereço que ninguém vai usar — e o
+        // servidor guardaria isso no pedido sem necessidade nenhuma.
+        { tipo: "retirada" }
+      : {
+          tipo: "entrega",
+          // CEP é opcional: a faixa por bairro — que é a que a maioria dos
+          // estabelecimentos cadastra — nunca precisou dele. Quem não sabe
+          // o próprio CEP informa cidade e bairro e pede do mesmo jeito.
+          cep: apenasDigitosCep(entrega?.cep),
+          cidade: (entrega?.cidade ?? "").trim(),
+          bairro: (entrega?.bairro ?? "").trim(),
+          // A tela pergunta rua e número em campos separados; o pedido
+          // guarda a linha única de sempre. Quem ainda mandar `endereco`
+          // pronto (aparelho que lembrou de antes) continua valendo.
+          endereco: entrega?.rua
+            ? juntarRuaNumero(entrega.rua, entrega.numero)
+            : (entrega?.endereco ?? "").trim(),
+          complemento: (entrega?.complemento ?? "").trim() || null,
+          // Coordenadas só entram quando o modo é por km e o navegador
+          // conseguiu geocodificar o endereço. O servidor recalcula a taxa a
+          // partir delas (haversine); quando ausentes, cai no fluxo CEP/bairro.
+          ...(lat !== null && lng !== null ? { lat, lng } : {}),
+        },
     pagamento: {
       forma: pagamento?.forma ?? null,
       troco_para:
@@ -403,7 +694,7 @@ export function montarPayloadPedido({ cliente, entrega, pagamento, itens }) {
       produto_id: item?.produto_id ?? null,
       combo_id: item?.combo_id ?? null,
       qtd: Math.max(1, Number(item?.qtd) || 1),
-      complementos: (item?.complementosEscolhidos ?? []).map((c) => c.id),
+      complementos: complementosDoPayload(item?.complementosEscolhidos),
       obs: (item?.obs ?? "").trim() || null,
     })),
   };
@@ -512,6 +803,35 @@ export async function enviarPedido(slug, payload) {
   }
 }
 
+/**
+ * Os pedidos DESTE aparelho no estabelecimento — o acompanhamento sem
+ * conta. `dispositivo` é o UUID de `deliveryDispositivo.js`; o servidor
+ * filtra por tenant + aparelho e devolve no máximo os 20 últimos.
+ *
+ * Nunca lança e nunca deixa a vitrine em erro por causa disto: histórico
+ * é conveniência, e uma falha aqui não pode atrapalhar quem só quer pedir.
+ *
+ * @param {string} slug
+ * @param {string} dispositivo - UUID do aparelho
+ * @returns {Promise<{data: Array, error: object|null}>}
+ */
+export async function meusPedidos(slug, dispositivo) {
+  if (!slug || !dispositivo) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase.rpc("meus_pedidos_delivery", {
+      p_slug: slug,
+      p_dispositivo: dispositivo,
+    });
+    if (error) return { data: [], error };
+    return { data: Array.isArray(data) ? data : [], error: null };
+  } catch (err) {
+    return {
+      data: [],
+      error: { message: err?.message ?? "Falha ao carregar seus pedidos." },
+    };
+  }
+}
+
 // ── Terceiros (ViaCEP / Nominatim) — prazo para responder ──────────
 
 /**
@@ -590,6 +910,100 @@ export async function buscarEnderecoViaCep(cep) {
 }
 
 // ── Nominatim / OpenStreetMap (grátis) — geocodificação p/ taxa por km ──
+
+/**
+ * A escada de consultas para achar o endereço no mapa, da mais precisa
+ * para a mais tolerante. Pura — quem vai à rede é `localizarEndereco`.
+ *
+ * POR QUE UMA ESCADA. No modo "taxa por distância" o pedido só sai se a
+ * coordenada for encontrada. Antes se mandava UMA consulta, montada como
+ * "rua, bairro" — sem a cidade. Duas consequências, as duas ruins:
+ *
+ *  · sem cidade, o Nominatim procura a rua no Brasil inteiro. "Rua das
+ *    Flores, 100, Centro" existe em centenas de cidades: ou não acha, ou
+ *    acha a errada e a taxa sai de uma distância que não é a real;
+ *  · qualquer tropeço na digitação da rua — uma letra trocada, "av." em
+ *    vez de "avenida", o número da casa que o Nominatim não reconhece —
+ *    derrubava a única tentativa, e o cliente ficava com o botão morto
+ *    sem saber o que corrigir.
+ *
+ * Cada degrau abre mão de um detalhe e mantém o resto. A última é o
+ * bairro com a cidade: aproxima pelo centro do bairro, o que ainda dá uma
+ * taxa honesta. NÃO existe degrau de "só a cidade" — o centro da cidade
+ * pode estar a quilômetros do cliente, e aí a taxa mentiria feio.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @returns {Array<{q:string, precisao:'exata'|'aproximada'}>} sem repetição, em ordem
+ */
+export function consultasDeGeocodificacao(partes) {
+  const limpo = (v) => String(v ?? "").trim().replace(/\s+/g, " ");
+  const endereco = limpo(partes?.endereco);
+  const bairro = limpo(partes?.bairro);
+  const cidade = limpo(partes?.cidade);
+  const cep = apenasDigitosCep(partes?.cep);
+
+  // "Rua das Flores, 100" → "Rua das Flores". O número da casa é a parte
+  // que o Nominatim mais erra, e tirá-lo costuma resolver sozinho.
+  const semNumero = endereco.replace(/,?\s*\d+\s*$/, "").trim();
+
+  const juntar = (...ps) => ps.filter(Boolean).join(", ");
+  // Cada degrau só existe se a peça que o define existir. Sem esta guarda,
+  // um formulário só com a cidade fazia o primeiro degrau virar "Porto
+  // Alegre" — o degrau proibido, entrando pela porta dos fundos.
+  const candidatos = [
+    { q: endereco ? juntar(endereco, bairro, cidade) : "", precisao: "exata" },
+    { q: endereco ? juntar(endereco, cidade) : "", precisao: "exata" },
+    { q: endereco && semNumero && semNumero !== endereco ? juntar(semNumero, bairro, cidade) : "", precisao: "exata" },
+    { q: cepCompleto(cep) ? cep : "", precisao: "aproximada" },
+    // Os DOIS, sempre. Só o bairro cai no mesmo problema da rua sem cidade
+    // (procura no Brasil inteiro), e só a cidade seria o degrau proibido:
+    // o centro da cidade pode estar a quilômetros do cliente.
+    { q: bairro && cidade ? juntar(bairro, cidade) : "", precisao: "aproximada" },
+  ];
+
+  const vistos = new Set();
+  return candidatos.filter((c) => {
+    // Consulta curta demais o Nominatim recusa.
+    if (!c.q || c.q.length < 4) return false;
+    const chave = c.q.toLowerCase();
+    if (vistos.has(chave)) return false;
+    vistos.add(chave);
+    return true;
+  });
+}
+
+/**
+ * Percorre a escada acima e devolve a PRIMEIRA coordenada encontrada,
+ * dizendo se ela é do endereço exato ou uma aproximação pelo bairro/CEP —
+ * a tela usa isso para avisar que a taxa é estimada.
+ *
+ * PRAZO DA ESCADA INTEIRA, e não de cada degrau. Cada chamada ao Nominatim
+ * já tem 8s (PRAZO_TERCEIRO_MS); cinco degraus em fila seriam até 40s com a
+ * tela presa em "Calculando…" — trocar um endereço que não é achado por uma
+ * espera de quarenta segundos não melhora nada.
+ *
+ * O orçamento é UM tempo limite (PRAZO_TERCEIRO_MS). A regra por trás:
+ * se uma única tentativa consumiu o prazo inteiro, o serviço está fora do
+ * ar e as outras quatro vão consumir o mesmo à toa. Quando ele responde
+ * rápido — que é o caso normal — os cinco degraus cabem em menos de um
+ * segundo e o orçamento nunca é alcançado.
+ *
+ * Mesma degradação graciosa do resto: nunca lança; nada encontrado vira
+ * { data: null }.
+ *
+ * @param {{endereco?:string, bairro?:string, cidade?:string, cep?:string}} partes
+ * @param {{orcamentoMs?:number, agora?:() => number}} [opts] - `agora` injetável para teste
+ * @returns {Promise<{data: {lat:number, lng:number, precisao:string}|null, error: null}>}
+ */
+export async function localizarEndereco(partes, { orcamentoMs = PRAZO_TERCEIRO_MS, agora = Date.now } = {}) {
+  const inicio = agora();
+  for (const { q, precisao } of consultasDeGeocodificacao(partes)) {
+    const { data } = await geocodificarEndereco(q);
+    if (data) return { data: { ...data, precisao }, error: null };
+    if (agora() - inicio >= orcamentoMs) break;
+  }
+  return { data: null, error: null };
+}
 
 /**
  * Resolve latitude/longitude a partir de um endereço em texto, usando o

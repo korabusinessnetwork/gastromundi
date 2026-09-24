@@ -340,7 +340,7 @@ export function AppProvider({ children }) {
   async function buscarSalesData() {
     const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     try {
-      const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at";
+      const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at,origem";
       const lerVendas = (colunas) => supabase
         .from("vendas")
         .select(colunas)
@@ -412,6 +412,12 @@ export function AppProvider({ children }) {
   // erro 42703), a coluna some do select e é removida dos writes — os
   // overrides ficam desligados e o app opera pelo cargo, sem quebrar.
   const permsColunaIndisponivelRef = useRef(false);
+
+  // TD013 — gravação atômica de itens da comanda: fica true quando a função
+  // `gravar_itens_comanda` ainda não existe no banco (migration 20260922 não
+  // aplicada). Aí o app volta ao caminho antigo (ler → mesclar → gravar) pelo
+  // resto da sessão, sem quebrar o PDV — só sem o ganho.
+  const rpcItensIndisponivelRef = useRef(false);
 
   // Mapa de permissões de um cargo, ciente do tenant. Fallback total no
   // roles.js quando a matriz ainda não carregou (login) ou o cargo não foi
@@ -506,7 +512,12 @@ export function AppProvider({ children }) {
         { data: rolePermsData },
         { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
-        supabase.from("products").select("*").eq("active", true).order("id"),
+        // Sem filtro de `active`: o produto desabilitado precisa continuar
+        // chegando aqui, senão ele some do próprio cadastro e não há como
+        // reativá-lo — quem desliga uma vez perde o produto para sempre.
+        // Quem decide o que NÃO oferecer para venda são as telas de venda
+        // (ProductGrid, PdvModulo), cada uma filtrando `active !== false`.
+        supabase.from("products").select("*").order("id"),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
@@ -1171,50 +1182,108 @@ export function AppProvider({ children }) {
   // `baseItems` = snapshot de onde o chamador derivou `changes.items`.
   // Com ele, itens lançados por outro dispositivo (Palm) entre o snapshot
   // e a gravação são preservados em vez de sobrescritos ("última escrita
-  // vence" fazia itens sumirem da conta). A janela de corrida residual
-  // (leitura→gravação não é atômica) fica registrada como dívida técnica —
-  // a solução definitiva é um RPC de append em jsonb no Postgres.
+  // vence" fazia itens sumirem da conta).
+  //
+  // TD013 — quando a mudança é só de itens (com ou sem total), quem lê,
+  // mescla e grava é o próprio Postgres, numa transação só e com a linha
+  // travada (função `gravar_itens_comanda`, migration 20260922). Pelo
+  // caminho antigo são três idas à rede, e um item lançado por outro
+  // aparelho entre a nossa leitura e a nossa gravação ainda sumia da conta.
   const updatePending = async (id, changes, { baseItems } = {}) => {
-    if (Array.isArray(changes.items)) {
-      changes = { ...changes, items: garantirUidItens(changes.items) };
-      if (Array.isArray(baseItems)) {
-        const { data: atual, error: erroLeitura } = await supabase
-          .from("pending").select("items").eq("id", id).maybeSingle();
-        if (!erroLeitura && atual) {
-          const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
-          if (houveMescla) {
-            changes = { ...changes, items };
-            if ("total" in changes) changes.total = totalItensAtivos(items);
-          }
-        }
-      }
-    }
+    const podeMesclar = Array.isArray(changes.items) && Array.isArray(baseItems);
+    if (Array.isArray(changes.items)) changes = { ...changes, items: garantirUidItens(changes.items) };
+
     // Allowlist antes de qualquer coisa. Aqui ela pesa mais que nos outros
     // pontos: com a rede fora, este `changes` é gravado no localStorage pela
     // fila offline e só volta ao banco no dreno, depois de ter passado por um
     // armazenamento que o navegador deixa qualquer um editar. Filtrar na
     // entrada é o que garante que o que sai da fila tem a mesma forma do que
     // entrou nela.
-    const { campos: permitidos, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_PENDING);
-    if (ignorados.length > 0) {
-      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updatePending", tabela: "pending", id, ignorados });
+    //
+    // Filtrado UMA vez, aqui: daqui para baixo os dois caminhos de gravação
+    // (o atômico por RPC e o comum) e a fila offline usam o mesmo `changes`.
+    {
+      const { campos: permitidos, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_PENDING);
+      if (ignorados.length > 0) {
+        reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updatePending", tabela: "pending", id, ignorados });
+      }
+      changes = permitidos;
     }
-    const payload = { ...permitidos, updated_at: new Date().toISOString() };
+
+    // Só vai pelo caminho atômico a mudança que a função sabe gravar:
+    // exatamente itens, com ou sem um total numérico. Qualquer outro campo
+    // (mesa, apelido, cliente) segue no update comum, como sempre foi.
+    const atomico = podeMesclar && !rpcItensIndisponivelRef.current
+      && Object.keys(changes).every(campo => campo === "items" || campo === "total")
+      && (!("total" in changes) || Number.isFinite(changes.total));
+
+    // Caminho antigo: lê o banco, mescla no cliente e ajusta `changes`.
+    const mesclarNoCliente = async () => {
+      const { data: atual, error: erroLeitura } = await supabase
+        .from("pending").select("items").eq("id", id).maybeSingle();
+      if (erroLeitura || !atual) return;
+      const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
+      if (!houveMescla) return;
+      changes = { ...changes, items };
+      if ("total" in changes) changes.total = totalItensAtivos(items);
+    };
+
+    if (podeMesclar && !atomico) await mesclarNoCliente();
+
     let anterior = null;
-    setPendingLocal(prev => prev.map(o => {
+    const aplicarLocal = (patch) => setPendingLocal(prev => prev.map(o => {
       if (o.id !== id) return o;
-      anterior = o;
-      return { ...o, ...permitidos };
+      if (anterior === null) anterior = o;
+      return { ...o, ...patch };
     }));
-    const { error } = await supabase.from("pending").update(payload).eq("id", id);
+    aplicarLocal(changes);
+
+    const gravarComum = () => supabase.from("pending")
+      .update({ ...changes, updated_at: new Date().toISOString() }).eq("id", id);
+
+    let error;
+    if (atomico) {
+      const res = await supabase.rpc("gravar_itens_comanda", {
+        p_id: id,
+        p_items: changes.items,
+        p_base_uids: baseItems.map(item => item?.uid).filter(Boolean),
+        p_total: "total" in changes ? changes.total : null,
+      });
+      // Migration ainda não rodou neste banco (PostgREST: PGRST202;
+      // Postgres: 42883). Desliga o caminho atômico pelo resto da sessão e
+      // grava como antes — dá para publicar o front-end antes da migration.
+      if (res.error?.code === "PGRST202" || res.error?.code === "42883") {
+        rpcItensIndisponivelRef.current = true;
+        await mesclarNoCliente();
+        aplicarLocal(changes);
+        ({ error } = await gravarComum());
+      } else {
+        error = res.error ?? null;
+        // O banco mesclou item lançado por outro aparelho: a tela tem que
+        // mostrar a conta inteira, não só o que este aqui conhecia.
+        if (!error && res.data?.houve_mescla) {
+          aplicarLocal({
+            items: res.data.items,
+            ...(res.data.total == null ? {} : { total: Number(res.data.total) }),
+          });
+        }
+      }
+    } else {
+      ({ error } = await gravarComum());
+    }
+
     if (error) {
       if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "update", id, changes: payload });
+        enfileirarOffline({ tipo: "update", id, changes: { ...changes, updated_at: new Date().toISOString() } });
         return { error: null, offline: true };
       }
       console.error("updatePending error:", error);
       reportarFalha(error, { acao: "updatePending", tabela: "pending", id });
-      if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
+      // `anterior` é preenchido quando o React roda o updater do otimismo, o
+      // que pode acontecer depois desta linha (erro que volta rápido demais).
+      // Por isso a leitura fica DENTRO do updater do desfazer, que a fila do
+      // React executa depois do primeiro — aí o valor já está lá.
+      setPendingLocal(prev => prev.map(o => (o.id === id && anterior) ? anterior : o));
       return { error };
     }
     return { error: null };
@@ -1329,7 +1398,9 @@ export function AppProvider({ children }) {
   // que gravam fora das actions acima (ex.: importação de planilha).
   const recarregarProdutos = async () => {
     const { data, error } = await supabase
-      .from("products").select("*").eq("active", true).order("id");
+      // Mesma razão do bootstrap: traz desabilitado junto, quem filtra
+      // para venda é a tela de venda.
+      .from("products").select("*").order("id");
     if (!error && data) setProductsLocal(data);
     return { error };
   };
@@ -1417,15 +1488,21 @@ export function AppProvider({ children }) {
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
   //
-  // TD009 (etapa 3): cancelar virou MARCA em `vendas`, não remoção.
-  // Antes o cancelamento marcava `data.cancelada` no blob de `sales` e
-  // APAGAVA as linhas relacionais: o blob guardava a auditoria e apagar as
-  // linhas tirava a venda dos relatórios sem precisar de migration. Sem o
-  // blob, apagar as linhas apagaria a venda cancelada do banco inteiro.
-  // Agora as quatro colunas de `vendas` (migration 20260920) guardam o
-  // estado, e itens e pagamentos ficam de pé como trilha de auditoria.
-  // Lançamentos financeiros continuam removidos: receita cancelada não é
-  // receita.
+  // Cancelar é MARCAR, nunca apagar (TD009 etapa 3 + migração 20261009).
+  // Antes esta função apagava venda_pagamentos, venda_itens, vendas e o
+  // lançamento financeiro: o blob em `sales` guardava a auditoria, e apagar
+  // as linhas tirava a venda dos relatórios sem precisar de migration. Sem
+  // o blob, apagar apagaria a venda cancelada do banco inteiro.
+  //
+  // Hoje as quatro colunas de `vendas` (20260920) guardam o estado, e itens
+  // e pagamentos ficam de pé como trilha. O LANÇAMENTO também deixou de ser
+  // apagado (20261009): um fiado desfeito precisa continuar aparecendo no
+  // Financeiro como desfeito, senão o histórico do cliente fica com um
+  // buraco sem nome. Uma venda que existiu e foi cancelada é informação,
+  // quanto, de quem, por quem e por quê, não sujeira a limpar.
+  //
+  // O banco passou a recusar DELETE nessas tabelas (policy RESTRICTIVE), de
+  // modo que voltar ao caminho antigo não passa nem por engano.
   const cancelarVendaFechada = async (vendaId, motivo) => {
     const alvo = sales.find(s => s && s.id === vendaId);
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
@@ -1474,7 +1551,18 @@ export function AppProvider({ children }) {
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, venda inexistente ou sem permissão." } };
     }
 
-    const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
+    // O lançamento vira cancelado em vez de sumir: a conta a receber de um
+    // fiado desfeito precisa continuar aparecendo no Financeiro como
+    // desfeita, ou o histórico do cliente fica com um buraco sem nome.
+    const { error: eLanc } = await supabase
+      .from("lancamentos")
+      .update({
+        status: "cancelado",
+        cancelado_por: cancelada.canceladaPor,
+        cancelado_em: cancelada.canceladaEm,
+        motivo_cancelamento: motivo,
+      })
+      .eq("venda_id", vendaId);
     if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);
 
     setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));
@@ -1841,10 +1929,10 @@ export function AppProvider({ children }) {
     return { error: null };
   };
 
-  // B4 — baixa atômica de subproduto (componentes de combo). Sem estado
-  // otimista local: o saldo de subproduto não aparece no PDV, só no
-  // cadastro (SubprodutosView recarrega do banco). Nunca deve travar a
-  // venda: erro vira evento para o Jarvas, não bloqueio.
+  // Baixa atômica de subproduto — camada dormente (subprodutos saíram do
+  // front-end; o DB e a RPC seguem para não perder dados/histórico). Sem
+  // estado otimista local: o saldo de subproduto não aparece no PDV. Nunca
+  // deve travar a venda: erro vira evento para o Jarvas, não bloqueio.
   const baixarEstoqueSubproduto = async (subprodutoId, qtd, nome) => {
     // Mesma chave de idempotência da baixa de produto (ver acima).
     const opId = crypto.randomUUID();

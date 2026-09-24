@@ -7,16 +7,41 @@
    distância, um caminho óbvio (cardápio → sacola → entrega → pagar).
    ────────────────────────────────────────────────────────────────── */
 
+/* O DOCUMENTO deste app não rola: o `body` (index.html) e o `html`
+   (tema.css) são fechados de propósito, porque toda tela do sistema é uma
+   casca do tamanho exato da janela com um painel rolando por dentro. A
+   vitrine era a única que contava com a rolagem do documento, e por isso
+   simplesmente não rolava: nem com o mouse, nem com o dedo, e tudo que
+   passava da primeira dobra ficava inalcançável para o cliente. Agora ela
+   é o próprio painel que rola, como o resto do app.
+
+   `100dvh` acompanha a barra do navegador do celular, que aparece e some
+   durante a rolagem; `100vh` fica de reserva para quem não tem `dvh`.
+
+   A largura do conteúdo mora aqui, num lugar só: cabeçalho, cardápio e
+   barra da sacola precisam terminar na mesma linha vertical, senão a tela
+   parece torta. */
 .vitrine {
-  min-height: 100vh;
+  --vitrine-largura: 720px;
+
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background: var(--gm-bg);
   color: var(--gm-text);
   font-family: var(--gm-font-texto, system-ui, sans-serif);
   padding-bottom: 96px; /* espaço pra barra fixa da sacola */
 }
 
+/* Tela grande cabe uma coluna a mais de produto sem apertar o cartão. */
+@media (min-width: 1120px) {
+  .vitrine { --vitrine-largura: 1080px; }
+}
+
 .vitrine__wrap {
-  max-width: 720px;
+  max-width: var(--vitrine-largura);
   margin: 0 auto;
   padding: 0 16px;
 }
@@ -31,12 +56,35 @@
 }
 
 .vitrine__header-inner {
-  max-width: 720px;
+  max-width: var(--vitrine-largura);
   margin: 0 auto;
   padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* "Meus pedidos" no canto do cabeçalho: acompanhamento é secundário
+   diante do cardápio, mas precisa estar sempre à mão — quem volta na
+   página está voltando justamente para ver isso. `margin-left: auto`
+   empurra para a ponta sem depender da ordem dos irmãos. */
+.vitrine__meus-pedidos {
+  margin-left: auto;
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.vitrine__meus-pedidos:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
 }
 
 .vitrine__logo {
@@ -64,6 +112,16 @@
 }
 .vitrine__status--aberto { color: var(--gm-green); }
 .vitrine__status--fechado { color: var(--gm-red); }
+/* Selo de retirada: informação, não estado da loja — por isso vem como
+   etiqueta discreta ao lado do "Aberto agora", e não competindo com ele. */
+.vitrine__status--retirada {
+  margin-left: 10px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-accent);
+  color: var(--gm-accent);
+  font-size: 12px;
+}
 .vitrine__status-bolinha {
   width: 8px; height: 8px; border-radius: 50%;
   background: currentColor;
@@ -120,11 +178,20 @@
 }
 
 /* ── Cards de produto ───────────────────────────────────────────── */
+/* Quantas colunas couberem com o cartão em 320px, em qualquer largura. O
+   `min(100%, 320px)` é o que segura uma coluna só no celular estreito, sem
+   precisar de media query. */
 .vitrine__grid {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
 }
 
+/* `color: inherit` como em `.forma` mais abaixo: o cartão é um <button>, e
+   botão não herda a cor do documento — o navegador aplica a dele
+   (`buttontext`, preto). Sem esta linha o NOME do produto saía preto no
+   cartão escuro, ilegível, na tela que o cliente vê. Preço e descrição não
+   sumiam porque declaram cor própria. */
 .card-produto {
   display: flex;
   gap: 12px;
@@ -135,13 +202,26 @@
   border-radius: 14px;
   background: var(--gm-card);
   border: 1px solid var(--gm-border);
+  color: inherit;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.05s;
 }
 .card-produto:active { transform: scale(0.99); }
 .card-produto:hover { border-color: var(--gm-accent); }
 
-.card-produto__texto { flex: 1; min-width: 0; }
+/* Numa coluna só (celular) a altura do cartão é ditada pela foto, e o texto
+   ficava preso no topo: todo item sem descrição, que é a maioria de um
+   cardápio recém-montado, terminava o preço no meio do cartão e deixava um
+   vão morto embaixo. Centrado, nome e preço ficam na altura da foto e o
+   cartão fecha. Com duas colunas ou mais isto é desfeito lá embaixo, onde o
+   preço volta para o pé para alinhar entre os cartões da mesma linha. */
+.card-produto__texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .card-produto__nome {
   font-size: 15px;
   font-weight: 700;
@@ -163,19 +243,46 @@
   color: var(--gm-green);
 }
 
+/* A miniatura é 4:3, o mesmo enquadramento em que foto de comida é tirada
+   (deitada), então o `cover` sobra imagem em vez de cortar as laterais. E
+   fica no tamanho de miniatura mesmo: foto grande ocupando a largura do
+   cartão empurra nome, descrição e preço para fora da tela, que era a
+   reclamação do dono. */
 .card-produto__foto {
-  width: 88px;
-  height: 88px;
+  width: 104px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 10px;
   object-fit: cover;
   background: var(--gm-surface);
   flex-shrink: 0;
+  align-self: center;
 }
 .card-produto__foto--emoji {
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
+}
+
+/* A partir de duas colunas o preço volta para o pé do cartão, e aí os preços
+   de uma mesma linha da grade ficam alinhados entre si, mesmo quando um
+   produto tem descrição de duas linhas e o vizinho não tem nenhuma. Num
+   cartão por linha esse alinhamento não existe para ninguém ver, e o que
+   sobra dele é o vão morto que o texto centrado acima resolve.
+
+   684px é a conta da própria grade, não um número redondo: o conteúdo é a
+   largura da janela menos as bordas de 16px, e a segunda coluna só entra com
+   320px de cartão duas vezes mais 12px de intervalo, ou seja 652px de
+   conteúdo. */
+@media (min-width: 684px) {
+  .card-produto__texto {
+    justify-content: flex-start;
+  }
+  .card-produto__preco {
+    margin-top: auto;
+    padding-top: 4px;
+  }
 }
 
 /* ── Modal (produto / checkout / confirmação) ───────────────────── */
@@ -253,9 +360,13 @@
   gap: 14px;
   margin-bottom: 20px;
 }
+/* Ao abrir o produto, a foto é a razão de ele ter sido aberto — 72px de
+   selo ao lado do nome não mostrava o prato. Mesma proporção 4:3 do card,
+   em tamanho de olhar. */
 .produto-hero__foto {
-  width: 72px;
-  height: 72px;
+  width: 124px;
+  aspect-ratio: 4 / 3;
+  height: auto;
   border-radius: 14px;
   object-fit: cover;
   background: var(--gm-surface);
@@ -265,7 +376,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
+  font-size: 52px;
 }
 .produto-hero__desc {
   margin: 0;
@@ -481,7 +592,36 @@
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0));
   background: linear-gradient(to top, var(--gm-bg) 70%, transparent);
 }
-.sacola-barra__inner { max-width: 720px; margin: 0 auto; }
+/* A barra é um <button>, e tinha só largura e margem: o navegador
+   desenhava o botão NATIVO dele — cinza, do tamanho do texto, encostado
+   no canto de baixo à esquerda, com "Ver sacola" colado no preço. Era o
+   caminho para o checkout parecendo um defeito da página. `margin: auto`
+   também não centralizava nada, porque botão é inline-block.
+
+   Agora ela veste o mesmo botão primário do resto da vitrine — é a mesma
+   ação (avançar no pedido), tem que ter a mesma cara. */
+.sacola-barra__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  /* Menos as bordas de 16px do `.vitrine__wrap`, senão a barra fica mais
+     larga que a coluna de produtos que ela acompanha. */
+  max-width: calc(var(--vitrine-largura) - 32px);
+  margin: 0 auto;
+  padding: 15px 18px;
+  border: none;
+  border-radius: 12px;
+  background: var(--gm-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+.sacola-barra__inner:active { transform: scale(0.995); }
 .sacola-barra__badge {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
@@ -490,14 +630,12 @@
 }
 
 /* ── Linha da sacola (revisão) ──────────────────────────────────── */
-.linha-sacola {
-  display: flex;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--gm-border);
-}
+/* A caixa da linha (cartão, espaçamento, borda) mora em SacolaModal.css —
+   é lá que a sacola é desenhada. Aqui ficam só o texto e o preço, que a
+   tela de entrega e a de pagamento também reaproveitam
+   (`.linha-sacola__extra` é a frase de apoio dos dois checkouts). */
 .linha-sacola__texto { flex: 1; min-width: 0; }
-.linha-sacola__nome { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.linha-sacola__nome { font-size: 15px; font-weight: 700; margin: 0 0 2px; }
 .linha-sacola__extra { font-size: 12px; color: var(--gm-muted); margin: 0 0 6px; line-height: 1.4; }
 .linha-sacola__preco { font-size: 14px; font-weight: 800; color: var(--gm-green); white-space: nowrap; }
 

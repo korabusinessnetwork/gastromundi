@@ -5,24 +5,36 @@
 // o servidor revalida tudo ao gravar o pedido.
 // ──────────────────────────────────────────────────────────────────
 import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
+import { useSairDoModal } from "./useSairDoModal";
 import "./CheckoutPagamento.css";
 
-const FORMAS = [
-  { id: "dinheiro", nome: "Dinheiro", emoji: "💵" },
-  { id: "pix", nome: "Pix na entrega", emoji: "📱" },
-  { id: "cartao", nome: "Cartão na entrega", emoji: "💳" },
-];
+// "na entrega" vira "na retirada" quando o cliente vai buscar: prometer
+// que o entregador leva a maquininha para quem vai ao balcão é prometer
+// coisa que não vai acontecer.
+function formasDePagamento(retirada) {
+  const onde = retirada ? "na retirada" : "na entrega";
+  return [
+    { id: "dinheiro", nome: "Dinheiro", emoji: "💵" },
+    { id: "pix", nome: `Pix ${onde}`, emoji: "📱" },
+    { id: "cartao", nome: `Cartão ${onde}`, emoji: "💳" },
+  ];
+}
 
 export default function CheckoutPagamento({
   dados,
   subtotal,
   taxa,
+  retirada = false,
   onMudar,
   onVoltar,
   onConfirmar,
   enviando,
   erro,
 }) {
+  // Sair daqui: tocar fora ou apertar Esc. Arrastar para selecionar
+  // texto dentro do painel NÃO fecha — era esse o defeito.
+  const fundo = useSairDoModal(onVoltar);
+  const FORMAS = formasDePagamento(retirada);
   const total = (Number(subtotal) || 0) + (Number(taxa) || 0);
   const troco = calcularTroco(dados.trocoPara, total);
   const trocoDigitado = valorDigitado(dados.trocoPara);
@@ -32,8 +44,8 @@ export default function CheckoutPagamento({
   const podeConfirmar = !!dados.forma && !trocoParaInvalido && !enviando;
 
   return (
-    <div className="modal-fundo" onClick={onVoltar}>
-      <div className="modal-painel" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-fundo" {...fundo}>
+      <div className="modal-painel">
         <div className="modal-topo">
           <h2 className="modal-titulo">Pagamento</h2>
           <button className="modal-fechar" onClick={onVoltar} aria-label="Voltar">
@@ -43,7 +55,9 @@ export default function CheckoutPagamento({
 
         <div className="modal-corpo">
           <p className="linha-sacola__extra checkout-pagamento__intro">
-            O pagamento é na entrega. Escolha como quer pagar pro entregador.
+            {retirada
+              ? "O pagamento é na hora de retirar. Escolha como quer pagar no balcão."
+              : "O pagamento é na entrega. Escolha como quer pagar pro entregador."}
           </p>
 
           {/* Botão de verdade, não <div onClick>. Como div, a forma de
@@ -104,7 +118,9 @@ export default function CheckoutPagamento({
               >
                 {dados.levarMaquininha ? "✓" : ""}
               </span>
-              <span className="forma__nome">Levar a maquininha de cartão</span>
+              <span className="forma__nome">
+                {retirada ? "Vou pagar na maquininha do balcão" : "Levar a maquininha de cartão"}
+              </span>
             </button>
           )}
 
@@ -113,9 +129,12 @@ export default function CheckoutPagamento({
               <span>Subtotal</span>
               <span>{formatarPreco(subtotal)}</span>
             </div>
+            {/* Na retirada não existe taxa — mostrar "Taxa de entrega:
+                Grátis" num pedido que ninguém vai entregar é linha de
+                resumo que só confunde. */}
             <div className="resumo__linha">
-              <span>Taxa de entrega</span>
-              <span>{Number(taxa) > 0 ? formatarPreco(taxa) : "Grátis"}</span>
+              <span>{retirada ? "Retirada no local" : "Taxa de entrega"}</span>
+              <span>{retirada ? "Sem taxa" : Number(taxa) > 0 ? formatarPreco(taxa) : "Grátis"}</span>
             </div>
             <div className="resumo__linha resumo__linha--total">
               <span>Total</span>

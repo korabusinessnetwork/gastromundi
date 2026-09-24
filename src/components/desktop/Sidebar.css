@@ -192,3 +192,11 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* Reportar algo — no pé do menu: alcançável de qualquer tela, e fora do
+   caminho de quem está operando. */
+.sidebar__rodape-feedback {
+  padding: 10px 12px;
+  border-top: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}

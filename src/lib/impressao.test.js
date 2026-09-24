@@ -15,6 +15,8 @@ import {
   montarComprovantePagamento,
   montarCupomPreNota,
   montarViaProducao,
+  montarComprovanteMovimento,
+  montarComprovanteFechamento,
   horarioLancamentoPedido,
 } from "./impressao";
 
@@ -93,7 +95,7 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
   it("exclui itens cancelados e calcula o subtotal só dos ativos", () => {
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
-    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, emoji: "🍔", obs: [] }]);
+    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, emoji: "🍔", obs: [], escolhas: [] }]);
     expect(comprovante.subtotal).toBe(60);
   });
 
@@ -161,7 +163,7 @@ describe("montarCupomPreNota (base para o futuro add-on fiscal, F019)", () => {
 
     const cupom = montarCupomPreNota({ venda });
 
-    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, emoji: "", obs: [] }]);
+    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, emoji: "", obs: [], escolhas: [] }]);
     expect(cupom.total).toBe(10);
   });
 
@@ -257,6 +259,43 @@ describe("montarViaProducao (só itens produzíveis, sem preço/pagamento)", () 
   });
 });
 
+describe("composição do combo nos dados de impressão", () => {
+  // O que o cliente confere no papel e o que a bancada precisa montar: sem
+  // isso os dois recebiam só "1x Combo do Dia".
+  const itemCombo = {
+    name: "Combo do Dia",
+    qty: 1,
+    price: 45,
+    combo: { escolhas: [{ produtoId: 3, nome: "Cheddar", qtd: 2, preco: 4 }, { produtoId: 9, nome: "Coca", qtd: 1, preco: 0 }] },
+  };
+
+  it("o comprovante leva o que foi escolhido e quantos", () => {
+    const comp = montarComprovantePagamento({ venda: { items: [itemCombo], total: 45, pagamentos: [] } });
+
+    expect(comp.itens[0].escolhas).toEqual([{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }]);
+  });
+
+  it("a via de produção leva a mesma composição (é o que a cozinha monta)", () => {
+    const via = montarViaProducao({ pedido: { items: [itemCombo] } });
+
+    expect(via.itens[0].escolhas).toEqual([{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }]);
+  });
+
+  it("item sem combo fica com lista vazia, não com undefined", () => {
+    const via = montarViaProducao({ pedido: { items: [{ name: "X-Burguer", qty: 1 }] } });
+
+    expect(via.itens[0].escolhas).toEqual([]);
+  });
+
+  it("escolha sem nome não vai pro papel e qtd inválida vira 1", () => {
+    const pedido = {
+      items: [{ name: "Combo", qty: 1, combo: { escolhas: [{ nome: "", qtd: 2 }, { nome: "Coca", qtd: 0 }] } }],
+    };
+
+    expect(montarViaProducao({ pedido }).itens[0].escolhas).toEqual([{ nome: "Coca", qtd: 1 }]);
+  });
+});
+
 describe("horarioLancamentoPedido", () => {
   it("pega o launched_at mais recente dos itens", () => {
     const pedido = {
@@ -281,6 +320,161 @@ describe("horarioLancamentoPedido", () => {
       items: [{ name: "sem marco" }, { launched_at: "2026-07-21T13:00:00.000Z" }],
     };
     expect(horarioLancamentoPedido(pedido)).toBe("2026-07-21T13:00:00.000Z");
+  });
+});
+
+describe("montarComprovanteMovimento (sangria/suprimento — o papel que vai para a gaveta)", () => {
+  it("monta um documento comprovante_caixa com o título derivado do tipo (maiúsculas)", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: 50, motivo: "cofre" });
+
+    expect(doc.tipo).toBe("comprovante_caixa");
+    expect(doc.titulo).toBe("SANGRIA");
+  });
+
+  it("sangria: destaque é o valor retirado", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: 50 });
+
+    expect(doc.destaque).toEqual({ rotulo: "Valor retirado", valor: 50 });
+  });
+
+  it("suprimento: destaque é o valor colocado, com título próprio", () => {
+    const doc = montarComprovanteMovimento({ tipo: "suprimento", valor: 30 });
+
+    expect(doc.titulo).toBe("SUPRIMENTO");
+    expect(doc.destaque).toEqual({ rotulo: "Valor colocado", valor: 30 });
+  });
+
+  it("mostra o dinheiro na gaveta depois do movimento quando informado", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: 50, disponivelDepois: 120 });
+
+    expect(doc.linhas).toEqual([{ rotulo: "Dinheiro na gaveta após", valor: 120, forte: true }]);
+  });
+
+  it("não inventa a linha da gaveta quando o disponível não veio (nunca imprime número errado)", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: 50 });
+
+    expect(doc.linhas).toEqual([]);
+  });
+
+  it("traz motivo, operador e autorizador nas notas — e omite os que faltam", () => {
+    const doc = montarComprovanteMovimento({
+      tipo: "sangria", valor: 200, motivo: "cofre", autor: "Ana", autorizadoPor: "gerente1",
+    });
+
+    expect(doc.notas).toEqual([
+      { rotulo: "Motivo", texto: "cofre" },
+      { rotulo: "Operador", texto: "Ana" },
+      { rotulo: "Autorizado por", texto: "gerente1" },
+    ]);
+  });
+
+  it("sem autorizador (retirada dentro do limite), a nota some", () => {
+    const doc = montarComprovanteMovimento({ tipo: "suprimento", valor: 30, autor: "Ana" });
+
+    expect(doc.notas).toEqual([{ rotulo: "Operador", texto: "Ana" }]);
+  });
+
+  it("usa a identidade do tenant — nunca a marca de outro cliente", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: 50, tenant: { tema: { nome_exibicao: "Pizzaria do João" } } });
+
+    expect(doc.identidade.nome).toBe("Pizzaria do João");
+  });
+
+  it("valor não numérico não derruba a impressão (cai em 0)", () => {
+    const doc = montarComprovanteMovimento({ tipo: "sangria", valor: "abc" });
+
+    expect(doc.destaque.valor).toBe(0);
+  });
+});
+
+describe("montarComprovanteFechamento (o resumo da conferência)", () => {
+  const base = {
+    totalVendas: 500,
+    fundo: 100,
+    totalEsperado: 600,
+    totalConferido: 600,
+    diferenca: 0,
+    situacao: "conferido",
+  };
+
+  it("monta um documento comprovante_caixa de fechamento", () => {
+    const doc = montarComprovanteFechamento(base);
+
+    expect(doc.tipo).toBe("comprovante_caixa");
+    expect(doc.titulo).toBe("FECHAMENTO DE CAIXA");
+  });
+
+  it("traz vendas, fundo, esperado, conferido e a diferença rotulada pela situação", () => {
+    const doc = montarComprovanteFechamento(base);
+
+    expect(doc.linhas).toEqual([
+      { rotulo: "Total de vendas", valor: 500 },
+      { rotulo: "Fundo de caixa", valor: 100 },
+      { rotulo: "Total esperado", valor: 600, forte: true },
+      { rotulo: "Total conferido", valor: 600, forte: true },
+      { rotulo: "Caixa Conferido", valor: 0, forte: true, sinal: true },
+    ]);
+  });
+
+  it("só mostra reforços/retiradas quando houve movimento (retiradas com sinal negativo)", () => {
+    const doc = montarComprovanteFechamento({ ...base, suprimentos: 40, sangrias: 200 });
+
+    const reforcos = doc.linhas.find((l) => l.rotulo === "Reforços");
+    const retiradas = doc.linhas.find((l) => l.rotulo === "Retiradas");
+    expect(reforcos).toEqual({ rotulo: "Reforços", valor: 40, sinal: true });
+    expect(retiradas).toEqual({ rotulo: "Retiradas", valor: -200, sinal: true });
+  });
+
+  it("sem movimento de caixa, não imprime linhas de reforço/retirada", () => {
+    const doc = montarComprovanteFechamento(base);
+
+    expect(doc.linhas.some((l) => l.rotulo === "Reforços" || l.rotulo === "Retiradas")).toBe(false);
+  });
+
+  it("rotula a diferença conforme a situação (falta) sem esconder o sinal", () => {
+    const doc = montarComprovanteFechamento({ ...base, totalConferido: 585, diferenca: -15, situacao: "falta" });
+
+    const linhaDif = doc.linhas.find((l) => l.forte && l.sinal);
+    expect(linhaDif).toEqual({ rotulo: "Falta no Caixa", valor: -15, forte: true, sinal: true });
+  });
+
+  it("monta o quadro por método de pagamento (sistema × conferido)", () => {
+    const doc = montarComprovanteFechamento({
+      ...base,
+      porMetodo: [
+        { rotulo: "Dinheiro", sistema: 300, conferido: 300 },
+        { rotulo: "Pix", sistema: 200, conferido: 200 },
+      ],
+    });
+
+    expect(doc.tabela).toEqual({
+      cabecalho: ["Método", "Sistema", "Conferido"],
+      linhas: [
+        { rotulo: "Dinheiro", valores: [300, 300] },
+        { rotulo: "Pix", valores: [200, 200] },
+      ],
+    });
+  });
+
+  it("sem métodos, o quadro nasce null (não imprime tabela vazia)", () => {
+    const doc = montarComprovanteFechamento(base);
+
+    expect(doc.tabela).toBeNull();
+  });
+
+  it("traz operador e observação nas notas, omitindo os que faltam", () => {
+    const doc = montarComprovanteFechamento({ ...base, autor: "Ana", observacao: "fechou cedo" });
+
+    expect(doc.notas).toEqual([
+      { rotulo: "Operador", texto: "Ana" },
+      { rotulo: "Observação", texto: "fechou cedo" },
+    ]);
+  });
+
+  it("usa a identidade do tenant — nunca a marca de outro cliente", () => {
+    const doc = montarComprovanteFechamento({ ...base, tenant: { tema: { nome_exibicao: "Pizzaria do João" } } });
+
+    expect(doc.identidade.nome).toBe("Pizzaria do João");
   });
 });
 

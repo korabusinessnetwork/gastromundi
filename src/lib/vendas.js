@@ -168,6 +168,9 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     valorAjuste: venda.valor_ajuste ?? 0,
     total: venda.total ?? 0,
     cashier: venda.cashier ?? null,
+    // 20261002 — 'pdv' | 'delivery'. Venda gravada antes da coluna existir
+    // é de balcão: era o único jeito de vender.
+    origem: venda.origem === "delivery" ? "delivery" : "pdv",
     clienteId: venda.cliente_id ?? null,
     at: venda.at,
     // TD009 (etapa 3): o cancelamento virou coluna em `vendas` — antes ele
@@ -179,6 +182,10 @@ export function montarVendaLegada({ venda, itens, pagamentos }) {
     // Só a venda cancelada carrega os campos: a venda normal nunca teve
     // `cancelada` no blob, e enfiar quatro campos nulos em toda venda
     // mudaria o shape legado sem necessidade.
+    //
+    // Ler a marca aqui é o que impede a venda cancelada de voltar a contar
+    // no faturamento depois da 20261009: ela deixou de ser apagada, então a
+    // linha existe de novo, e sem isto nada diria que foi desfeita.
     ...(venda.cancelada
       ? {
           cancelada: true,

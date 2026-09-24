@@ -44,7 +44,7 @@ const ROLES = [
   { id: "admin",   label: "Administrador", color: varColor(C.accent) },
   { id: "gerente", label: "Gerente",       color: varColor(C.blue)   },
   { id: "caixa",   label: "Caixa",         color: varColor(C.green)  },
-  { id: "garcom",  label: "Garçom",        color: varColor(C.warn)  },
+  { id: "garcom",  label: "Garçom",        color: varColor(C.warn)   },
 ];
 
 const ROLE_MAP = Object.fromEntries(ROLES.map(r => [r.id, r]));
@@ -1549,6 +1549,28 @@ function DeliveryTab({ sz }) {
   const addFaixa = () => setCampo({ faixas: [...horario.faixas, faixaNova()] });
   const removeFaixa = (i) => setCampo({ faixas: horario.faixas.filter((_, idx) => idx !== i) });
 
+  // Espelhar o desabilitado do PDV no cardápio online. Grava na hora (não
+  // entra no rascunho do horário): é uma chave só, e esperar um "Salvar"
+  // que pertence a outro bloco confundiria. Falhou, volta ao que era e diz.
+  const alternarChave = async (campo, mensagens) => {
+    if (!tenant?.id || salvando) return;
+    const anterior = !!config?.[campo];
+    const proximo = { ...config, [campo]: !anterior };
+    setConfig(proximo);
+    setOkMsg("");
+    setErro("");
+    setSalvando(true);
+    const { data, error } = await salvarConfigDelivery(tenant.id, proximo);
+    setSalvando(false);
+    if (error) {
+      setConfig((c) => ({ ...c, [campo]: anterior }));
+      setErro("Não foi possível salvar essa opção. Nada mudou.");
+      return;
+    }
+    setConfig(data || proximo);
+    setOkMsg(anterior ? mensagens.desligou : mensagens.ligou);
+  };
+
   const valido = horario ? horarioValido(horario) : false;
   const alterado =
     config && horario &&
@@ -1604,6 +1626,69 @@ function DeliveryTab({ sz }) {
           aria-label="Abrir e fechar o delivery automaticamente"
         >
           <span className="geral-tab__toggle-bolinha" style={{ left: horario.auto ? 29 : 3 }} />
+        </button>
+      </div>
+
+      {/* Produto novo do PDV entra sozinho no cardápio online. É o par do
+          botão de importar: sem isto, cadastrar no PDV e esquecer de
+          importar deixa o item invisível para quem pede pela internet, e
+          ninguém percebe. */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo">Publicar produto novo automaticamente</div>
+          <div className="geral-tab__ajuda">
+            {config?.sincronizar_automatico
+              ? "Ligado: todo produto novo do Cadastro Produtos já entra no cardápio online. Insumo, item de produção e produto sem preço nunca entram."
+              : "Desligado: o produto novo só vai para o delivery quando você importar. Use isso se o cardápio online for menor que o do salão."}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => alternarChave("sincronizar_automatico", {
+            ligou: "Produto novo passa a entrar sozinho no cardápio online.",
+            desligou: "Produto novo volta a entrar só pela importação.",
+          })}
+          disabled={salvando}
+          className="geral-tab__toggle"
+          style={{
+            background: config?.sincronizar_automatico ? varColor(C.green) : varColor(C.faint),
+            cursor: salvando ? "default" : "pointer",
+          }}
+          aria-pressed={!!config?.sincronizar_automatico}
+          aria-label="Publicar produto novo do PDV automaticamente no cardápio online"
+        >
+          <span className="geral-tab__toggle-bolinha" style={{ left: config?.sincronizar_automatico ? 29 : 3 }} />
+        </button>
+      </div>
+
+      {/* Liga as duas listas. O texto diz o que acontece nos DOIS estados,
+          porque o padrão (separadas) é uma escolha, não uma ausência —
+          "acabou para entrega mas tem no balcão" é o dia a dia. */}
+      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
+        <div style={{ flex: 1 }}>
+          <div className="geral-tab__titulo">Desabilitar no cadastro tira do cardápio online</div>
+          <div className="geral-tab__ajuda">
+            {config?.espelhar_desabilitado
+              ? "Ligado: ao desabilitar um produto em Cadastro Produtos, ele sai também do delivery, e volta junto quando você reabilitar."
+              : "Desligado: as duas listas são independentes. Tirar do delivery não tira do balcão, e tirar do balcão não tira do delivery."}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => alternarChave("espelhar_desabilitado", {
+            ligou: "Desabilitar no cadastro passa a tirar do cardápio online.",
+            desligou: "As duas listas voltaram a ser independentes.",
+          })}
+          disabled={salvando}
+          className="geral-tab__toggle"
+          style={{
+            background: config?.espelhar_desabilitado ? varColor(C.green) : varColor(C.faint),
+            cursor: salvando ? "default" : "pointer",
+          }}
+          aria-pressed={!!config?.espelhar_desabilitado}
+          aria-label="Desabilitar no cadastro do PDV tira o produto do cardápio online"
+        >
+          <span className="geral-tab__toggle-bolinha" style={{ left: config?.espelhar_desabilitado ? 29 : 3 }} />
         </button>
       </div>
 

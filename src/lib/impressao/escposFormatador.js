@@ -1,5 +1,5 @@
 import { quebrarLinha } from "./largura";
-import { resolverBlocosComanda, fmtComanda } from "./layoutComanda";
+import { resolverBlocosComanda, fmtComanda, fmtR, largurasEmCaracteres } from "./layoutComanda";
 
 /**
  * F020 — formata os dados já montados por `src/lib/impressao.js`
@@ -47,13 +47,60 @@ function linhasAlinhadas(textos, colunas, alinhamento) {
   return saida;
 }
 
+// Formato empilhado — o de sempre: nome numa linha, valor à direita na
+// seguinte. É a saída quando não há papel suficiente para as colunas
+// caberem sem picotar valor (ver `largurasEmCaracteres`).
 function linhasDoItem(item, colunas) {
   const linhas = [];
   linhas.push(...quebrarLinha(`${item.qty}x ${item.nome}`, colunas));
   linhas.push(linhaValor("", item.total, colunas));
+  linhas.push(...linhasDaComposicao(item, colunas));
   for (const obs of item.obs ?? []) {
     linhas.push(...quebrarLinha(`  📝 ${obs}`, colunas));
   }
+  return linhas;
+}
+
+// Composição do combo, recuada: "  2x Cheddar". Sem ela o papel do cliente
+// dizia só "Combo X" e não contava o que ele estava levando.
+function linhasDaComposicao(item, colunas) {
+  const linhas = [];
+  // `quebrarLinha` normaliza os espaços do texto (é o que faz o nome do
+  // produto caber), então o recuo entra DEPOIS — e a largura já desconta
+  // ele, senão a linha recuada estouraria o papel.
+  const util = Math.max(1, colunas - 2);
+  for (const e of item.escolhas ?? []) {
+    for (const parte of quebrarLinha(`${e.qtd}x ${e.nome}`, util)) linhas.push(`  ${parte}`);
+  }
+  return linhas;
+}
+
+// Preenche até a largura da coluna. Nunca corta: quem chama já garantiu
+// que o conteúdo cabe (cortar "R$ 32.50" imprimiria um valor errado).
+function celula(texto, largura, alinhamento = "esquerda") {
+  const t = String(texto ?? "");
+  const sobra = Math.max(0, largura - t.length);
+  if (alinhamento === "direita") return " ".repeat(sobra) + t;
+  return t + " ".repeat(sobra);
+}
+
+// Item em COLUNAS, na mesma proporção que o dono arrastou no editor: o
+// nome ocupa a sua coluna (quebrando em mais linhas quando preciso) e os
+// números ficam alinhados um embaixo do outro, como no papel do
+// navegador. `larg` vem em caracteres, já conferido contra o conteúdo.
+function linhasDoItemEmColunas(item, larg, mostrarUnitario) {
+  const partes = quebrarLinha(item.nome, larg.nome);
+  const numeros =
+    celula(`${item.qty}x`, larg.qtd, "direita") +
+    (mostrarUnitario ? celula(item.unitario, larg.unitario, "direita") : "") +
+    celula(item.total, larg.total, "direita");
+
+  const linhas = [celula(partes[0] ?? "", larg.nome) + numeros];
+  // Resto do nome desce sozinho: repetir o número em cada linha faria o
+  // papel parecer ter mais itens do que tem.
+  for (const parte of partes.slice(1)) linhas.push(celula(parte, larg.nome));
+  linhas.push(...linhasDaComposicao(item, larg.nome + larg.qtd));
+  for (const obs of item.obs ?? []) linhas.push(...quebrarLinha(`  📝 ${obs}`, larg.nome + larg.qtd));
   return linhas;
 }
 
@@ -88,9 +135,16 @@ export function formatarComprovanteEscpos(dados, colunas) {
       case "valor":
         linhas.push(linhaValor(bloco.rotulo, bloco.valor, colunas));
         break;
-      case "itens":
-        for (const item of bloco.itens) linhas.push(...linhasDoItem(item, colunas));
+      case "itens": {
+        // Mesma proporção do papel do navegador, convertida em
+        // caracteres. Vem `null` quando não cabe sem picotar valor — aí
+        // o item volta ao formato empilhado, que é feio mas está certo.
+        const larg = largurasEmCaracteres(bloco.itens, colunas, bloco.larguras, bloco.unitario);
+        for (const item of bloco.itens) {
+          linhas.push(...(larg ? linhasDoItemEmColunas(item, larg, bloco.unitario) : linhasDoItem(item, colunas)));
+        }
         break;
+      }
       case "separador":
         linhas.push(linhaSeparadora(colunas));
         break;
@@ -103,6 +157,64 @@ export function formatarComprovanteEscpos(dados, colunas) {
   }
 
   return linhas;
+}
+
+/**
+ * F005 — formata um comprovante de caixa (sangria/suprimento ou
+ * fechamento) como texto em colunas pro driver ESC/POS. Genérico: lê o
+ * mesmo documento `comprovante_caixa` que o renderizador HTML.
+ *
+ * @param {object} dados - retorno de montarComprovanteMovimento/montarComprovanteFechamento
+ * @param {number} colunas
+ * @returns {string[]}
+ */
+export function formatarComprovanteCaixaEscpos(dados, colunas) {
+  const { identidade, titulo, emitidoEm, destaque, tabela, linhas, notas } = dados;
+  const out = [];
+
+  const quando = emitidoEm != null ? new Date(emitidoEm) : new Date();
+  const dataFmt = (Number.isNaN(quando.getTime()) ? new Date() : quando).toLocaleString("pt-BR");
+
+  out.push(centralizar(identidade?.nome ?? "", colunas));
+  out.push(centralizar(dataFmt, colunas));
+  if (identidade?.endereco) out.push(centralizar(identidade.endereco, colunas));
+  if (identidade?.cnpj) out.push(centralizar(`CNPJ: ${identidade.cnpj}`, colunas));
+  out.push(centralizar(titulo ?? "", colunas));
+  out.push(linhaSeparadora(colunas));
+
+  if (destaque) {
+    out.push(centralizar(destaque.rotulo ?? "", colunas));
+    out.push(centralizar(fmtR(destaque.valor), colunas));
+    out.push(linhaSeparadora(colunas));
+  }
+
+  if (tabela && (tabela.linhas ?? []).length > 0) {
+    for (const l of tabela.linhas) {
+      quebrarLinha(l.rotulo ?? "", colunas).forEach(x => out.push(x));
+      const [sistema, conferido] = l.valores ?? [];
+      out.push(linhaValor(`  Sistema ${fmtR(sistema)}`, `Conf ${fmtR(conferido)}`, colunas));
+    }
+    out.push(linhaSeparadora(colunas));
+  }
+
+  for (const l of (linhas ?? [])) {
+    const sinal = l.sinal && l.valor > 0 ? "+" : "";
+    out.push(linhaValor(l.rotulo ?? "", `${sinal}${fmtR(l.valor)}`, colunas));
+  }
+
+  if ((notas ?? []).length > 0) {
+    out.push(linhaSeparadora(colunas));
+    for (const n of notas) {
+      quebrarLinha(`${n.rotulo}: ${n.texto}`, colunas).forEach(x => out.push(x));
+    }
+  }
+
+  if (identidade?.rodape) {
+    out.push(linhaSeparadora(colunas));
+    quebrarLinha(identidade.rodape, colunas).forEach(l => out.push(centralizar(l, colunas)));
+  }
+
+  return out;
 }
 
 /**
@@ -136,8 +248,14 @@ export function formatarViaProducaoEscpos(dados, colunas) {
   }
 
   for (const it of itens) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
+    // Sem o emoji: a Ponte manda texto puro na fonte da própria impressora,
+    // que não tem esse caractere — saía símbolo estranho no meio do nome do
+    // prato, justamente no papel que o cozinheiro lê com pressa.
+    const nome = `${it.qty}x ${it.nome}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
+    // A cozinha precisa da composição mais que o cliente: sem ela o ticket
+    // diz "1x Combo" e ninguém na bancada sabe qual hambúrguer montar.
+    linhasDaComposicao(it, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
       quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
     }

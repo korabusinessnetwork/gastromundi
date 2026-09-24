@@ -33,6 +33,13 @@ vi.mock("@/lib/exportReport", () => ({
 // arrastar as consultas dela para dentro deste teste.
 vi.mock("./DesempenhoReport", () => ({ default: () => <div>Desempenho</div> }));
 
+// A aba Delivery também tem relatório e teste próprios; aqui só precisamos
+// saber que ela é montada com as vendas e o período que a tela escolheu.
+const { propsDelivery } = vi.hoisted(() => ({ propsDelivery: { current: null } }));
+vi.mock("./DeliveryReport", () => ({
+  default: (props) => { propsDelivery.current = props; return <div>Relatório de delivery</div>; },
+}));
+
 const { contexto } = vi.hoisted(() => ({ contexto: { current: {} } }));
 vi.mock("@/context/AppContext", () => ({ useApp: () => contexto.current }));
 
@@ -185,5 +192,76 @@ describe("RelatorioView, fechamento gravado antes desta versão (Run 1)", () => 
     fireEvent.click(document.querySelector("tbody tr"));
     expect(resumo("Total Esperado em Caixa")).toContain("R$ 70.00");
     expect(screen.getByText("Falta no Caixa")).toBeInTheDocument();
+  });
+});
+
+describe("RelatorioView — delivery x frente de caixa", () => {
+  const VENDAS = [
+    { id: "v1", comanda: "1", total: 100, cashier: "Ana", at: new Date().toISOString(), items: [], pagamentos: [{ metodo: "dinheiro", valor: 100 }] },
+    { id: "v2", comanda: "2", total: 400, cashier: "Ana", at: new Date().toISOString(), origem: "delivery", items: [], pagamentos: [{ metodo: "pix", valor: 400 }] },
+  ];
+
+  function montarVendas() {
+    contexto.current = {
+      sales: VENDAS,
+      fechamentos: [],
+      pending: [],
+      users: [],
+      currentUser: { role: "gerente" },
+      tenant: null,
+      metodosCustom: [],
+    };
+    render(<RelatorioView />);
+  }
+
+  it("cada linha da tabela diz de onde veio a venda", () => {
+    montarVendas();
+
+    const selos = [...document.querySelectorAll(".relatorio-view__selo-origem")].map(n => n.textContent.trim());
+    expect(selos).toEqual(["Frente de caixa", "Delivery"]);
+  });
+
+  /** O chip de origem, não a aba de mesmo nome. */
+  const chip = (texto) => [...document.querySelectorAll(".relatorio-view__chip")]
+    .find(b => b.textContent.trim().toLowerCase() === texto.toLowerCase());
+  /** A aba, não o chip. */
+  const abaBotao = (texto) => [...document.querySelectorAll(".relatorio-view__aba")]
+    .find(b => b.textContent.trim() === texto);
+
+  it("o filtro de origem recorta a lista sem mexer no filtro de método", () => {
+    montarVendas();
+
+    fireEvent.click(chip("Delivery"));
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(document.querySelector("tbody tr").textContent).toContain("Delivery");
+
+    fireEvent.click(chip("Frente de caixa"));
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(document.querySelector("tbody tr").textContent).toContain("Frente de caixa");
+
+    fireEvent.click(chip("Tudo"));
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(2);
+  });
+
+  it("a origem vai junto no arquivo exportado", () => {
+    montarVendas();
+
+    fireEvent.click(screen.getByRole("button", { name: /PDF/i }));
+
+    const { headers, rows } = exportado.pdf.at(-1);
+    expect(headers[1]).toBe("Origem");
+    expect(rows.map(r => r[1])).toEqual(["Frente de caixa", "Delivery"]);
+  });
+
+  it("a aba Delivery recebe as vendas e o período escolhidos na tela", () => {
+    montarVendas();
+
+    fireEvent.click(abaBotao("Delivery"));
+    expect(screen.getByText("Relatório de delivery")).toBeInTheDocument();
+    expect(propsDelivery.current.vendas).toEqual(VENDAS);
+    expect(propsDelivery.current.periodo).toBe("hoje");
+
+    fireEvent.click(screen.getByRole("button", { name: "30 dias" }));
+    expect(propsDelivery.current.periodo).toBe("mes");
   });
 });

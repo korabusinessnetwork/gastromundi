@@ -28,9 +28,17 @@ import {
   enviarPedido,
   formatarPreco,
   mensagemDeErroDoPedido,
+  meusPedidos,
   montarPayloadPedido,
   revisarSacola,
+  separarRuaNumero,
 } from "@/lib/delivery";
+import {
+  entregaLembrada,
+  esquecerDispositivo,
+  idDoDispositivo,
+  lembrarEntrega,
+} from "@/lib/deliveryDispositivo";
 import { useCarrinho } from "./useCarrinho";
 import CardapioLista from "./CardapioLista";
 import ProdutoModal from "./ProdutoModal";
@@ -38,17 +46,38 @@ import SacolaModal from "./SacolaModal";
 import CheckoutEntrega from "./CheckoutEntrega";
 import CheckoutPagamento from "./CheckoutPagamento";
 import Confirmacao from "./Confirmacao";
+import MeusPedidos from "./MeusPedidos";
 import "./vitrine.css";
 
 const ENTREGA_INICIAL = {
+  // Entrega é o padrão porque era o único caminho que existia — e continua
+  // sendo o que a maioria quer. Quem vai buscar troca em um toque.
+  tipo: "entrega",
   nome: "",
   telefone: "",
   cep: "",
+  cidade: "",
   bairro: "",
-  endereco: "",
+  // Rua e número são campos separados na tela; o pedido continua
+  // guardando a linha única (montarPayloadPedido junta os dois).
+  rua: "",
+  numero: "",
   complemento: "",
   taxa: 0,
 };
+
+/**
+ * O que o aparelho lembra, já no formato da tela de hoje. Aparelho que
+ * pediu ANTES de rua e número serem separados guardou a linha inteira em
+ * `endereco` — sem desmontá-la, o cliente antigo abriria o formulário com
+ * a rua em branco e teria de digitar tudo de novo.
+ */
+function entregaInicial() {
+  const lembrado = entregaLembrada();
+  const { endereco, ...resto } = lembrado;
+  const antigo = !lembrado.rua && endereco ? separarRuaNumero(endereco) : null;
+  return { ...ENTREGA_INICIAL, ...resto, ...(antigo ?? {}) };
+}
 const PAGAMENTO_INICIAL = { forma: "", trocoPara: "", levarMaquininha: false };
 
 export default function CardapioPage() {
@@ -81,12 +110,28 @@ export default function CardapioPage() {
   // pagamento | confirmacao. `produtoAberto` guarda o produto em edição.
   const [produtoAberto, setProdutoAberto] = useState(null);
   const [tela, setTela] = useState(null);
-  const [entrega, setEntrega] = useState(ENTREGA_INICIAL);
+  // Já nasce com o que este aparelho lembra da última vez: redigitar nome,
+  // cidade, bairro e rua a cada pedido é o atrito que faz desistir no meio,
+  // e é justamente o que uma conta resolveria. A taxa NÃO é lembrada — ela
+  // é resposta do servidor para um endereço num momento.
+  const [entrega, setEntrega] = useState(entregaInicial);
   const [pagamento, setPagamento] = useState(PAGAMENTO_INICIAL);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
 
   const { itens, adicionar, remover, alterarQtd, limpar, quantidade } = useCarrinho(slug);
+
+  // ── Acompanhar o pedido sem conta ──────────────────────────────────
+  // O aparelho guarda uma identidade anônima e o pedido nasce carimbado
+  // com ela. É o que faz o histórico existir "só de voltar na página",
+  // sem cadastro e sem custo de SMS.
+  const [dispositivo, setDispositivo] = useState(() => idDoDispositivo());
+  const [historico, setHistorico] = useState([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(false);
+  const [erroHistorico, setErroHistorico] = useState(false);
+  // Cada incremento é um pedido de recarga do histórico (abriu a tela,
+  // mandou um pedido novo, clicou em "tentar de novo").
+  const [recargaHistorico, setRecargaHistorico] = useState(0);
 
   // ── White-label: aplica o tema do tenant (--gm-*) e a marca, igual ao
   //    pré-login. A vitrine toda usa var(--gm-*), então se recolore sozinha.
@@ -138,7 +183,41 @@ export default function CardapioPage() {
     };
   }, [slug, tentativa]);
 
+  // ── Histórico deste aparelho ───────────────────────────────────────
+  // Carrega junto com o cardápio (não só ao abrir a tela): é o que deixa o
+  // cabeçalho mostrar "Meus pedidos" apenas para quem tem algum, em vez de
+  // oferecer uma tela vazia a quem chegou agora.
+  useEffect(() => {
+    if (!dispositivo) return;
+    let ativo = true;
+    setCarregandoHistorico(true);
+    (async () => {
+      const { data, error } = await meusPedidos(slug, dispositivo);
+      if (!ativo) return;
+      setHistorico(data);
+      // Falha aqui não vira erro de página: histórico é conveniência, e
+      // quem só quer pedir não pode ser interrompido por causa dele.
+      setErroHistorico(!!error);
+      setCarregandoHistorico(false);
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, [slug, dispositivo, recargaHistorico]);
+
   const aberto = !!cardapio?.aberto;
+  const retirada = entrega.tipo === "retirada";
+
+  // Esquecer o aparelho é a saída de quem pediu no celular de outra
+  // pessoa. Um id novo entra no lugar para o próximo pedido continuar
+  // tendo acompanhamento.
+  function esquecerAparelho() {
+    esquecerDispositivo();
+    setHistorico([]);
+    setTela(null);
+    setDispositivo(idDoDispositivo());
+  }
+
 
   // A sacola vive em sessionStorage e sobrevive à aba recarregada; o cardápio
   // é carregado uma vez e não se atualiza sozinho. Se o dono mexer no cardápio
@@ -160,10 +239,18 @@ export default function CardapioPage() {
     // corrige o problema, dá certo, e a tela segue acusando o erro velho.
     setErro("");
     const payload = montarPayloadPedido({
-      cliente: { nome: entrega.nome, telefone: entrega.telefone },
+      cliente: {
+        nome: entrega.nome,
+        telefone: entrega.telefone,
+        // Só o primeiro pedido do aparelho mostra o campo, então na maioria
+        // das vezes isto é undefined — e o payload manda null, que o
+        // servidor entende como "não informou" e deixa o cadastro como está.
+        dataNascimento: entrega.dataNascimento,
+      },
       entrega,
       pagamento,
       itens,
+      dispositivo,
     });
     const { data, error } = await enviarPedido(slug, payload);
     setEnviando(false);
@@ -176,6 +263,11 @@ export default function CardapioPage() {
     }
     setResultado(data);
     setTela("confirmacao");
+    // Só lembra o que DEU CERTO: guardar um endereço recusado faria o
+    // próximo pedido nascer com o erro já preenchido.
+    lembrarEntrega(entrega);
+    // E o pedido novo já entra no histórico, sem esperar o próximo carregamento.
+    setRecargaHistorico((n) => n + 1);
     // A sacola morre AQUI, no aceite — não no "Voltar ao cardápio". Ela vive
     // em sessionStorage: quem fechava a aba (ou recarregava) na tela de
     // sucesso reencontrava os mesmos itens na barra da sacola, achava que o
@@ -185,9 +277,11 @@ export default function CardapioPage() {
   }
 
   function fecharConfirmacao() {
-    // Volta ao cardápio zerado para um novo pedido (a sacola já foi limpa
-    // no aceite do pedido, não aqui).
-    setEntrega(ENTREGA_INICIAL);
+    // Volta ao cardápio para um novo pedido (a sacola já foi limpa no
+    // aceite, não aqui). Os dados de entrega voltam ao que o aparelho
+    // lembra — zerar tudo faria a pessoa redigitar o endereço que ela
+    // acabou de usar.
+    setEntrega(entregaInicial());
     setPagamento(PAGAMENTO_INICIAL);
     setResultado(null);
     setTela(null);
@@ -241,9 +335,14 @@ export default function CardapioPage() {
 
   return (
     <div className="vitrine">
-      <div className="vitrine__wrap">
-        {/* Cabeçalho fixo com a marca do estabelecimento + status */}
-        <header className="vitrine__header">
+      {/* Cabeçalho fixo com a marca do estabelecimento + status. Fica FORA
+          do `__wrap`: ele é uma barra que atravessa a tela inteira, e quem
+          centraliza o conteúdo dentro dela é o `__header-inner` (que o CSS
+          sempre esperou). Dentro do wrap, a barra herdava a largura da
+          coluna e o miolo ficava sem nenhum espaçamento — logo colado no
+          canto e nome do estabelecimento embaixo dele, não ao lado. */}
+      <header className="vitrine__header">
+        <div className="vitrine__header-inner">
           {marca.logo ? (
             <img className="vitrine__logo" src={marca.logo} alt={marca.nome || "Logo"} />
           ) : null}
@@ -254,9 +353,30 @@ export default function CardapioPage() {
             >
               {aberto ? "Aberto agora" : "Fechado no momento"}
             </span>
+            {/* Quem prefere buscar precisa saber disso ANTES de montar a
+                sacola — descobrir só no checkout é descobrir tarde. */}
+            {cardapio.permite_retirada && (
+              <span className="vitrine__status vitrine__status--retirada">
+                Retirada no local
+              </span>
+            )}
           </div>
-        </header>
 
+          {/* Só aparece para quem tem pedido: oferecer "Meus pedidos" a
+              quem chegou agora é oferecer uma tela vazia. */}
+          {historico.length > 0 && (
+            <button
+              type="button"
+              className="vitrine__meus-pedidos"
+              onClick={() => setTela("meus-pedidos")}
+            >
+              Meus pedidos
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="vitrine__wrap">
         {/* Loja fechada: mostra o cardápio, mas avisa e bloqueia o pedido */}
         {!aberto && (
           <div className="vitrine__aviso">
@@ -318,6 +438,8 @@ export default function CardapioPage() {
         <CheckoutEntrega
           slug={slug}
           dados={entrega}
+          permiteRetirada={!!cardapio.permite_retirada}
+          enderecoRetirada={cardapio.endereco_retirada ?? ""}
           onMudar={(patch) => setEntrega((d) => ({ ...d, ...patch }))}
           onVoltar={() => setTela("sacola")}
           onAvancar={() => setTela("pagamento")}
@@ -328,7 +450,8 @@ export default function CardapioPage() {
         <CheckoutPagamento
           dados={pagamento}
           subtotal={subtotal}
-          taxa={entrega.taxa}
+          taxa={retirada ? 0 : entrega.taxa}
+          retirada={retirada}
           onMudar={(patch) => setPagamento((d) => ({ ...d, ...patch }))}
           onVoltar={() => setTela("entrega")}
           onConfirmar={confirmarPedido}
@@ -337,10 +460,22 @@ export default function CardapioPage() {
         />
       )}
 
+      {tela === "meus-pedidos" && (
+        <MeusPedidos
+          pedidos={historico}
+          carregando={carregandoHistorico}
+          erro={erroHistorico}
+          onFechar={() => setTela(null)}
+          onTentarDeNovo={() => setRecargaHistorico((n) => n + 1)}
+          onEsquecer={esquecerAparelho}
+        />
+      )}
+
       {tela === "confirmacao" && (
         <Confirmacao
           resultado={resultado}
           tempoPreparo={cardapio.tempo_preparo_min}
+          slug={slug}
           onFechar={fecharConfirmacao}
         />
       )}

@@ -17,7 +17,7 @@ import {
   LuTruck, LuShoppingCart, LuCheck,
   LuCalendar, LuArrowLeft, LuChevronRight, LuChevronDown, LuSearch,
   LuLink, LuPackage, LuPercent, LuFileText, LuSlidersHorizontal,
-  LuWallet, LuReceipt, LuFileCheck,
+  LuWallet, LuReceipt, LuFileCheck, LuMessageSquare,
 } from "react-icons/lu";
 import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
 import ImpostosAdmin from "@/components/desktop/views/ImpostosAdmin";
@@ -980,6 +980,10 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
 
 const TIPOS_IMPOSTO = ["ISS", "ICMS", "PIS", "COFINS", "Simples Nacional", "Outro"];
 
+// Paleta categórica de tipo de imposto — as seis cores só servem para
+// distinguir um tipo do outro. O âmbar do COFINS fica literal (TD018):
+// virar `--gm-warn` faria só esse chip seguir a cor de alerta do tema,
+// quebrando a paleta.
 const COR_TIPO = {
   "ISS":              "#3b82f6",
   "ICMS":             "#8b5cf6",
@@ -1188,6 +1192,7 @@ const SECOES = [
   { id: "financeiro",     label: "Financeiro",          desc: "Fluxo de caixa, contas e lucro",                    Icon: LuWallet,        color: varColor(C.green), to: "/app/financeiro",    perm: "financeiro"    },
   { id: "notas_emitidas", label: "Notas Emitidas",      desc: "Consulta, reimpressão e cancelamento de NFC-e",     Icon: LuReceipt,       color: varColor(C.blue),  to: "/app/notas-fiscais", perm: "relatorio"     },
   { id: "config_fiscal",  label: "Configuração Fiscal", desc: "CNPJ, série, ambiente e certificado do emissor",    Icon: LuFileCheck,     color: "#f97316",         to: "/app/fiscal",        perm: "configuracoes" },
+  { id: "feedbacks",      label: "Feedbacks",           desc: "O que a equipe relatou e o que os clientes acharam", Icon: LuMessageSquare, color: varColor(C.accent), to: "/app/feedbacks",    perm: "configuracoes" },
 ];
 
 function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {

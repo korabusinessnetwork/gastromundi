@@ -46,3 +46,14 @@ hr { border: none; border-top: 1px dashed #aaa; margin: 8px 0; }
 .item__obs { font-size: 0.93em; color: #333; padding-left: 18px; margin-top: 2px; }
 .rodape { text-align: center; font-size: 0.8em; color: #666; margin-top: 14px; }
 @media print { body { width: 100%; } }
+
+/* Composição do combo no ticket da cozinha. Sem ela o papel dizia "1x
+   Combo" e ninguém na bancada sabia qual hambúrguer montar. Recuada e um
+   pouco menor que o item, mas escura: é instrução de produção, não
+   observação secundária. */
+.item__composicao {
+  font-size: 0.9em;
+  font-weight: 600;
+  padding-left: 18px;
+  margin-top: 2px;
+}

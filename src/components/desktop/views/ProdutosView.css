@@ -120,12 +120,27 @@
   flex-shrink: 0;
 }
 
+/* `overflow: hidden` aqui recortava o dropdown de "+ N mais": ele abria de
+   verdade — o estado mudava, o elemento entrava no DOM — e era cortado na
+   borda da lista, então o clique não produzia nada visível e as categorias
+   extras ficavam inalcançáveis. O que se queria era só impedir a fila de
+   chips de empurrar a busca para fora, e para isso basta `min-width: 0`
+   com `flex-wrap: nowrap`: o contêiner encolhe sem precisar recortar o que
+   sai dele. */
 .categorias-busca__lista {
   display: flex;
   gap: 8px;
   flex: 1;
+  min-width: 0;
   flex-wrap: nowrap;
+}
+
+/* Os chips que não cabem são escondidos pela própria lógica do "+ N mais"
+   (CATS_VISIVEIS), não pelo recorte — mas se a janela apertar mais que o
+   previsto, o último chip não pode vazar por cima da busca. */
+.categorias-busca__lista > .categorias-busca__cat {
   overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .categorias-busca__cat {
@@ -229,6 +244,92 @@
 .produtos-view__tr {
   border-bottom: 1px solid var(--gm-border);
   transition: background 0.1s;
+}
+
+/* Produto desabilitado continua na lista — é onde se religa. Ele fica
+   apagado para se distinguir num relance de quem está à venda, mas não
+   tão apagado a ponto de virar texto ilegível: o nome e o preço ainda
+   precisam ser lidos por quem procura o item para reativar. */
+.produtos-view__tr--parado .produtos-view__nome,
+.produtos-view__tr--parado .produtos-view__preco,
+.produtos-view__tr--parado .produtos-view__td-emoji,
+.produtos-view__tr--parado .produtos-view__tag-categoria,
+.produtos-view__tr--parado .produtos-view__tag-unidade {
+  opacity: 0.55;
+}
+
+/* Chave de situação da linha. Nasceu como selo colorido sem borda, e o
+   olho lia etiqueta de status, não algo em que se clica. Agora é o mesmo
+   controle do card do delivery: borda sempre visível, hover, foco, e um
+   trilho com bolinha. A palavra fica junto porque a posição da bolinha diz
+   "ligado", mas não diz ligado para quê. */
+.produtos-view__disp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.produtos-view__disp:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.produtos-view__disp:not(:disabled):hover {
+  border-color: var(--gm-muted);
+}
+
+.produtos-view__disp:focus-visible {
+  outline: 2px solid var(--gm-accent);
+  outline-offset: 2px;
+}
+
+.produtos-view__disp-trilho {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--gm-faint);
+  transition: background 0.15s ease;
+  flex: none;
+}
+
+.produtos-view__disp-bola {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+}
+
+/* O verde é do trilho, não do fundo do botão inteiro: pintar tudo o
+   devolveria à cara de selo. */
+.produtos-view__disp--on .produtos-view__disp-texto {
+  color: var(--gm-green);
+}
+
+.produtos-view__disp--on .produtos-view__disp-trilho {
+  background: var(--gm-green);
+}
+
+.produtos-view__disp--on .produtos-view__disp-bola {
+  left: 15px;
+}
+
+.produtos-view__disp--off .produtos-view__disp-texto {
+  color: var(--gm-muted);
 }
 
 .produtos-view__td-emoji {
@@ -494,6 +595,23 @@
   line-height: var(--lh-base);
 }
 
+/* Seção "Opções de escolha" — mesmo cartão da seção de unidades */
+.produtos-view__secao-escolhas {
+  background: var(--gm-surface);
+  border-radius: 14px;
+  border: 1px solid var(--gm-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.produtos-view__secao-ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+
 .produtos-view__bloco {
   display: flex;
   flex-direction: column;
@@ -650,6 +768,28 @@
   font-weight: 600;
   font-size: var(--fs-sm);   /* role: mensagem de erro (era sz.fontSm) */
   line-height: var(--lh-sm);
+}
+
+/* O mesmo aviso, mas fora do modal: fica sobre a lista, com o botão de
+   fechar, porque nada o dispensa automaticamente. */
+.produtos-view__erro--lista {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 24px 12px;
+}
+
+.produtos-view__erro-fechar {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  flex: none;
 }
 
 .produtos-view__modal-botoes {

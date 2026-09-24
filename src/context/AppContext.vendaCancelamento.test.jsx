@@ -144,7 +144,7 @@ describe("cancelarVendaFechada, cancelar é marcar, não apagar (TD009 etapa 3)"
     expect(update.payload.cancelada_em).toEqual(expect.any(String));
   });
 
-  it("não apaga venda_itens, venda_pagamentos nem a própria venda", async () => {
+  it("não apaga NADA, nem o lançamento financeiro", async () => {
     const app = montar();
     await comVendaFechada(app);
 
@@ -156,8 +156,34 @@ describe("cancelarVendaFechada, cancelar é marcar, não apagar (TD009 etapa 3)"
     expect(apagadas).not.toContain("venda_itens");
     expect(apagadas).not.toContain("venda_pagamentos");
     expect(apagadas).not.toContain("vendas");
-    // Receita cancelada não é receita: o lançamento financeiro continua saindo.
-    expect(apagadas).toContain("lancamentos");
+    // O lançamento TAMBÉM deixou de ser apagado (migração 20261009). Duas
+    // razões, e a segunda é a que decide:
+    //
+    //   1. Um fiado desfeito precisa continuar aparecendo no Financeiro
+    //      como desfeito. Apagando, o histórico do cliente fica com um
+    //      buraco sem nome e ninguém sabe que houve uma venda ali.
+    //   2. O banco agora RECUSA o DELETE nessa tabela (policy RESTRICTIVE).
+    //      Manter o delete não o tornaria verdade: ele passaria a apagar 0
+    //      linhas em silêncio, e a venda cancelada ficaria com a conta a
+    //      receber viva — pior que qualquer um dos dois comportamentos.
+    expect(apagadas).not.toContain("lancamentos");
+  });
+
+  it("marca o lançamento como cancelado, com quem e por quê", async () => {
+    const app = montar();
+    await comVendaFechada(app);
+
+    await act(async () => {
+      await app.current.cancelarVendaFechada("venda-1", "erro do caixa");
+    });
+
+    const update = chamadas.find((c) => c.tabela === "lancamentos" && c.metodo === "update");
+    expect(update).toBeDefined();
+    expect(update.payload).toMatchObject({
+      status: "cancelado",
+      motivo_cancelamento: "erro do caixa",
+    });
+    expect(update.payload.cancelado_em).toEqual(expect.any(String));
   });
 
   it("a venda cancelada fica marcada no estado local", async () => {

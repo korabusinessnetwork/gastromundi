@@ -48,6 +48,32 @@ describe("formatarComprovanteEscpos", () => {
     expect(linhas).toContain("Pix");
   });
 
+  it("leva a composição do combo pro papel do cliente, nos dois formatos de item", () => {
+    // 80mm cabe em colunas; 58mm com preço unitário cai no empilhado. A
+    // composição precisa sair nos dois — é o que o cliente confere.
+    for (const larguraMm of [58, 80]) {
+      const colunas = colunasEscpos(larguraMm);
+      const linhas = formatarComprovanteEscpos(
+        comprovante({ itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }] }] }),
+        colunas,
+      ).join("\n");
+      expect(linhas).toContain("2x Cheddar");
+    }
+  });
+
+  it("desligar “O que veio no combo” tira a composição também da térmica", () => {
+    const colunas = colunasEscpos(80);
+    const dados = comprovante({
+      layout: [{ tipo: "itens", opcoes: { escolhas: false } }],
+      itens: [{ nome: "Combo do Dia", qty: 1, preco: 45, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }] }],
+    });
+
+    const linhas = formatarComprovanteEscpos(dados, colunas).join("\n");
+
+    expect(linhas).toContain("Combo do Dia");
+    expect(linhas).not.toContain("2x Cheddar");
+  });
+
   it("aviso de cupom não fiscal aparece só quando naoFiscal=true", () => {
     const colunas = colunasPorLargura(80, 13);
     const semAviso = formatarComprovanteEscpos(comprovante(), colunas).join("\n");
@@ -110,6 +136,19 @@ describe("formatarViaProducaoEscpos", () => {
     for (const larguraMm of [58, 80]) {
       const colunas = colunasPorLargura(larguraMm, 15);
       const linhas = formatarViaProducaoEscpos(pedido, colunas);
+      for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(colunas);
+    }
+  });
+
+  it("imprime a composição do combo, recuada e dentro do papel", () => {
+    for (const larguraMm of [58, 80]) {
+      const colunas = colunasPorLargura(larguraMm, 15);
+      const linhas = formatarViaProducaoEscpos(
+        { ...pedido, itens: [{ nome: "Combo do Dia", qty: 1, emoji: "", obs: [], escolhas: [{ nome: "Cheddar", qtd: 2 }, { nome: "Coca", qtd: 1 }] }] },
+        colunas,
+      );
+      expect(linhas.join("\n")).toContain("  2x Cheddar");
+      expect(linhas.join("\n")).toContain("  1x Coca");
       for (const linha of linhas) expect(linha.length).toBeLessThanOrEqual(colunas);
     }
   });

@@ -20,10 +20,25 @@ import { formatarReais } from "./deliveryPedidos";
 // ── Puras ───────────────────────────────────────────────────────────
 
 /**
+ * Status em que um pedido pode ter ACABADO DE CHEGAR.
+ *
+ * `recebido` é o caso de sempre. `em_preparo` entrou por causa do ACEITE
+ * AUTOMÁTICO: com a chave ligada, o pedido nasce já aceito e nunca passa
+ * por 'recebido' — filtrar só por 'recebido' faria a cozinha parar de
+ * ouvir o aviso justamente de quem ligou o aceite automático para não
+ * precisar ficar olhando a tela.
+ *
+ * Os outros status ficam de fora: pedido já em rota ou entregue não é
+ * novidade, e alertar por eles faria a primeira carga de uma tela aberta
+ * no meio do dia disparar o som do dia inteiro.
+ */
+const STATUS_DE_CHEGADA = new Set(["recebido", "em_preparo"]);
+
+/**
  * Dado o conjunto de ids já vistos e a lista atual, devolve só os pedidos
- * REALMENTE novos a alertar: id inédito E status 'recebido' (pedido que
- * acabou de chegar — não alertamos por mudança de status de um já conhecido).
- * Safe com entradas nulas/estranhas.
+ * REALMENTE novos a alertar: id inédito E status de chegada. Um pedido que
+ * o operador já viu como 'recebido' e alguém moveu para 'em_preparo' não
+ * alerta de novo — o id já é conhecido. Safe com entradas nulas/estranhas.
  *
  * @param {Set<string>|Array} idsConhecidos
  * @param {Array} pedidos
@@ -36,7 +51,7 @@ export function detectarNovosPedidos(idsConhecidos, pedidos) {
       ? idsConhecidos
       : new Set(Array.isArray(idsConhecidos) ? idsConhecidos.map(String) : []);
   return lista.filter(
-    (p) => p && (p.status ?? "recebido") === "recebido" && !vistos.has(String(p.id)),
+    (p) => p && STATUS_DE_CHEGADA.has(p.status ?? "recebido") && !vistos.has(String(p.id)),
   );
 }
 

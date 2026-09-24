@@ -38,6 +38,7 @@ import FinanceiroPage     from "@/pages/desktop/FinanceiroPage";
 import CozinhaPage        from "@/pages/desktop/CozinhaPage";
 import AdminPage          from "@/pages/desktop/AdminPage";
 import ClientesPage       from "@/pages/desktop/ClientesPage";
+import FeedbacksPage      from "@/pages/desktop/FeedbacksPage";
 import HistoricoNfcePage  from "@/pages/desktop/HistoricoNfcePage";
 import PainelFiscalPage   from "@/pages/desktop/PainelFiscalPage";
 import ConsolePage        from "@/pages/console/ConsolePage";
@@ -245,6 +246,18 @@ const rotasApp = [
         element: (
           <PrivateRoute requiredPermission="configuracoes">
             <AdminPage />
+          </PrivateRoute>
+        ),
+      },
+      {
+        // Feedbacks — o que a equipe relatou e o que o cliente avaliou. Mora
+        // na Área Admin (a sidebar já estava lotada), junto das outras telas
+        // de leitura do gestor. Mesma permissão de Configurações porque é
+        // relato interno, e o nome do autor vai junto.
+        path: "feedbacks",
+        element: (
+          <PrivateRoute requiredPermission="configuracoes">
+            <FeedbacksPage />
           </PrivateRoute>
         ),
       },

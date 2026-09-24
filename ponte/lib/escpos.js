@@ -25,8 +25,9 @@ export const MAX_CARACTERES_LINHA = 400;
 
 // Tabela CP850 (DOS Latin-1), posições 0x80 a 0xFF, em ordem. Abaixo de 0x80
 // a CP850 é igual ao ASCII, então só a metade alta precisa de mapa.
-// Os dois invisíveis da última linha vão como escape (­ = hífen opcional,
-//   = espaço rígido) para ninguém apagar sem perceber ao editar.
+// Os dois invisíveis da última linha (U+00AD = hífen opcional, U+00A0 =
+// espaço rígido) estão ali como caracteres de verdade, nas posições 0xF0 e
+// 0xFF: são invisíveis no editor, então não apague sem perceber.
 const CP850_ALTO = [
   "ÇüéâäàåçêëèïîìÄÅ", // 80-8F
   "ÉæÆôöòûùÿÖÜø£Ø×ƒ", // 90-9F

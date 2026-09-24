@@ -5,13 +5,15 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers, LuTrash2, LuMinus, LuPlus, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
+import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers, LuTrash2, LuMinus, LuPlus, LuLock, LuEye, LuEyeOff, LuPrinter, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
+import { montarComprovantePagamento, buscarConfigImpressao } from "@/lib/impressao";
+import { imprimirDocumento } from "@/lib/impressao/drivers";
 import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { buscarClientePorId } from "@/lib/clientes";
-import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
+import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, round2, validarAjuste } from "@/lib/vendas";
 import ClienteFiadoSelector from "./ClienteFiadoSelector";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
@@ -22,6 +24,7 @@ import ModalCpfNota from "./ModalCpfNota";
 // não chega à venda nem ao cupom.
 import { novoUid } from "@/lib/uidLista";
 import "./CheckoutView.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
@@ -46,10 +49,10 @@ const METODOS_CATALOG = [
   { id: "pix",      label: "Pix",      Icon: LuZap        },
 ];
 
-export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemoverItem }) {
+export default function CheckoutView({ comanda, items, onConfirm, onBack, onConcluir, onRemoverItem }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { meiosPagamento, metodosCustom, taxaServico, currentUser, redeOnline, addonHabilitado, metodosTef } = useApp();
+  const { tenant, meiosPagamento, metodosCustom, taxaServico, currentUser, redeOnline, addonHabilitado, metodosTef } = useApp();
   const catalogCompleto = [
     ...METODOS_CATALOG,
     ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),
@@ -63,6 +66,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
   const [confirmando,   setConfirmando]   = useState(false);
   const [erroConfirmar, setErroConfirmar] = useState("");
   const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
+
+  // Pós-venda (espelha o Palm/mobile): ao confirmar o pagamento, a venda é
+  // "congelada" e a tela troca para a confirmação de sucesso, de onde o
+  // operador imprime o comprovante da venda concluída e clica em "Concluir"
+  // para voltar. Antes o checkout saía direto e o comprovante só existia
+  // ANTES de confirmar — princípio nº 1 (fluxo óbvio, próxima ação visível).
+  const [vendaConcluida,  setVendaConcluida]  = useState(null);
+  const [statusImpressao, setStatusImpressao] = useState(null); // null | "imprimindo" | "erro" | "sucesso"
+  const [erroImpressao,   setErroImpressao]   = useState("");
 
   // Desconto / Acréscimo
   const [showAjuste,    setShowAjuste]    = useState(false);
@@ -124,9 +136,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
   // Todo valor cobrado é arredondado a centavos: taxa de 10% e ajuste
   // percentual geram frações de centavo que estouravam a tolerância do
-  // split e chegavam ao pagamento com casas fantasma.
-  const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
-
+  // split e chegavam ao pagamento com casas fantasma. O `round2` vem de
+  // @/lib/vendas — é o mesmo que a gravação da venda usa, e dinheiro
+  // arredondado de dois jeitos diferentes na mesma tela é como nasce a
+  // diferença de um centavo no fechamento.
   const subtotal      = round2(itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0));
   const valorTaxa     = aplicarTaxa ? round2(subtotal * 0.10) : 0;
   const baseComTaxa   = round2(subtotal + valorTaxa);
@@ -337,6 +350,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     setConfirmando(true);
     setErroConfirmar("");
     const payloadPagamentos = buildPayloadPagamentos();
+    // Congela a venda ANTES de confirmar: o comprovante pós-venda tem que
+    // refletir exatamente o que foi cobrado, mesmo que o estado do carrinho
+    // mude depois. Mesmo princípio do Palm (vendaParaImpressao antes do await).
+    const vendaCongelada = montarVendaParaImpressao();
     try {
       // clienteId = vínculo persistido da venda (Financeiro/fiado); cliente =
       // o objeto completo, usado só para puxar o CPF/CNPJ do destinatário da
@@ -345,6 +362,9 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
       const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null, cliente: clienteFiado ?? null, dest });
       if (resultado?.error) {
         setErroConfirmar(resultado.error?.message || "Não foi possível registrar o pagamento. Tente novamente.");
+      } else {
+        // Sucesso: mostra a confirmação pós-venda com o comprovante em mãos.
+        setVendaConcluida(vendaCongelada);
       }
     } catch (err) {
       setErroConfirmar(err?.message || "Não foi possível registrar o pagamento. Tente novamente.");
@@ -400,7 +420,88 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
     pagamentos: buildPrintPagamentos(),
   });
 
+  // Imprime o comprovante da venda já concluída (fire-and-forget: nunca
+  // desfaz a venda nem trava a tela — só informa o estado ao lado do botão).
+  const imprimirComprovanteConcluido = async () => {
+    if (statusImpressao === "imprimindo" || !vendaConcluida) return;
+    setStatusImpressao("imprimindo");
+    setErroImpressao("");
+    try {
+      const { data: configImpressao } = await buscarConfigImpressao();
+      const dados = montarComprovantePagamento({ venda: vendaConcluida, tenant, configImpressao });
+      const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
+      if (error) {
+        setErroImpressao(error.message);
+        setStatusImpressao("erro");
+        return;
+      }
+      setStatusImpressao("sucesso");
+      setTimeout(() => setStatusImpressao((s) => (s === "sucesso" ? null : s)), 2500);
+    } catch (err) {
+      setErroImpressao(err?.message ?? "Não foi possível imprimir agora.");
+      setStatusImpressao("erro");
+    }
+  };
+
   const isMob = sz.checkoutResumo === 0;
+
+  // ── Tela de confirmação pós-venda ──────────────────────────────
+  // Espelha o "concluido" do Palm e as modais de caixa: pagamento feito →
+  // imprimir comprovante (opcional) → Concluir. A venda já está registrada;
+  // esta tela só oferece o comprovante e a saída explícita.
+  if (vendaConcluida) {
+    return (
+      <div className="checkout-view checkout-view--concluido" style={{ background: varColor(C.bg) }}>
+        <div className="checkout-view__concluido-card" style={{ background: varColor(C.card), border: `1px solid var(${C.border})` }}>
+          <div className="checkout-view__concluido-icone" style={{ background: alfa(varColor(C.green), "1f"), color: varColor(C.green) }}>
+            <LuCircleCheck size={44} />
+          </div>
+          <div className="checkout-view__concluido-titulo" style={{ color: varColor(C.text) }}>
+            Pagamento confirmado!
+          </div>
+          <div className="checkout-view__concluido-sub" style={{ color: varColor(C.muted) }}>
+            {fmtComanda(vendaConcluida.comanda)} · {formatarReais(Number(vendaConcluida.total ?? 0))}
+          </div>
+
+          <div className="checkout-view__concluido-acoes">
+            <button
+              type="button"
+              onClick={imprimirComprovanteConcluido}
+              disabled={statusImpressao === "imprimindo"}
+              className="checkout-view__concluido-btn-imprimir"
+              style={{
+                background: varColor(C.surface),
+                border: `1.5px solid var(${C.border})`,
+                color: varColor(C.text),
+                cursor: statusImpressao === "imprimindo" ? "not-allowed" : "pointer",
+              }}
+            >
+              <LuPrinter size={18} /> {statusImpressao === "imprimindo" ? "Imprimindo…" : "Imprimir comprovante"}
+            </button>
+            <button
+              type="button"
+              onClick={() => (onConcluir ?? onBack)?.()}
+              className="checkout-view__concluido-btn-concluir"
+              style={{ background: varColor(C.green), color: "#fff", boxShadow: `0 4px 20px ${alfa(C.green, "44")}` }}
+            >
+              Concluir
+            </button>
+          </div>
+
+          {statusImpressao === "erro" && (
+            <span className="checkout-view__concluido-status checkout-view__concluido-status--erro" style={{ color: varColor(C.red) }}>
+              <LuCircleAlert size={14} /> {erroImpressao}
+            </span>
+          )}
+          {statusImpressao === "sucesso" && (
+            <span className="checkout-view__concluido-status checkout-view__concluido-status--sucesso" style={{ color: varColor(C.green) }}>
+              <LuCircleCheck size={14} /> Enviado para impressão
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -499,7 +600,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                       {item.name}
                     </div>
                     <div className="checkout-view__item-preco-unit" style={{ color: varColor(C.muted), marginTop: 4 }}>
-                      {qty}× R$ {Number(item.price).toFixed(2)}
+                      {qty}× {formatarReais(Number(item.price))}
                     </div>
                     {obsArr.map((obs, j) => (
                       <div key={j} className="checkout-view__item-obs" style={{
@@ -511,7 +612,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </div>
 
                   <div className="checkout-view__item-total" style={{ color: varColor(C.text) }}>
-                    R$ {(item.price * qty).toFixed(2)}
+                    {formatarReais((item.price * qty))}
                   </div>
 
                   {modoRemocao && (
@@ -584,7 +685,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </button>
                 </div>
                 <span className="checkout-view__taxa-valor" style={{ fontWeight: 700, color: aplicarTaxa ? varColor(C.text) : varColor(C.muted), textDecoration: aplicarTaxa ? "none" : "line-through" }}>
-                  R$ {(subtotal * 0.10).toFixed(2)}
+                  {formatarReais((subtotal * 0.10))}
                 </span>
               </div>
             )}
@@ -595,7 +696,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span className="checkout-view__ajuste-aplicado-label" style={{ color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
                     {ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"}
-                    {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `R$ ${parseFloat(ajusteAplicado.valor).toFixed(2)}`})
+                    {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `${formatarReais(parseFloat(ajusteAplicado.valor))}`})
                   </span>
                   <button
                     onClick={() => setAjusteAplicado(null)}
@@ -611,7 +712,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </button>
                 </div>
                 <span className="checkout-view__ajuste-aplicado-valor" style={{ fontWeight: 700, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
-                  {valorAjuste < 0 ? "-" : "+"}R$ {Math.abs(valorAjuste).toFixed(2)}
+                  {valorAjuste < 0 ? "-" : "+"}{formatarReais(Math.abs(valorAjuste))}
                 </span>
               </div>
             )}
@@ -620,7 +721,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             <div className="checkout-view__total-linha" style={{ borderTop: `2px solid var(${C.border})` }}>
               <span className="checkout-view__total-label" style={{ fontWeight: 800, color: varColor(C.muted) }}>Total</span>
               <span className="checkout-view__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
-                R$ {total.toFixed(2)}
+                {formatarReais(total)}
               </span>
             </div>
 
@@ -637,7 +738,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     Forma de Pagamento
                   </div>
                   <div className="checkout-view__pagamento-subtitulo" style={{ color: varColor(C.muted) }}>
-                    {isSplit ? `${pagamentos.length} pagamentos · R$ ${total.toFixed(2)} total` : "Selecione como o cliente vai pagar"}
+                    {isSplit ? `${pagamentos.length} pagamentos · ${formatarReais(total)} total` : "Selecione como o cliente vai pagar"}
                   </div>
                 </div>
                 {isSplit ? (
@@ -696,7 +797,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   </div>
                   <span className="checkout-view__stepper-unidade" style={{ color: varColor(C.muted) }}>pessoas</span>
                   <span className="checkout-view__stepper-estimativa" style={{ color: varColor(C.muted), flex: 1 }}>
-                    ≈ R$ {(total / nPessoas).toFixed(2)} cada
+                    ≈ {formatarReais((total / nPessoas))} cada
                   </span>
                   <button
                     onClick={() => dividirPagamento(nPessoas)}
@@ -802,7 +903,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                               color: trocoP >= 0 ? varColor(C.green) : varColor(C.accent),
                               minWidth: 90, textAlign: "right", whiteSpace: "nowrap",
                             }}>
-                              {trocoP >= 0 ? "Troco" : "Falta"}: R$ {Math.abs(trocoP).toFixed(2)}
+                              {trocoP >= 0 ? "Troco" : "Falta"}: {formatarReais(Math.abs(trocoP))}
                             </span>
                           )}
                         </div>
@@ -821,7 +922,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                       {faltaAlocar > 0 ? "Falta alocar" : "Valor excede o total"}
                     </span>
                     <span className="checkout-view__falta-valor" style={{ fontWeight: 900, color: faltaAlocar > 0 ? varColor(C.accent) : varColor(C.red) }}>
-                      R$ {Math.abs(faltaAlocar).toFixed(2)}
+                      {formatarReais(Math.abs(faltaAlocar))}
                     </span>
                   </div>
                 )}
@@ -918,7 +1019,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                           {singleTroco >= 0 ? "Troco" : "Falta"}
                         </span>
                         <span className="checkout-view__troco-resultado-valor" style={{ fontWeight: 900, color: singleTroco >= 0 ? varColor(C.green) : varColor(C.accent) }}>
-                          R$ {Math.abs(singleTroco).toFixed(2)}
+                          {formatarReais(Math.abs(singleTroco))}
                         </span>
                       </div>
                     )}
@@ -954,10 +1055,10 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                     : usaFiado && !clienteFiado
                     ? "Busque ou cadastre o cliente do fiado acima"
                     : dinheiroInsuficiente
-                    ? `Faltam R$ ${faltaEmDinheiro.toFixed(2)} em dinheiro, corrija o valor recebido ou divida o pagamento`
+                    ? `Faltam ${formatarReais(faltaEmDinheiro)} em dinheiro, corrija o valor recebido ou divida o pagamento`
                     : isSplit
                     ? Math.abs(faltaAlocar) >= 0.015
-                      ? `Distribua os R$ ${Math.abs(faltaAlocar).toFixed(2)} restantes`
+                      ? `Distribua os ${formatarReais(Math.abs(faltaAlocar))} restantes`
                       : "Selecione a forma de cada pagamento"
                     : "Selecione a forma de pagamento acima"}
                 </div>
@@ -991,7 +1092,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
               <div>
                 <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: "#fff" }}>Desconto / Acréscimo</div>
-                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: R$ {baseComTaxa.toFixed(2)}</div>
+                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>Total atual: {formatarReais(baseComTaxa)}</div>
               </div>
               <button onClick={() => { if (!aplicandoAjuste) fecharAjuste(); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
                 <LuX size={sz.fontLg} />
@@ -1079,15 +1180,15 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
                   <div className="checkout-view__preview" style={{ border: `1.5px solid ${alfa(cor, "55")}`, background: alfa(cor, "0c") }}>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span className="checkout-view__preview-label" style={{ color: varColor(C.muted) }}>Total atual</span>
-                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: varColor(C.muted) }}>R$ {baseComTaxa.toFixed(2)}</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: varColor(C.muted) }}>{formatarReais(baseComTaxa)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ padding: `${sz.gap}px ${sz.padSm}px`, borderBottom: `1px solid ${alfa(cor, "22")}` }}>
                       <span className="checkout-view__preview-label" style={{ color: cor, fontWeight: 600 }}>{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
-                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}R$ {val.toFixed(2)}</span>
+                      <span className="checkout-view__preview-valor" style={{ fontWeight: 700, color: cor }}>{ajusteTipo === "desconto" ? "−" : "+"}{formatarReais(val)}</span>
                     </div>
                     <div className="checkout-view__preview-linha" style={{ alignItems: "center", padding: `${sz.padSm}px ${sz.padSm}px` }}>
                       <span className="checkout-view__preview-total-label" style={{ fontWeight: 700, color: varColor(C.text) }}>Novo Total</span>
-                      <span className="checkout-view__preview-total-valor" style={{ fontWeight: 900, color: cor }}>R$ {novoTotal.toFixed(2)}</span>
+                      <span className="checkout-view__preview-total-valor" style={{ fontWeight: 900, color: cor }}>{formatarReais(novoTotal)}</span>
                     </div>
                   </div>
                 );
@@ -1194,7 +1295,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
               <div>
                 <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: varColor(C.red) }}>Remover produto</div>
                 <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
-                  {remocao.item.name} · R$ {Number(remocao.item.price).toFixed(2)}
+                  {remocao.item.name} · {formatarReais(Number(remocao.item.price))}
                 </div>
               </div>
               <button onClick={() => { if (!removendo) setRemocao(null); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>

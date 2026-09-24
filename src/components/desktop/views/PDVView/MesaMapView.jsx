@@ -5,6 +5,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { totalItensAtivos } from "@/lib/comandaItens";
 import "./MesaMapView.css";
+import { formatarReais } from "@/lib/dinheiro";
 
 /**
  * A comanda aberta desta mesa, ou null.
@@ -45,7 +46,7 @@ export function statusMesa(mesa, abertas) {
 export const STATUS = {
   livre:      { label: "Livre",      bg: `${alfa(C.green, "14")}`,  border: `${alfa(C.green, "44")}`,  cor: varColor(C.green)   },
   aberta:     { label: "Aberta",     bg: "#eab30814",     border: "#eab30855",     cor: "#eab308" },
-  reservada:  { label: "Reservada",  bg: alfa(C.warn, "14"), border: alfa(C.warn, "55"), cor: varColor(C.warn) },
+  reservada:  { label: "Reservada",  bg: alfa(C.warn, "14"),        border: alfa(C.warn, "55"),        cor: varColor(C.warn)    },
   manutencao: { label: "Manutenção", bg: `${alfa(C.red, "10")}`,    border: `${alfa(C.red, "44")}`,    cor: varColor(C.red)     },
 };
 
@@ -225,7 +226,7 @@ function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
       </div>
       {total > 0 && (
         <div className="card-mesa__valor" style={{ color: s.cor }}>
-          R$ {total.toFixed(2)}
+          {formatarReais(total)}
         </div>
       )}
       {pedido?.garcom && (

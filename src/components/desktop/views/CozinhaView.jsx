@@ -13,13 +13,12 @@ import "./CozinhaView.css";
 const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
-// AMBER ("em preparo") é o âmbar de ATENÇÃO do design system — token
-// --gm-warn, sobrescrevível pelo tenant como as demais cores da coluna
-// (decisão 017, TD018). Antes era o hex cravado, fora do white-label.
-const AMBER = varColor(C.warn);
+// As três cores de status saem do tema do tenant (TD018, decisão 017):
+// "em preparo" usa o mesmo token de alerta do resto do sistema, então quem
+// trocar a cor de alerta do estabelecimento troca também esta coluna.
 const COLUNAS = [
   { status: "aguardando", titulo: "Aguardando", cor: "var(--gm-blue)" },
-  { status: "em_preparo", titulo: "Em Preparo", cor: AMBER },
+  { status: "em_preparo", titulo: "Em Preparo", cor: "var(--gm-warn)" },
   { status: "pronto",     titulo: "Pronto",      cor: "var(--gm-green)" },
 ];
 

@@ -1,0 +1,366 @@
+/**
+ * Decisão 018 (CSS separado do JSX) + tokens --gm-* (ADR-007). Cores
+ * sólidas viram var(--gm-*); blends com transparência usam alfa()
+ * (src/constants/colorAlfa.js), no JSX.
+ */
+
+.feedbacks-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Cabeçalho ──────────────────────────────────────────────────── */
+.feedbacks-view__header {
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.feedbacks-view__titulo {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+}
+
+.feedbacks-view__subtitulo {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+
+.feedbacks-view__btn-recarregar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* Alvo generoso: a tela também é usada em tablet no balcão. */
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.feedbacks-view__btn-recarregar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Os dois números, antes da lista ────────────────────────────── */
+.feedbacks-view__resumo {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.feedbacks-view__cartao {
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.feedbacks-view__cartao-rotulo {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__cartao-numero {
+  margin-top: 4px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "de 5" pequeno ao lado do número: é a escala, não o número. */
+.feedbacks-view__cartao-de {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__cartao-nota,
+.feedbacks-view__cartao-vazio {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__cartao-vazio {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+/* ── Filtros ────────────────────────────────────────────────────── */
+.feedbacks-view__filtros-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+}
+
+.feedbacks-view__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.feedbacks-view__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feedbacks-view__chip--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  color: var(--gm-accent);
+}
+
+/* A contagem dentro do botão: é ela que diz se vale clicar. */
+.feedbacks-view__chip b {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Lista ──────────────────────────────────────────────────────── */
+.feedbacks-view__lista-area {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.feedbacks-view__alerta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: var(--gm-red);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.feedbacks-view__contagem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feedbacks-view__item {
+  border: 1px solid var(--gm-border);
+  border-radius: 14px;
+  background: var(--gm-card);
+  padding: 14px 16px;
+}
+
+/* Resolvido continua legível, só recua um passo: ele ainda é histórico,
+   e apagar demais faria a aba "Resolvidos" parecer quebrada. */
+.feedbacks-view__item--resolvido {
+  opacity: 0.72;
+}
+
+.feedbacks-view__item-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.feedbacks-view__selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.feedbacks-view__selo--equipe {
+  color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+}
+
+.feedbacks-view__selo--cliente {
+  color: var(--gm-blue);
+  background: color-mix(in srgb, var(--gm-blue) 14%, transparent);
+}
+
+.feedbacks-view__nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.feedbacks-view__estrelas {
+  letter-spacing: 1px;
+  font-size: 14px;
+  color: var(--gm-border);
+}
+
+.feedbacks-view__estrela--cheia {
+  color: #f59e0b;
+}
+
+/* A nota por extenso ao lado das estrelas: cor sozinha não é informação,
+   e é a mesma palavra que o cliente escolheu na vitrine. */
+.feedbacks-view__nota-rotulo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.feedbacks-view__quando {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.feedbacks-view__texto {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--gm-text);
+  /* Relato colado de outro lugar vem com quebra de linha, e ela conta
+     parte da história. `pre-wrap` também impede que uma URL longa estoure
+     a largura do cartão. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.feedbacks-view__item-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.feedbacks-view__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.feedbacks-view__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__meta-item--ok {
+  color: var(--gm-green);
+  font-weight: 700;
+}
+
+.feedbacks-view__acao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
+  color: var(--gm-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Reabrir é desfazer, não uma ação principal: fica discreto para não
+   competir com o "marcar como resolvido" dos outros cartões. */
+.feedbacks-view__acao--reabrir {
+  border-color: var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__acao:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* ── Estados (carregando, vazio) ────────────────────────────────── */
+.feedbacks-view__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 56px 16px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+
+.feedbacks-view__msg-estado {
+  font-size: 14px;
+}
+
+.feedbacks-view__titulo-estado {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.feedbacks-view__msg-vazio {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.feedbacks-view__limpar,
+.feedbacks-view__limpar-inline {
+  border: 1px solid var(--gm-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gm-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.feedbacks-view__limpar-inline {
+  border: none;
+  padding: 0;
+  text-decoration: underline;
+}

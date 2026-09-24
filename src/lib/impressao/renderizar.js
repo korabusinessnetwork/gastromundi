@@ -1,6 +1,6 @@
 import estilosComprovante from "./comprovante.css?raw";
 import estilosProducao from "./producao.css?raw";
-import { resolverBlocosComanda, fmtComanda, logoUrlSegura } from "./layoutComanda";
+import { resolverBlocosComanda, fmtComanda, fmtR, logoUrlSegura } from "./layoutComanda";
 
 // Reexportada: a allowlist de esquema do logo mora com o resolvedor de
 // blocos (é ele quem decide se o logo sai), mas quem já importava daqui
@@ -44,10 +44,18 @@ export function esc(v) {
 function classesEstilo(estilo, extra = "") {
   const classes = [extra];
   classes.push(`b-${{ esquerda: "esq", centro: "centro", direita: "dir" }[estilo?.alinhamento] ?? "esq"}`);
-  if (estilo?.tamanho === "pequeno") classes.push("b-peq");
-  if (estilo?.tamanho === "grande") classes.push("b-gr");
   if (estilo?.negrito) classes.push("b-negrito");
   return classes.filter(Boolean).join(" ");
+}
+
+// O tamanho é escolha do dono, em pixels, e por isso vai no próprio
+// elemento — não dá para ter uma classe por valor possível. Sai como
+// atributo do bloco, do mesmo jeito que a largura das colunas sai no
+// `<colgroup>`: regra no CSS, número no template.
+function atributosEstilo(estilo, extra = "") {
+  const px = Number(estilo?.tamanho);
+  const tamanho = Number.isFinite(px) ? ` style="font-size:${px}px"` : "";
+  return `class="${classesEstilo(estilo, extra)}"${tamanho}`;
 }
 
 function htmlItens(bloco) {
@@ -55,17 +63,31 @@ function htmlItens(bloco) {
   const linhas = bloco.itens
     .map((it) => `
       <tr>
-        <td>${esc(it.nome)}</td>
+        <td>${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</td>
         <td style="text-align:center;">${esc(it.qty)}</td>
         ${bloco.unitario ? `<td style="text-align:right;">${esc(it.unitario)}</td>` : ""}
         <td style="text-align:right;font-weight:bold;">${esc(it.total)}</td>
       </tr>
+      ${(it.escolhas ?? []).map((e) => `<tr><td colspan="${colunas}" class="composicao">${esc(e.qtd)}x ${esc(e.nome)}</td></tr>`).join("")}
       ${it.obs.map((o) => `<tr><td colspan="${colunas}" class="obs">📝 ${esc(o)}</td></tr>`).join("")}
     `)
     .join("");
 
+  // As larguras vêm do layout (o dono arrasta a divisória no editor) e
+  // chegam aqui já somando 100%. Vão num `<colgroup>` porque é o único
+  // lugar em que a largura vale para a coluna inteira; com
+  // `table-layout: fixed` no CSS, é ele que manda.
+  const colunasLargura = ["nome", "qtd", bloco.unitario ? "unitario" : null, "total"]
+    .filter(Boolean)
+    .map((c) => `<col style="width:${Number(bloco.larguras?.[c]) || 0}%" />`)
+    .join("");
+
+  // A classe distingue esta tabela da `.caixa-tabela` dos comprovantes de
+  // caixa: só a lista de itens tem largura de coluna fixada (é ela que
+  // precisa caber num papel de 58mm sem jogar o valor para fora).
   return `
-    <table>
+    <table class="itens">
+      <colgroup>${colunasLargura}</colgroup>
       <thead>
         <tr><th>Item</th><th>Qtd</th>${bloco.unitario ? "<th>Unit.</th>" : ""}<th>Total</th></tr>
       </thead>
@@ -73,18 +95,46 @@ function htmlItens(bloco) {
     </table>`;
 }
 
+/**
+ * Cabeçalho de identidade dos COMPROVANTES DE CAIXA (F005: sangria,
+ * suprimento, fechamento) e das reimpressões. Esses papéis não são a
+ * comanda do cliente e por isso não passam pelo editor de blocos — o
+ * dono não escolhe o layout de um comprovante de conferência de caixa.
+ */
+function blocoCabecalhoIdentidade(identidade, quando) {
+  const logoValido = logoUrlSegura(identidade.logoUrl);
+  // `quando` permite carimbar a data de emissão do documento (ex.: o
+  // fechamento registrado às 23h reimpresso no dia seguinte). Sem ele,
+  // ou com data inválida, cai na hora atual — comportamento de antes.
+  const data = quando != null ? new Date(quando) : new Date();
+  const dataValida = !Number.isNaN(data.getTime()) ? data : new Date();
+  return `
+    <div class="caixa-cabecalho">
+      ${logoValido ? `<img class="caixa-cabecalho__logo" src="${esc(identidade.logoUrl)}" alt="${esc(identidade.nome)}" />` : `<div class="caixa-cabecalho__nome">${esc(identidade.nome)}</div>`}
+      <div class="caixa-cabecalho__linha">${dataValida.toLocaleString("pt-BR")}</div>
+    </div>
+    ${(identidade.endereco || identidade.cnpj) ? `
+      <div class="caixa-identidade">
+        ${identidade.endereco ? `${esc(identidade.endereco)}<br/>` : ""}
+        ${identidade.cnpj ? `CNPJ: ${esc(identidade.cnpj)}` : ""}
+      </div>
+    ` : ""}
+  `;
+}
+
+/** Um bloco do layout da comanda (impressao/layoutComanda.js) vira HTML. */
 function htmlBloco(bloco) {
   switch (bloco.tipo) {
     case "logo":
-      return `<div class="${classesEstilo(bloco.estilo)}"><img class="cabecalho__logo" src="${esc(bloco.url)}" alt="${esc(bloco.alt)}" /></div>`;
+      return `<div ${atributosEstilo(bloco.estilo)}><img class="cabecalho__logo" src="${esc(bloco.url)}" alt="${esc(bloco.alt)}" /></div>`;
     case "texto":
-      return `<div class="${classesEstilo(bloco.estilo, bloco.classe)}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+      return `<div ${atributosEstilo(bloco.estilo, bloco.classe)}>${bloco.linhas.map(esc).join("<br/>")}</div>`;
     case "valor":
-      return `<div class="${classesEstilo(bloco.estilo, "linha-valor")}"><span>${esc(bloco.rotulo)}</span><span${bloco.destaque ? ' class="valor"' : ""}>${esc(bloco.valor)}</span></div>`;
+      return `<div ${atributosEstilo(bloco.estilo, "linha-valor")}><span>${esc(bloco.rotulo)}</span><span${bloco.destaque ? ' class="valor"' : ""}>${esc(bloco.valor)}</span></div>`;
     case "itens":
       return htmlItens(bloco);
     case "aviso":
-      return `<div class="${classesEstilo(bloco.estilo, "aviso-nao-fiscal")}">${bloco.linhas.map(esc).join("<br/>")}</div>`;
+      return `<div ${atributosEstilo(bloco.estilo, "aviso-nao-fiscal")}>${bloco.linhas.map(esc).join("<br/>")}</div>`;
     case "separador":
       return "<hr/>";
     case "espaco":
@@ -144,6 +194,7 @@ export function renderizarViaProducao(dados) {
     .map((it) => `
       <div class="item">
         <div class="item__linha">${esc(it.qty)}x ${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</div>
+        ${(it.escolhas ?? []).map((e) => `<div class="item__composicao">${esc(e.qtd)}x ${esc(e.nome)}</div>`).join("")}
         ${it.obs.map((o) => `<div class="item__obs">📝 ${esc(o)}</div>`).join("")}
       </div>
     `)
@@ -167,6 +218,72 @@ export function renderizarViaProducao(dados) {
   </div>
   <hr/>
   ${itens.length === 0 ? `<div class="rodape">Nenhum item produzível nesta comanda.</div>` : linhasItens}
+</body>
+</html>`;
+}
+
+/**
+ * Monta o HTML de um comprovante de caixa (sangria/suprimento ou
+ * fechamento) — F005. Template genérico e burro de propósito: percorre
+ * destaque/tabela/linhas/notas na ordem, sem saber qual subtipo é. Quem
+ * decide o que preencher são os montadores em `impressao.js`.
+ *
+ * @param {object} dados - retorno de montarComprovanteMovimento/montarComprovanteFechamento
+ * @returns {string} HTML completo do documento
+ */
+export function renderizarComprovanteCaixa(dados) {
+  const { identidade, titulo, emitidoEm, destaque, tabela, linhas, notas } = dados;
+
+  const blocoDestaque = destaque ? `
+    <div class="caixa-destaque">
+      <div class="caixa-destaque__rotulo">${esc(destaque.rotulo)}</div>
+      <div class="caixa-destaque__valor">${fmtR(destaque.valor)}</div>
+    </div>` : "";
+
+  const blocoTabela = (tabela && (tabela.linhas ?? []).length > 0) ? `
+    <table class="caixa-tabela">
+      <thead>
+        <tr>${(tabela.cabecalho ?? []).map((c, i) => `<th${i === 0 ? "" : ' style="text-align:right;"'}>${esc(c)}</th>`).join("")}</tr>
+      </thead>
+      <tbody>
+        ${tabela.linhas.map((l) => `
+          <tr>
+            <td>${esc(l.rotulo)}</td>
+            ${(l.valores ?? []).map((v) => `<td style="text-align:right;">${fmtR(v)}</td>`).join("")}
+          </tr>`).join("")}
+      </tbody>
+    </table>` : "";
+
+  const blocoLinhas = (linhas ?? []).length > 0 ? `
+    <div class="caixa-linhas">
+      ${linhas.map((l) => `
+        <div class="caixa-linha${l.forte ? " caixa-linha--forte" : ""}">
+          <span>${esc(l.rotulo)}</span>
+          <span class="caixa-linha__valor">${l.sinal && l.valor > 0 ? "+" : ""}${fmtR(l.valor)}</span>
+        </div>`).join("")}
+    </div>` : "";
+
+  const blocoNotas = (notas ?? []).length > 0 ? `
+    <div class="caixa-notas">
+      ${notas.map((n) => `<div class="caixa-nota"><span class="caixa-nota__rotulo">${esc(n.rotulo)}:</span> ${esc(n.texto)}</div>`).join("")}
+    </div>` : "";
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>${esc(titulo)}</title>
+  <style>${estilosComprovante}</style>
+</head>
+<body>
+  ${blocoCabecalhoIdentidade(identidade, emitidoEm)}
+  <div class="caixa-cabecalho__titulo">${esc(titulo)}</div>
+  <hr/>
+  ${blocoDestaque}
+  ${blocoTabela}
+  ${blocoLinhas}
+  ${blocoNotas ? `<hr/>${blocoNotas}` : ""}
+  ${identidade.rodape ? `<hr/><div class="caixa-rodape">${esc(identidade.rodape)}</div>` : ""}
 </body>
 </html>`;
 }

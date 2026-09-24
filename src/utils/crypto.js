@@ -67,7 +67,11 @@ export const sanitizeInput = (str, max = 60) =>
   (typeof str === "string" ? str : String(str ?? ""))
     .replace(/[<>"'`]/g, "").slice(0, max).trim();
 
-/** Avalia a força de uma senha (0-4) */
+/** Avalia a força de uma senha (0-4).
+ *  As cores aqui são uma escala fixa vermelho → ciano, não cores de marca:
+ *  o âmbar de "Média" é o terceiro degrau da escala, não o token de alerta
+ *  do tema (TD018). Trocá-lo por `--gm-warn` faria um estabelecimento que
+ *  customiza a cor de alerta quebrar a progressão visual da barra. */
 export const passwordStrength = (pwd) => {
   if (!pwd || pwd.length < 4) return { level: 0, label: "Muito fraca",  color: "#ef4444"  };
   if (pwd.length < 6)         return { level: 1, label: "Fraca",        color: "#f97316"  };

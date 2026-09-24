@@ -7,14 +7,18 @@
 // `pending` (Realtime) para a Cozinha/caixa consumirem. Aqui o
 // dono/operador ACOMPANHA e TOCA esse pedido até a entrega.
 //
-// IMPORTANTE (dinheiro): esta camada só mexe no CICLO DE VIDA do
-// pedido (`delivery_pedidos.status`). Ela NUNCA cria uma venda:
-//   • Addon (tem PDV): a venda é fechada na frente de caixa (a comanda
-//     "Delivery NNN" nasce em `pending`). Relatórios leem `sales` — a
-//     `delivery_pedidos` é só rastreio, não entra na receita → sem
-//     contagem dupla.
-//   • Standalone (só delivery): não há caixa; a própria `delivery_pedidos`
-//     é o registro do pedido.
+// DINHEIRO (mudou em 20261002): a venda do delivery é fechada AQUI, e
+// não mais na frente de caixa. Antes o espelho em `pending` aparecia na
+// lista de comandas do PDV e o caixa o fechava como se fosse uma mesa —
+// o que poluía a tela de quem atende no salão (ninguém vai servir aquela
+// comanda) e fazia a venda de delivery nascer indistinguível de uma venda
+// de balcão. Agora `registrarVendaDelivery` grava a venda com
+// `origem = 'delivery'` e o vínculo com o pedido, e o espelho volta a ser
+// só o que sempre foi útil de fato: a comanda que a COZINHA lê e a
+// impressora imprime.
+//
+// Contagem dupla não existe: a venda entra uma vez, pela RPC, que é
+// idempotente por pedido (UNIQUE em vendas.delivery_pedido_id).
 //
 // Puras (dinheiro/status/formatos) nascem com teste — deliveryPedidos.test.js.
 // Nunca faz select * em tabela sensível (CLAUDE.md): campos explícitos.
@@ -132,6 +136,10 @@ export function resumoEndereco(pedido) {
     pedido.endereco,
     pedido.complemento_endereco,
     pedido.bairro,
+    // A cidade fecha a linha porque bairro de nome comum não diz de qual
+    // cidade é — "Centro" sozinho manda o entregador adivinhar. Pedido
+    // antigo não tem o campo e a linha sai como sempre saiu.
+    pedido.cidade,
   ]
     .map((p) => (typeof p === "string" ? p.trim() : ""))
     .filter(Boolean);
@@ -183,11 +191,11 @@ export function resumoPagamento(pedido) {
   return partes.join(" · ");
 }
 
-/** Formata reais (mesma cara do resto do delivery). */
-export function formatarReais(valor) {
-  const n = Number(valor) || 0;
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+// Reexporta o formatador comum (src/lib/dinheiro.js). Esta cópia usava
+// `toLocaleString` cru, que devolve espaço inquebrável depois do "R$" e
+// não batia com as outras duas do delivery.
+import { formatarReais } from "./dinheiro";
+export { formatarReais };
 
 /**
  * "há X" desde created_at, em linguagem curta (agora / 5 min / 2 h / 1 d).
@@ -213,7 +221,8 @@ export function tempoDecorrido(createdAt, agora = new Date()) {
 // Campos explícitos (nunca select * em tabela sensível — CLAUDE.md).
 const CAMPOS_PEDIDO =
   "id,numero,cliente_nome,cliente_telefone,cep,bairro,endereco,complemento_endereco," +
-  "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id,created_at,updated_at";
+  "subtotal,taxa_entrega,total,forma_pagamento,troco_para,levar_maquininha,status,pending_id," +
+  "entregador_id,valor_entregador,entregador_pago_em,tipo_entrega,created_at,updated_at";
 
 /**
  * Lista os pedidos de delivery do tenant (recente → antigo). A RLS já
@@ -303,4 +312,249 @@ export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {})
   } catch (error) {
     return { data: null, error };
   }
+}
+
+/**
+ * Fecha o pedido entregue como VENDA, com registro próprio de delivery
+ * (`vendas.origem = 'delivery'`).
+ *
+ * Antes, quem registrava a venda do delivery era o PDV: o espelho em
+ * `pending` aparecia na lista de comandas e o caixa o fechava como se
+ * fosse uma mesa. Isso poluía a tela de quem atende no salão — ninguém
+ * vai servir aquela comanda — e fazia a venda de delivery nascer
+ * indistinguível de uma venda de balcão, sem como separar quanto o
+ * delivery vendeu.
+ *
+ * Venda, itens e pagamento entram JUNTOS ou não entram: por isso é uma
+ * RPC, e não três gravações daqui. A aba fechando no meio deixaria uma
+ * venda sem itens no relatório — dinheiro registrado sem lastro.
+ *
+ * Idempotente no servidor: o mesmo pedido devolve sempre a mesma venda
+ * (`ja_existia: true`), então clique duplo, eco do realtime e operador
+ * voltando na tela não rendem venda dobrada.
+ *
+ * @param {string} pedidoId
+ * @returns {Promise<{data: {venda_id: string, ja_existia: boolean}|null, error: object|null}>}
+ */
+export async function registrarVendaDelivery(pedidoId) {
+  if (!pedidoId) return { data: null, error: new Error("Pedido ausente.") };
+  try {
+    const { data, error } = await supabase.rpc("registrar_venda_delivery", {
+      p_pedido_id: pedidoId,
+    });
+    if (error) return { data: null, error };
+    if (!data?.ok) {
+      return { data: null, error: new Error("Não foi possível registrar a venda deste pedido.") };
+    }
+    return { data, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+}
+
+/**
+ * O pedido de delivery é do delivery: ele não é uma comanda do salão.
+ * O espelho em `pending` existe para a COZINHA ler e a impressora
+ * imprimir — não para o garçom atender nem para o caixa fechar.
+ *
+ * `created_by` é o carimbo que a RPC pública põe em todo espelho
+ * (`'delivery'`), e é o único jeito de distinguir a comanda espelho de
+ * uma comanda de mesa olhando só para `pending`. Pura.
+ *
+ * @param {object} comanda - linha de `pending`
+ */
+export function ehComandaDeDelivery(comanda) {
+  return comanda?.created_by === "delivery";
+}
+
+/** As comandas do salão — sem os espelhos do delivery. Pura. */
+export function comandasDoSalao(pendentes) {
+  return (pendentes ?? []).filter((c) => !ehComandaDeDelivery(c));
+}
+
+/**
+ * A mensagem de confirmação que o estabelecimento manda ao ACEITAR o
+ * pedido. Pura — é ela que os testes conferem, não o link.
+ *
+ * Por que no aceite e não no envio: o cliente já viu "Pedido enviado!" na
+ * tela dele. O que ele ainda não sabe é se a loja VIU e vai fazer. É essa
+ * a angústia dos primeiros minutos, e é isso que a mensagem responde.
+ *
+ * Curta de propósito: quem lê está no celular esperando comida, não
+ * conferindo nota fiscal. Número do pedido (para ele responder citando),
+ * o que vai chegar, quanto custa, e como recebe.
+ *
+ * @param {object} pedido - linha de delivery_pedidos
+ * @param {{nome?: string, tempoPreparo?: number}} loja
+ * @param {Array} itens - linhas de delivery_pedido_itens (opcional)
+ * @returns {string}
+ */
+export function mensagemPedidoAceito(pedido, loja = {}, itens = []) {
+  const nome = String(loja?.nome ?? "").trim();
+  const cliente = String(pedido?.cliente_nome ?? "").trim();
+  const retirada = pedido?.tipo_entrega === "retirada";
+  const preparo = Math.round(Number(loja?.tempoPreparo) || 0);
+
+  // Saudação com o primeiro nome quando há: é a diferença entre parecer um
+  // robô e parecer o restaurante da esquina.
+  const saudacao = cliente ? `Oi, ${cliente.split(" ")[0]}!` : "Oi!";
+  const linhas = [`${saudacao} ${nome ? `Aqui é do ${nome}.` : "Tudo certo por aqui."}`];
+  linhas.push("");
+  linhas.push(`Recebemos seu pedido *${pedido?.numero ?? ""}* e já começamos a preparar. ✅`);
+
+  if (preparo > 0) {
+    linhas.push(
+      retirada
+        ? `Fica pronto para retirar em cerca de ${preparo} min.`
+        : `Deve chegar em cerca de ${preparo} min.`,
+    );
+  }
+
+  // O que foi pedido, conferível. É aqui que o cliente pega o item trocado
+  // ANTES de a comida sair — corrigir na cozinha custa um refazer; corrigir
+  // na porta custa a entrega inteira e o cliente.
+  const listados = listarItensParaMensagem(itens);
+  if (listados.length > 0) {
+    linhas.push("");
+    linhas.push("*Seu pedido:*");
+    for (const linha of listados) linhas.push(linha);
+  }
+
+  linhas.push("");
+  linhas.push(`Total: ${formatarReais(pedido?.total)}, ${formatarFormaPagamento(pedido?.forma_pagamento)}`);
+  if (pedido?.forma_pagamento === "dinheiro" && Number(pedido?.troco_para) > 0) {
+    linhas.push(`Levamos troco para ${formatarReais(pedido.troco_para)}.`);
+  }
+
+  if (retirada) {
+    linhas.push("");
+    linhas.push("É retirada no local, avisamos assim que estiver pronto.");
+  } else {
+    // O endereço volta escrito para o cliente CONFERIR. Entrega errada
+    // quase nunca é o entregador que se perdeu: é o número que saiu torto
+    // no formulário, e ninguém mais olhou para ele.
+    const onde = resumoEndereco(pedido);
+    if (onde) {
+      linhas.push("");
+      linhas.push(`*Entrega em:* ${onde}`);
+      linhas.push("Se algo estiver errado no endereço, é só responder aqui.");
+    }
+  }
+
+  return linhas.join("\n").trim();
+}
+
+/**
+ * Os itens do pedido em linhas de mensagem. Uma linha por item, com a
+ * quantidade na frente e os complementos escolhidos logo abaixo — é como
+ * a pessoa confere o que pediu sem abrir o site de novo.
+ *
+ * Preço por linha NÃO entra: o total já vai na mensagem, e repetir valor
+ * item a item transforma a confirmação numa nota fiscal que ninguém lê.
+ *
+ * @param {Array<{nome?: string, qtd?: number, complementos?: Array, obs?: string}>} itens
+ * @returns {string[]}
+ */
+export function listarItensParaMensagem(itens) {
+  return (Array.isArray(itens) ? itens : [])
+    .filter((i) => i && String(i.nome ?? "").trim())
+    .map((i) => {
+      const qtd = Math.max(1, Number(i.qtd) || 1);
+      let linha = `• ${qtd}× ${String(i.nome).trim()}`;
+      const extras = (Array.isArray(i.complementos) ? i.complementos : [])
+        .map((c) => (typeof c === "string" ? c : String(c?.nome ?? "")).trim())
+        .filter(Boolean);
+      if (extras.length > 0) linha += `\n   ${extras.join(", ")}`;
+      const obs = String(i.obs ?? "").trim();
+      if (obs) linha += `\n   _${obs}_`;
+      return linha;
+    });
+}
+
+/**
+ * Mensagem de "saiu para entrega". O momento em que o cliente começa a
+ * olhar pela janela — e, sem aviso, o momento em que ele liga para a loja
+ * perguntando se o pedido saiu. Uma linha aqui economiza essa ligação.
+ *
+ * Leva o endereço de destino de propósito: é a última chance de o cliente
+ * dizer "não é esse número" enquanto o entregador ainda está perto.
+ *
+ * @param {object} pedido
+ * @param {{nome?: string, entregador?: string}} loja
+ * @returns {string}
+ */
+export function mensagemPedidoEmRota(pedido, loja = {}) {
+  const nome = String(loja?.nome ?? "").trim();
+  const cliente = String(pedido?.cliente_nome ?? "").trim();
+  const entregador = String(loja?.entregador ?? "").trim();
+  const saudacao = cliente ? `Oi, ${cliente.split(" ")[0]}!` : "Oi!";
+
+  const linhas = [`${saudacao} ${nome ? `Aqui é do ${nome}.` : ""}`.trim()];
+  linhas.push("");
+  linhas.push(
+    entregador
+      ? `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega com ${entregador}. 🛵`
+      : `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega. 🛵`,
+  );
+
+  const onde = resumoEndereco(pedido);
+  if (onde) {
+    linhas.push("");
+    linhas.push(`*Endereço:* ${onde}`);
+  }
+
+  // Quanto ele precisa ter em mãos. Cliente que não separou o dinheiro
+  // segura o entregador na porta enquanto procura a carteira.
+  if (pedido?.forma_pagamento) {
+    linhas.push("");
+    const pagamento = `Pagamento na entrega: ${formatarReais(pedido?.total)} em ${formatarFormaPagamento(pedido.forma_pagamento).toLowerCase()}.`;
+    linhas.push(pagamento);
+    if (pedido.forma_pagamento === "dinheiro" && Number(pedido.troco_para) > 0) {
+      linhas.push(`Levamos troco para ${formatarReais(pedido.troco_para)}.`);
+    }
+  }
+
+  return linhas.join("\n").trim();
+}
+
+/**
+ * A mensagem certa para o momento em que o pedido está. É isso que deixa
+ * UM botão no cartão servir o pedido inteiro: quem aperta não escolhe
+ * qual texto mandar, o estado do pedido já escolheu.
+ *
+ * Status sem mensagem própria (cancelado, entregue) cai num texto neutro
+ * — abrir a conversa continua sendo útil, só não há o que anunciar.
+ *
+ * @param {object} pedido
+ * @param {{nome?: string, tempoPreparo?: number, entregador?: string}} loja
+ * @param {Array} itens
+ * @returns {string}
+ */
+export function mensagemDoStatus(pedido, loja = {}, itens = []) {
+  switch (pedido?.status) {
+    case "recebido":
+    case "em_preparo":
+      return mensagemPedidoAceito(pedido, loja, itens);
+    case "saiu_entrega":
+      return mensagemPedidoEmRota(pedido, loja);
+    default:
+      return `Olá! Aqui é do delivery, sobre o seu pedido ${pedido?.numero ?? ""}.`.trim();
+  }
+}
+
+/**
+ * Link do WhatsApp já com a mensagem do momento do pedido. `null` quando
+ * não há telefone utilizável — o botão some em vez de abrir aba morta.
+ */
+export function linkWhatsAppDoPedido(pedido, loja, itens) {
+  return linkWhatsApp(pedido?.cliente_telefone, mensagemDoStatus(pedido, loja, itens));
+}
+
+/**
+ * Link pronto para abrir a conversa do WhatsApp com a confirmação já
+ * escrita. `null` quando o pedido não tem telefone utilizável — aí o
+ * botão simplesmente não aparece, em vez de abrir uma aba morta.
+ */
+export function linkConfirmacaoWhatsApp(pedido, loja, itens) {
+  return linkWhatsApp(pedido?.cliente_telefone, mensagemPedidoAceito(pedido, loja, itens));
 }

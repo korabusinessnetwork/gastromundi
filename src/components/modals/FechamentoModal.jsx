@@ -9,6 +9,8 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
+import { montarComprovanteFechamento } from "@/lib/impressao";
+import ImprimirComprovanteCaixa from "./ImprimirComprovanteCaixa";
 import "./FechamentoModal.css";
 
 const METODOS_CATALOG = {
@@ -74,7 +76,7 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa)
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
-  const { meiosPagamento, metodosCustom, movimentosCaixa } = useApp();
+  const { meiosPagamento, metodosCustom, movimentosCaixa, tenant, currentUser } = useApp();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
@@ -83,6 +85,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
   const [salvando,    setSalvando]    = useState(false);
   const [observacao,  setObservacao]  = useState("");
+  // Passo de sucesso: fechado o caixa, a tela vira o comprovante (com
+  // botão de imprimir) em vez de fechar direto. `null` = ainda no form.
+  const [registrado,  setRegistrado]  = useState(null);
 
   const { hoje, m: sistema, naoMapeados, sangrias, suprimentos } = useMemo(
     () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa),
@@ -125,8 +130,28 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
       // `totalEsperado` é o que o relatório, a exportação e o Jarvas precisam
       // para não recalcularem `totalVendas + fundo` e ressuscitarem a falsa
       // falta dos métodos sem linha de conferência.
-      await onConfirm({
+      const resultado = await onConfirm({
         totalVendas, totalEsperado: totalSistema, totalConferido, conferidoPorMetodo,
+        observacao: observacao.trim() || null,
+      });
+      // Quem chama mantém o modal aberto no erro; aqui só avançamos para o
+      // comprovante quando o fechamento foi de fato gravado.
+      if (resultado?.error) return;
+      const porMetodo = meios.map(metodo => ({
+        rotulo: METODOS_CATALOG[metodo]?.label ?? rotuloMetodo(metodo, customLabels),
+        sistema: sistema[metodo] ?? 0,
+        conferido: parsVal(confDe(metodo)),
+      }));
+      setRegistrado({
+        totalVendas,
+        fundo: fundoAtual,
+        suprimentos,
+        sangrias,
+        totalEsperado: totalSistema,
+        totalConferido,
+        diferenca: diferencaTotal,
+        situacao,
+        porMetodo,
         observacao: observacao.trim() || null,
       });
     } finally {
@@ -154,6 +179,48 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         maxHeight: "92vh", overflowY: "auto",
       }}>
 
+        {registrado ? (
+          <>
+            {/* Passo de sucesso — caixa fechado, agora o comprovante */}
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                background: `${alfa(C.green, "18")}`, border: `1.5px solid ${alfa(C.green, "44")}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <LuLock size={22} color={varColor(C.green)} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800 }}>Caixa fechado</div>
+                <div style={{ color: varColor(C.muted), marginTop: 2 }}>
+                  {ROTULO_SITUACAO[registrado.situacao]} · conferido {fmtR(registrado.totalConferido)}
+                </div>
+              </div>
+            </div>
+
+            <ImprimirComprovanteCaixa
+              montarDocumento={(configImpressao) => montarComprovanteFechamento({
+                ...registrado,
+                autor: currentUser?.name,
+                tenant,
+                configImpressao,
+              })}
+            />
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: 13, borderRadius: 10, border: "none",
+                background: varColor(C.accent), color: "#fff",
+                cursor: "pointer", fontWeight: 700, fontFamily: "inherit",
+              }}
+            >
+              Concluir
+            </button>
+          </>
+        ) : (
+        <>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
@@ -382,6 +449,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             {salvando ? "Fechando..." : <><LuLock size={14} />Confirmar Fechamento</>}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

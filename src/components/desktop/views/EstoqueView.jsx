@@ -319,7 +319,7 @@ export default function EstoqueView() {
         {[
           { label: "Total em estoque", value: carregando ? "—" : totalSaldo,   color: varColor(C.green),   Icon: LuPackage       },
           { label: "Sem estoque",       value: carregando ? "—" : semEstoque,   color: varColor(C.red),     Icon: LuTriangleAlert },
-          { label: "Estoque baixo",     value: carregando ? "—" : estoqueBaixo, color: varColor(C.warn), Icon: LuCircleAlert   },
+          { label: "Estoque baixo",     value: carregando ? "—" : estoqueBaixo, color: varColor(C.warn),    Icon: LuCircleAlert   },
         ].map(k => (
           <div key={k.label} className="estoque-view__kpi" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
             <k.Icon size={sz.fontXl - 4} color={k.color} />
