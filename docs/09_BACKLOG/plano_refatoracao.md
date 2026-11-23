@@ -105,7 +105,7 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 - **Pronto quando:** `npm run lint` termina com 0 erros e a contagem de avisos está anotada.
 
 **0.3 Tipos gerados do banco** (depende de D2 e D5)
-- `supabase gen types typescript` para `src/types/database.d.ts`, com script
+- `supabase gen types typescript` para `src/types/database.ts`, com script
   `npm run tipos:banco`.
 - `jsconfig.json` apontando o alias `@/` para o editor reconhecer os tipos via JSDoc.
 - **Pronto quando:** o arquivo é gerado a partir do schema de produção e uma função de

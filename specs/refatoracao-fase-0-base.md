@@ -25,7 +25,7 @@ As seis tarefas da fase 0 do plano. Nada muda para quem usa o sistema.
 | 6 | As fronteiras de camada aparecem como aviso | saída do lint mostra `no-restricted-imports` |
 | 7 | Nenhuma correção do lint muda comportamento: só código morto removido, nada condicional | review do diff |
 | 8 | O que o lint revelou de suspeito está registrado | TD021 em `tech-debt.md` |
-| 9 | Tipos do banco gerados em `src/types/database.d.ts` | depende do token (D5) |
+| 9 | Tipos do banco gerados em `src/types/database.ts` e utilizáveis via JSDoc | `tsc --checkJs` num arquivo de exemplo reprova atribuição de tipo errado |
 | 10 | `CLAUDE.md` sem informação falsa sobre estilo; ADR-015 escrito e no índice | ler |
 | 11 | Raiz e `supabase/` sem arquivo sem dono nem script de cliente fora de `supabase/ops/` | `ls`; referências dos docs atualizadas |
 | 12 | Guard recusa migration nova com prefixo repetido, data inválida ou nome fora do formato | `migrationsNomeGuard.test.js` |

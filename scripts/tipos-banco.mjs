@@ -1,4 +1,4 @@
-// Gera src/types/database.d.ts a partir do schema de produção (fase 0.3 do
+// Gera src/types/database.ts a partir do schema de produção (fase 0.3 do
 // plano de refatoração, decisão D2: só os tipos do banco, usados via JSDoc).
 //
 // Uso: npm run tipos:banco
@@ -6,7 +6,7 @@
 // Fala com a API de gerenciamento do Supabase (api.supabase.com). O token NÃO
 // mora no código nem em variável do projeto:
 // - na sessão de nuvem do Claude, o proxy do ambiente "gastromundi" injeta o
-//   token sozinho;
+//   token salvo em Network secrets, se houver um válido para api.supabase.com;
 // - numa máquina local, exporte SUPABASE_ACCESS_TOKEN (Account, Access Tokens,
 //   em supabase.com) só no terminal que vai rodar o comando.
 //
@@ -18,7 +18,7 @@ import { join, resolve } from "node:path";
 
 const RAIZ = resolve(import.meta.dirname, "..");
 const API = "https://api.supabase.com/v1";
-const SAIDA = join(RAIZ, "src", "types", "database.d.ts");
+const SAIDA = join(RAIZ, "src", "types", "database.ts");
 
 const cabecalhos = {};
 if (process.env.SUPABASE_ACCESS_TOKEN) {

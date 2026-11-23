@@ -1,7 +1,8 @@
 ## Rodada 70, refatoração fase 0, linha de base e ferramentas, 2026-11-23
 - Spec: specs/refatoracao-fase-0-base.md
-- Resultado: 13 de 14 critérios em sim. O critério 9 (tipos gerados do banco) depende do
-  token do Supabase (decisão D5) e fica aberto até o dono entregar. Suíte 242 arquivos /
+- Resultado: 14 de 14 critérios em sim, aprovado sem ressalvas. Os tipos do banco (60
+  tabelas, projeto `Kora.codes`) saíram em `src/types/database.ts`, e não `.d.ts`, porque o
+  gerador inclui uma constante que declaração ambiente não aceita. Suíte 242 arquivos /
   4273 testes para 243 / 4280, verde; `npm run build` limpo; `npm run lint` 0 erros e 50
   avisos; roteiro de telas com 0 diferença em 44 telas contra o ponto de partida.
 - O que a rodada revelou de não óbvio: os números do levantamento estavam baixos porque
@@ -17,7 +18,7 @@
   no `/palm`, e a primeira versão do roteiro fotografou a mesma tela 22 vezes. O celular
   chega aos módulos pela aba Mais, e o roteiro passou a abrir cada cartão por ali. O clique
   nas abas do `/palm` por posição pegava os filtros de categoria, que também são `tab`.
-- Fica em aberto: tipos do banco (critério 9); TD021, as funções de alerta de estoque
+- Fica em aberto: TD021, as funções de alerta de estoque
   recebem `usuario` e não gravam; 10 avisos de dependência de hook para examinar quando
   cada arquivo for refatorado.
 ## Rodada 69 — F022 fatia, aba "Saúde da operação" no Console — 2026-09-11
