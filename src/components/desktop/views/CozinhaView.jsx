@@ -144,7 +144,7 @@ export default function CozinhaView() {
   );
 }
 
-function PedidoCard({ pedido, sz, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
+function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
   const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);

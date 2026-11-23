@@ -15,7 +15,7 @@ Estes passos são da **Kora** (super-admin), não do dono do estabelecimento:
    Cria o estabelecimento, resolve o `slug` (subdomínio), aplica o plano e já
    **semeia os 3 grupos-default** (`comida`, `bebida`, `cafe` — migração `20260743`).
 2. **Tema white-label** (opcional) — rodar o `UPDATE tenants SET tema = ...` do
-   estabelecimento (ex.: `SEED_tema_casacoffee.sql`). Sem tema custom, herda o
+   estabelecimento (ex.: `supabase/ops/casacoffee/SEED_tema_casacoffee.sql`). Sem tema custom, herda o
    visual padrão. Login e sidebar já mostram o nome + "by Kora".
 3. **Criar o usuário dono/gerente** — no painel de auth, com `app_metadata`
    contendo `tenant_id` e `gastro_role` (`dono` ou `gerente`). É esse usuário que

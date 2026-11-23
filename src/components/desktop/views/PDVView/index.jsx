@@ -1623,7 +1623,6 @@ export default function PDVView({ notify }) {
             {/* Footer */}
             {(() => {
               const algumSelecionado = Object.values(transQtds).some(q => q > 0);
-              const qtdTransferir    = Object.values(transQtds).reduce((s, q) => s + q, 0);
 
               let pode = false;
               let nomeDestino = "";
@@ -1869,7 +1868,7 @@ export default function PDVView({ notify }) {
 }
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
-function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, users, sales, pending, metodosCustom }) {
+function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, sales, pending, metodosCustom }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const isNarrow = width < 540;

@@ -8,7 +8,7 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuMinus, LuSearch, LuPackage,
-  LuLayers, LuToggleLeft, LuToggleRight, LuTrash2, LuTriangleAlert,
+  LuLayers, LuToggleRight, LuTrash2, LuTriangleAlert,
 } from "react-icons/lu";
 import "./CombosView.css";
 
@@ -39,7 +39,7 @@ function fmtBRL(v) {
 
 // ── Modal de criar/editar combo ────────────────────────────────────
 
-function ModalCombo({ combo, products, subprodutos, onClose, onSalvo, sz }) {
+function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
   const isEdit = !!combo;
 
   const [nome,       setNome]      = useState(combo?.nome ?? "");

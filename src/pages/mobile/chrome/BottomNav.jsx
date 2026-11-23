@@ -1,4 +1,3 @@
-import React from 'react';
 import { LuUtensils, LuLayoutGrid, LuChartBar, LuMenu } from 'react-icons/lu';
 import './BottomNav.css';
 

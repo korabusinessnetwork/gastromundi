@@ -186,7 +186,7 @@ function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) 
   );
 }
 
-function CardMesa({ mesa, abertas, w, h, sz, onClick }) {
+function CardMesa({ mesa, abertas, w, h, onClick }) {
   const st     = statusMesa(mesa, abertas);
   const s      = STATUS[st];
   const pedido = comandaAbertaDaMesa(mesa, abertas);

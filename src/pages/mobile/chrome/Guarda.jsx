@@ -1,5 +1,4 @@
-import React from 'react';
-import { LuCheck, LuCircleCheck, LuRefreshCw, LuWifiOff } from 'react-icons/lu';
+import { LuCircleCheck, LuRefreshCw, LuWifiOff } from 'react-icons/lu';
 import './Guarda.css';
 
 /**
@@ -8,9 +7,8 @@ import './Guarda.css';
  * Props (congeladas):
  * - tipo: "loading" | "caixaFechado" | "offline"
  * - onAcao: () => void (refresh / abrir wifi)
- * - ponteEndereco: string | null (usado só para "offline")
  */
-export default function Guarda({ tipo, onAcao, ponteEndereco }) {
+export default function Guarda({ tipo, onAcao }) {
   return (
     <div className="guarda">
       <div className="guarda__conteudo">

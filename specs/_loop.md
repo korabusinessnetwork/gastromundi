@@ -1,3 +1,25 @@
+## Rodada 70 — Refatoração, fase 0: linha de base e ferramentas — 2026-11-23
+- Spec: specs/refatoracao-fase-0-base.md
+- Resultado: 13 de 14 critérios em sim. O critério 9 (tipos gerados do banco) depende do
+  token do Supabase (decisão D5) e fica aberto até o dono entregar. Suíte 242 arquivos /
+  4273 testes para 243 / 4280, verde; `npm run build` limpo; `npm run lint` 0 erros e 50
+  avisos; roteiro de telas com 0 diferença em 44 telas contra o ponto de partida.
+- O que a rodada revelou de não óbvio: os números do levantamento estavam baixos porque
+  contavam só a forma mais comum de cada padrão. Medido por script, o Supabase é chamado 226
+  vezes fora da camada de dados, não 73, e são 22 arquivos acima de 600 linhas. A tabela de
+  metas do plano passou a usar os números medidos.
+- A correção de rumo: a recomendação D3 mandava apagar `executavel/`, e ela não é sobra. O
+  commit `ba801ba` criou a pasta de propósito para receber o `KoraPonte.exe`, que o
+  `.gitignore` mantém fora do versionamento. A pasta ficou, e o plano e o ADR-015 registram
+  o erro. Do mesmo jeito, `20260732` a `20260748` pareciam datas inválidas e são contador
+  sequencial de julho; o guard de migrations congela o passado e só cobra regra do que é novo.
+- A parte que quase passou batido: as telas do celular não existem em `/app/*`, todas caem
+  no `/palm`, e a primeira versão do roteiro fotografou a mesma tela 22 vezes. O celular
+  chega aos módulos pela aba Mais, e o roteiro passou a abrir cada cartão por ali. O clique
+  nas abas do `/palm` por posição pegava os filtros de categoria, que também são `tab`.
+- Fica em aberto: tipos do banco (critério 9); TD021, as funções de alerta de estoque
+  recebem `usuario` e não gravam; 10 avisos de dependência de hook para examinar quando
+  cada arquivo for refatorado.
 ## Rodada 69 — F022 fatia, aba "Saúde da operação" no Console — 2026-09-11
 - Spec: specs/f022-saude-da-operacao-no-console.md
 - Resultado: 15 de 15 critérios em sim, aprovado sem ressalvas (suíte 235 arquivos / 4148 testes

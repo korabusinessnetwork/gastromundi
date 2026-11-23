@@ -330,7 +330,7 @@ export default function ClientesView() {
   );
 }
 
-function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerDocumento, sz, onClose, onEditar, onExcluido }) {
+function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerDocumento, onClose, onEditar, onExcluido }) {
   const [vendas, setVendas] = useState([]);
   const [lancamentosFiado, setLancamentosFiado] = useState([]);
   const [carregando, setCarregando] = useState(true);

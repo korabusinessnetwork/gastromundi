@@ -2,7 +2,7 @@
 
 > Roteiro do **dono da plataforma** (Matheus) pra deixar o 2º tenant operável em
 > `casacoffeecolab.kora.codes`. O SQL de conferência/acabamento está em
-> `supabase/GO_LIVE_casacoffee.sql` (blocos numerados batem com os passos daqui).
+> `supabase/ops/casacoffee/GO_LIVE_casacoffee.sql` (blocos numerados batem com os passos daqui).
 > Depois do go-live, tudo que a Paula faz é self-service:
 > `docs/05_FLUXOS/ativar-novo-estabelecimento.md`.
 
@@ -20,7 +20,7 @@ Se **não** existir: provisionar pelo **Console da Plataforma** (logado como sup
 É o caminho preferido; SQL manual só como plano B (`SELECT public.provisionar_tenant(...)`).
 
 ### 2. Tema white-label (SQL bloco 2)
-Rodar `supabase/SEED_tema_casacoffee.sql` (idempotente) se `tema_aplicado = false`.
+Rodar `supabase/ops/casacoffee/SEED_tema_casacoffee.sql` (idempotente) se `tema_aplicado = false`.
 Login e sidebar passam a mostrar "Casa Coffee Colab by Kora" com a paleta café/terracota —
 e a **aba do navegador** também (fix `aplicarTituloDocumento`, já em produção).
 
@@ -37,7 +37,7 @@ sobe com a tabela) é compromisso do dono — não há campo no banco.
 ### 5. Usuários da Paula (SQL bloco 6 pra conferir)
 - **Caminho feliz**: já criado junto no passo 1 pelo Console.
 - Se o tenant é antigo e os usuários têm e-mail `@gastromundi.local`: rodar o **cutover**
-  (`supabase/CUTOVER_SUBDOMINIO_renomear_auth.sql` — pré-visualização primeiro, janela curta).
+  (`supabase/ops/CUTOVER_SUBDOMINIO_renomear_auth.sql` — pré-visualização primeiro, janela curta).
 - Criando na mão (painel de Auth): `app_metadata` precisa de `tenant_id` e
   `gastro_role: 'dono'` (Paula) — sem isso a RLS não enxerga o tenant dela.
 - Equipe (caixa/garçom/cozinha): a própria Paula cria depois, pela **Área Admin** do app.

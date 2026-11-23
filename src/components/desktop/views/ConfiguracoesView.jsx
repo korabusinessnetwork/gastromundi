@@ -76,7 +76,7 @@ const EMPTY_USER_FORM = { name: "", username: "", role: "caixa", password: "", c
 
 // ── Helpers ───────────────────────────────────────────────────────
 
-function RoleBadge({ role, sz }) {
+function RoleBadge({ role }) {
   const r = ROLE_MAP[role] ?? { label: role, color: varColor(C.muted) };
   return (
     <span className="cfg__badge-role" style={{
@@ -110,7 +110,7 @@ function Field({ label, children }) {
   );
 }
 
-function TextInput({ value, onChange, placeholder, type = "text", maxLength, disabled, sz, autoFocus, name, autoComplete, ignorarGerenciadorDeSenha }) {
+function TextInput({ value, onChange, placeholder, type = "text", maxLength, disabled, autoFocus, name, autoComplete, ignorarGerenciadorDeSenha }) {
   return (
     <input
       autoFocus={autoFocus}
@@ -161,15 +161,6 @@ function ErrBox({ msg }) {
   return (
     <div className="cfg__erro-box" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
       ⚠️ {msg}
-    </div>
-  );
-}
-
-function OkBox({ msg }) {
-  if (!msg) return null;
-  return (
-    <div className="cfg__ok-box" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "44")}` }}>
-      ✓ {msg}
     </div>
   );
 }
@@ -764,7 +755,7 @@ export function UsuariosTab({ sz }) {
   );
 }
 
-function ToggleChip({ active, onClick, color, children, sz }) {
+function ToggleChip({ active, onClick, color, children }) {
   return (
     <button
       onClick={onClick}

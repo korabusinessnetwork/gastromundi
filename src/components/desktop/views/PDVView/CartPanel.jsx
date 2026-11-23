@@ -6,7 +6,6 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { useApp } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
@@ -17,7 +16,6 @@ const fmtComanda = (name) =>
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { users } = useApp();
 
   const itensAcumulados = Array.isArray(comanda?.items) ? comanda.items : [];
   // para totais e contagens, exclui cancelados

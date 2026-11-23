@@ -148,7 +148,7 @@ const ABAS_MODAL = [
   { id: "reforma",       label: "Reforma 2026" },
 ];
 
-function ModalFiscal({ item, dadosSalvos, sz, onClose, onSaved }) {
+function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
   const [aba,      setAba]      = useState("identificacao");
   const [form,     setForm]     = useState({ ...EMPTY_FISCAL, ...dadosSalvos });
   const [salvando, setSalvando] = useState(false);

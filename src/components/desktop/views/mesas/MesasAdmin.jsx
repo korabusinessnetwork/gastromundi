@@ -672,7 +672,7 @@ export default function MesasAdmin({ sz }) {
 
 // ── Card admin (sem status dinâmico) ───────────────────────────────
 
-function CardMesaAdmin({ mesa, w, h, sz, onEdit, onDelete, onDragStart, onDragEnd }) {
+function CardMesaAdmin({ mesa, w, h, onEdit, onDelete, onDragStart, onDragEnd }) {
   const [hover, setHover] = useState(false);
 
   return (

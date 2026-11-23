@@ -4,7 +4,6 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { ROLES } from "@/constants/roles";
 import { verificarSenhaUsuario, verificarSenhaAdmin } from "@/lib/adminAuth";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -42,7 +41,7 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovimentoCaixa, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm, users, moduloHabilitado, cancelarVendaFechada, metodosCustom } = useApp();
+  const { currentUser, pending, sales, sessaoAbertaEm, moduloHabilitado, cancelarVendaFechada, metodosCustom } = useApp();
   // Rótulos de método configurados pelo tenant (white-label, decisão 017).
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
@@ -51,7 +50,6 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
   const [upgradeInfo, setUpgradeInfo] = useState(null); // { label } — módulo bloqueado pelo plano atual
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const role    = ROLES[currentUser?.role] || ROLES.garcom;
   const podeMovimentarCaixa = CARGOS_MOVIMENTO_CAIXA.includes(currentUser?.role);
   const abertas  = pending.filter(o => o.status !== "closed");
   // Leva 15.3 — vendas canceladas saem da lista (ficam só na trilha de auditoria)

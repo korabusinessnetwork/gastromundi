@@ -102,7 +102,7 @@ function Th({ children, right }) {
   );
 }
 
-function Td({ children, right, muted, sz, nowrap, color }) {
+function Td({ children, right, muted, nowrap, color }) {
   return (
     <td
       className={
@@ -118,7 +118,7 @@ function Td({ children, right, muted, sz, nowrap, color }) {
   );
 }
 
-function Empty({ icon: Icon, msg, sz }) {
+function Empty({ icon: Icon, msg }) {
   const inner = typeof Icon === "string"
     ? <span className="relatorio-view__empty-icon">{Icon}</span>
     : Icon ? <Icon size={48} /> : null;
@@ -130,7 +130,7 @@ function Empty({ icon: Icon, msg, sz }) {
   );
 }
 
-function ChipBtn({ active, onClick, children, sz }) {
+function ChipBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
@@ -143,7 +143,7 @@ function ChipBtn({ active, onClick, children, sz }) {
 
 // ── Barra de exportação ───────────────────────────────────────────
 
-function ExportBar({ onPDF, onXLSX, sz }) {
+function ExportBar({ onPDF, onXLSX }) {
   return (
     <div className="relatorio-view__export-bar">
       <button

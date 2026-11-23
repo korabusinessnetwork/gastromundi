@@ -1,4 +1,3 @@
-import React from 'react';
 import { LuPause, LuSend } from 'react-icons/lu';
 import { fmtDinheiro } from '@/pages/mobile/fmt';
 import './BarraEsperas.css';

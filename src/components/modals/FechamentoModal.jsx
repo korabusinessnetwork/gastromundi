@@ -112,7 +112,6 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const totalConferido = round2(meios.reduce((s, k) => s + parsVal(confDe(k)), 0));
   const diferencaTotal = round2(totalConferido - totalSistema);
   const situacao       = situacaoCaixa(diferencaTotal);
-  const semDiferenca   = situacao === "conferido";
   const corDiferenca   = situacao === "falta" ? C.red : C.green;
   const totalNaoMapeado = round2(Object.values(naoMapeados).reduce((s, v) => s + v, 0));
 

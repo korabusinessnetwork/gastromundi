@@ -660,7 +660,7 @@ function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
   );
 }
 
-function CardPedido({ pedido, isAdmin, ehAddon, onAvancar, onCancelar }) {
+function CardPedido({ pedido, isAdmin, onAvancar, onCancelar }) {
   const [aberto, setAberto] = useState(false);
   const [itens, setItens] = useState(null); // null = ainda não buscou
   const [carregandoItens, setCarregandoItens] = useState(false);

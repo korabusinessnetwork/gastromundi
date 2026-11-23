@@ -131,7 +131,7 @@ describe("drenarFila", () => {
     fila.enfileirar({ tipo: "insert", payload: { id: "b" }, __tenant: "T2" });
     fila.enfileirar({ tipo: "insert", payload: { id: "c" }, __tenant: "T1" });
     const enviadas = [];
-    const resultado = await drenarFila({
+    await drenarFila({
       fila,
       isErroDeRede,
       tenantAtual: "T1",

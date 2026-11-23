@@ -21,7 +21,7 @@ import "./PonteLocalConfig.css";
 
 const INTERVALO_MS = 5000;
 
-export default function PonteLocalConfig({ sz }) {
+export default function PonteLocalConfig() {
   const {
     ponteLocalAtiva, setPonteLocalAtiva, loading, redeOnline, abriuSemInternet,
     recarregarDadosDoEstabelecimento,

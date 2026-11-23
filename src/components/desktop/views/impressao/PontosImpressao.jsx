@@ -32,7 +32,7 @@ function resumoImpressora(impressora) {
   return impressora.nome ?? "";
 }
 
-export default function PontosImpressao({ sz }) {
+export default function PontosImpressao() {
   const { products } = useApp();
   const [configCompleta, setConfigCompleta] = useState(null);
   const [pontos, setPontos] = useState([]);

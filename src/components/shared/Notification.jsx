@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import "./Notification.css";

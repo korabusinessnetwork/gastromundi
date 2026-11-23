@@ -19,7 +19,9 @@ export function useLS(key, initialValue) {
   useEffect(() => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
+    } catch {
+      // Armazenamento cheio ou bloqueado: o valor segue só em memória.
+    }
   }, [key, value]);
 
   return [value, setValue];

@@ -39,7 +39,7 @@ function Toggle({ value, onChange }) {
   );
 }
 
-function ModalSubproduto({ item, onClose, onSalvo, sz }) {
+function ModalSubproduto({ item, onClose, onSalvo }) {
   const [form, setForm]       = useState(item ? {
     nome:             item.nome,
     categoria:        item.categoria ?? "Acompanhamentos",

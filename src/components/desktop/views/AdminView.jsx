@@ -165,7 +165,7 @@ function AddBtn({ onClick, label }) {
 const FICHA_VAZIA = { id: "", produtoId: null, nome: "", categoria: "", rendimento: "1", ingredientes: [], preparo: "" };
 const ING_VAZIO   = { produtoId: null, nome: "", emoji: "", qtd: "", unidade: "g", custoUnit: "" };
 
-function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) {
+function FichasTecnicasTab({ fichas, products, estoque, onSave, onDelete }) {
   const { width: vw } = useResponsive();
   const isNarrow = vw < 640;
   const [form,        setForm]        = useState(null);
@@ -716,7 +716,7 @@ function FichasTecnicasTab({ sz, fichas, products, estoque, onSave, onDelete }) 
 
 const FORN_VAZIO = { id: "", nome: "", cnpj: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "" };
 
-function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
+function FornecedoresTab({ fornecedores, onSave, onDelete }) {
   const [form,     setForm]     = useState(null);
   const [saving,   setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -816,7 +816,7 @@ function FornecedoresTab({ sz, fornecedores, onSave, onDelete }) {
 const COMPRA_VAZIA = { id: "", fornecedor: "", data: "", itens: [], status: "pendente", observacoes: "" };
 const ITEM_VAZIO   = { nome: "", qtd: "", unidade: "un", valorUnit: "" };
 
-function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
+function ComprasTab({ compras, fornecedores, onSave, onDelete }) {
   const [form,     setForm]     = useState(null);
   const [saving,   setSaving]   = useState(false);
   const [deleteId, setDeleteId] = useState(null);
@@ -976,203 +976,6 @@ function ComprasTab({ sz, compras, fornecedores, onSave, onDelete }) {
   );
 }
 
-// ── Aba: Impostos ─────────────────────────────────────────────────
-
-const TIPOS_IMPOSTO = ["ISS", "ICMS", "PIS", "COFINS", "Simples Nacional", "Outro"];
-
-const COR_TIPO = {
-  "ISS":              "#3b82f6",
-  "ICMS":             "#8b5cf6",
-  "PIS":              "#10b981",
-  "COFINS":           "#f59e0b",
-  "Simples Nacional": "#ec4899",
-  "Outro":            "#6b7280",
-};
-
-const IMPOSTO_VAZIO = { id: "", nome: "", tipo: "ISS", aliquota: "", categorias: "", observacoes: "" };
-
-function ImpostosTab({ sz, impostos, onSave, onDelete }) {
-  const [form,     setForm]     = useState(null);
-  const [saving,   setSaving]   = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
-
-  const abrirNovo   = () => setForm({ ...IMPOSTO_VAZIO, id: uid() });
-  const abrirEditar = (imp) => setForm({ ...imp });
-  const fechar      = () => setForm(null);
-  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  const salvar = async () => {
-    if (!form?.nome?.trim()) return;
-    setSaving(true);
-    const nova = [...impostos.filter(i => i.id !== form.id), { ...form, nome: form.nome.trim() }];
-    const { error } = await onSave("impostos", nova);
-    setSaving(false);
-    if (error) return;
-    fechar();
-  };
-
-  const excluir = async () => {
-    const { error } = await onDelete("impostos", impostos.filter(i => i.id !== deleteId));
-    if (error) return;
-    setDeleteId(null);
-  };
-
-  // Totais por tipo
-  const resumo = TIPOS_IMPOSTO.reduce((acc, tipo) => {
-    acc[tipo] = impostos.filter(i => i.tipo === tipo);
-    return acc;
-  }, {});
-
-  return (
-    <div>
-      <div className="admin__aba-header">
-        <div className="admin__aba-contagem">
-          {impostos.length} imposto{impostos.length !== 1 ? "s" : ""} cadastrado{impostos.length !== 1 ? "s" : ""}
-        </div>
-        <AddBtn onClick={abrirNovo} label="Novo Imposto" />
-      </div>
-
-      {/* Cards de resumo por tipo */}
-      {impostos.length > 0 && (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
-          {TIPOS_IMPOSTO.filter(tipo => resumo[tipo].length > 0).map(tipo => {
-            const cor   = COR_TIPO[tipo];
-            const lista = resumo[tipo];
-            const aliqMedia = lista.reduce((s, i) => s + (parseFloat(i.aliquota) || 0), 0) / lista.length;
-            return (
-              <div key={tipo} className="impostos-tab__resumo-card" style={{ background: alfa(cor, "10"), border: `1px solid ${alfa(cor, "33")}` }}>
-                <div className="impostos-tab__resumo-tipo" style={{ color: cor }}>{tipo}</div>
-                <div className="impostos-tab__resumo-valor" style={{ color: cor }}>
-                  {lista.length === 1 ? `${parseFloat(lista[0].aliquota) || 0}%` : `${lista.length} reg.`}
-                </div>
-                {lista.length > 1 && (
-                  <div className="impostos-tab__resumo-media">média {aliqMedia.toFixed(1)}%</div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {impostos.length === 0 ? (
-        <EmptyMsg icon={LuPercent} msg="Nenhum imposto cadastrado" />
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {impostos.map(imp => {
-            const cor = COR_TIPO[imp.tipo] ?? varColor(C.muted);
-            return (
-              <div key={imp.id} className="impostos-tab__card">
-                {/* Alíquota */}
-                <div className="impostos-tab__aliquota-box" style={{ background: alfa(cor, "12"), border: `1.5px solid ${alfa(cor, "33")}` }}>
-                  <div className="impostos-tab__aliquota-valor" style={{ color: cor }}>
-                    {parseFloat(imp.aliquota) || 0}
-                  </div>
-                  <div className="impostos-tab__aliquota-simbolo" style={{ color: cor }}>%</div>
-                </div>
-
-                {/* Info */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                    <span className="impostos-tab__nome" style={{ fontWeight: 800 }}>{imp.nome}</span>
-                    <span className="impostos-tab__tipo-badge" style={{ background: alfa(cor, "15"), border: `1px solid ${alfa(cor, "44")}`, color: cor }}>
-                      {imp.tipo}
-                    </span>
-                  </div>
-                  {imp.categorias && (
-                    <div className="impostos-tab__categorias">
-                      Categorias: {imp.categorias}
-                    </div>
-                  )}
-                  {imp.observacoes && (
-                    <div className="impostos-tab__observacoes">
-                      {imp.observacoes}
-                    </div>
-                  )}
-                </div>
-
-                {/* Ações */}
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                  <CardBtn onClick={() => abrirEditar(imp)}><LuPencil size={12} /> Editar</CardBtn>
-                  <CardBtn onClick={() => setDeleteId(imp.id)}><LuTrash2 size={12} /></CardBtn>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {form && (
-        <ModalBase
-          title={impostos.find(i => i.id === form.id) ? "Editar Imposto" : "Novo Imposto"}
-          onClose={fechar}
-          onSave={salvar}
-          saving={saving}
-        >
-          <Field label="Nome *">
-            <Inp value={form.nome} onChange={v => setF("nome", v)} placeholder="Ex: ISS Serviços, ICMS Bebidas..." />
-          </Field>
-
-          <Field label="Tipo">
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-              {TIPOS_IMPOSTO.map(tipo => {
-                const cor = COR_TIPO[tipo];
-                return (
-                  <button
-                    key={tipo}
-                    onClick={() => setF("tipo", tipo)}
-                    className="impostos-tab__tipo-chip"
-                    style={{ borderColor: form.tipo === tipo ? cor : varColor(C.border), background: form.tipo === tipo ? alfa(cor, "18") : "none", color: form.tipo === tipo ? cor : varColor(C.muted) }}
-                  >
-                    {tipo}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Alíquota (%)">
-            <div style={{ position: "relative", marginTop: 6 }}>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                value={form.aliquota}
-                onChange={e => setF("aliquota", e.target.value)}
-                placeholder="0,00"
-                className="impostos-tab__input-aliquota"
-                style={{ width: "100%", padding: "10px 36px 10px 12px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontWeight: 700, fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
-              />
-              <span className="impostos-tab__input-aliquota-simbolo" style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: varColor(C.muted), fontWeight: 700 }}>%</span>
-            </div>
-            {form.aliquota && (
-              <div className="impostos-tab__aliquota-preview" style={{ color: varColor(C.muted), marginTop: 6 }}>
-                Sobre R$ 1.000,00 → <strong style={{ color: varColor(C.text) }}>R$ {(parseFloat(form.aliquota) * 10).toFixed(2)}</strong> de imposto
-              </div>
-            )}
-          </Field>
-
-          <Field label="Categorias aplicáveis">
-            <Inp value={form.categorias} onChange={v => setF("categorias", v)} placeholder="Ex: Bebidas, Comidas (opcional)" />
-          </Field>
-
-          <Field label="Observações">
-            <Txta value={form.observacoes} onChange={v => setF("observacoes", v)} placeholder="Base de cálculo, regime tributário, notas..." rows={3} />
-          </Field>
-        </ModalBase>
-      )}
-
-      {deleteId && (
-        <DeleteConfirm
-          msg={<>O imposto <strong>{impostos.find(i => i.id === deleteId)?.nome}</strong> será removido.</>}
-          onCancel={() => setDeleteId(null)}
-          onConfirm={excluir}
-        />
-      )}
-    </div>
-  );
-}
-
 // ── Grade inicial ─────────────────────────────────────────────────
 
 // Seções com `secao` são abas internas da Área Admin (abrem aqui mesmo).
@@ -1190,7 +993,7 @@ const SECOES = [
   { id: "config_fiscal",  label: "Configuração Fiscal", desc: "CNPJ, série, ambiente e certificado do emissor",    Icon: LuFileCheck,     color: "#f97316",         to: "/app/fiscal",        perm: "configuracoes" },
 ];
 
-function GradeInicial({ sz, secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
+function GradeInicial({ secoes, onSelecionar, onNavegar, fichas, fornecedores, compras, impostos, notasFiscaisCount }) {
   const contadores = { fichas: fichas.length, fornecedores: fornecedores.length, compras: compras.length, impostos: impostos.length, notas_fiscais: notasFiscaisCount };
   return (
     <div className="grade-inicial">

@@ -40,7 +40,7 @@ function resumoImpressora(impressora) {
   return impressora.nome ?? "";
 }
 
-export default function PerfilImpressora({ sz }) {
+export default function PerfilImpressora() {
   const [perfil, setPerfil] = useState(PERFIL_IMPRESSORA_PADRAO);
   const [configCompleta, setConfigCompleta] = useState(null);
   const [carregando, setCarregando] = useState(true);

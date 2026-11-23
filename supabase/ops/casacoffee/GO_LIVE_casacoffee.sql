@@ -25,10 +25,10 @@ FROM public.tenants
 WHERE slug = 'casacoffeecolab';
 
 -- ── 2. AÇÃO · tema white-label (café/terracota do Social DNA) ───────
--- Idempotente. É o mesmo conteúdo de supabase/SEED_tema_casacoffee.sql
+-- Idempotente. É o mesmo conteúdo de supabase/ops/casacoffee/SEED_tema_casacoffee.sql
 -- (fonte canônica do tema — se editar lá, reaplique). Se a conferência
 -- acima mostrou tema_aplicado = true, pode pular.
---   → rodar: supabase/SEED_tema_casacoffee.sql
+--   → rodar: supabase/ops/casacoffee/SEED_tema_casacoffee.sql
 
 -- ── 3. AÇÃO · plano do tenant ───────────────────────────────────────
 -- O plano liga os módulos (tenant_tem_modulo). Casa Coffee é CLIENTE
@@ -78,7 +78,7 @@ ORDER BY g.nome;
 -- Esperado: pelo menos 1 usuário (dona/gerente) com e-mail de Auth
 -- terminando em @casacoffeecolab.local. Se aparecer alguém do Casa com
 -- @gastromundi.local (criado antes do subdomínio), rode o cutover:
---   supabase/CUTOVER_SUBDOMINIO_renomear_auth.sql (pré-visualização
+--   supabase/ops/CUTOVER_SUBDOMINIO_renomear_auth.sql (pré-visualização
 --   primeiro; janela curta). Se não houver NENHUM usuário, crie pelo
 --   Console da Plataforma ou painel de Auth com app_metadata
 --   { tenant_id: <id do passo 1>, gastro_role: 'dono' | 'gerente' }.

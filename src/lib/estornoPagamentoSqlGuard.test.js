@@ -40,7 +40,6 @@ const MIGRATIONS_DIR = join(__dirname, "../../supabase/migrations");
 const ESTORNO = "20260913_estorno_pagamento_assinatura.sql";
 const RENOVACAO = "20260909_renovacao_assinatura_so_plataforma.sql";
 
-const FN = "public.estornar_pagamento_assinatura(uuid, text, text)";
 const INDICE = "assinaturas_pagamentos_competencia_uidx";
 
 function ler(arquivo) {

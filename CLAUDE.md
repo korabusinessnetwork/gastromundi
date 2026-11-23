@@ -85,7 +85,8 @@ recomendação de investir **agora** ou **mais pra frente** — o dono decide. D
 - Logs de atividade (`activity_log`) devem ser fire-and-forget — nunca bloquear a operação principal
 - Rodar `npm test` antes de commitar; novas funções puras (dinheiro, conversões, regras do Jarvas) devem nascer com teste
 - Fluxos críticos do PDV têm testes de componente em `src/**/*.test.jsx` — rode-os antes de mexer no PDV
-- **Separar CSS do JSX** (decisão 018): estilo não deve ficar acoplado à marcação. Em telas novas e ao refatorar, extrair os estilos do JSX (CSS Modules ou `.css` co-localizado, mantendo o Tailwind já em uso) para permitir edição de layout a longo prazo e customização visual por estabelecimento (white-label, decisão 017). Padrão definitivo a ser fixado em ADR de theming/CSS.
+- **Separar CSS do JSX** (decisões 018 e 023, ADR-007): estilo não fica acoplado à marcação. O padrão é arquivo `.css` puro co-localizado, com o mesmo nome do componente, e cor, espaço e tipografia vindos das variáveis `--gm-*`, que cada estabelecimento sobrescreve (white-label, decisão 017). O projeto **não usa Tailwind**. `style={{}}` só para atribuir variável CSS a partir de dado.
+- **Refatoração em andamento** (ADR-015, `docs/09_BACKLOG/plano_refatoracao.md`): código novo já nasce no padrão-alvo. Tela não chama o Supabase direto, e o celular não importa da pasta `components/desktop/`. Rode `npm run lint` antes de commitar; as duas fronteiras aparecem como aviso hoje e viram erro quando a fase correspondente fechar.
 
 ## Stack
 

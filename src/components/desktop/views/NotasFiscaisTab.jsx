@@ -208,7 +208,7 @@ const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", pr
 /** Linha nova do formulário manual, já com a identidade de renderização. */
 const novoItemManual = () => ({ ...ITEM_MANUAL_VAZIO, uid: novoUid() });
 
-export default function NotasFiscaisTab({ sz, fornecedores = [], onAddFornecedor }) {
+export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) {
   const { products, entradaEstoque } = useApp();
 
   const [view,        setView]       = useState("lista");

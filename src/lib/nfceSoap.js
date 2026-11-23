@@ -68,7 +68,7 @@ export function montarEnvelopeEnviNfe({ xmlAssinado, idLote, indSinc = 1, versao
  */
 function nomeDeTag(nome) {
   const t = String(nome ?? "");
-  if (!/^[A-Za-z_][\w.\-]*$/.test(t)) {
+  if (!/^[A-Za-z_][\w.-]*$/.test(t)) {
     throw new Error(`SEFAZ: nome de elemento inválido: "${t}".`);
   }
   return t;

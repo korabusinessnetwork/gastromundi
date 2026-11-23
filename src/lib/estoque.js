@@ -58,6 +58,7 @@ const chaveOversell = (produtoId) => `estoque:oversell:produto:${produtoId}`;
  * @param {string} [usuario]
  * @returns {Promise<void>}
  */
+// eslint-disable-next-line no-unused-vars -- TD021: `usuario` chega e não é gravado no alerta
 export async function gerarAlertaOversell({ produtoId, nome, vendido, disponivel }, usuario) {
   try {
     const chave = chaveOversell(produtoId);
@@ -101,6 +102,7 @@ const fmtNum = (n) => {
  * @param {string} [usuario]
  * @returns {Promise<void>}
  */
+// eslint-disable-next-line no-unused-vars -- TD021: `usuario` chega e não é gravado no alerta
 export async function gerarAlertaEstoque({ produtoId, nome, quantidade, minimo }, usuario) {
   try {
     const chave = chaveAlerta(produtoId);
@@ -165,6 +167,7 @@ export async function gerarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, qu
   return registrarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario);
 }
 
+// eslint-disable-next-line no-unused-vars -- TD021: `usuario` chega e não é gravado no alerta
 async function registrarAlertaBaixaFalhou({ produtoId, subprodutoId, nome, quantidade, erro }, usuario) {
   try {
     const alvo = produtoId != null ? "produto" : "subproduto";
@@ -294,6 +297,7 @@ const NOMES_NA_DESCRICAO = 5;
  * @param {string} [usuario]
  * @returns {Promise<void>}
  */
+// eslint-disable-next-line no-unused-vars -- TD021: `usuario` chega e não é gravado no alerta
 async function gerarAlertaBaixaSistemica(itens, usuario) {
   try {
     const { data: abertos } = await buscarInsights({ status: ["novo", "lido"], limite: 200 });

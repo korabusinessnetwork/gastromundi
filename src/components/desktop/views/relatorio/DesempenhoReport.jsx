@@ -5,7 +5,6 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { rotuloMetodo } from "@/utils/pagamentos";
-import { getSizes } from "@/constants/sizes";
 import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown } from "react-icons/lu";
 import {
   calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual,
@@ -111,7 +110,6 @@ function Estado({ icon, msg }) {
  */
 export default function DesempenhoReport() {
   const { width } = useResponsive();
-  const sz = getSizes(width);
   // Rótulos de método configurados pelo tenant (white-label, decisão 017):
   // o gráfico "por forma de pagamento" mostra "Cielo", não o id cru.
   const { metodosCustom } = useApp();

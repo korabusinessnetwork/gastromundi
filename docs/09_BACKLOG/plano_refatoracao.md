@@ -1,6 +1,6 @@
 # Plano de refatoração completa, do início ao fim
 
-**Status:** proposto, aguardando as decisões do dono listadas na seção 3
+**Status:** aceito pelo dono em 2026-11-23 (ADR-015), fase 0 em andamento
 **Data:** 2026-11-23
 **Base:** levantamento de 2026-11-23 (commit `9ffff74`)
 
@@ -48,28 +48,28 @@ Fica de fora, de propósito:
 |---|---|---|---|
 | D1 | Adotar TanStack Query (grátis, MIT) para os dados vindos do banco | **Não neste plano.** Dividir o contexto primeiro; reavaliar depois da fase 2 | Fase 2 |
 | D2 | Adotar TypeScript | **Só os tipos gerados do banco** (tarefa 0.3), usados via JSDoc. Conversão de arquivos fica fora do plano | Tarefa 0.3 |
-| D3 | Apagar `teste-obsidian.txt`, `executavel/` e `pesquisas-diarias/` da raiz | Apagar ou mover para fora do repositório | Tarefa 0.5 |
+| D3 | Apagar `teste-obsidian.txt`, `executavel/` e `pesquisas-diarias/` da raiz | Apagar `teste-obsidian.txt` e `pesquisas-diarias/`. **`executavel/` fica**: é a pasta criada de propósito para o `KoraPonte.exe` (commit `ba801ba`), a recomendação original estava errada | Tarefa 0.5 |
 | D4 | Destino dos scripts de cliente em `supabase/` (`GO_LIVE_casacoffee.sql`, `SEED_*_casacoffee.sql`, `CUTOVER_*`) | Mover para `supabase/ops/` com um README dizendo que são históricos | Tarefa 0.5 |
 | D5 | Token de acesso do Supabase (gratuito) para gerar os tipos | Necessário, guardado como segredo do ambiente, nunca no código | Tarefa 0.3 |
 | D6 | Quando aplicar as migrations novas da fase 1 em produção | Aplicar cada uma antes do merge da rodada dela | Tarefas 1.1, 1.2, 1.3 |
 
 ## 4. Metas de saída (o que define "terminou")
 
-Medidas pelo script da tarefa 0.1. A auditoria final (fase F) só fecha com todas em "sim".
+Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" substitui as estimativas do levantamento, que contavam só a forma mais comum de cada padrão. A auditoria final (fase F) só fecha com todas em "sim".
 
 | Métrica | Hoje | Meta |
 |---|---|---|
-| Linhas do `AppContext.jsx` | 2.193 | arquivo removido, ou no máximo 150 linhas só compondo provedores |
-| Arquivos de código (sem teste) acima de 600 linhas | 13 acima de 800 | 0 |
-| Maior número de `useState` num único componente | 71 (`DeliveryView`) | no máximo 15 |
-| Chamadas ao Supabase fora das pastas `dados/` | 40 no contexto e 33 em 10 telas | 0, cobrado por regra de lint |
+| Linhas do `AppContext.jsx` | 2.194 | arquivo removido, ou no máximo 150 linhas só compondo provedores |
+| Arquivos de código (sem teste) acima de 600 linhas | 22 | 0 |
+| Maior número de `useState` num único arquivo | 70 (`DeliveryView`) | no máximo 15 |
+| Chamadas ao Supabase fora das pastas `dados/` | 226 (64 em 14 telas, 51 no contexto, 111 em `lib/`) | 0, cobrado por regra de lint |
 | Gravações em várias etapas feitas pelo navegador | 3 conhecidas | 0 |
-| `style={{}}` que não seja só variável CSS | 1.529 | 0, cobrado por teste guard |
-| Cor hexadecimal escrita no JSX | 25 | 0 |
-| Tela de celular importando código de `components/desktop/` | 1 ou mais | 0, cobrado por regra de lint |
-| Erros de lint | sem lint | 0 |
-| Testes | linha de base da tarefa 0.1 | igual ou maior, nenhum removido sem justificativa na spec |
-| Build | limpo | limpo, e o pacote inicial do PDV não maior que a linha de base |
+| `style={{}}` que não seja só variável CSS | 1.526 | 0, cobrado por teste guard |
+| Cor hexadecimal escrita no JSX | 23 | 0 |
+| Tela de celular importando código de `components/desktop/` | 1 | 0, cobrado por regra de lint |
+| Erros de lint | 147 na primeira passada | 0 |
+| Testes | 242 arquivos, 4.273 testes, 91 s | igual ou maior, nenhum removido sem justificativa na spec |
+| Build | limpo, maior pacote JS com 2.387 kB (703 kB comprimido) | limpo, e o maior pacote não maior que a linha de base |
 | Screenshots do roteiro de telas | linha de base da tarefa 0.1 | sem diferença visual não explicada |
 
 ---
@@ -82,10 +82,12 @@ Medidas pelo script da tarefa 0.1. A auditoria final (fase F) só fecha com toda
 - Criar `scripts/metricas-refatoracao.mjs`, que imprime todas as métricas da seção 4.
 - Rodar `npm test` e `npm run build` e gravar em `docs/09_BACKLOG/refatoracao_metricas.md`:
   arquivos de teste, quantidade de testes, tempo da suíte e tamanho de cada pacote do build.
-- Criar `scripts/screenshots-refatoracao.mjs` (Playwright, já instalado) com o roteiro de
-  telas: login, PDV vazio, PDV com comanda, pagamento, delivery, estoque, relatórios,
-  configurações (cada aba), console, cardápio público, `/palm` (cada aba), em largura de
-  computador e de celular, com dados de demonstração. Salvar as imagens da linha de base.
+- Criar `scripts/screenshots-refatoracao.mjs` (Playwright) com o roteiro de telas, rodando
+  contra um Supabase falso com dados de demonstração. No computador: login, console,
+  cardápio público, as quatro abas do `/palm`, os dez módulos de `/app` e as onze abas de
+  Configurações. No celular: login, console, cardápio, as abas do `/palm` e os nove módulos
+  abertos pela aba Mais. As imagens não vão para o repositório: `--ref <commit>` fotografa
+  qualquer commit, então a comparação com a linha de base é refeita quando precisar.
 - Anotar o commit de partida no `_loop.md`, para a auditoria final comparar contra ele.
 - **Pronto quando:** o script de métricas roda sem argumento e reproduz os números da
   tabela; as screenshots da linha de base existem para todas as telas do roteiro.
@@ -94,8 +96,9 @@ Medidas pelo script da tarefa 0.1. A auditoria final (fase F) só fecha com toda
 - Adicionar ESLint (configuração `eslint.config.js`) com `react-hooks` e regras de import.
   Script `npm run lint`.
 - Regras que nascem como **aviso**, e viram **erro** na fase em que a meta é cumprida:
-  `@/lib/supabase` proibido fora de `dados/` (erro no fim da fase 1); `components/desktop`
-  proibido dentro de `pages/mobile` (erro no fim da fase 4).
+  `@/lib/supabase` proibido em tela e no contexto (erro no fim da fase 1) e em `lib/`
+  (erro no fim da fase 6, quando `lib/` deixa de existir); `components/desktop` proibido
+  dentro de `pages/mobile` (erro no fim da fase 4).
 - Corrigir os erros que aparecerem sem mudar comportamento. O que for bug de verdade (por
   exemplo, dependência faltando em `useEffect` que muda comportamento) vira rodada própria,
   não correção silenciosa.

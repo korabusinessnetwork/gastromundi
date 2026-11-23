@@ -65,7 +65,7 @@ export function lerQuantidade(valor) {
 }
 
 export default function EstoqueView() {
-  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque, users, loading } = useApp();
+  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque, loading } = useApp();
 
   // O bootstrap ainda está em voo e nada chegou: a tela mostrava "0 Total em
   // estoque · 0 Sem estoque" e uma lista vazia, ou seja, anunciava um estoque

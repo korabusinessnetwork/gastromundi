@@ -18,7 +18,7 @@ Effort alto em tarefa simples é desperdício; effort baixo em tarefa difícil �
 |---|---|---|---|
 | Opus 5 | `xhigh` | erro silencioso custa dinheiro ou compliance | fiscal: `src/lib/nfce*.js` (16 arquivos), `src/lib/fiscal.js`, `src/lib/validarConfigFiscal.js`; dinheiro e cobrança: `src/lib/console.js`, `src/lib/assinatura.js`, `src/lib/caixaMovimentos.js`; RLS e migrations: `supabase/migrations/`, `src/lib/*SqlGuard.test.js` |
 | Sonnet 5 | `high` | default do dia a dia | tela, componente, query, refactor, revisão de PR — `src/pages/console/`, `src/pages/delivery/`, extração de CSS do JSX (decisão 018) |
-| Haiku 4.5 | `low` | volume mecânico sem julgamento | seed (`supabase/SEED_*.sql`), boilerplate, doc gerada de spec já aprovada, laboratório de ciclo (`tools/ciclo-lab/`, ADR-010) |
+| Haiku 4.5 | `low` | volume mecânico sem julgamento | seed (`supabase/ops/<estabelecimento>/SEED_*.sql`), boilerplate, doc gerada de spec já aprovada, laboratório de ciclo (`tools/ciclo-lab/`, ADR-010) |
 
 ## [4] Teste de decisão
 
