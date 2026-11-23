@@ -10,7 +10,8 @@
     "test:watch": "vitest",
     "setup:git": "node scripts/setup-git.mjs",
     "lint": "eslint .",
-    "metricas": "node scripts/metricas-refatoracao.mjs"
+    "metricas": "node scripts/metricas-refatoracao.mjs",
+    "tipos:banco": "node scripts/tipos-banco.mjs"
   },
   "dependencies": {
     "@sentry/react": "^10.67.0",
