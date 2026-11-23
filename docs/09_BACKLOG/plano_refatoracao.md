@@ -233,12 +233,21 @@ arquivo do próprio provedor, já protegida pelos limites e pelos testes de cada
   na 2.9, junto com a mudança do estado, porque esses testes precisam ser reescritos
   provedor por provedor de qualquer jeito.
 
-**2.9 Mover o estado para os provedores**
-- Com as telas já nos ganchos, o estado e as ações de cada assunto saem do `AppProvider`
-  para o arquivo do próprio provedor, um assunto por rodada, começando pela sessão.
-- O `bootstrap` vira a coordenação explícita entre provedores, e a fila offline ganha
-  testes de ponta a ponta antes de mudar de lugar.
-- **Pronto quando:** o `AppContext.jsx` foi removido ou só compõe os provedores.
+**2.9 Mover o estado para os provedores** (feita em 2026-11-23, rodadas 80 a 84)
+- As seis fatias são donas do próprio estado, cada uma no seu arquivo: `SessaoProvider`,
+  `OfflineProvider`, `ConfigProvider`, `CatalogoProvider`, `ComandasProvider`,
+  `CaixaProvider`. A carga e o dreno da fila continuam numa coordenação central, que
+  hidrata cada fatia por um canal interno (`use*Carga()`).
+- Antes de qualquer estado mudar de lugar nasceu a rede de proteção de ponta a ponta da
+  fila offline (`AppContext.offlinePontaAPonta.test.jsx`).
+
+**2.10 A coordenação no próprio arquivo e o fim da fachada**
+- O que sobrou no `AppContext.jsx` (carga, dreno da fila, análise do Jarvas, pontes de
+  impressão) vai para `src/app/CoordenacaoDaCarga.jsx`, e o `AppContext.jsx` passa a só
+  compor os provedores.
+- Os 12 arquivos de teste do contexto trocam `useApp()` pelos ganchos de cada assunto, e
+  a fachada sai.
+- **Pronto quando:** o `AppContext.jsx` só compõe os provedores e `useApp` não existe mais.
 
 ### Fase 3, quebrar as telas grandes
 

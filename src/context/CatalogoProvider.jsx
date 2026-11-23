@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CatalogoContext } from "./CatalogoContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { useOffline } from "./OfflineContext";
+import { useSessao } from "./SessaoContext";
 import {
   listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
   entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
@@ -22,9 +23,8 @@ import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";
  * banco ou da cópia offline) usa o canal interno `useCatalogoCarga()`, que só
  * o `AppProvider` deve chamar.
  *
- * O usuário logado (para os eventos do Jarvas) e a fila offline ainda moram no
- * `AppProvider`. Chegam por `pontesRef`, lidos no momento da chamada, como as
- * ações sempre leram. Quando a sessão e o offline mudarem de lugar, a ponte sai.
+ * O usuário logado (para os eventos do Jarvas) vem do `SessaoProvider` e a fila
+ * offline do `OfflineProvider`, os dois por fora deste.
  */
 const CatalogoCargaContext = createContext(null);
 
@@ -57,7 +57,9 @@ export function aplicarNumeroRemoto(mapa, produtoId, valor) {
   return { ...mapa, [produtoId]: n };
 }
 
-export function CatalogoProvider({ pontesRef, children }) {
+export function CatalogoProvider({ children }) {
+  // O usuário logado mora no SessaoProvider, por fora deste (tarefa 2.9).
+  const { currentUser } = useSessao();
   // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
   const { enfileirarOffline } = useOffline();
   const [products,        setProductsLocal]        = useState([]);
@@ -172,7 +174,7 @@ export function CatalogoProvider({ pontesRef, children }) {
       });
       return { error };
     }
-    emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, pontesRef.current.currentUser?.username);
+    emitirEvento("estoque.ajustado", "estoque", { produto_id: productId, quantidade: novaQtd }, currentUser?.username);
     return { error: null };
   };
 
@@ -194,7 +196,7 @@ export function CatalogoProvider({ pontesRef, children }) {
       quantidadeAnterior: anterior,
       nomeProduto,
       minimoFallback: estoqueMinimos[productId] ?? 10,
-      usuario: pontesRef.current.currentUser?.username,
+      usuario: currentUser?.username,
       chamarRpc: (id, q) => baixarEstoqueNoBanco(id, q, opId),
     });
     if (error) {
@@ -213,19 +215,19 @@ export function CatalogoProvider({ pontesRef, children }) {
         produto_id: productId,
         quantidade: qty,
         erro: error?.message ?? error?.code ?? String(error),
-      }, pontesRef.current.currentUser?.username);
+      }, currentUser?.username);
       // Sentry, evento e log são para quem desenvolve. O alerta do Jarvas é o
       // único destes que o gestor abre — sem ele o furo de inventário só
       // aparece na contagem física (TD012).
       void gerarAlertaBaixaFalhou(
         { produtoId: productId, nome: nomeProduto, quantidade: qty, erro: error },
-        pontesRef.current.currentUser?.username,
+        currentUser?.username,
       );
       return { error };
     }
 
     setEstoqueLocal(prev => ({ ...prev, [productId]: quantidade }));
-    emitirEvento("estoque.baixa", "estoque", { produto_id: productId, quantidade: qty }, pontesRef.current.currentUser?.username);
+    emitirEvento("estoque.baixa", "estoque", { produto_id: productId, quantidade: qty }, currentUser?.username);
     return { error: null };
   };
 
@@ -277,7 +279,7 @@ export function CatalogoProvider({ pontesRef, children }) {
         produto_id: productId,
         quantidade: quantoEntrou,
         erro: error?.message ?? error?.code ?? String(error),
-      }, pontesRef.current.currentUser?.username);
+      }, currentUser?.username);
       return { error };
     }
 
@@ -290,7 +292,7 @@ export function CatalogoProvider({ pontesRef, children }) {
     if (linha?.minimo != null) {
       setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: Number(linha.minimo) }));
     }
-    emitirEvento("estoque.entrada", "estoque", { produto_id: productId, quantidade: quantoEntrou }, pontesRef.current.currentUser?.username);
+    emitirEvento("estoque.entrada", "estoque", { produto_id: productId, quantidade: quantoEntrou }, currentUser?.username);
     return { error: null };
   };
 
@@ -334,14 +336,14 @@ export function CatalogoProvider({ pontesRef, children }) {
         nome: nome ?? null,
         quantidade: qtd,
         erro: error?.message ?? error?.code ?? String(error),
-      }, pontesRef.current.currentUser?.username);
+      }, currentUser?.username);
       void gerarAlertaBaixaFalhou(
         { subprodutoId, nome: nome ?? null, quantidade: qtd, erro: error },
-        pontesRef.current.currentUser?.username,
+        currentUser?.username,
       );
       return { error };
     }
-    emitirEvento("estoque.baixa", "estoque", { subproduto_id: subprodutoId, nome: nome ?? null, quantidade: qtd }, pontesRef.current.currentUser?.username);
+    emitirEvento("estoque.baixa", "estoque", { subproduto_id: subprodutoId, nome: nome ?? null, quantidade: qtd }, currentUser?.username);
     return { error: null };
   };
 

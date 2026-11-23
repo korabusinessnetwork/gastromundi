@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CaixaContext } from "./CaixaContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { useOffline } from "./OfflineContext";
+import { useSessao } from "./SessaoContext";
 import { gravarConfig } from "./gravarConfig";
 import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/features/caixa/dados/vendas";
 import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
@@ -26,8 +27,8 @@ const PG_COLUNA_INEXISTENTE = "42703";
  * ou da cópia offline) usa o canal interno `useCaixaCarga()`, que só o
  * `AppProvider` deve chamar.
  *
- * O usuário logado e a fila offline ainda moram no `AppProvider` e chegam por
- * `pontesRef`, lidos no momento da chamada.
+ * O usuário logado vem do `SessaoProvider` e a fila offline do `OfflineProvider`,
+ * os dois por fora deste.
  */
 const CaixaCargaContext = createContext(null);
 
@@ -37,7 +38,9 @@ export function useCaixaCarga() {
   return ctx;
 }
 
-export function CaixaProvider({ pontesRef, children }) {
+export function CaixaProvider({ children }) {
+  // O usuário logado mora no SessaoProvider, por fora deste (tarefa 2.9).
+  const { currentUser } = useSessao();
   // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
   const { enfileirarOffline } = useOffline();
   const [sales,       setSalesLocal]       = useState([]);
@@ -68,7 +71,7 @@ export function CaixaProvider({ pontesRef, children }) {
           venda_id,
           etapa,
           erro: error?.message ?? error?.code ?? String(error),
-        }, pontesRef.current.currentUser?.username);
+        }, currentUser?.username);
       },
     });
 
@@ -104,7 +107,7 @@ export function CaixaProvider({ pontesRef, children }) {
         total: sale.total ?? null,
         metodo: sale.metodo ?? sale.payment ?? null,
         itens: Array.isArray(sale.items) ? sale.items.length : null,
-      }, pontesRef.current.currentUser?.username);
+      }, currentUser?.username);
     }
 
     // Mesmo contrato das demais actions: { error } sempre presente.
@@ -127,7 +130,7 @@ export function CaixaProvider({ pontesRef, children }) {
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
     if (alvo.cancelada) return { error: { code: "ja_cancelada", message: "Esta venda já foi cancelada." } };
 
-    const canceladaPor = pontesRef.current.currentUser?.name ?? pontesRef.current.currentUser?.username ?? null;
+    const canceladaPor = currentUser?.name ?? currentUser?.username ?? null;
     const canceladaEm = new Date().toISOString();
     const cancelada = {
       ...alvo,
@@ -166,13 +169,13 @@ export function CaixaProvider({ pontesRef, children }) {
 
     setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));
 
-    logAction(pontesRef.current.currentUser?.username, "venda:cancelar", {
+    logAction(currentUser?.username, "venda:cancelar", {
       msg: `Venda cancelada · ${alvo.comanda ?? vendaId} · R$ ${Number(alvo.total ?? 0).toFixed(2)} · motivo: ${motivo}`,
-      name: pontesRef.current.currentUser?.name, role: pontesRef.current.currentUser?.role, venda_id: vendaId, motivo,
+      name: currentUser?.name, role: currentUser?.role, venda_id: vendaId, motivo,
     });
     emitirEvento("venda.cancelada", "pdv", {
       venda_id: vendaId, total: alvo.total ?? null, motivo,
-    }, pontesRef.current.currentUser?.username);
+    }, currentUser?.username);
     return { error: null };
   };
 
@@ -189,7 +192,7 @@ export function CaixaProvider({ pontesRef, children }) {
     emitirEvento("caixa.fechado", "caixa", {
       total_vendas: f?.totalVendas ?? null,
       total_conferido: f?.totalConferido ?? null,
-    }, pontesRef.current.currentUser?.username);
+    }, currentUser?.username);
     return { error: null };
   };
 
@@ -216,7 +219,7 @@ export function CaixaProvider({ pontesRef, children }) {
       // o valor arredondado que o usuário confirmou na tela.
       valor: lerValor(valor),
       motivo: sanitizeInput(String(motivo).trim()),
-      autor: pontesRef.current.currentUser?.username ?? "",
+      autor: currentUser?.username ?? "",
       autorizado_por: autorizadoPor ? sanitizeInput(String(autorizadoPor)) : null,
       sessao_aberta_em: sessaoAbertaEm ?? null,
     };
@@ -233,11 +236,11 @@ export function CaixaProvider({ pontesRef, children }) {
     emitirEvento(tipo === "sangria" ? "caixa.sangria" : "caixa.suprimento", "caixa", {
       valor: data.valor,
       autorizado: !!data.autorizado_por,
-    }, pontesRef.current.currentUser?.username);
-    logAction(pontesRef.current.currentUser?.username, `caixa:${tipo}`, {
+    }, currentUser?.username);
+    logAction(currentUser?.username, `caixa:${tipo}`, {
       msg: `${tipo === "sangria" ? "Sangria" : "Suprimento"} de R$ ${Number(data.valor).toFixed(2)} · ${data.motivo}`,
-      name: pontesRef.current.currentUser?.name,
-      role: pontesRef.current.currentUser?.role,
+      name: currentUser?.name,
+      role: currentUser?.role,
       autorizado_por: data.autorizado_por,
     });
     return { error: null, movimento: data };
@@ -254,7 +257,7 @@ export function CaixaProvider({ pontesRef, children }) {
     const anterior = caixaAberto;
     setCaixaAbertoLocal(val);
     const res = await gravarConfig("caixa_aberto", val, () => setCaixaAbertoLocal(anterior));
-    if (!res.error && val) emitirEvento("caixa.aberto", "caixa", {}, pontesRef.current.currentUser?.username);
+    if (!res.error && val) emitirEvento("caixa.aberto", "caixa", {}, currentUser?.username);
     return res;
   };
 

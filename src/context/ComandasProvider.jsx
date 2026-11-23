@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ComandasContext } from "./ComandasContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { useOffline } from "./OfflineContext";
+import { useSessao } from "./SessaoContext";
 import {
   inserirComanda, atualizarComanda, excluirComanda, lerItensDaComanda,
   adquirirTravaDaComanda, lerDonoDaTrava, liberarTravaDaComanda, assinarComandas,
@@ -23,8 +24,8 @@ import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";
  * banco ou da cópia offline, e a drenagem da fila) usa o canal interno
  * `useComandasCarga()`, que só o `AppProvider` deve chamar.
  *
- * O usuário logado e a fila offline ainda moram no `AppProvider` e chegam por
- * `pontesRef`, lidos no momento da chamada. `lockIndisponivelRef` é dividido
+ * O usuário logado vem do `SessaoProvider` e a fila offline do `OfflineProvider`,
+ * os dois por fora deste. `lockIndisponivelRef` é dividido
  * com a carga, que é quem descobre se o banco tem as colunas da trava.
  */
 const ComandasCargaContext = createContext(null);
@@ -35,7 +36,9 @@ export function useComandasCarga() {
   return ctx;
 }
 
-export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
+export function ComandasProvider({ lockIndisponivelRef, children }) {
+  // O usuário logado mora no SessaoProvider, por fora deste (tarefa 2.9).
+  const { currentUser } = useSessao();
   // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
   const { enfileirarOffline } = useOffline();
   const [pending,  setPendingLocal] = useState([]);
@@ -66,7 +69,7 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
       setPendingLocal(prev => prev.filter(o => o.id !== id));
       return { error };
     }
-    emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? pontesRef.current.currentUser?.username);
+    emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? currentUser?.username);
     return { error: null };
   };
 
@@ -149,17 +152,17 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
   // com o nome de quem está editando. Tudo fail-open: sem migration (42703)
   // ou sem rede, a trava se desliga e o app opera como antes.
   const adquirirTrava = async (id) => {
-    if (lockIndisponivelRef.current || !pontesRef.current.currentUser?.username) return { ok: true, semTrava: true };
+    if (lockIndisponivelRef.current || !currentUser?.username) return { ok: true, semTrava: true };
     // X3 — o username entra cru no filtro .or() abaixo. Um username com `,`
     // `.` `)` ou espaço reescreveria a lógica do filtro (roubo de trava).
     // Só montamos o .or() com username em allowlist [a-zA-Z0-9._-]; fora
     // dela, fail-open (não trava ninguém — coerente com o resto da função).
-    if (!/^[a-zA-Z0-9._-]+$/.test(pontesRef.current.currentUser.username)) return { ok: true, semTrava: true };
+    if (!/^[a-zA-Z0-9._-]+$/.test(currentUser.username)) return { ok: true, semTrava: true };
     const agora = new Date();
     const limiteExpirada = new Date(agora.getTime() - LOCK_TTL_MS).toISOString();
     const { data, error } = await adquirirTravaDaComanda(id, {
-      usuario: pontesRef.current.currentUser.username,
-      nome: pontesRef.current.currentUser.name ?? pontesRef.current.currentUser.username,
+      usuario: currentUser.username,
+      nome: currentUser.name ?? currentUser.username,
       agoraIso: agora.toISOString(),
       limiteExpiradaIso: limiteExpirada,
     });
@@ -182,11 +185,11 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
   const renovarTrava = (id) => adquirirTrava(id);
 
   const liberarTrava = async (id) => {
-    if (lockIndisponivelRef.current || !pontesRef.current.currentUser?.username) return { error: null };
-    setPendingLocal(prev => prev.map(o => (o.id === id && o.editando_por === pontesRef.current.currentUser.username)
+    if (lockIndisponivelRef.current || !currentUser?.username) return { error: null };
+    setPendingLocal(prev => prev.map(o => (o.id === id && o.editando_por === currentUser.username)
       ? { ...o, editando_por: null, editando_nome: null, editando_desde: null }
       : o));
-    const { error } = await liberarTravaDaComanda(id, pontesRef.current.currentUser.username);
+    const { error } = await liberarTravaDaComanda(id, currentUser.username);
     // Falhou (rede etc.)? Sem drama: a trava expira sozinha pelo TTL.
     return { error: error ?? null };
   };

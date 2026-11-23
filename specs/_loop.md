@@ -1,3 +1,26 @@
+## Rodada 84, refatoração 2.9, offline e sessão donos do próprio estado, 2026-11-23
+- Spec: specs/refatoracao-2-9-offline-sessao.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
+  testes, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 1.320 para 731
+  linhas; `OfflineProvider.jsx` com 103 e `SessaoProvider.jsx` com 597. A ponte provisória
+  `pontesRef` acabou. Roteiro de fotos: 0 diferença. Sem migration.
+- O desenho: os dois vão para FORA de todos, porque todo assunto depende deles (o usuário
+  para os eventos, a fila para o modo offline). A inversão que sobra é a carga: o login e a
+  restauração da sessão precisam dispará-la, e ela mora na coordenação, no centro. Ela
+  chega à sessão e ao "recarregar" do offline pela mesma referência, preenchida num layout
+  effect, que roda antes dos efeitos dos provedores de fora e de qualquer clique.
+- O que a rodada revelou de não óbvio: a parte da sessão estava intercalada com a carga
+  dentro do arquivo (`buscarSalesData` e `buscarPendingData` no meio das funções de
+  usuário, e a função de colunas de retorno colada na `buscarUsers`, sem linha em branco).
+  O primeiro recorte por parágrafo saiu vazio nesse trecho; foi refeito pelo nome da
+  função. A constante `COLUNAS_USERS`, usada pelos dois lados, passou a ser exportada pelo
+  `SessaoProvider`.
+- A separação dos `import` foi feita por um script que remove o que o lint aponta como
+  sem uso, nos dois arquivos de uma vez: 54 nomes saíram do contexto, 40 do provedor novo.
+  Os 119 testes do contexto passaram de primeira depois disso.
+- Fica em aberto: o `AppContext.jsx` ainda tem a coordenação (731 linhas: carga, dreno
+  da fila, Jarvas, pontes de impressão) e a fachada `useApp()` dos testes do contexto. O
+  plano pede ele removido ou só compondo provedores; isso é a tarefa 2.10, nova.
 ## Rodada 83, refatoração 2.9, o caixa dono do próprio estado, 2026-11-23
 - Spec: specs/refatoracao-2-9-caixa.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
