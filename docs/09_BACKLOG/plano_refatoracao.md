@@ -166,11 +166,13 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 - **Pronto quando:** `grep` de `supabase.from` e `supabase.rpc` em `src/components` e
   `src/pages` devolve zero.
 
-**1.5 Camada de dados para o contexto**
-- Mover as 40 chamadas do `AppContext.jsx` para as mesmas pastas `dados/`, sem dividir o
-  contexto ainda (isso é a fase 2).
-- **Pronto quando:** o `AppContext.jsx` não importa `@/lib/supabase`, e a regra de lint
-  da tarefa 0.2 vira erro.
+**1.5 Camada de dados para o contexto** (juntada à fase 2 em 2026-11-23, decisão do dono)
+- Eram cerca de 60 chamadas no `AppContext.jsx`, contando login, sessão e tempo real, e a
+  fase 2 divide esse mesmo arquivo logo em seguida. Fazer as duas coisas em separado
+  mexeria duas vezes no trecho mais arriscado do sistema. Então cada provedor da fase 2
+  já nasce com as chamadas dele na camada `dados/`.
+- **Pronto quando:** junto com a tarefa 2.8, o contexto não importa `@/lib/supabase`, e a
+  regra de lint vale também para `src/context/`.
 
 **1.6 Salvar subproduto numa transação só** (achada na tarefa 1.4)
 - Hoje `SubprodutosView.jsx` grava o subproduto e, numa segunda chamada, o saldo dele em
@@ -187,7 +189,22 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
   tarefa 2.8.
 - **Pronto quando:** o teste existe e mede o problema.
 
-**2.2 a 2.7 Um provedor por rodada, nesta ordem** (cada provedor depende só dos anteriores)
+**Como a divisão é feita** (decidido na tarefa 2.2, 2026-11-23). A carga inicial, o login
+e a fila offline atravessam todos os assuntos ao mesmo tempo: o `bootstrap` lê tudo numa
+leva só, e a fila offline reenvia venda, comanda e estoque na mesma drenagem. Separar a
+POSSE desse estado em seis provedores de uma vez é o jeito mais fácil de quebrar o modo
+offline. Então cada rodada da 2.2 à 2.7 faz, nesta ordem:
+1. as chamadas ao Supabase daquele assunto saem para `features/*/dados/` (tarefa 1.5);
+2. o `AppProvider` passa a fornecer também o contexto daquele assunto, com valor
+   memorizado e ações de identidade fixa (`useFuncaoEstavel`);
+3. nasce o gancho do assunto (`useSessao`, `useCaixa`...), com teste de que a tela que o
+   usa não é redesenhada por mudança de outro assunto.
+
+O estado continua morando no `AppProvider` até a 2.7. Depois da 2.8 (telas trocando
+`useApp` pelos ganchos), a tarefa 2.9 move o estado e as ações de cada assunto para o
+arquivo do próprio provedor, já protegida pelos limites e pelos testes de cada fatia.
+
+**2.2 a 2.7 Uma fatia por rodada, nesta ordem**
 
 | Tarefa | Provedor | Conteúdo (hoje no `AppContext`) |
 |---|---|---|
@@ -198,12 +215,14 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 | 2.6 | `ComandasProvider` | comandas pendentes, travas, lançadas, realtime de comandas |
 | 2.7 | `CaixaProvider` | vendas, fechamentos, fundo, caixa aberto, movimentos, `addSale`, cancelamento, realtime de vendas |
 
-- Em cada rodada: valor do provedor memorizado com `useMemo`, funções com `useCallback`,
+- Em cada rodada: as chamadas ao Supabase daquele trecho saem para `features/*/dados/`
+  (tarefa 1.5), valor do provedor memorizado com `useMemo`, funções com `useCallback`,
   e `useApp()` continua funcionando como fachada que junta os provedores, para nenhuma tela
   quebrar no meio do caminho.
 - Os 10 arquivos `AppContext.*.test.jsx` acompanham o código para o provedor certo.
-- **Pronto quando (cada uma):** o provedor existe, os testes dele estão verdes e o
-  `AppContext.jsx` perdeu aquele trecho.
+- **Pronto quando (cada uma):** o contexto da fatia existe com valor memorizado, as
+  chamadas ao Supabase daquele assunto saíram do `AppContext.jsx`, e um teste prova que a
+  tela que usa o gancho não é redesenhada por mudança de outro assunto.
 
 **2.8 Remover a fachada**
 - As 61 telas que usam `useApp()` passam a usar o hook específico (`useSessao`, `useCaixa`
@@ -211,6 +230,13 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 - Inverter o teste da 2.1: mudar `movimentosCaixa` não redesenha mais a `CozinhaView`.
 - **Pronto quando:** `useApp` não existe mais e o `AppContext.jsx` foi removido ou só
   compõe os provedores.
+
+**2.9 Mover o estado para os provedores**
+- Com as telas já nos ganchos, o estado e as ações de cada assunto saem do `AppProvider`
+  para o arquivo do próprio provedor, um assunto por rodada, começando pela sessão.
+- O `bootstrap` vira a coordenação explícita entre provedores, e a fila offline ganha
+  testes de ponta a ponta antes de mudar de lugar.
+- **Pronto quando:** o `AppContext.jsx` foi removido ou só compõe os provedores.
 
 ### Fase 3, quebrar as telas grandes
 

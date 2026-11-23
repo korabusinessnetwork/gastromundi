@@ -1,3 +1,25 @@
+## Rodada 77, refatoração 2.1 e 2.2, prova de redesenho e fatia da sessão, 2026-11-23
+- Spec: specs/refatoracao-2-1-2-2-sessao.md
+- Resultado: 8 de 8 critérios em sim, aprovado sem ressalvas (suíte 251 / 4331 para 252 /
+  4334 mais 1 falha esperada, verde; `npm run build` limpo; lint 0 erros). Roteiro de
+  fotos: 0 diferença em 44 telas. Sem migration.
+- A decisão que a rodada precisou tomar: como dividir. O plano previa seis provedores donos
+  do próprio estado, mas o `bootstrap` lê todos os assuntos numa leva só e a fila offline
+  reenvia venda, comanda e estoque na mesma drenagem. Separar a posse do estado agora é o
+  caminho mais curto para quebrar o modo offline. A rodada separou primeiro o que a tela
+  enxerga: o `AppProvider` passa a fornecer um contexto por assunto, com valor memorizado,
+  e as ações ganham identidade fixa (`useFuncaoEstavel`). O ganho de desempenho chega
+  inteiro; a mudança de lugar do estado virou a tarefa 2.9, depois que as telas já
+  estiverem nos ganchos novos.
+- O que a rodada revelou de não óbvio: memorizar o valor sozinho não adianta nada, porque
+  as ações são recriadas a cada render e entram nas dependências. Sem identidade fixa nas
+  ações, o `useMemo` nunca acertaria. Com a referência que sempre aponta para a versão
+  atual, a ação continua lendo o estado do momento, e o valor só muda quando muda um dado.
+- A parte que quase passou batido: o teste da 2.1 precisava provar o problema sem ensinar
+  à suíte que o comportamento errado é o certo. `it.fails` descreve o desejado e passa
+  hoje porque falha; foi conferido numa cópia temporária que a falha é a contagem de
+  redesenhos (3 em vez de 2), e não outro erro qualquer.
+- Fica em aberto: 2.3 a 2.7 (as outras fatias), 2.8 e 2.9.
 ## Rodada 76, refatoração 1.6, salvar subproduto numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-6-salvar-subproduto.md
 - Resultado: 8 de 8 critérios em sim, aprovado sem ressalvas (suíte 250 / 4323 para 251 /

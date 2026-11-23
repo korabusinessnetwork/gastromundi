@@ -2,6 +2,13 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo, u
 import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
+import { SessaoContext } from "./SessaoContext";
+import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
+import { obterSessaoAuth, entrarComSenha, sairDoAuth, aoMudarSessaoAuth } from "@/features/sessao/dados/auth";
+import {
+  buscarUsuarioAtivoPorAuth, listarUsuariosAtivos, criarUsuario, atualizarUsuario,
+  excluirUsuario, listarPermissoesDosCargos, salvarPermissoesDoCargo,
+} from "@/features/sessao/dados/usuarios";
 import { buscarBootstrapTenant, moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
 import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/lib/loginTentativas";
@@ -207,7 +214,7 @@ export function AppProvider({ children }) {
 
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    obterSessaoAuth().then(async ({ data: { session } }) => {
       if (session && lerSessao().estado === "expirada") {
         // Teto de 8 horas vencido. O refresh token do Supabase vive muito mais
         // que isso, então sem este ramo bastava dar F5 para o `saveSession`
@@ -216,7 +223,7 @@ export function AppProvider({ children }) {
         tenantIdRef.current = null;
         setCurrentUser(null);
         clearSession();
-        await supabase.auth.signOut();
+        await sairDoAuth();
         setLoading(false);
         return;
       }
@@ -256,7 +263,7 @@ export function AppProvider({ children }) {
           tenantIdRef.current = null;
           setCurrentUser(null);
           clearSession();
-          await supabase.auth.signOut();
+          await sairDoAuth();
           setLoading(false);
         } else {
           // Não deu para ler o perfil (rede/servidor). Não dá para afirmar que
@@ -292,7 +299,7 @@ export function AppProvider({ children }) {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = aoMudarSessaoAuth(async (event) => {
       if (event === "SIGNED_OUT") {
         tenantIdRef.current = null;
         setCurrentUser(null);
@@ -315,7 +322,7 @@ export function AppProvider({ children }) {
   // manter). Ver `perfilInativoConfirmado`.
   async function buscarDadosUsuario(authId) {
     const selecionar = (cols) =>
-      supabase.from("users").select(cols).eq("auth_id", authId).eq("active", true).single();
+      buscarUsuarioAtivoPorAuth(authId, cols);
     let { data, error } = await selecionar("id,name,username,role,auth_id,permissions");
     if (error?.code === "42703") {
       permsColunaIndisponivelRef.current = true;
@@ -452,11 +459,10 @@ export function AppProvider({ children }) {
   const colunasRetornoUsers = () =>
     permsColunaIndisponivelRef.current ? COLUNAS_USERS : `${COLUNAS_USERS},permissions`;
   async function buscarUsers() {
-    const res = await supabase.from("users")
-      .select(`${COLUNAS_USERS},permissions`).eq("active", true);
+    const res = await listarUsuariosAtivos(`${COLUNAS_USERS},permissions`);
     if (res.error?.code === "42703") {
       permsColunaIndisponivelRef.current = true;
-      return supabase.from("users").select(COLUNAS_USERS).eq("active", true);
+      return listarUsuariosAtivos(COLUNAS_USERS);
     }
     return res;
   }
@@ -466,7 +472,7 @@ export function AppProvider({ children }) {
   // default do roles.js. Nunca lança, nunca bloqueia o bootstrap.
   async function buscarRolePermissions() {
     try {
-      const res = await supabase.from("role_permissions").select("role,permissions");
+      const res = await listarPermissoesDosCargos();
       if (res.error) return { data: [] };
       return res;
     } catch {
@@ -1058,10 +1064,7 @@ export function AppProvider({ children }) {
       return { error: `Conta bloqueada. Aguarde ${bloqueio.segundos}s.` };
     }
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password: sanitizeInput(password, 100),
-    });
+    const { data: authData, error: authError } = await entrarComSenha(email, sanitizeInput(password, 100));
 
     if (authError) {
       // Quem conta é o servidor; o local só guarda o que ele respondeu, para os
@@ -1085,7 +1088,7 @@ export function AppProvider({ children }) {
 
     const { usuario: userData } = await buscarDadosUsuario(authData.user.id);
     if (!userData) {
-      await supabase.auth.signOut();
+      await sairDoAuth();
       return { error: "Usuário não encontrado ou inativo." };
     }
 
@@ -1110,7 +1113,7 @@ export function AppProvider({ children }) {
     // carregamento usaria o refresh token para religar a sessão sem pedir
     // senha, e num PDV compartilhado isso é o próximo turno entrando como o
     // anterior. Então, se o servidor não confirmou, apagamos na mão.
-    const { error } = await supabase.auth.signOut();
+    const { error } = await sairDoAuth();
     if (error) esquecerTokenAuthLocal();
     return { error: error ?? null };
   };
@@ -1503,7 +1506,7 @@ export function AppProvider({ children }) {
       reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "addUser", tabela: "users", ignorados });
     }
     if (permsColunaIndisponivelRef.current) delete payload.permissions;
-    const { data, error } = await supabase.from("users").insert(payload).select(colunasRetornoUsers()).single();
+    const { data, error } = await criarUsuario(payload, colunasRetornoUsers());
     if (data) setUsersLocal(prev => [...prev, {
       ...data,
       permissoesOverride: data.permissions ?? null,
@@ -1525,11 +1528,7 @@ export function AppProvider({ children }) {
     // policy users_update exige admin) OU quando o id não bate. Sem checar
     // as linhas retornadas, a UI "atualizava" o estado local e fingia
     // sucesso sem nada persistir no banco.
-    const { data, error } = await supabase
-      .from("users")
-      .update(payload)
-      .eq("id", id)
-      .select(colunasRetornoUsers());
+    const { data, error } = await atualizarUsuario(id, payload, colunasRetornoUsers());
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateUser", tabela: "users", id });
@@ -1566,7 +1565,7 @@ export function AppProvider({ children }) {
     // remove usuários — ou id inexistente) resolve { error: null } no
     // supabase-js. Checar as linhas evita sucesso falso (mesmo padrão do
     // updateUser/cancelarVendaFechada).
-    const { data, error } = await supabase.from("users").delete().eq("id", id).select("id");
+    const { data, error } = await excluirUsuario(id);
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeUser", tabela: "users", id });
@@ -1591,10 +1590,7 @@ export function AppProvider({ children }) {
       permissions: permissoesCompletas,
       updated_at: new Date().toISOString(),
     };
-    const { data, error } = await supabase
-      .from("role_permissions")
-      .upsert(payload, { onConflict: "tenant_id,role" })
-      .select("role,permissions");
+    const { data, error } = await salvarPermissoesDoCargo(payload);
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "salvarPermissoesCargo", tabela: "role_permissions", role });
@@ -2111,6 +2107,33 @@ export function AppProvider({ children }) {
     setTenantLocal((anterior) => (anterior ? { ...anterior, tema: linhaDoTenant.tema ?? null } : anterior));
   }, []);
 
+  // ── Fatia da sessão (tarefa 2.2) ──────────────────────────────
+  // Valor memorizado: só muda quando muda um DADO da sessão. As ações têm
+  // identidade fixa (useFuncaoEstavel) e chamam sempre a versão atual.
+  const loginEstavel                 = useFuncaoEstavel(login);
+  const logoutEstavel                = useFuncaoEstavel(logout);
+  const addUserEstavel               = useFuncaoEstavel(addUser);
+  const updateUserEstavel            = useFuncaoEstavel(updateUser);
+  const removeUserEstavel            = useFuncaoEstavel(removeUser);
+  const salvarPermissoesCargoEstavel = useFuncaoEstavel(salvarPermissoesCargo);
+  const moduloHabilitadoEstavel      = useFuncaoEstavel(moduloHabilitadoNoPlano);
+  const addonHabilitadoEstavel       = useFuncaoEstavel(addonHabilitadoNoTenant);
+  const valorSessao = useMemo(() => ({
+    currentUser, users, tenant,
+    assinatura: tenant?.assinatura ?? null,
+    rolePermissions,
+    // Mudam junto com `tenant`, que está nas dependências: quem consulta o
+    // plano é redesenhado quando o plano muda.
+    moduloHabilitado: moduloHabilitadoEstavel,
+    addonHabilitado: addonHabilitadoEstavel,
+    aplicarTenantSalvo,
+    login: loginEstavel, logout: logoutEstavel,
+    addUser: addUserEstavel, updateUser: updateUserEstavel, removeUser: removeUserEstavel,
+    salvarPermissoesCargo: salvarPermissoesCargoEstavel,
+  }), [currentUser, users, tenant, rolePermissions, aplicarTenantSalvo,
+    moduloHabilitadoEstavel, addonHabilitadoEstavel, loginEstavel, logoutEstavel,
+    addUserEstavel, updateUserEstavel, removeUserEstavel, salvarPermissoesCargoEstavel]);
+
   const value = {
     loading,
     // dados
@@ -2170,6 +2193,7 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={value}>
+      <SessaoContext.Provider value={valorSessao}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -2182,6 +2206,7 @@ export function AppProvider({ children }) {
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
+      </SessaoContext.Provider>
     </AppContext.Provider>
   );
 }
