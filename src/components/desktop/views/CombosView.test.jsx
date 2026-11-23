@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 //
-// B2 da auditoria — ao editar um combo, a composição é recriada: apaga as
-// junções e insere as novas. Os dois deletes não eram conferidos, então uma
-// falha de permissão deixava a composição antiga somada à nova — o combo
-// passava a levar o dobro dos itens (e a baixar o dobro do estoque).
-// Junto vão os dois outros defeitos da mesma tela: falha de carga virava
+// B2 da auditoria: ao editar um combo, a composição era recriada em chamadas
+// soltas, e uma falha no meio deixava o combo com itens a mais ou a menos. A
+// tarefa 1.1 do plano de refatoração moveu o salvamento para a RPC atômica
+// `salvar_combo`. Junto vão os dois outros defeitos da mesma tela: falha de carga virava
 // "Nenhum combo criado", e o toggle Ativo/Inativo mudava a tela sem mudar o
 // banco.
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -126,57 +125,72 @@ describe("CombosView, editar combo (B2)", () => {
       method === "select" ? { data: [], error: null } : undefined);
   }
 
-  it("falha ao apagar os subprodutos antigos interrompe o salvamento (sem duplicar a composição)", async () => {
-    await montarComCombo();
-    composicaoCarregada();
-    const user = userEvent.setup();
-    await abrirEdicao(user);
+  // Tarefa 1.1 do plano de refatoração: o salvamento virou uma chamada só à
+  // RPC `salvar_combo`, que grava combo e composição na mesma transação. O
+  // cenário B2 (delete falha e os inserts seguem) deixou de existir no
+  // navegador: quem garante "tudo ou nada" é o banco, coberto pelo guard
+  // salvarComboSqlGuard.test.js. Aqui fica o contrato da tela.
 
-    mockSupabase.current.setTableHandler("combo_subprodutos", ({ method }) =>
-      method === "delete" ? { data: null, error: { message: "permission denied" } } : undefined);
-
-    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
-
-    await waitFor(() => expect(screen.getByText(/permission denied/i)).toBeInTheDocument());
-    // Nenhum insert: senão o combo ficaria com a composição antiga + a nova.
-    const inserts = mockSupabase.current.calls.filter(
-      (c) => c.method === "insert" && (c.table === "combo_subprodutos" || c.table === "combo_produtos"),
+  /** Nenhuma escrita direta nas tabelas do combo: tudo passa pela RPC. */
+  function escritasDiretas() {
+    return mockSupabase.current.calls.filter(
+      (c) => ["insert", "update", "delete", "upsert"].includes(c.method)
+        && ["combos", "combo_subprodutos", "combo_produtos"].includes(c.table),
     );
-    expect(inserts).toHaveLength(0);
-    // Modal continua aberto — o salvamento não terminou.
-    expect(screen.getByText("Editar Combo")).toBeInTheDocument();
-  });
+  }
 
-  it("falha ao apagar os produtos antigos interrompe o salvamento", async () => {
+  it("edição bem-sucedida grava tudo numa chamada só e fecha o modal", async () => {
     await montarComCombo();
     composicaoCarregada();
-    const user = userEvent.setup();
-    await abrirEdicao(user);
-
-    mockSupabase.current.setTableHandler("combo_produtos", ({ method }) =>
-      method === "delete" ? { data: null, error: { message: "delete recusado" } } : undefined);
-
-    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
-
-    await waitFor(() => expect(screen.getByText(/delete recusado/i)).toBeInTheDocument());
-    const inserts = mockSupabase.current.calls.filter(
-      (c) => c.method === "insert" && (c.table === "combo_subprodutos" || c.table === "combo_produtos"),
-    );
-    expect(inserts).toHaveLength(0);
-  });
-
-  it("edição bem-sucedida apaga antes de inserir e fecha o modal", async () => {
-    await montarComCombo();
-    composicaoCarregada();
+    mockSupabase.current.setRpcResult("salvar_combo", { data: COMBO.id, error: null });
     const user = userEvent.setup();
     await abrirEdicao(user);
 
     await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
 
     await waitFor(() => expect(screen.queryByText("Editar Combo")).not.toBeInTheDocument());
-    const ordem = mockSupabase.current.calls
-      .filter(c => c.table === "combo_subprodutos" && (c.method === "delete" || c.method === "insert"))
-      .map(c => c.method);
-    expect(ordem).toEqual(["delete", "insert"]);
+    const chamadas = mockSupabase.current.calls.filter((c) => c.rpc === "salvar_combo");
+    expect(chamadas).toHaveLength(1);
+    expect(chamadas[0].args[0]).toMatchObject({
+      p_combo_id: COMBO.id,
+      p_nome: "Combo X",
+      p_item_principal_id: 7,
+      p_subprodutos: [{ subproduto_id: SUB.id, quantidade: 1, preco_customizado: null }],
+      p_produtos: [],
+    });
+    expect(escritasDiretas()).toHaveLength(0);
+  });
+
+  it("recusa do banco aparece na tela e o modal continua aberto", async () => {
+    await montarComCombo();
+    composicaoCarregada();
+    mockSupabase.current.setRpcError("salvar_combo", {
+      code: "P0002",
+      message: "Este combo não existe mais, ou seu usuário não pode alterá-lo.",
+    });
+    const user = userEvent.setup();
+    await abrirEdicao(user);
+
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(screen.getByText(/este combo não existe mais/i)).toBeInTheDocument());
+    expect(screen.getByText("Editar Combo")).toBeInTheDocument();
+    expect(escritasDiretas()).toHaveLength(0);
+  });
+
+  it("recusa da RLS vira frase que diz o que fazer", async () => {
+    await montarComCombo();
+    composicaoCarregada();
+    mockSupabase.current.setRpcError("salvar_combo", {
+      code: "42501",
+      message: 'new row violates row-level security policy for table "combos"',
+    });
+    const user = userEvent.setup();
+    await abrirEdicao(user);
+
+    await user.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => expect(screen.getByText(/peça a um gerente/i)).toBeInTheDocument());
+    expect(screen.queryByText(/row-level security/i)).not.toBeInTheDocument();
   });
 });

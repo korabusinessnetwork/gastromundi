@@ -1,3 +1,23 @@
+## Rodada 71, refatoração 1.1, salvar combo numa transação só, 2026-11-23
+- Spec: specs/refatoracao-1-1-salvar-combo.md
+- Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 243 arquivos / 4280
+  testes para 246 / 4297, verde; `npm run build` limpo; lint 0 erros). Chamadas ao Supabase
+  em telas: 64 para 58. Migration `20261123` ainda não aplicada em produção.
+- A decisão que a rodada precisou tomar: `SECURITY INVOKER`, e não `DEFINER` como as RPCs
+  anteriores. A função roda com as permissões de quem chama, então as policies de papel e
+  de estabelecimento que já existem valem sem reescrita, e nenhum privilégio novo nasce.
+  O único caso que a RLS não transforma em erro é o UPDATE que não acha a linha (zero
+  linhas, sem erro), e a função converte esse silêncio em recusa `P0002`.
+- O que a rodada revelou de não óbvio: guard que lê o texto da migration não prova que a
+  função funciona. A rodada subiu um Postgres local com as policies copiadas de produção e
+  rodou dez cenários como usuário autenticado (`supabase/tests/`). Foi isso que mostrou
+  que o comentário da migration estava errado: dizia que a função dependia da `20260923`, e
+  não depende, porque a composição só é gravada depois de passar pela policy de `combos`.
+- A parte que quase passou batido: lendo as policies de produção para montar o teste, a
+  `20260923` (fecha a policy `allow_all` de `combo_produtos`) apareceu **sem aplicar**. Hoje
+  qualquer garçom ou caixa logado altera a composição de um combo direto pela API. As
+  outras migrations recentes, inclusive as que só mexem em policy, estão aplicadas.
+- Fica em aberto: aplicar `20260923` e `20261123` em produção (decisão do dono, D6).
 ## Rodada 70, refatoração fase 0, linha de base e ferramentas, 2026-11-23
 - Spec: specs/refatoracao-fase-0-base.md
 - Resultado: 14 de 14 critérios em sim, aprovado sem ressalvas. Os tipos do banco (60

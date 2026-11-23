@@ -2,6 +2,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
+import { salvarCombo } from "@/features/cardapio/dados/combos";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -200,54 +201,10 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
     setSalvando(true);
     setErro("");
     try {
-      const payload = {
-        nome:              nome.trim(),
-        item_principal_id: Number(principal.id),
-        modo,
-        preco_total:       precoTotal,
-        updated_at:        new Date().toISOString(),
-      };
-
-      let comboId = combo?.id;
-      if (isEdit) {
-        const { error } = await supabase.from("combos").update(payload).eq("id", comboId);
-        if (error) throw error;
-        // Recria a composição (subprodutos + produtos adicionais). O delete
-        // PRECISA ser conferido: se ele falha e os inserts seguem, o combo
-        // fica com a composição antiga somada à nova — o cliente recebe (e o
-        // estoque baixa) o dobro dos itens.
-        const { error: errDelSubs } = await supabase.from("combo_subprodutos").delete().eq("combo_id", comboId);
-        if (errDelSubs) throw errDelSubs;
-        const { error: errDelProds } = await supabase.from("combo_produtos").delete().eq("combo_id", comboId);
-        if (errDelProds) throw errDelProds;
-      } else {
-        const { data, error } = await supabase.from("combos").insert({ ...payload, ativo: true }).select().single();
-        if (error) throw error;
-        comboId = data.id;
-      }
-
-      if (itens.length > 0) {
-        const subs = itens.map(it => ({
-          combo_id:          comboId,
-          subproduto_id:     it.subproduto.id,
-          quantidade:        it.quantidade,
-          preco_customizado: it.usarCustom ? (parseFloat(String(it.precoCustom).replace(",", ".")) || null) : null,
-        }));
-        const { error: errSubs } = await supabase.from("combo_subprodutos").insert(subs);
-        if (errSubs) throw errSubs;
-      }
-
-      if (itensProd.length > 0) {
-        const prods = itensProd.map(it => ({
-          combo_id:          comboId,
-          produto_id:        Number(it.produto.id),
-          quantidade:        it.quantidade,
-          preco_customizado: it.usarCustom ? (parseFloat(String(it.precoCustom).replace(",", ".")) || null) : null,
-        }));
-        const { error: errProds } = await supabase.from("combo_produtos").insert(prods);
-        if (errProds) throw errProds;
-      }
-
+      // Combo e composição numa transação só (tarefa 1.1 do plano de
+      // refatoração): antes eram até cinco chamadas soltas, e uma queda de
+      // rede depois dos deletes deixava o combo gravado sem itens.
+      await salvarCombo({ comboId: combo?.id, nome, principal, modo, precoTotal, itens, itensProd });
       onSalvo();
     } catch (e) {
       setErro(e.message ?? "Erro ao salvar.");
