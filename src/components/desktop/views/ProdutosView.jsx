@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { lerCategoriasExtra, salvarCategoriasExtra } from "@/features/cardapio/dados/categorias";
@@ -18,108 +18,10 @@ import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
 import { novoUid } from "@/lib/uidLista";
 import "./ProdutosView.css";
-
-// TD015: a lista de fornecedores é editada linha a linha e removida do meio, e o
-// cartão em edição é apontado por posição (`editingCompra === idx`). Por isso cada
-// linha nasce com `uid`, que existe só no state: o save monta `unidades_compra`
-// campo a campo, então ele não chega ao banco.
-const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
-
-const EMPTY_FORM = {
-  name: "", price: "", category: "", emoji: "",
-  unidade_estoque: "",
-  compras: [],
-  unidade_consumo: "",
-  fator_consumo: "",       // crítico 7 — quantas unidades de ESTOQUE 1 unidade de consumo gasta; vazio = 1
-  codigo_barras: "",
-  validade_dias: "",       // C1 — shelf life típico (dias); vazio = sem controle
-  proxima_validade: "",    // C1 — próxima data a acompanhar (YYYY-MM-DD)
-};
-
-const CATS_VISIVEIS = 6; // quantas categorias mostrar antes do "Mais"
-
-// Balde de fallback: ao excluir uma categoria que ainda tem produtos, eles são
-// movidos para cá em vez de bloquear a exclusão (nunca se perde produto). É uma
-// categoria automática — não pode ser renomeada nem excluída.
-const CAT_SEM_CATEGORIA = "Sem Categoria";
-
-function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBusca, sz }) {
-  const todas = ["Todos", ...categorias];
-  const visiveis = todas.slice(0, CATS_VISIVEIS);
-  const extras   = todas.slice(CATS_VISIVEIS);
-  const [aberto, setAberto] = useState(false);
-  const dropRef = useRef(null);
-
-  // fecha dropdown ao clicar fora
-  useEffect(() => {
-    if (!aberto) return;
-    const handler = (e) => {
-      if (dropRef.current && !dropRef.current.contains(e.target)) setAberto(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [aberto]);
-
-  const btnCat = (cat, small = false) => {
-    const ativo = catFiltro === cat;
-    return (
-      <button
-        key={cat}
-        onClick={() => { setCatFiltro(cat); setAberto(false); }}
-        className="categorias-busca__cat"
-        style={{
-          padding: small ? "6px 14px" : "7px 18px",
-          background: ativo ? varColor(C.accent) : varColor(C.surface),
-          color: ativo ? "#fff" : varColor(C.muted),
-          width: small ? "100%" : undefined,
-        }}
-      >
-        {cat}
-      </button>
-    );
-  };
-
-  return (
-    <div className="categorias-busca" style={{ padding: `12px ${sz.pad}px` }}>
-      {/* Categorias visíveis */}
-      <div className="categorias-busca__lista">
-        {visiveis.map(cat => btnCat(cat))}
-
-        {/* Botão "Mais categorias" */}
-        {extras.length > 0 && (
-          <div ref={dropRef} className="categorias-busca__mais-wrap">
-            <button
-              onClick={() => setAberto(v => !v)}
-              className="categorias-busca__cat"
-              style={{
-                padding: "7px 18px",
-                background: (aberto || extras.includes(catFiltro)) ? varColor(C.accent) : varColor(C.surface),
-                color: (aberto || extras.includes(catFiltro)) ? "#fff" : varColor(C.muted),
-              }}
-            >
-              {extras.includes(catFiltro) ? catFiltro : `+ ${extras.length} mais`} ▾
-            </button>
-
-            {aberto && (
-              <div className="categorias-busca__mais-dropdown">
-                {extras.map(cat => btnCat(cat, true))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Campo de busca */}
-      <input
-        value={busca}
-        onChange={e => setBusca(e.target.value)}
-        placeholder="Buscar produto..."
-        className="categorias-busca__input"
-        style={{ padding: "9px 16px" }}
-      />
-    </div>
-  );
-}
+import CategoriasComBusca from "./produtos/CategoriasComBusca";
+import Label from "./produtos/Label";
+import Input from "./produtos/Input";
+import { EMPTY_COMPRA, EMPTY_FORM, CAT_SEM_CATEGORIA } from "./produtos/apoio";
 
 export default function ProdutosView() {
   const { currentUser, loading } = useSessao();
@@ -975,14 +877,3 @@ export default function ProdutosView() {
     </div>
   );
 }
-
-function Label({ children }) {
-  return <div className="produtos-view__label">{children}</div>;
-}
-
-function Input({ value, onChange, placeholder, maxLength, style, type }) {
-  return (
-    <input type={type ?? "text"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} maxLength={maxLength} className="produtos-view__input" style={style} />
-  );
-}
-

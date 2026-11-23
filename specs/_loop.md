@@ -1,3 +1,15 @@
+## Rodada 87, refatoração 3, lote de oito telas, um componente por arquivo, 2026-11-23
+- Spec: specs/refatoracao-3-lote-um-componente-por-arquivo.md
+- Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4357
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. Arquivos acima de 600 linhas: 20 para 15.
+- Admin, Impostos, Pontos de impressão, Combos e Clientes saíram do limite. Relatórios,
+  Notas Fiscais e Produtos ficaram menores mas ainda acima, porque o componente principal
+  delas é grande por si; vão para a rodada de ganchos.
+- O que a rodada revelou: o script de recorte perdia a linha de fechamento quando o último
+  import do cabeçalho tinha várias linhas (`} from "react-icons/lu";`). O lint pegou nos
+  Relatórios e nas Notas Fiscais, antes de qualquer teste; o script foi corrigido e o lote
+  inteiro refeito a partir dos originais.
 ## Rodada 86, refatoração 3.1 e 3.3, um componente por arquivo na Delivery e nas Configurações, 2026-11-23
 - Spec: specs/refatoracao-3-1-e-3-3-um-componente-por-arquivo.md
 - Resultado: 5 de 5 critérios em sim; suíte 255 arquivos / 4357 testes, verde; `npm run build` limpo; lint 0

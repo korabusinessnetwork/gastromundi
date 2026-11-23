@@ -273,7 +273,9 @@ fatias, como o `PDVView` e o `DeliveryView` já saíram na F018.
 
 **Andamento:** 3.1 e 3.3 feitas em 2026-11-23, um componente por arquivo (Delivery com
 355 linhas, Configurações com 82). O menu e a galeria de fotos da Delivery viraram o
-gancho `features/delivery/hooks/useGaleriaFotos.js`.
+gancho `features/delivery/hooks/useGaleriaFotos.js`. No mesmo dia, um componente por arquivo
+em Admin (3.7), Impostos, Pontos de impressão, Combos e Clientes, que saíram do limite, e em
+Relatórios, Notas Fiscais e Produtos, que ficaram menores mas ainda pedem ganchos.
 
 ### Fase 4, celular e computador compartilham a lógica
 
