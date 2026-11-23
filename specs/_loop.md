@@ -1,4 +1,4 @@
-## Rodada 70 — Refatoração, fase 0: linha de base e ferramentas — 2026-11-23
+## Rodada 70, refatoração fase 0, linha de base e ferramentas, 2026-11-23
 - Spec: specs/refatoracao-fase-0-base.md
 - Resultado: 13 de 14 critérios em sim. O critério 9 (tipos gerados do banco) depende do
   token do Supabase (decisão D5) e fica aberto até o dono entregar. Suíte 242 arquivos /
