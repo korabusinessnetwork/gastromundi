@@ -71,3 +71,23 @@ sudo -u postgres psql -q -d teste_unidade -f supabase/tests/excluir_unidade_medi
 5. Unidade que não existe mais: recusa `P0002`.
 6. Unidade de outro estabelecimento: invisível, recusa `P0002`, nada muda.
 7. Anônimo não executa a função.
+
+## Cenários de `salvar_subproduto` (2026-11-23, todos conformes)
+
+```
+sudo -u postgres psql -q -f supabase/tests/salvar_subproduto_base.sql
+sudo -u postgres psql -q -d teste_subproduto -f supabase/migrations/20261126_salvar_subproduto_atomico.sql
+sudo -u postgres psql -q -d teste_subproduto -f supabase/tests/salvar_subproduto_cenarios.sql
+```
+
+1. Gerente cria subproduto que controla estoque: subproduto e saldo juntos.
+2. Edição muda cadastro e saldo.
+3. Mínimo negativo é recusado antes de gravar: nada muda.
+3b. O saldo falha **depois** do subproduto ter sido inserido (restrição temporária criada só no teste): o subproduto novo também some. Era o defeito de antes.
+4. Caixa cria: recusa `42501`, nenhum saldo órfão.
+5. Caixa edita: recusa `P0002`, saldo não muda.
+6. Deixar de controlar estoque não apaga o saldo antigo.
+7. Nome vazio, preço negativo e quantidade `NaN`: recusa `P0001`.
+8. Subproduto de outro estabelecimento: recusa `P0002`.
+9. Estado final confere com os passos acima.
+10. Anônimo não executa a função.

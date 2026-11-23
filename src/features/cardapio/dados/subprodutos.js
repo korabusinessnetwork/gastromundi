@@ -13,25 +13,33 @@ export function listarUsosEmCombos() {
   return supabase.from("combo_subprodutos").select("subproduto_id");
 }
 
-export function atualizarSubproduto(id, campos) {
-  return supabase.from("subprodutos").update(campos).eq("id", id);
-}
-
-export function criarSubproduto(campos) {
-  return supabase.from("subprodutos").insert(campos).select("id").single();
-}
-
 /**
- * Saldo do subproduto. Gravado DEPOIS do subproduto, numa chamada separada:
- * as duas ainda não são atômicas (tarefa 1.6 do plano).
+ * Grava o subproduto e, se ele controla estoque, o saldo, numa transação só:
+ * ou tudo, ou nada (tarefa 1.6 do plano). Antes eram duas chamadas, e uma
+ * falha na segunda deixava o subproduto criado: o "tentar de novo" duplicava.
+ *
+ * @returns {Promise<string>} id do subproduto
  */
-export function gravarSaldoSubproduto(subprodutoId, { quantidade, minimo }) {
-  return supabase
-    .from("estoque_subprodutos")
-    .upsert(
-      { subproduto_id: subprodutoId, quantidade, minimo, updated_at: new Date().toISOString() },
-      { onConflict: "subproduto_id" },
-    );
+export async function salvarSubproduto({ id, nome, categoria, preco, unidadeMedida, controlaEstoque, ativo, quantidade, minimo }) {
+  const { data, error } = await supabase.rpc("salvar_subproduto", {
+    p_id: id ?? null,
+    p_nome: nome,
+    p_categoria: categoria,
+    p_preco: preco,
+    p_unidade_medida: unidadeMedida,
+    p_controla_estoque: controlaEstoque,
+    p_ativo: ativo,
+    p_quantidade: controlaEstoque ? quantidade : null,
+    p_minimo: controlaEstoque ? minimo : null,
+  });
+  if (error) throw new Error(mensagemDeRecusaSubproduto(error));
+  return data;
+}
+
+/** A recusa da RLS chega em inglês técnico; as da própria função já vêm escritas. */
+export function mensagemDeRecusaSubproduto(error) {
+  if (error?.code === "42501") return "Seu usuário não pode alterar subprodutos. Peça a um gerente ou ao administrador.";
+  return error?.message || "Não deu para salvar o subproduto. Nada foi gravado, tente de novo.";
 }
 
 export function alterarSituacaoSubproduto(id, ativo) {

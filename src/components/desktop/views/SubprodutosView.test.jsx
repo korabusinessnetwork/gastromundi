@@ -156,3 +156,51 @@ describe("SubprodutosView, exclusão", () => {
     expect(screen.getByRole("cell", { name: "Batata média" })).toBeInTheDocument();
   });
 });
+
+// Tarefa 1.6 do plano de refatoração: subproduto e saldo gravam pela RPC
+// atômica `salvar_subproduto`. Antes eram duas chamadas, e uma falha na
+// segunda deixava o subproduto criado: o "tentar de novo" duplicava. O "tudo
+// ou nada" é do banco (supabase/tests/salvar_subproduto_cenarios.sql, 3b).
+describe("SubprodutosView, salvar", () => {
+  function escritasDiretas() {
+    return mockSupabase.current.calls.filter(
+      (c) => ["insert", "update", "delete", "upsert"].includes(c.method)
+        && ["subprodutos", "estoque_subprodutos"].includes(c.table),
+    );
+  }
+
+  async function criarFritas(user) {
+    render(<SubprodutosView sz={SZ} />);
+    await screen.findByText("Batata média");
+    await user.click(screen.getByRole("button", { name: /novo subproduto/i }));
+    await user.type(screen.getByPlaceholderText(/ex: fritas p/i), "Fritas P");
+    // Campo `type="number"`: o jsdom descarta a vírgula que o navegador aceita.
+    await user.type(screen.getByPlaceholderText("0,00"), "7.5");
+    await user.click(screen.getByRole("button", { name: /criar subproduto/i }));
+  }
+
+  it("criar faz uma chamada só, à RPC, e fecha o modal", async () => {
+    mockSupabase.current.setRpcResult("salvar_subproduto", { data: "sp-1", error: null });
+    const user = userEvent.setup();
+    await criarFritas(user);
+
+    await waitFor(() => expect(screen.queryByText("Novo Subproduto", { selector: "div" })).not.toBeInTheDocument());
+    const chamadas = mockSupabase.current.calls.filter((c) => c.rpc === "salvar_subproduto");
+    expect(chamadas).toHaveLength(1);
+    expect(chamadas[0].args[0]).toMatchObject({ p_id: null, p_nome: "Fritas P", p_preco: 7.5, p_quantidade: null, p_minimo: null });
+    expect(escritasDiretas()).toHaveLength(0);
+  });
+
+  it("recusa do banco mantém o modal aberto, diz o motivo e não grava nada", async () => {
+    mockSupabase.current.setRpcError("salvar_subproduto", {
+      code: "42501",
+      message: 'new row violates row-level security policy for table "subprodutos"',
+    });
+    const user = userEvent.setup();
+    await criarFritas(user);
+
+    expect(await screen.findByText(/peça a um gerente ou ao administrador/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /criar subproduto/i })).toBeInTheDocument();
+    expect(escritasDiretas()).toHaveLength(0);
+  });
+});

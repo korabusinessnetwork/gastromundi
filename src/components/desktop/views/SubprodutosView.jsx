@@ -2,8 +2,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  listarSubprodutos, listarUsosEmCombos, atualizarSubproduto, criarSubproduto,
-  gravarSaldoSubproduto, alterarSituacaoSubproduto, excluirSubproduto,
+  listarSubprodutos, listarUsosEmCombos, salvarSubproduto, alterarSituacaoSubproduto, excluirSubproduto,
 } from "@/features/cardapio/dados/subprodutos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -69,31 +68,18 @@ function ModalSubproduto({ item, onClose, onSalvo }) {
     if (form.controla_estoque && (isNaN(minimo) || minimo < 0))         { setErro("Estoque mínimo inválido.");        return; }
     setSalvando(true);
     setErro("");
-    const payload = {
-      nome,
-      categoria:        form.categoria,
-      preco,
-      unidade_medida:   form.unidade_medida,
-      controla_estoque: form.controla_estoque,
-      ativo:            form.ativo,
-      updated_at:       new Date().toISOString(),
-    };
     try {
-      let subprodutoId = item?.id ?? null;
-      if (item) {
-        const { error } = await atualizarSubproduto(item.id, payload);
-        if (error) throw error;
-      } else {
-        const { data, error } = await criarSubproduto(payload);
-        if (error) throw error;
-        subprodutoId = data?.id ?? null;
-      }
-      // B4 — saldo de estoque do subproduto (tabela estoque_subprodutos),
-      // mesmo padrão de upsert do estoque de produtos.
-      if (form.controla_estoque && subprodutoId != null) {
-        const { error } = await gravarSaldoSubproduto(subprodutoId, { quantidade, minimo });
-        if (error) throw error;
-      }
+      await salvarSubproduto({
+        id:              item?.id,
+        nome,
+        categoria:       form.categoria,
+        preco,
+        unidadeMedida:   form.unidade_medida,
+        controlaEstoque: form.controla_estoque,
+        ativo:           form.ativo,
+        quantidade,
+        minimo,
+      });
       onSalvo();
     } catch (e) {
       setErro(e.message ?? "Erro ao salvar.");

@@ -1,3 +1,18 @@
+## Rodada 76, refatoração 1.6, salvar subproduto numa transação só, 2026-11-23
+- Spec: specs/refatoracao-1-6-salvar-subproduto.md
+- Resultado: 8 de 8 critérios em sim, aprovado sem ressalvas (suíte 250 / 4323 para 251 /
+  4331, verde; `npm run build` limpo; lint 0 erros). Migration `20261126` ainda não
+  aplicada em produção.
+- O que a rodada revelou de não óbvio: os cenários das rodadas 71 a 73 provavam o "tudo ou
+  nada" com falhas que acontecem naturalmente no meio (chave estrangeira, outro
+  estabelecimento). Aqui não existe falha natural entre as duas gravações, porque o
+  gerente pode as duas. O cenário 3b cria uma restrição temporária só no teste para o
+  saldo falhar depois do subproduto inserido, e prova que o subproduto some junto. Sem
+  esse truque, o teste da propriedade central passaria sem exercitá-la.
+- A parte que quase passou batido: o teste de tela digitou "7,5" no preço e o banco
+  recebeu 75. Não era bug da tela: o campo é `type="number"`, o navegador em português
+  aceita a vírgula e o jsdom a descarta. O teste digita com ponto e diz por quê.
+- Fica em aberto: aplicar `20261126` em produção (decisão do dono, D6).
 ## Rodada 75, refatoração 1.4, nenhuma tela fala com o Supabase direto, 2026-11-23
 - Spec: specs/refatoracao-1-4-dados-nas-telas.md
 - Resultado: 6 de 6 critérios em sim nas três fatias, aprovado sem ressalvas (suíte 249 /
