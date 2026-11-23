@@ -74,6 +74,25 @@ describe("UnidadesMedidaTab, carga da lista", () => {
   });
 });
 
+describe("UnidadesMedidaTab, quem pode editar", () => {
+  it("gerente vê as unidades em modo leitura, sem remover nem adicionar", async () => {
+    setAppMock({ currentUser: { name: "Gê", username: "ge", role: "gerente" } });
+    await montarComKg();
+
+    expect(screen.getByText(/só o administrador pode adicionar ou remover/i)).toBeInTheDocument();
+    expect(screen.queryByTitle("Remover")).not.toBeInTheDocument();
+    expect(screen.queryAllByPlaceholderText("abrev.")).toHaveLength(0);
+  });
+
+  it("admin vê remover e adicionar, sem o aviso de leitura", async () => {
+    await montarComKg();
+
+    expect(screen.getByTitle("Remover")).toBeInTheDocument();
+    expect(screen.getAllByPlaceholderText("abrev.").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/só o administrador pode adicionar ou remover/i)).not.toBeInTheDocument();
+  });
+});
+
 describe("UnidadesMedidaTab, contagem antes de excluir (B1)", () => {
   it("não abre a confirmação se não deu para contar os produtos afetados", async () => {
     await montarComKg();

@@ -1,3 +1,15 @@
+## Rodada 74, botões de unidade de medida só para quem pode, 2026-11-23
+- Pedido: "faça o recomendado" sobre a decisão deixada na rodada 73.
+- Resultado: aprovado sem ressalvas (suíte 250 arquivos / 4320 testes, verde; build limpo;
+  lint 0 erros). Sem migration.
+- O que mudou: as duas telas mostravam adicionar e remover unidade para o gerente, e a
+  policy `unidades_write_admin` do banco, desde 2024, só deixa o admin gravar. Os botões
+  falhavam sempre para o gerente, inclusive o de adicionar, que a rodada 73 nem tinha
+  olhado. A documentação não fala do assunto, então valeu a regra do banco: o gerente vê a
+  lista em modo leitura, com uma frase dizendo que só o administrador altera. É o princípio
+  nº 1 do CLAUDE.md, prevenção antes de mensagem de erro.
+- Fica em aberto: se o dono quiser que o gerente edite unidades, é uma migration na policy,
+  e as duas telas voltam a liberar trocando uma linha cada.
 ## Rodada 73, refatoração 1.3, excluir unidade de medida numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-3-excluir-unidade.md
 - Resultado: 9 de 9 critérios em sim, aprovado sem ressalvas (suíte 248 arquivos / 4313

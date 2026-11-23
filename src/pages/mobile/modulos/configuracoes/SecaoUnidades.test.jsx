@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 //
 // Tarefa 1.3 do plano de refatoração: o celular exclui unidade pela mesma RPC
-// atômica do computador. Antes rodava quatro passos soltos, e o gerente (que
-// vê o botão aqui) desvinculava os produtos sem conseguir apagar a unidade.
+// atômica do computador. Antes rodava quatro passos soltos, e o gerente
+// desvinculava os produtos sem conseguir apagar a unidade. Agora o gerente nem
+// vê o botão: só o admin grava unidade, como diz a policy do banco.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -45,7 +46,20 @@ async function abrirConfirmacao(user) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSupabase.current?.reset?.();
-  setAppMock({ currentUser: { name: "Gê", username: "ge", role: "gerente" } });
+  setAppMock({ currentUser: { name: "Ana", username: "ana", role: "admin" } });
+});
+
+describe("SecaoUnidades, quem pode editar", () => {
+  it("gerente vê a lista em modo leitura, sem adicionar nem remover", async () => {
+    setAppMock({ currentUser: { name: "Gê", username: "ge", role: "gerente" } });
+    mockSupabase.current.setTableResult("unidades_medida", { data: [KG], error: null });
+    renderWithProviders(<SecaoUnidades />);
+
+    expect(await screen.findByText("Quilograma")).toBeInTheDocument();
+    expect(screen.getByText(/só o administrador pode adicionar ou remover/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remover unidade Quilograma" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Abreviação da unidade")).not.toBeInTheDocument();
+  });
 });
 
 describe("SecaoUnidades, exclusão", () => {

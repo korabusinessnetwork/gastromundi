@@ -1034,7 +1034,10 @@ export function UnidadesMedidaTab({ sz }) {
   const [deletando,   setDeletando]   = useState(false);
   const [erro,        setErro]        = useState("");
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Só o admin grava unidade: é a policy `unidades_write_admin` do banco.
+  // Mostrar adicionar e remover ao gerente era oferecer botões que sempre
+  // falham; agora ele vê a lista em modo leitura e sabe a quem pedir.
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     supabase.from("unidades_medida").select("*").order("ordem").order("nome")
@@ -1124,6 +1127,11 @@ export function UnidadesMedidaTab({ sz }) {
   return (
     <>
     <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+      {!isAdmin && (
+        <div className="unidades-medida-tab__leitura">
+          Só o administrador pode adicionar ou remover unidades de medida. Aqui você confere as que estão cadastradas.
+        </div>
+      )}
       {/* Fora do diálogo: falhas de carga, de adição e da checagem pré-exclusão. */}
       {erro && !deleteInfo && (
         <div className="unidades-medida-tab__erro" role="alert">{erro}</div>

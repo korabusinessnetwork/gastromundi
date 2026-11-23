@@ -44,7 +44,8 @@ const EMPTY_ADD = { abbr: "", nome: "" };
 
 export default function SecaoUnidades() {
   const { currentUser } = useApp();
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  // Só o admin grava unidade (policy `unidades_write_admin`), igual no computador.
+  const isAdmin = currentUser?.role === "admin";
 
   const [unidades, setUnidades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -237,7 +238,7 @@ export default function SecaoUnidades() {
 
       {!isAdmin && (
         <p className="cfg-nota">
-          Você está em modo leitura: só administrador ou gerente podem adicionar ou remover unidades de medida.
+          Você está em modo leitura: só o administrador pode adicionar ou remover unidades de medida.
         </p>
       )}
 
@@ -248,7 +249,7 @@ export default function SecaoUnidades() {
           <div className="mod-vazio__texto">
             {isAdmin
               ? "Use o formulário abaixo para cadastrar a primeira."
-              : "Peça para um administrador ou gerente cadastrar."}
+              : "Peça para o administrador cadastrar."}
           </div>
         </div>
       ) : (
