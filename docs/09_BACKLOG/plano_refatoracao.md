@@ -271,6 +271,9 @@ fatias, como o `PDVView` e o `DeliveryView` já saíram na F018.
 - **Pronto quando:** nenhum arquivo de código passa de 600 linhas e nenhum componente
   passa de 15 `useState`.
 
+**Andamento:** 3.1 e 3.3 feitas em 2026-11-23, um componente por arquivo (Delivery com
+355 linhas, Configurações com 82). Falta na 3.1 o `ModalProduto.jsx`, com 18 `useState`.
+
 ### Fase 4, celular e computador compartilham a lógica
 
 **4.1** Mover `useFinalizarPagamento` e `useCancelarComanda` de
