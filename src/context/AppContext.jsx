@@ -5,7 +5,16 @@ import { supabase } from "@/lib/supabase";
 import { SessaoContext } from "./SessaoContext";
 import { OfflineContext } from "./OfflineContext";
 import { ConfigContext } from "./ConfigContext";
+import { CatalogoContext } from "./CatalogoContext";
 import { lerConfigDaAbertura, gravarChaveConfig } from "@/features/configuracoes/dados/config";
+import {
+  listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
+  entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
+} from "@/features/estoque/dados/saldos";
+import { listarProdutosAtivos, criarProduto, atualizarProduto, excluirProduto } from "@/features/cardapio/dados/produtos";
+import {
+  listarGruposCategoria, listarCategoriaGrupos, removerGrupoDaCategoria, definirGrupoDaCategoria,
+} from "@/features/cardapio/dados/gruposCategoria";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { obterSessaoAuth, entrarComSenha, sairDoAuth, aoMudarSessaoAuth } from "@/features/sessao/dados/auth";
 import {
@@ -515,19 +524,19 @@ export function AppProvider({ children }) {
         { data: rolePermsData },
         { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
-        supabase.from("products").select("*").eq("active", true).order("id"),
+        listarProdutosAtivos(),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
         buscarUsers(),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
         lerConfigDaAbertura(),
-        supabase.from("estoque").select("produto_id,quantidade,minimo"),
+        listarSaldos(),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
         // C3 — grupos de categoria (Radar de Oportunidades no Palm)
-        supabase.from("grupos_categoria").select("id,nome").order("id"),
-        supabase.from("categoria_grupo").select("category,grupo_id"),
+        listarGruposCategoria(),
+        listarCategoriaGrupos(),
         // Permissões por cargo do tenant (matriz editável, decisão 017).
         buscarRolePermissions(),
         // F005 — sangrias/suprimentos. Campos nomeados: tabela de caixa não
@@ -813,9 +822,7 @@ export function AppProvider({ children }) {
   // ── Realtime: estoque (sincroniza saldo/mínimo entre dispositivos) ──
   // Requer Realtime habilitado na tabela `estoque` (Database → Replication).
   useEffect(() => {
-    const channel = supabase
-      .channel("estoque-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "estoque" }, (payload) => {
+    return assinarSaldos((payload) => {
         const produtoId = payload.new?.produto_id ?? payload.old?.produto_id;
         // Sem produto no evento não há o que aplicar. Antes entrava uma chave
         // "undefined" no mapa de estoque de todo mundo.
@@ -827,10 +834,7 @@ export function AppProvider({ children }) {
         }
         setEstoqueLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.quantidade));
         setEstoqueMinimosLocal(prev => aplicarNumeroRemoto(prev, produtoId, payload.new?.minimo));
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   // ── Realtime: vendas fechadas (saldo do dia entre dispositivos) ──
@@ -884,10 +888,10 @@ export function AppProvider({ children }) {
     // Operação antiga (guardada antes desta versão) não tem opId — vai como
     // null e se comporta como antes, sem quebrar o dreno da fila.
     if (op.tipo === "rpc_baixar_estoque") {
-      return supabase.rpc("baixar_estoque", { p_produto_id: op.produtoId, p_qtd: op.qtd, p_op_id: op.opId ?? null });
+      return baixarEstoqueNoBanco(op.produtoId, op.qtd, op.opId ?? null);
     }
     if (op.tipo === "rpc_baixar_estoque_subproduto") {
-      return supabase.rpc("baixar_estoque_subproduto", { p_subproduto_id: op.subprodutoId, p_qtd: op.qtd, p_op_id: op.opId ?? null });
+      return baixarEstoqueSubprodutoNoBanco(op.subprodutoId, op.qtd, op.opId ?? null);
     }
     if (op.tipo === "insert_lancamento") return criarLancamento(op.dados, op.usuario);
     // Nota que não saiu (rede caiu, SEFAZ fora do ar, Edge indisponível) não
@@ -1283,7 +1287,7 @@ export function AppProvider({ children }) {
   const addProduct = async (product) => {
     // omite o id gerado pelo app — o banco gera o uuid via default
     const { id: _ignored, ...payload } = product;
-    const { data, error } = await supabase.from("products").insert(payload).select().single();
+    const { data, error } = await criarProduto(payload);
     if (data) {
       setProductsLocal(prev => [...prev, data]);
       // Produto nasce com linha de estoque (saldo 0, mínimo padrão do banco).
@@ -1291,9 +1295,7 @@ export function AppProvider({ children }) {
       // não era contado, e a venda não tinha o que descontar. A RPC de baixa
       // também cria a linha (migration 20260919); aqui é para a linha existir
       // ANTES da primeira venda, e não a partir dela.
-      const { error: erroEstoque } = await supabase
-        .from("estoque")
-        .upsert({ produto_id: data.id }, { onConflict: "produto_id", ignoreDuplicates: true });
+      const { error: erroEstoque } = await garantirLinhaDeSaldo(data.id);
       // Falhar aqui não desfaz o produto: ele existe e é vendável. A RPC de
       // baixa cria a linha na primeira venda, então o furo não volta — mas
       // fica o rastro de que a linha não nasceu junto.
@@ -1308,7 +1310,7 @@ export function AppProvider({ children }) {
     // quando a RLS filtra tudo (ex.: gerente edita preço, mas a policy exige
     // admin) ou o id não bate. Sem checar as linhas, a UI fingiria sucesso
     // sem nada persistir (mesmo padrão do updateUser/cancelarVendaFechada).
-    const { data, error } = await supabase.from("products").update(changes).eq("id", id).select("id");
+    const { data, error } = await atualizarProduto(id, changes);
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "updateProduct", tabela: "products", id });
@@ -1321,7 +1323,7 @@ export function AppProvider({ children }) {
   const removeProduct = async (id) => {
     // .select() após o delete: 0 linhas removidas (RLS ou id inexistente)
     // resolve { error: null } no supabase-js — checagem evita sucesso falso.
-    const { data, error } = await supabase.from("products").delete().eq("id", id).select("id");
+    const { data, error } = await excluirProduto(id);
     if (error) return { error };
     if (!data || data.length === 0) {
       reportarInconsistencia("write afetou 0 linhas", { acao: "removeProduct", tabela: "products", id });
@@ -1334,8 +1336,7 @@ export function AppProvider({ children }) {
   // Recarrega o cardápio inteiro do banco — usado após operações em lote
   // que gravam fora das actions acima (ex.: importação de planilha).
   const recarregarProdutos = async () => {
-    const { data, error } = await supabase
-      .from("products").select("*").eq("active", true).order("id");
+    const { data, error } = await listarProdutosAtivos();
     if (!error && data) setProductsLocal(data);
     return { error };
   };
@@ -1343,8 +1344,7 @@ export function AppProvider({ children }) {
   // Recarrega saldos/mínimos do banco — usado após importação em lote
   // (não depende do Realtime estar habilitado na tabela).
   const recarregarEstoque = async () => {
-    const { data, error } = await supabase
-      .from("estoque").select("produto_id,quantidade,minimo");
+    const { data, error } = await listarSaldos();
     if (!error && data) {
       const qtds = {}, minimos = {};
       for (const row of data) {
@@ -1696,10 +1696,7 @@ export function AppProvider({ children }) {
     const tinhaLinha = estoque[productId] !== undefined;
     const anterior = estoque[productId];
     setEstoqueLocal(prev => ({ ...prev, [productId]: novaQtd }));
-    const { error } = await supabase.from("estoque").upsert(
-      { produto_id: productId, quantidade: novaQtd, updated_at: new Date().toISOString() },
-      { onConflict: "produto_id" },
-    );
+    const { error } = await gravarSaldo(productId, novaQtd);
     if (error) {
       console.error("updateEstoque error:", error);
       reportarFalha(error, { acao: "updateEstoque", tabela: "estoque", produto_id: productId });
@@ -1737,7 +1734,7 @@ export function AppProvider({ children }) {
       nomeProduto,
       minimoFallback: estoqueMinimos[productId] ?? 10,
       usuario: currentUser?.username,
-      chamarRpc: (id, q) => supabase.rpc("baixar_estoque", { p_produto_id: id, p_qtd: q, p_op_id: opId }),
+      chamarRpc: (id, q) => baixarEstoqueNoBanco(id, q, opId),
     });
     if (error) {
       // Sem internet: mantém o desconto otimista e agenda a RPC para quando
@@ -1792,11 +1789,7 @@ export function AppProvider({ children }) {
     const opId = crypto.randomUUID();
     let data = null, error = null;
     try {
-      ({ data, error } = await supabase.rpc("entrada_estoque", {
-        p_produto_id: productId,
-        p_delta: quantoEntrou,
-        p_op_id: opId,
-      }));
+      ({ data, error } = await entradaEstoqueNoBanco(productId, quantoEntrou, opId));
     } catch (err) {
       error = { message: err?.message ?? String(err) };
     }
@@ -1850,11 +1843,7 @@ export function AppProvider({ children }) {
     let error = null;
     let data = null;
     try {
-      ({ data, error } = await supabase.rpc("baixar_estoque_subproduto", {
-        p_subproduto_id: subprodutoId,
-        p_qtd: qtd,
-        p_op_id: opId,
-      }));
+      ({ data, error } = await baixarEstoqueSubprodutoNoBanco(subprodutoId, qtd, opId));
     } catch (err) {
       error = { message: err?.message ?? String(err) };
     }
@@ -1899,10 +1888,7 @@ export function AppProvider({ children }) {
     const novoMinimo = Math.max(0, Number(minimo) || 0);
     const anterior = estoqueMinimos[productId];
     setEstoqueMinimosLocal(prev => ({ ...prev, [productId]: novoMinimo }));
-    const { error } = await supabase.from("estoque").upsert(
-      { produto_id: productId, minimo: novoMinimo, updated_at: new Date().toISOString() },
-      { onConflict: "produto_id" },
-    );
+    const { error } = await gravarMinimo(productId, novoMinimo);
     if (error) {
       console.error("setMinimoEstoque error:", error);
       reportarFalha(error, { acao: "setMinimoEstoque", tabela: "estoque", produto_id: productId });
@@ -2043,7 +2029,7 @@ export function AppProvider({ children }) {
     const anterior = categoriaGrupos;
     if (grupoId == null || grupoId === "") {
       setCategoriaGruposLocal(prev => prev.filter(r => r.category !== cat));
-      const { error } = await supabase.from("categoria_grupo").delete().eq("category", cat);
+      const { error } = await removerGrupoDaCategoria(cat);
       if (error) {
         reportarFalha(error, { acao: "setCategoriaGrupo", tabela: "categoria_grupo", operacao: "delete", category: cat });
         setCategoriaGruposLocal(anterior);
@@ -2056,9 +2042,7 @@ export function AppProvider({ children }) {
       const outros = prev.filter(r => r.category !== cat);
       return [...outros, { category: cat, grupo_id: gid }];
     });
-    const { error } = await supabase
-      .from("categoria_grupo")
-      .upsert({ category: cat, grupo_id: gid, updated_at: new Date().toISOString() }, { onConflict: "tenant_id,category" });
+    const { error } = await definirGrupoDaCategoria(cat, gid);
     if (error) {
       reportarFalha(error, { acao: "setCategoriaGrupo", tabela: "categoria_grupo", operacao: "upsert", category: cat });
       setCategoriaGruposLocal(anterior);
@@ -2176,6 +2160,42 @@ export function AppProvider({ children }) {
     setMetodosTefEstavel, setTaxaServicoEstavel, setPonteEnderecoEstavel, setPonteLocalAtivaEstavel,
     setDiasAlertaValidadeEstavel, setLimiteSangriaEstavel]);
 
+  // ── Fatia do catálogo (tarefa 2.5) ────────────────────────────
+  // Produtos, saldos de estoque e grupos de categoria. O mapa categoria para
+  // grupo é recalculado só quando os grupos mudam: a versão da fachada é refeita
+  // a cada render e quebraria a memorização.
+  const categoriaGrupoMapMemo = useMemo(() => {
+    const porId = {};
+    for (const g of gruposCategoria) porId[g.id] = g.nome;
+    const mapa = {};
+    for (const r of categoriaGrupos) { const nome = porId[r.grupo_id]; if (nome) mapa[r.category] = nome; }
+    return mapa;
+  }, [gruposCategoria, categoriaGrupos]);
+  const addProductEstavel             = useFuncaoEstavel(addProduct);
+  const updateProductEstavel          = useFuncaoEstavel(updateProduct);
+  const removeProductEstavel          = useFuncaoEstavel(removeProduct);
+  const recarregarProdutosEstavel     = useFuncaoEstavel(recarregarProdutos);
+  const updateEstoqueEstavel          = useFuncaoEstavel(updateEstoque);
+  const baixarEstoqueEstavel          = useFuncaoEstavel(baixarEstoque);
+  const entradaEstoqueEstavel         = useFuncaoEstavel(entradaEstoque);
+  const baixarEstoqueSubprodutoEstavel = useFuncaoEstavel(baixarEstoqueSubproduto);
+  const setMinimoEstoqueEstavel       = useFuncaoEstavel(setMinimoEstoque);
+  const recarregarEstoqueEstavel      = useFuncaoEstavel(recarregarEstoque);
+  const setCategoriaGrupoEstavel      = useFuncaoEstavel(setCategoriaGrupo);
+  const valorCatalogo = useMemo(() => ({
+    products, estoque, estoqueMinimos, gruposCategoria, categoriaGrupos,
+    categoriaGrupoMap: categoriaGrupoMapMemo,
+    addProduct: addProductEstavel, updateProduct: updateProductEstavel,
+    removeProduct: removeProductEstavel, recarregarProdutos: recarregarProdutosEstavel,
+    updateEstoque: updateEstoqueEstavel, baixarEstoque: baixarEstoqueEstavel,
+    entradaEstoque: entradaEstoqueEstavel, baixarEstoqueSubproduto: baixarEstoqueSubprodutoEstavel,
+    setMinimoEstoque: setMinimoEstoqueEstavel, recarregarEstoque: recarregarEstoqueEstavel,
+    setCategoriaGrupo: setCategoriaGrupoEstavel,
+  }), [products, estoque, estoqueMinimos, gruposCategoria, categoriaGrupos, categoriaGrupoMapMemo,
+    addProductEstavel, updateProductEstavel, removeProductEstavel, recarregarProdutosEstavel,
+    updateEstoqueEstavel, baixarEstoqueEstavel, entradaEstoqueEstavel, baixarEstoqueSubprodutoEstavel,
+    setMinimoEstoqueEstavel, recarregarEstoqueEstavel, setCategoriaGrupoEstavel]);
+
   const value = {
     loading,
     // dados
@@ -2238,6 +2258,7 @@ export function AppProvider({ children }) {
       <SessaoContext.Provider value={valorSessao}>
       <OfflineContext.Provider value={valorOffline}>
       <ConfigContext.Provider value={valorConfig}>
+      <CatalogoContext.Provider value={valorCatalogo}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -2250,6 +2271,7 @@ export function AppProvider({ children }) {
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
+      </CatalogoContext.Provider>
       </ConfigContext.Provider>
       </OfflineContext.Provider>
       </SessaoContext.Provider>

@@ -53,6 +53,7 @@ import { AppProvider, useApp } from "./AppContext";
 import { useSessao } from "./SessaoContext";
 import { useOffline } from "./OfflineContext";
 import { useConfig } from "./ConfigContext";
+import { useCatalogo } from "./CatalogoContext";
 
 beforeEach(() => {
   mockSupabase.from.mockImplementation(() => {
@@ -114,6 +115,13 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       // Comanda marcada como lançada: assunto das comandas, não da configuração.
       mudarOutroAssunto: (app) => app.addLancada("comanda-teste"),
     },
+    {
+      nome: "catálogo", gancho: useCatalogo, campo: "products",
+      acoes: ["addProduct", "updateProduct", "removeProduct", "recarregarProdutos", "updateEstoque",
+        "baixarEstoque", "entradaEstoque", "baixarEstoqueSubproduto", "setMinimoEstoque",
+        "recarregarEstoque", "setCategoriaGrupo"],
+      mudarOutroAssunto: (app) => app.setTaxaServico(true),
+    },
   ];
 
   describe.each(FATIAS)("fatia $nome", ({ gancho, campo, acoes, mudarOutroAssunto }) => {
@@ -166,7 +174,7 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
     });
   });
 
-  it.each([["useSessao", useSessao], ["useOffline", useOffline], ["useConfig", useConfig]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
+  it.each([["useSessao", useSessao], ["useOffline", useOffline], ["useConfig", useConfig], ["useCatalogo", useCatalogo]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
     function SemProvider() {
       gancho();
       return null;
