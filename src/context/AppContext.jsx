@@ -4,6 +4,8 @@ import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { SessaoContext } from "./SessaoContext";
 import { OfflineContext } from "./OfflineContext";
+import { ConfigContext } from "./ConfigContext";
+import { lerConfigDaAbertura, gravarChaveConfig } from "@/features/configuracoes/dados/config";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { obterSessaoAuth, entrarComSenha, sairDoAuth, aoMudarSessaoAuth } from "@/features/sessao/dados/auth";
 import {
@@ -519,7 +521,7 @@ export function AppProvider({ children }) {
         buscarSalesData(),
         buscarUsers(),
         supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
-        supabase.from("config").select("key,value").in("key", ["fundo_atual","caixa_aberto","sessao_aberta_em","meios_pagamento","taxa_servico","metodos_custom","metodos_tef","dias_alerta_validade","ponte_endereco","ponte_local_ativa","limite_sangria"]),
+        lerConfigDaAbertura(),
         supabase.from("estoque").select("produto_id,quantidade,minimo"),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
         buscarBootstrapTenant(),
@@ -1922,7 +1924,7 @@ export function AppProvider({ children }) {
   // exige gerente/admin — o papel caixa falhava em silêncio) e desfaz o
   // estado local quando a persistência falha, devolvendo { error }.
   const gravarConfig = async (key, value, desfazer) => {
-    const { error } = await supabase.from("config").upsert({ key, value }, { onConflict: "tenant_id,key" });
+    const { error } = await gravarChaveConfig(key, value);
     if (error) {
       console.error(`config upsert (${key}) error:`, error);
       reportarFalha(error, { acao: "gravarConfig", tabela: "config", key });
@@ -2147,6 +2149,33 @@ export function AppProvider({ children }) {
   }), [redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
     enfileirarOfflineEstavel, recarregarDadosEstavel]);
 
+  // ── Fatia de configuração (tarefa 2.4) ────────────────────────
+  // Pagamento, TEF, taxa de serviço, ponte local e alertas. O fundo e a
+  // abertura do caixa também moram em `config`, mas são do caixa (2.7).
+  const setMeiosPagamentoEstavel     = useFuncaoEstavel(setMeiosPagamento);
+  const setMetodosCustomEstavel      = useFuncaoEstavel(setMetodosCustom);
+  const setMetodosTefEstavel         = useFuncaoEstavel(setMetodosTef);
+  const setTaxaServicoEstavel        = useFuncaoEstavel(setTaxaServico);
+  const setPonteEnderecoEstavel      = useFuncaoEstavel(setPonteEndereco);
+  const setPonteLocalAtivaEstavel    = useFuncaoEstavel(setPonteLocalAtiva);
+  const setDiasAlertaValidadeEstavel = useFuncaoEstavel(setDiasAlertaValidade);
+  const setLimiteSangriaEstavel      = useFuncaoEstavel(setLimiteSangria);
+  const valorConfig = useMemo(() => ({
+    meiosPagamento, metodosCustom, metodosTef, taxaServico,
+    ponteEndereco, ponteLocalAtiva, diasAlertaValidade, limiteSangria,
+    setMeiosPagamento: setMeiosPagamentoEstavel,
+    setMetodosCustom: setMetodosCustomEstavel,
+    setMetodosTef: setMetodosTefEstavel,
+    setTaxaServico: setTaxaServicoEstavel,
+    setPonteEndereco: setPonteEnderecoEstavel,
+    setPonteLocalAtiva: setPonteLocalAtivaEstavel,
+    setDiasAlertaValidade: setDiasAlertaValidadeEstavel,
+    setLimiteSangria: setLimiteSangriaEstavel,
+  }), [meiosPagamento, metodosCustom, metodosTef, taxaServico, ponteEndereco, ponteLocalAtiva,
+    diasAlertaValidade, limiteSangria, setMeiosPagamentoEstavel, setMetodosCustomEstavel,
+    setMetodosTefEstavel, setTaxaServicoEstavel, setPonteEnderecoEstavel, setPonteLocalAtivaEstavel,
+    setDiasAlertaValidadeEstavel, setLimiteSangriaEstavel]);
+
   const value = {
     loading,
     // dados
@@ -2208,6 +2237,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={value}>
       <SessaoContext.Provider value={valorSessao}>
       <OfflineContext.Provider value={valorOffline}>
+      <ConfigContext.Provider value={valorConfig}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -2220,6 +2250,7 @@ export function AppProvider({ children }) {
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
+      </ConfigContext.Provider>
       </OfflineContext.Provider>
       </SessaoContext.Provider>
     </AppContext.Provider>

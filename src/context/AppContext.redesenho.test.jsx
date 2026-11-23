@@ -52,6 +52,7 @@ vi.mock("@/lib/tenant", () => ({
 import { AppProvider, useApp } from "./AppContext";
 import { useSessao } from "./SessaoContext";
 import { useOffline } from "./OfflineContext";
+import { useConfig } from "./ConfigContext";
 
 beforeEach(() => {
   mockSupabase.from.mockImplementation(() => {
@@ -106,14 +107,23 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       acoes: ["enfileirarOffline", "recarregarDadosDoEstabelecimento"],
       mudarOutroAssunto: (app) => app.setTaxaServico(true),
     },
+    {
+      nome: "configuração", gancho: useConfig, campo: "taxaServico",
+      acoes: ["setMeiosPagamento", "setMetodosCustom", "setMetodosTef", "setTaxaServico",
+        "setPonteEndereco", "setPonteLocalAtiva", "setDiasAlertaValidade", "setLimiteSangria"],
+      // Comanda marcada como lançada: assunto das comandas, não da configuração.
+      mudarOutroAssunto: (app) => app.addLancada("comanda-teste"),
+    },
   ];
 
   describe.each(FATIAS)("fatia $nome", ({ gancho, campo, acoes, mudarOutroAssunto }) => {
     it("tela que lê pelo gancho não redesenha quando outro assunto muda", async () => {
       const app = { current: null };
       let renders = 0;
+      let rendersDaSonda = 0;
       function Sonda() {
         app.current = useApp();
+        rendersDaSonda += 1;
         return null;
       }
       function Leitor() {
@@ -125,8 +135,11 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       render(<AppProvider><Sonda /><Leitor /></AppProvider>);
       await act(async () => {});
       const antes = renders;
+      const sondaAntes = rendersDaSonda;
       await act(async () => { await mudarOutroAssunto(app.current); });
 
+      // A mudança aconteceu de verdade: quem lê pela fachada foi redesenhado.
+      expect(rendersDaSonda).toBeGreaterThan(sondaAntes);
       expect(renders).toBe(antes);
     });
 
@@ -153,7 +166,7 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
     });
   });
 
-  it.each([["useSessao", useSessao], ["useOffline", useOffline]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
+  it.each([["useSessao", useSessao], ["useOffline", useOffline], ["useConfig", useConfig]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
     function SemProvider() {
       gancho();
       return null;
