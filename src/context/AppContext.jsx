@@ -3,11 +3,13 @@ import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { SessaoContext } from "./SessaoContext";
 import { OfflineContext } from "./OfflineContext";
-import { ConfigContext } from "./ConfigContext";
+import { ConfigProvider, useConfigCarga } from "./ConfigProvider";
+import { useConfig } from "./ConfigContext";
+import { gravarConfig } from "./gravarConfig";
 import { CatalogoContext } from "./CatalogoContext";
 import { ComandasContext } from "./ComandasContext";
 import { CaixaContext } from "./CaixaContext";
-import { lerConfigDaAbertura, gravarChaveConfig } from "@/features/configuracoes/dados/config";
+import { lerConfigDaAbertura } from "@/features/configuracoes/dados/config";
 import {
   listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
   entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
@@ -46,9 +48,8 @@ import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
 import { montarVendaLegada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
-import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
-import { LIMITE_SANGRIA_PADRAO, lerValor, limiteSangriaValido, validarMovimento } from "@/lib/caixaMovimentos";
+import { lerValor, validarMovimento } from "@/lib/caixaMovimentos";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas, isRpcAusente } from "@/lib/estoque";
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
 import { LOCK_TTL_MS } from "@/lib/comandaLock";
@@ -123,7 +124,21 @@ export function aplicarNumeroRemoto(mapa, produtoId, valor) {
   return { ...mapa, [produtoId]: n };
 }
 
+/**
+ * Monta os provedores que já são donos do próprio estado (tarefa 2.9 do plano
+ * de refatoração) por fora do provedor que ainda guarda o resto. A referência
+ * do estabelecimento atual nasce aqui porque os dois lados precisam dela.
+ */
 export function AppProvider({ children }) {
+  const tenantIdRef = useRef(null);
+  return (
+    <ConfigProvider tenantIdRef={tenantIdRef}>
+      <AppProviderInterno tenantIdRef={tenantIdRef}>{children}</AppProviderInterno>
+    </ConfigProvider>
+  );
+}
+
+function AppProviderInterno({ children, tenantIdRef }) {
   // ── Estado local ─────────────────────────────────────────────
   const [products,    setProductsLocal]    = useState([]);
   const [pending,     setPendingLocal]     = useState([]);
@@ -133,14 +148,8 @@ export function AppProvider({ children }) {
   const [fundoAtual,      setFundoAtualLocal]    = useState(0);
   const [caixaAberto,     setCaixaAbertoLocal]   = useState(true);
   const [sessaoAbertaEm,  setSessaoAbertaEmLocal] = useState(null);
-  const [meiosPagamento,  setMeiosPagamentoLocal] = useState(["dinheiro", "credito", "debito", "pix"]);
-  const [metodosCustom,   setMetodosCustomLocal]  = useState([]);
-  const [metodosTef,      setMetodosTefLocal]     = useState(METODOS_TEF_PADRAO); // quais métodos usam maquininha (TEF)
-  const [taxaServico,     setTaxaServicoLocal]    = useState(false);
-  const [diasAlertaValidade, setDiasAlertaValidadeLocal] = useState(7); // C1 — janela de alerta de validade
   // F005 — sangrias e suprimentos da sessão de caixa (trilha de auditoria).
   const [movimentosCaixa, setMovimentosCaixaLocal] = useState([]);
-  const [limiteSangria,   setLimiteSangriaLocal]   = useState(LIMITE_SANGRIA_PADRAO);
   const [estoque,         setEstoqueLocal]        = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal] = useState({});
   const [tenant,          setTenantLocal]         = useState(null); // Fase 1 — camada de comercialização (ADR-005)
@@ -182,16 +191,14 @@ export function AppProvider({ children }) {
   // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
   // traz o que ficou da sessão anterior, o número chega por aqui.
   useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
-  // Leva 13 — endereço da página do Palm servida pela Ponte KORA
-  // (http://IP:porta/palm?t=token). Persistido em config para o Palm
-  // saber para onde ir quando a internet cair.
-  const [ponteEndereco, setPonteEnderecoLocal] = useState(null);
-  // Liga/desliga a Ponte NESTE estabelecimento (config "ponte_local_ativa").
-  // Nasce `null` de propósito: null é "ainda não sei", e não "desligado".
-  // Enquanto o bootstrap não responde, quem lê isto fica parado — se o padrão
-  // fosse `false`, a bridge ligaria meio segundo depois do login e o ciclo
-  // piscaria; se fosse `true`, quem não tem a Ponte veria erro de conexão.
-  const [ponteLocalAtiva, setPonteLocalAtivaLocal] = useState(null);
+  // A configuração (pagamento, TEF, taxa, ponte, alertas) mora no
+  // ConfigProvider desde a tarefa 2.9; daqui só se lê e se hidrata na carga.
+  const {
+    meiosPagamento, metodosCustom, metodosTef, taxaServico, ponteEndereco, ponteLocalAtiva,
+    diasAlertaValidade, limiteSangria, setMeiosPagamento, setMetodosCustom, setMetodosTef,
+    setTaxaServico, setPonteEndereco, setPonteLocalAtiva, setDiasAlertaValidade, setLimiteSangria,
+  } = useConfig();
+  const cargaConfig = useConfigCarga();
 
   // ── Auth ─────────────────────────────────────────────────────
   // `lerSessao` em vez de `loadSession` porque um inicializador de estado não
@@ -203,7 +210,6 @@ export function AppProvider({ children }) {
   // (o `currentUser` de `users` NÃO traz tenant_id). Usado para carimbar e
   // validar os caches locais (snapshot/fila), isolando estabelecimentos que
   // porventura dividam a mesma origem de navegador (preview/IP/apex).
-  const tenantIdRef = useRef(null);
 
   const isMobile = useIsMobile();
 
@@ -583,18 +589,7 @@ export function AppProvider({ children }) {
           if (config.caixaAberto !== undefined) setCaixaAbertoLocal(!!config.caixaAberto);
           if (config.sessaoAbertaEm)            setSessaoAbertaEmLocal(config.sessaoAbertaEm);
           if (config.fundoAtual !== undefined)  setFundoAtualLocal(Number(config.fundoAtual));
-          if (Array.isArray(config.meiosPagamento) && config.meiosPagamento.length) setMeiosPagamentoLocal(config.meiosPagamento);
-          if (Array.isArray(config.metodosCustom)) setMetodosCustomLocal(config.metodosCustom);
-          if (Array.isArray(config.metodosTef))    setMetodosTefLocal(config.metodosTef);
-          if (config.taxaServico !== undefined) setTaxaServicoLocal(!!config.taxaServico);
-          if (typeof config.ponteEndereco === "string" && config.ponteEndereco) setPonteEnderecoLocal(config.ponteEndereco);
-          // Sem internet a Ponte é justamente o que segura o serviço, então a
-          // chave de liga/desliga vem do snapshot como qualquer outro ajuste.
-          // Só que snapshot SEM a chave não é "desligado": é snapshot que não
-          // sabe. Forçar `false` aqui desligava a Ponte na primeira abertura
-          // sem internet depois de o dono ligar a chave — e sem internet não
-          // dá para religar. Continua "ainda não sei" até alguém dizer.
-          if (config.ponteLocalAtiva !== undefined) setPonteLocalAtivaLocal(!!config.ponteLocalAtiva);
+          cargaConfig.hidratarDoSnapshot(config);
         }
         return; // o `finally` lá embaixo é quem desliga o loading
       }
@@ -636,31 +631,7 @@ export function AppProvider({ children }) {
         if (fundo)   setFundoAtualLocal(Number(fundo.value));
         if (caixa)   setCaixaAbertoLocal(caixa.value === true || caixa.value === "true");
         if (sessao?.value) setSessaoAbertaEmLocal(sessao.value);
-        const meios = configData.find(c => c.key === "meios_pagamento");
-        if (meios?.value && Array.isArray(meios.value) && meios.value.length > 0) setMeiosPagamentoLocal(meios.value);
-        const taxa = configData.find(c => c.key === "taxa_servico");
-        if (taxa?.value !== undefined) setTaxaServicoLocal(!!taxa.value);
-        const custom = configData.find(c => c.key === "metodos_custom");
-        if (custom?.value && Array.isArray(custom.value)) setMetodosCustomLocal(custom.value);
-        // Array (mesmo vazio) = escolha explícita do estabelecimento;
-        // sem config vale METODOS_TEF_PADRAO (crédito/débito).
-        const tef = configData.find(c => c.key === "metodos_tef");
-        if (Array.isArray(tef?.value)) setMetodosTefLocal(tef.value);
-        const diasValidade = configData.find(c => c.key === "dias_alerta_validade");
-        if (diasValidade?.value != null && !isNaN(Number(diasValidade.value))) setDiasAlertaValidadeLocal(Number(diasValidade.value));
-        // F005 — teto da sangria sem autorização, por estabelecimento
-        // (decisão 017). Valor torto cai no padrão dentro de limiteSangriaValido.
-        const limite = configData.find(c => c.key === "limite_sangria");
-        if (limite?.value != null) setLimiteSangriaLocal(limiteSangriaValido(limite.value));
-        // Leva 13 — endereço do Palm na ponte local (salvo pela bridge)
-        const ponte = configData.find(c => c.key === "ponte_endereco");
-        if (typeof ponte?.value === "string" && ponte.value) setPonteEnderecoLocal(ponte.value);
-        // Chave por estabelecimento (decisão 017): é ela que liga o recebimento
-        // dos pedidos do celular neste computador. Chave ausente É resposta —
-        // quem nunca ligou está desligado, e a partir daqui já sabemos disso
-        // (sai do "ainda não sei" para um `false` explícito).
-        const ponteAtiva = configData.find(c => c.key === "ponte_local_ativa");
-        setPonteLocalAtivaLocal(ponteAtiva?.value === true || ponteAtiva?.value === "true");
+        cargaConfig.hidratarDaCarga(configData);
       }
 
       if (tenantData) {
@@ -1881,17 +1852,6 @@ export function AppProvider({ children }) {
   // Cada setter grava otimista, checa o .error do upsert (a RLS de config
   // exige gerente/admin — o papel caixa falhava em silêncio) e desfaz o
   // estado local quando a persistência falha, devolvendo { error }.
-  const gravarConfig = async (key, value, desfazer) => {
-    const { error } = await gravarChaveConfig(key, value);
-    if (error) {
-      console.error(`config upsert (${key}) error:`, error);
-      reportarFalha(error, { acao: "gravarConfig", tabela: "config", key });
-      desfazer();
-      return { error };
-    }
-    return { error: null };
-  };
-
   const setFundoAtual = async (val) => {
     const anterior = fundoAtual;
     setFundoAtualLocal(val);
@@ -1910,84 +1870,6 @@ export function AppProvider({ children }) {
     const anterior = sessaoAbertaEm;
     setSessaoAbertaEmLocal(val);
     return gravarConfig("sessao_aberta_em", val, () => setSessaoAbertaEmLocal(anterior));
-  };
-
-  const setMeiosPagamento = async (val) => {
-    const anterior = meiosPagamento;
-    setMeiosPagamentoLocal(val);
-    return gravarConfig("meios_pagamento", val, () => setMeiosPagamentoLocal(anterior));
-  };
-
-  const setMetodosCustom = async (val) => {
-    const anterior = metodosCustom;
-    setMetodosCustomLocal(val);
-    return gravarConfig("metodos_custom", val, () => setMetodosCustomLocal(anterior));
-  };
-
-  const setMetodosTef = async (val) => {
-    const anterior = metodosTef;
-    setMetodosTefLocal(val);
-    return gravarConfig("metodos_tef", val, () => setMetodosTefLocal(anterior));
-  };
-
-  const setTaxaServico = async (val) => {
-    const anterior = taxaServico;
-    setTaxaServicoLocal(!!val);
-    return gravarConfig("taxa_servico", !!val, () => setTaxaServicoLocal(anterior));
-  };
-
-  // Leva 13 — a bridge grava o endereço do Palm quando ele muda (IP novo
-  // do roteador, token novo). Também vai para o snapshot no próximo boot.
-  const setPonteEndereco = async (val) => {
-    const anterior = ponteEndereco;
-    setPonteEnderecoLocal(val);
-    return gravarConfig("ponte_endereco", val, () => setPonteEnderecoLocal(anterior));
-  };
-
-  // Liga/desliga o recebimento dos pedidos do celular neste estabelecimento.
-  // Ajuste do dono, gravado em `config` como qualquer outro — não é variável
-  // de build: ligar para um cliente não pode obrigar a recompilar o site de
-  // todos os outros (decisão 017).
-  const setPonteLocalAtiva = async (val) => {
-    const anterior = ponteLocalAtiva;
-    setPonteLocalAtivaLocal(!!val);
-    const resultado = await gravarConfig("ponte_local_ativa", !!val, () => setPonteLocalAtivaLocal(anterior));
-    // O snapshot desta abertura já foi gravado com o valor ANTIGO, e ele é
-    // quem manda quando o PC abre sem internet. Sem corrigi-lo aqui, o dono
-    // ligava a chave hoje e amanhã, na queda de internet — exatamente para o
-    // que a Ponte existe —, ela voltava desligada e não dava nem para
-    // religar (gravar config precisa de banco). Fire-and-forget: o snapshot é
-    // conforto, e falhar aqui não pode desfazer um ajuste que o banco aceitou.
-    if (!resultado?.error) {
-      try {
-        const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
-        if (snapshot) {
-          salvarSnapshot(
-            window.localStorage,
-            { ...snapshot, config: { ...(snapshot.config ?? {}), ponteLocalAtiva: !!val } },
-            tenantIdRef.current,
-          );
-        }
-      } catch { /* storage cheio/bloqueado não pode derrubar o clique */ }
-    }
-    return resultado;
-  };
-
-  const setDiasAlertaValidade = async (val) => {
-    const anterior = diasAlertaValidade;
-    const n = Math.max(1, Math.min(365, Number(val) || 7));
-    setDiasAlertaValidadeLocal(n);
-    return gravarConfig("dias_alerta_validade", n, () => setDiasAlertaValidadeLocal(anterior));
-  };
-
-  // F005 — teto da sangria sem autorização de gerente. Por estabelecimento
-  // (decisão 017); a policy da 20260744 já impede o cargo `caixa` de gravar
-  // esta chave, então quem opera não afrouxa o próprio limite.
-  const setLimiteSangria = async (val) => {
-    const anterior = limiteSangria;
-    const n = limiteSangriaValido(val);
-    setLimiteSangriaLocal(n);
-    return gravarConfig("limite_sangria", n, () => setLimiteSangriaLocal(anterior));
   };
 
   // ── Actions: Grupos de categoria (C3) ─────────────────────────
@@ -2107,33 +1989,6 @@ export function AppProvider({ children }) {
     recarregarDadosDoEstabelecimento: recarregarDadosEstavel,
   }), [redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
     enfileirarOfflineEstavel, recarregarDadosEstavel]);
-
-  // ── Fatia de configuração (tarefa 2.4) ────────────────────────
-  // Pagamento, TEF, taxa de serviço, ponte local e alertas. O fundo e a
-  // abertura do caixa também moram em `config`, mas são do caixa (2.7).
-  const setMeiosPagamentoEstavel     = useFuncaoEstavel(setMeiosPagamento);
-  const setMetodosCustomEstavel      = useFuncaoEstavel(setMetodosCustom);
-  const setMetodosTefEstavel         = useFuncaoEstavel(setMetodosTef);
-  const setTaxaServicoEstavel        = useFuncaoEstavel(setTaxaServico);
-  const setPonteEnderecoEstavel      = useFuncaoEstavel(setPonteEndereco);
-  const setPonteLocalAtivaEstavel    = useFuncaoEstavel(setPonteLocalAtiva);
-  const setDiasAlertaValidadeEstavel = useFuncaoEstavel(setDiasAlertaValidade);
-  const setLimiteSangriaEstavel      = useFuncaoEstavel(setLimiteSangria);
-  const valorConfig = useMemo(() => ({
-    meiosPagamento, metodosCustom, metodosTef, taxaServico,
-    ponteEndereco, ponteLocalAtiva, diasAlertaValidade, limiteSangria,
-    setMeiosPagamento: setMeiosPagamentoEstavel,
-    setMetodosCustom: setMetodosCustomEstavel,
-    setMetodosTef: setMetodosTefEstavel,
-    setTaxaServico: setTaxaServicoEstavel,
-    setPonteEndereco: setPonteEnderecoEstavel,
-    setPonteLocalAtiva: setPonteLocalAtivaEstavel,
-    setDiasAlertaValidade: setDiasAlertaValidadeEstavel,
-    setLimiteSangria: setLimiteSangriaEstavel,
-  }), [meiosPagamento, metodosCustom, metodosTef, taxaServico, ponteEndereco, ponteLocalAtiva,
-    diasAlertaValidade, limiteSangria, setMeiosPagamentoEstavel, setMetodosCustomEstavel,
-    setMetodosTefEstavel, setTaxaServicoEstavel, setPonteEnderecoEstavel, setPonteLocalAtivaEstavel,
-    setDiasAlertaValidadeEstavel, setLimiteSangriaEstavel]);
 
   // ── Fatia do catálogo (tarefa 2.5) ────────────────────────────
   // Produtos, saldos de estoque e grupos de categoria. O mapa categoria para
@@ -2268,7 +2123,6 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={value}>
       <SessaoContext.Provider value={valorSessao}>
       <OfflineContext.Provider value={valorOffline}>
-      <ConfigContext.Provider value={valorConfig}>
       <CatalogoContext.Provider value={valorCatalogo}>
       <ComandasContext.Provider value={valorComandas}>
       <CaixaContext.Provider value={valorCaixa}>
@@ -2287,7 +2141,6 @@ export function AppProvider({ children }) {
       </CaixaContext.Provider>
       </ComandasContext.Provider>
       </CatalogoContext.Provider>
-      </ConfigContext.Provider>
       </OfflineContext.Provider>
       </SessaoContext.Provider>
     </AppContext.Provider>

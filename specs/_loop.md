@@ -1,3 +1,25 @@
+## Rodada 80, refatoração 2.9, rede de proteção offline e a configuração dona do próprio estado, 2026-11-23
+- Spec: specs/refatoracao-2-9-config.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 253 / 4350 para 254 /
+  4353, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 2.312 para 2.165
+  linhas, a primeira vez que ele encolhe. Roteiro de fotos: 0 diferença. Sem migration.
+- O que a rodada revelou de não óbvio: o primeiro teste de ponta a ponta passou de primeira
+  e, por isso mesmo, foi sabotado de propósito (o banco falso passou a ignorar a chave da
+  baixa). A sabotagem passou também: a baixa feita sem rede nunca chega ao banco antes da
+  volta, então ela só é aplicada uma vez de qualquer jeito. A chave serve para outro caso,
+  a resposta que se perde DEPOIS de o banco aplicar. Esse caso virou teste próprio, e a
+  mesma sabotagem passou a reprovar (46 em vez de 48).
+- A forma: o estado mudou de dono sem mudar quem carrega. O `ConfigProvider` é dono dos
+  oito estados e expõe à abertura do app um canal interno de hidratação; o `bootstrap`
+  continua lendo tudo numa leva só e só entrega a parte da configuração. Assim a ordem da
+  carga e o caminho offline ficaram exatamente como eram, e os 11 testes da Ponte passaram
+  sem uma linha alterada.
+- A parte que quase passou batido: o script de edição parou sozinho na primeira tentativa,
+  porque a declaração nova de `tenantIdRef` que ele inseria fazia a contagem da antiga dar
+  dois. Ele não gravou nada pela metade (o arquivo foi conferido byte a byte contra a cópia
+  de antes), a ordem dos passos foi invertida e a segunda passada aplicou tudo.
+- Fica em aberto: as outras cinco fatias da 2.9 (sessão, offline, catálogo, comandas e
+  caixa), que dividem com a fila offline a drenagem e a carga.
 ## Rodada 79, refatoração 2.8, telas nos ganchos de cada assunto, 2026-11-23
 - Spec: specs/refatoracao-2-8-telas-nos-ganchos.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 253 arquivos / 4350
