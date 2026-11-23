@@ -2,7 +2,8 @@
 - Spec: specs/refatoracao-1-3-excluir-unidade.md
 - Resultado: 9 de 9 critérios em sim, aprovado sem ressalvas (suíte 248 arquivos / 4313
   testes para 250 / 4317, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
-  dados/: 207 (45 / 51 / 111). Migration `20261125` ainda não aplicada em produção.
+  dados/: 207 (45 / 51 / 111). Migration `20261125` aplicada em produção com aprovação
+  do dono, conferida no catálogo e com uma chamada recusada de prova.
 - O que a rodada revelou de não óbvio: o risco não era só a rede cair no meio, era um dano
   certo e repetível. Lendo as policies de produção para montar o teste, apareceu que o
   gerente altera produto mas não apaga unidade, e as duas telas mostram o botão para ele.
@@ -12,13 +13,14 @@
   igual às telas faziam, e registrar como TD022 em vez de corrigir. Excluir a unidade de
   compra "un" também limpa a unidade de estoque "un" dos produtos; mudar isso é decisão de
   produto, e uma refatoração que muda regra no meio fica impossível de revisar.
-- Fica em aberto: aplicar `20261124` e `20261125` em produção (decisão do dono, D6); TD022;
+- Fica em aberto: TD022;
   esconder o botão de excluir de quem não é admin, se o dono quiser.
 ## Rodada 72, refatoração 1.2, importar nota fiscal numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-2-importar-nota.md
 - Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 246 arquivos / 4297
   testes para 248 / 4313, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
-  dados/: 217 (55 / 51 / 111). Migration `20261124` ainda não aplicada em produção.
+  dados/: 217 (55 / 51 / 111). Migration `20261124` aplicada em produção com aprovação
+  do dono, conferida no catálogo e com uma chamada recusada de prova.
 - A decisão que a rodada precisou tomar: não reescrever a soma do saldo. A função nova
   chama a `entrada_estoque` de setembro por dentro, que já confere papel e estabelecimento e
   já é a única porta de escrita no saldo. Assim o "tudo ou nada" chega sem duplicar a regra
@@ -31,7 +33,7 @@
   restaurante, calculado no fuso do navegador, e o banco usaria o dia UTC. Às 21h30 em São
   Paulo os dois já divergem. A tela continua mandando a data, e a função só cai no
   `current_date` se nada vier.
-- Fica em aberto: aplicar `20261124` em produção (decisão do dono, D6).
+- Fica em aberto: nada desta rodada. As outras leituras da tela saem na tarefa 1.4.
 ## Rodada 71, refatoração 1.1, salvar combo numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-1-salvar-combo.md
 - Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 243 arquivos / 4280
