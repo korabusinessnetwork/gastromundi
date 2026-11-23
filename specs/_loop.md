@@ -1,3 +1,18 @@
+## Rodada 81, refatoração 2.9, o catálogo dono do próprio estado, 2026-11-23
+- Spec: specs/refatoracao-2-9-catalogo.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
+  testes, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 2.165 para 1.756
+  linhas; `CatalogoProvider.jsx` nasce com 473. Roteiro de fotos: 0 diferença. Sem migration.
+- A forma: os blocos foram recortados inteiros do contexto por script, sem reescrever a
+  lógica. As duas dependências que ainda moram no `AppProvider` (usuário logado e fila
+  offline) chegam às ações por uma referência lida no momento da chamada, o mesmo padrão
+  do `tenantIdRef` da rodada 80. É ponte provisória e está dito no arquivo.
+- A parte que quase passou batido: o recorte do bloco de estoque levou junto os três
+  ajustes do caixa (fundo, abertura, sessão aberta), que moravam no meio dele por ordem
+  histórica do arquivo. O lint denunciou (nomes do caixa sem origem no catálogo) e eles
+  voltaram ao contexto antes de qualquer teste rodar.
+- Fica em aberto: sessão, offline, comandas e caixa. As três últimas compartilham a
+  drenagem da fila; a sessão compartilha a carga.
 ## Rodada 80, refatoração 2.9, rede de proteção offline e a configuração dona do próprio estado, 2026-11-23
 - Spec: specs/refatoracao-2-9-config.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 253 / 4350 para 254 /
