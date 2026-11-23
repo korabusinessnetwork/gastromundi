@@ -35,3 +35,23 @@ cada cabeçalho `==` diz o que o resultado logo abaixo precisa mostrar.
 8. Garçom criando: recusa `42501` da RLS.
 9. Estado final confere com os passos acima.
 10. Anônimo não executa a função.
+
+## Cenários de `importar_nota_fiscal` (2026-11-23, todos conforme)
+
+```
+sudo -u postgres psql -q -f supabase/tests/importar_nota_fiscal_base.sql
+sudo -u postgres psql -q -d teste_nf -f supabase/migrations/20260901_entrada_estoque_atomica.sql
+sudo -u postgres psql -q -d teste_nf -f supabase/migrations/20261124_importar_nota_fiscal_atomica.sql
+sudo -u postgres psql -q -d teste_nf -f supabase/tests/importar_nota_fiscal_cenarios.sql
+```
+
+1. Gerente importa nota com dois itens vinculados e um sem vínculo: saldos somados, custo do histórico dividido pelo fator, data da emissão no histórico.
+2. Mesma chave de acesso de novo: recusa `23505`, e o saldo não soma de novo.
+3. Falha no meio (produto de outro estabelecimento no segundo item): nada fica, nem a nota nem a soma do primeiro item.
+4. A reimportação depois da falha funciona.
+5. Item vinculado com quantidade 0: recusa `P0001` antes de gravar.
+6. Nota sem item vinculado: grava e devolve só o id da nota.
+7. Caixa (pode somar saldo, não pode gravar nota): recusa `42501`, nada muda.
+8. Formato inválido: recusa `P0001`.
+9. Estado final confere com os passos acima.
+10. Anônimo não executa a função.

@@ -97,6 +97,7 @@ export function createAppMockValue(overrides = {}) {
     updateEstoque: vi.fn(() => Promise.resolve({ error: null })),
     baixarEstoque: vi.fn(() => Promise.resolve({ error: null })),
     entradaEstoque: vi.fn(() => Promise.resolve({ error: null })),
+    recarregarEstoque: vi.fn(() => Promise.resolve()),
     setMinimoEstoque: vi.fn(() => Promise.resolve({ error: null })),
     taxaServico: false,
     setTaxaServico: vi.fn(() => Promise.resolve({ error: null })),

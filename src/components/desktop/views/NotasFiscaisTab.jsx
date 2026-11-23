@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
+import { importarNotaFiscal } from "@/features/estoque/dados/notasEntrada";
+import { emitirEvento } from "@/lib/jarvas";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -209,7 +211,7 @@ const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", pr
 const novoItemManual = () => ({ ...ITEM_MANUAL_VAZIO, uid: novoUid() });
 
 export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) {
-  const { products, entradaEstoque } = useApp();
+  const { products, recarregarEstoque, currentUser } = useApp();
 
   const [view,        setView]       = useState("lista");
   const [notas,       setNotas]      = useState([]);
@@ -446,74 +448,18 @@ export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) 
     try {
       const { cabecalho } = parsed;
 
-      // 1. Nota fiscal
-      const { data: notaData, error: notaErr } = await supabase
-        .from("notas_fiscais")
-        .insert({
-          chave_acesso:    cabecalho.chaveAcesso || null,
-          numero:          cabecalho.numero,
-          serie:           cabecalho.serie,
-          data_emissao:    cabecalho.dataEmissao || null,
-          fornecedor_nome: cabecalho.fornecedorNome,
-          fornecedor_cnpj: cabecalho.fornecedorCnpj,
-          valor_total:     cabecalho.valorTotal,
-          xml_raw:         xmlString,
-        })
-        .select()
-        .single();
-      if (notaErr) {
-        // 23505 = violação de unicidade da chave de acesso (índice do
-        // banco): outra pessoa/dispositivo importou a mesma nota entre
-        // a verificação do passo 2 e o confirmar.
-        if (notaErr.code === "23505") {
-          throw new Error("esta nota já foi importada (chave de acesso duplicada).");
-        }
-        throw notaErr;
-      }
+      // Nota, itens, histórico de entradas e saldo numa transação só (tarefa
+      // 1.2 do plano de refatoração). Antes eram quatro etapas soltas, e uma
+      // falha depois da primeira deixava a nota gravada pela metade: sem
+      // itens ou sem saldo, e a reimportação era recusada como duplicada.
+      // O saldo continua somado pelo banco (`entrada_estoque`), só os
+      // produtos da nota, nunca o mapa inteiro deste navegador.
+      await importarNotaFiscal({ cabecalho, xmlString, itens: itensVinc, dataEntrada: hojeLocalISO() });
 
-      // 2. Itens da nota
-      const { error: itensErr } = await supabase.from("notas_fiscais_itens").insert(
-        itensVinc.map(item => ({
-          nota_fiscal_id:    notaData.id,
-          product_id:        item.produto?.id || null,
-          descricao_xml:     item.descricaoXml,
-          codigo_xml:        item.codigoXml,
-          unidade_xml:       item.unidadeXml,
-          quantidade:        item.quantidade,
-          preco_unitario:    item.precoUnitario,
-          preco_total:       item.precoTotal,
-          fator_conversao:   item.produto ? item.fator : null,
-          quantidade_estoque: item.produto ? item.qtdEstoque : null,
-        }))
-      );
-      if (itensErr) throw itensErr;
-
-      // 3. Entradas de estoque (audit trail)
-      if (vinculados.length > 0) {
-        const { error: entradasErr } = await supabase.from("estoque_entradas").insert(
-          vinculados.map(item => ({
-            product_id:     item.produto.id,
-            nota_fiscal_id: notaData.id,
-            quantidade:     item.qtdEstoque,
-            preco_unitario: item.fator > 0 ? item.precoUnitario / item.fator : item.precoUnitario,
-            data_entrada:   cabecalho.dataEmissao || hojeLocalISO(),
-          }))
-        );
-        if (entradasErr) throw entradasErr;
-      }
-
-      // 4. Entrada de estoque, um produto por vez e somada pelo banco.
-      //
-      // Antes isto montava `{ ...estoque }` — o mapa INTEIRO de saldos que
-      // este navegador tinha em memória — e mandava tudo de volta num upsert.
-      // Resultado: importar uma nota de 3 itens regravava o saldo de TODOS os
-      // produtos do catálogo com o valor que esta aba viu quando carregou.
-      // Qualquer venda ou ajuste feito em outro aparelho desde então era
-      // apagado, em silêncio, em produtos que nem estavam na nota.
-      // Agora só os itens da nota são tocados, e quem soma é o banco.
+      // O banco já confirmou os saldos; a tela relê para mostrar o número dele.
+      recarregarEstoque();
       for (const item of vinculados) {
-        const { error: estoqueErr } = await entradaEstoque(item.produto.id, item.qtdEstoque);
-        if (estoqueErr) throw new Error(`a nota foi salva, mas a entrada de ${item.produto.name} não foi somada ao estoque. Confira o saldo desse item e ajuste manualmente se precisar.`);
+        emitirEvento("estoque.entrada", "estoque", { produto_id: item.produto.id, quantidade: item.qtdEstoque }, currentUser?.username);
       }
 
       setImportOk({ numero: cabecalho.numero, fornecedor: cabecalho.fornecedorNome, count: vinculados.length });

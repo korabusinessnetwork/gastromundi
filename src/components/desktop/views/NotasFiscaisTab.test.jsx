@@ -23,7 +23,21 @@ const PRODUTO = { id: "p1", name: "Farinha", emoji: "🌾", unidade_estoque: "kg
 /** Produto que NÃO está na nota — serve para provar que ele não é tocado. */
 const ACUCAR = { id: "p2", name: "Açúcar", emoji: "🍬", unidade_estoque: "kg" };
 
-let entradaEstoque;
+let recarregarEstoque;
+
+/** Argumentos da única chamada à RPC de importação (tarefa 1.2). */
+function argsImportacao() {
+  const chamadas = mockSupabase.current.calls.filter(c => c.rpc === "importar_nota_fiscal");
+  expect(chamadas).toHaveLength(1);
+  return chamadas[0].args[0];
+}
+
+/** Nenhuma escrita direta nas tabelas da nota nem no saldo: tudo passa pela RPC. */
+function escritasDiretas() {
+  return mockSupabase.current.calls.filter(c =>
+    ["insert", "update", "delete", "upsert"].includes(c.method)
+    && ["notas_fiscais", "notas_fiscais_itens", "estoque_entradas", "estoque"].includes(c.table));
+}
 
 // 2026-07-16T00:30:00Z = 15/07 às 21h30 em São Paulo — o dia UTC já virou,
 // o dia do restaurante não.
@@ -48,12 +62,12 @@ const inputData = () => document.querySelector('input[type="date"]');
 
 beforeEach(() => {
   mockSupabase.current.reset();
-  entradaEstoque = vi.fn(() => Promise.resolve({ error: null }));
-  setAppMock({ products: [PRODUTO], entradaEstoque });
-  // A nota inserida precisa devolver um id — as entradas de estoque referenciam.
-  mockSupabase.current.setTableHandler("notas_fiscais", ({ method }) =>
-    method === "insert" ? { data: { id: "nf1" }, error: null } : { data: [], error: null },
-  );
+  recarregarEstoque = vi.fn(() => Promise.resolve());
+  setAppMock({ products: [PRODUTO], recarregarEstoque });
+  mockSupabase.current.setRpcResult("importar_nota_fiscal", {
+    data: [{ nota_id: "nf1", produto_id: "p1", quantidade: 12, minimo: 5 }],
+    error: null,
+  });
 });
 
 /**
@@ -117,9 +131,9 @@ describe("NotasFiscaisTab, entrada de estoque sem data na nota", () => {
     });
 
     await waitFor(() => expect(screen.getByText(/nota importada com sucesso/i)).toBeInTheDocument());
-    const entrada = mockSupabase.current.calls.find(c => c.table === "estoque_entradas" && c.method === "insert");
-    expect(entrada).toBeTruthy();
-    expect(entrada.args[0][0].data_entrada).toBe("2026-07-15");
+    const { p_nota } = argsImportacao();
+    expect(p_nota.data_emissao).toBeNull();
+    expect(p_nota.data_entrada).toBe("2026-07-15");
   });
 });
 
@@ -133,39 +147,48 @@ describe("NotasFiscaisTab, entrada de estoque sem data na nota", () => {
  * feito em outro aparelho desde então era apagado, em silêncio, em produtos que
  * nem estavam na nota.
  *
- * Agora só os itens da nota são tocados, um por um, e quem soma é o banco.
+ * Agora só os itens da nota são tocados, e quem soma é o banco. Desde a tarefa
+ * 1.2 do plano de refatoração, a soma acontece dentro da RPC
+ * `importar_nota_fiscal`, na mesma transação da nota: ou tudo, ou nada.
  */
 describe("NotasFiscaisTab, importação e saldo do estoque", () => {
   it("toca só os produtos da nota, o resto do catálogo fica intacto", async () => {
     setAppMock({
       products: [PRODUTO, ACUCAR],
       estoque: { p1: 10, p2: 99 },
-      entradaEstoque,
+      recarregarEstoque,
     });
     montar();
     const confirmar = await irAteConferencia();
     await act(async () => { fireEvent.click(confirmar); });
 
     await waitFor(() => expect(screen.getByText(/nota importada com sucesso/i)).toBeInTheDocument());
-    // Uma chamada, só para o produto da nota, com o quanto entrou.
-    expect(entradaEstoque).toHaveBeenCalledTimes(1);
-    expect(entradaEstoque).toHaveBeenCalledWith("p1", 2);
-    // Nenhuma gravacao direta de saldo: era o upsert do mapa inteiro que
-    // apagava o saldo de produtos que nem estavam na nota.
-    expect(mockSupabase.current.calls.filter(c => c.table === "estoque")).toHaveLength(0);
+    // Uma chamada só, levando apenas o produto da nota, com o quanto entrou.
+    const { p_itens } = argsImportacao();
+    expect(p_itens).toHaveLength(1);
+    expect(p_itens[0]).toMatchObject({ product_id: "p1", quantidade_estoque: 2 });
+    // Nenhuma gravação direta: era o upsert do mapa inteiro que apagava o
+    // saldo de produtos que nem estavam na nota.
+    expect(escritasDiretas()).toHaveLength(0);
+    // A tela relê o saldo que o banco confirmou.
+    expect(recarregarEstoque).toHaveBeenCalled();
   });
 
-  it("entrada que falha diz qual produto não entrou no estoque", async () => {
-    entradaEstoque = vi.fn(() => Promise.resolve({ error: { message: "rede caiu" } }));
-    setAppMock({ products: [PRODUTO], entradaEstoque });
+  it("recusa do banco não deixa nada gravado e diz o motivo", async () => {
+    // Antes, uma falha depois da nota deixava a nota gravada pela metade e a
+    // reimportação era recusada. Agora a recusa desfaz tudo; o aviso diz por quê.
+    mockSupabase.current.setRpcError("importar_nota_fiscal", {
+      code: "23505",
+      message: 'duplicate key value violates unique constraint "notas_fiscais_chave_acesso_key"',
+    });
     montar();
     const confirmar = await irAteConferencia();
     await act(async () => { fireEvent.click(confirmar); });
 
-    // A nota já foi gravada, então o aviso tem de dizer exatamente o que ficou
-    // pendente — em vez de a tela dar "sucesso" com o saldo parado.
-    expect(await screen.findByText(/a entrada de Farinha não foi somada ao estoque/i)).toBeInTheDocument();
+    expect(await screen.findByText(/esta nota já foi importada/i)).toBeInTheDocument();
     expect(screen.queryByText(/nota importada com sucesso/i)).not.toBeInTheDocument();
+    expect(recarregarEstoque).not.toHaveBeenCalled();
+    expect(escritasDiretas()).toHaveLength(0);
   });
 
   it("fator fracionário não grava dízima no saldo", async () => {
@@ -175,10 +198,8 @@ describe("NotasFiscaisTab, importação e saldo do estoque", () => {
     await act(async () => { fireEvent.click(confirmar); });
 
     await waitFor(() => expect(screen.getByText(/nota importada com sucesso/i)).toBeInTheDocument());
-    expect(entradaEstoque).toHaveBeenCalledWith("p1", 1.05);
-    // O histórico de entradas grava o mesmo número que o saldo recebeu.
-    const entrada = mockSupabase.current.calls.find(c => c.table === "estoque_entradas" && c.method === "insert");
-    expect(entrada.args[0][0].quantidade).toBe(1.05);
+    // Saldo e histórico saem do mesmo número no banco: quantidade_estoque.
+    expect(argsImportacao().p_itens[0].quantidade_estoque).toBe(1.05);
   });
 
   it("quantidade com mais casas que o saldo guarda entra arredondada", async () => {
@@ -190,9 +211,7 @@ describe("NotasFiscaisTab, importação e saldo do estoque", () => {
     await act(async () => { fireEvent.click(confirmar); });
 
     await waitFor(() => expect(screen.getByText(/nota importada com sucesso/i)).toBeInTheDocument());
-    expect(entradaEstoque).toHaveBeenCalledWith("p1", 2.667);
-    const entrada = mockSupabase.current.calls.find(c => c.table === "estoque_entradas" && c.method === "insert");
-    expect(entrada.args[0][0].quantidade).toBe(2.667);
+    expect(argsImportacao().p_itens[0].quantidade_estoque).toBe(2.667);
   });
 
   it("fator apagado bloqueia a importação em vez de importar quantidade 0", async () => {
@@ -207,7 +226,7 @@ describe("NotasFiscaisTab, importação e saldo do estoque", () => {
     // Nada foi gravado: antes a nota entrava, o saldo não mexia e a tela dizia
     // "1 produto atualizado no estoque".
     await act(async () => { fireEvent.click(confirmar); });
-    expect(entradaEstoque).not.toHaveBeenCalled();
-    expect(mockSupabase.current.calls.filter(c => c.table === "notas_fiscais" && c.method === "insert")).toHaveLength(0);
+    expect(mockSupabase.current.calls.filter(c => c.rpc === "importar_nota_fiscal")).toHaveLength(0);
+    expect(escritasDiretas()).toHaveLength(0);
   });
 });

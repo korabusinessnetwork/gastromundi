@@ -1,3 +1,21 @@
+## Rodada 72, refatoração 1.2, importar nota fiscal numa transação só, 2026-11-23
+- Spec: specs/refatoracao-1-2-importar-nota.md
+- Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 246 arquivos / 4297
+  testes para 248 / 4313, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
+  dados/: 217 (55 / 51 / 111). Migration `20261124` ainda não aplicada em produção.
+- A decisão que a rodada precisou tomar: não reescrever a soma do saldo. A função nova
+  chama a `entrada_estoque` de setembro por dentro, que já confere papel e estabelecimento e
+  já é a única porta de escrita no saldo. Assim o "tudo ou nada" chega sem duplicar a regra
+  de quem pode somar estoque, e o guard proíbe a função de escrever em `estoque` direto.
+- O que a rodada revelou de não óbvio: a falha mais cara não era a nota sem itens, era a
+  nota que não podia ser importada de novo. Com a chave de acesso já gravada, a correção
+  natural do operador (importar outra vez) era recusada como duplicada. O cenário SQL 4
+  prova que, agora, depois de uma falha a reimportação passa.
+- A parte que quase passou batido: a data de entrada do histórico é o "hoje" do
+  restaurante, calculado no fuso do navegador, e o banco usaria o dia UTC. Às 21h30 em São
+  Paulo os dois já divergem. A tela continua mandando a data, e a função só cai no
+  `current_date` se nada vier.
+- Fica em aberto: aplicar `20261124` em produção (decisão do dono, D6).
 ## Rodada 71, refatoração 1.1, salvar combo numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-1-salvar-combo.md
 - Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 243 arquivos / 4280
