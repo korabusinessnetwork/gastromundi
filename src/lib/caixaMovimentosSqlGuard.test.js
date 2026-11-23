@@ -171,10 +171,11 @@ describe("caixa_movimentos, o cliente JS não desmente o banco (F005)", () => {
   });
 
   it("as colunas que o cliente grava existem na tabela", () => {
-    const ctx = lerFonte("src/context/AppContext.jsx");
+    // A linha gravada é montada no CaixaProvider desde a tarefa 2.9 do plano.
+    const caixa = lerFonte("src/context/CaixaProvider.jsx");
     const colunas = ["tipo", "valor", "motivo", "autor", "autorizado_por", "sessao_aberta_em"];
     for (const coluna of colunas) {
-      expect(ctx, `${coluna} não aparece no insert do AppContext`).toContain(coluna);
+      expect(caixa, `${coluna} não aparece no insert do CaixaProvider`).toContain(coluna);
       expect(SQL, `${coluna} não existe na migration`).toMatch(new RegExp(`^\\s+${coluna}\\s`, "m"));
     }
   });

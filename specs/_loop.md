@@ -1,3 +1,19 @@
+## Rodada 83, refatoração 2.9, o caixa dono do próprio estado, 2026-11-23
+- Spec: specs/refatoracao-2-9-caixa.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
+  testes, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 1.578 para 1.320
+  linhas; `CaixaProvider.jsx` nasce com 323. Roteiro de fotos: 0 diferença. Sem migration.
+- A parte que quase passou batido, e desta vez foi prevista: o guard de `caixa_movimentos`
+  confere as colunas que o cliente grava lendo o arquivo onde a linha é montada. Ela se
+  mudou para o `CaixaProvider` e o guard falhou como esperado; passou a ler de lá, com a
+  mesma asserção. É a segunda vez que um guard que lê código-fonte segue o código numa
+  mudança de lugar (a primeira foi na rodada 78), e o padrão vale anotar: guard de texto
+  precisa andar junto com o arquivo que vigia.
+- A constante `PG_COLUNA_INEXISTENTE` ficou duplicada nos dois arquivos que a usam, com um
+  comentário dizendo onde está a outra. Uma constante de cinco caracteres não justifica um
+  módulo novo agora; se aparecer um terceiro uso, vira módulo.
+- Fica em aberto: sessão e offline, as duas últimas fatias da 2.9. São elas que alimentam
+  as pontes, então é com elas que as pontes somem.
 ## Rodada 82, refatoração 2.9, as comandas donas do próprio estado, 2026-11-23
 - Spec: specs/refatoracao-2-9-comandas.md
 - Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
