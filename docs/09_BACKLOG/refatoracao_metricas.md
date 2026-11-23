@@ -41,6 +41,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-23 | 2.10 coordenação e fim da fachada | 63 | 22 | 70 | 111 (0 / 0 / 111) | 1.526 | 23 | 1 | 0 / 26 | 254 arquivos, 4.354 testes | 2.387 kB (703 kB gzip) |
 | 2026-11-23 | 3.1 e 3.3 um componente por arquivo | 66 | 20 | 50 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 255 arquivos, 4.357 testes | 2.394 kB |
 | 2026-11-23 | 3 lote de oito telas | 66 | 15 | 50 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 255 arquivos, 4.357 testes | 2.394 kB |
+| 2026-11-23 | 3 ganchos em notas, produtos e relatórios | 66 | 12 | 50 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 255 arquivos, 4.358 testes | 2.403 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

@@ -191,3 +191,32 @@ describe("RelatorioView, fechamento gravado antes desta versão (Run 1)", () => 
     expect(screen.getByText("Falta no Caixa")).toBeInTheDocument();
   });
 });
+
+// Refatoração 3: cada aba saiu para um arquivo próprio e lê o estado do gancho
+// `useRelatorios`. Vendas e Fechamentos têm testes acima; este garante que as
+// outras abas abrem e mostram o conteúdo delas, em vez de quebrar por um nome
+// que deixou de chegar.
+describe("RelatorioView, cada aba abre com o conteúdo dela", () => {
+  it("Cancelamentos, Logs, Credenciais e Admin abrem para quem administra", async () => {
+    contexto.current = {
+      sales: [], fechamentos: [], pending: [],
+      users: [{ id: "u1", name: "Bruna Souza", role: "caixa" }],
+      currentUser: { role: "admin" },
+      tenant: null,
+      metodosCustom: [],
+    };
+    render(<RelatorioView />);
+
+    fireEvent.click(screen.getByText("Cancelamentos"));
+    expect(screen.getByText("Nenhum cancelamento no período selecionado")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Logs"));
+    expect(await screen.findByText("Nenhum evento no período selecionado")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Credenciais"));
+    expect(screen.getByText("Bruna Souza")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Admin"));
+    expect(screen.getByText("Nenhuma venda no período selecionado")).toBeTruthy();
+  });
+});

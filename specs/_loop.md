@@ -1,3 +1,18 @@
+## Rodada 88, refatoração 3, ganchos em Notas Fiscais, Produtos e Relatórios, 2026-11-23
+- Spec: specs/refatoracao-3-ganchos-notas-produtos-relatorios.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4358
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. Arquivos acima de 600 linhas: 15 para 12.
+- As três telas viraram fiação: Notas Fiscais com 21 linhas, Produtos com 167, Relatórios
+  com 187. O estado foi para ganchos em `src/features/`, nenhum acima de 15 `useState`.
+- Teste novo: as quatro abas dos Relatórios que não tinham teste (Cancelamentos, Logs,
+  Credenciais, Admin) agora abrem uma a uma. Provado por sabotagem: sem a lista de usuários,
+  a aba Credenciais falha o teste.
+- O que a rodada revelou: o gerador desestruturava nomes que só apareciam dentro de nome de
+  classe CSS (`produtos-view__modal`) ou como chave de estilo (`width:`). O lint apontou
+  todos como sem uso, e a poda passou a seguir o lint em vez do texto.
+- Pendência para a fase 6: os ganchos importam constantes do `apoio.jsx` da pasta do
+  computador; a seta fica certa quando o `apoio` mudar para a pasta da funcionalidade.
 ## Rodada 87, refatoração 3, lote de oito telas, um componente por arquivo, 2026-11-23
 - Spec: specs/refatoracao-3-lote-um-componente-por-arquivo.md
 - Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4357
