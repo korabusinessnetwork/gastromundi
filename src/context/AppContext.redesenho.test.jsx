@@ -51,6 +51,7 @@ vi.mock("@/lib/tenant", () => ({
 
 import { AppProvider, useApp } from "./AppContext";
 import { useSessao } from "./SessaoContext";
+import { useOffline } from "./OfflineContext";
 
 beforeEach(() => {
   mockSupabase.from.mockImplementation(() => {
@@ -91,61 +92,74 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
     expect(rendersDoLeitor).toBe(antes);
   });
 
-  // Tarefa 2.2: a mesma tela, lendo pela fatia da sessão, já não é redesenhada.
-  it("com useSessao, a tela do usuário logado não redesenha quando a taxa de serviço muda", async () => {
-    const app = { current: null };
-    let rendersDoLeitor = 0;
+  // Tarefas 2.2 em diante: cada fatia, lida pelo próprio gancho, não é
+  // redesenhada por mudança de outro assunto, e as ações dela têm identidade
+  // fixa entre renders. Uma linha por fatia; a 2.4 em diante acrescenta a sua.
+  const FATIAS = [
+    {
+      nome: "sessão", gancho: useSessao, campo: "currentUser",
+      acoes: ["login", "logout", "addUser", "updateUser", "removeUser", "salvarPermissoesCargo", "moduloHabilitado", "addonHabilitado"],
+      mudarOutroAssunto: (app) => app.setTaxaServico(true),
+    },
+    {
+      nome: "offline", gancho: useOffline, campo: "pendenciasOffline",
+      acoes: ["enfileirarOffline", "recarregarDadosDoEstabelecimento"],
+      mudarOutroAssunto: (app) => app.setTaxaServico(true),
+    },
+  ];
 
-    function Sonda() {
-      app.current = useApp();
-      return null;
-    }
-    function LeitorDoUsuario() {
-      const { currentUser } = useSessao();
-      rendersDoLeitor += 1;
-      return currentUser ? currentUser.name : null;
-    }
+  describe.each(FATIAS)("fatia $nome", ({ gancho, campo, acoes, mudarOutroAssunto }) => {
+    it("tela que lê pelo gancho não redesenha quando outro assunto muda", async () => {
+      const app = { current: null };
+      let renders = 0;
+      function Sonda() {
+        app.current = useApp();
+        return null;
+      }
+      function Leitor() {
+        const fatia = gancho();
+        renders += 1;
+        return String(fatia[campo] ?? "");
+      }
 
-    render(<AppProvider><Sonda /><LeitorDoUsuario /></AppProvider>);
-    await act(async () => {});
+      render(<AppProvider><Sonda /><Leitor /></AppProvider>);
+      await act(async () => {});
+      const antes = renders;
+      await act(async () => { await mudarOutroAssunto(app.current); });
 
-    const antes = rendersDoLeitor;
-    await act(async () => { await app.current.setTaxaServico(true); });
+      expect(renders).toBe(antes);
+    });
 
-    expect(app.current.taxaServico).toBe(true);
-    expect(rendersDoLeitor).toBe(antes);
+    it("as ações têm a mesma identidade entre renders", async () => {
+      const app = { current: null };
+      const valores = [];
+      function Sonda() {
+        app.current = useApp();
+        valores.push(gancho());
+        return null;
+      }
+
+      render(<AppProvider><Sonda /></AppProvider>);
+      await act(async () => {});
+      await act(async () => { await mudarOutroAssunto(app.current); });
+
+      expect(valores.length).toBeGreaterThan(1);
+      for (const acao of acoes) {
+        expect(typeof valores.at(-1)[acao], acao).toBe("function");
+        expect(valores.at(-1)[acao], acao).toBe(valores[0][acao]);
+        // A fachada entrega a mesma ação, para nenhuma tela mudar de comportamento.
+        expect(typeof app.current[acao], acao).toBe("function");
+      }
+    });
   });
 
-  it("useSessao entrega as mesmas ações do useApp, com identidade fixa entre renders", async () => {
-    const app = { current: null };
-    const sessoes = [];
-
-    function Sonda() {
-      app.current = useApp();
-      sessoes.push(useSessao());
-      return null;
-    }
-
-    render(<AppProvider><Sonda /></AppProvider>);
-    await act(async () => {});
-    await act(async () => { await app.current.setTaxaServico(true); });
-
-    const primeira = sessoes[0];
-    const ultima = sessoes[sessoes.length - 1];
-    expect(sessoes.length).toBeGreaterThan(1);
-    for (const acao of ["login", "logout", "addUser", "updateUser", "removeUser", "salvarPermissoesCargo", "moduloHabilitado", "addonHabilitado"]) {
-      expect(typeof ultima[acao], acao).toBe("function");
-      expect(ultima[acao], acao).toBe(primeira[acao]);
-    }
-  });
-
-  it("useSessao fora do AppProvider avisa em vez de devolver vazio", () => {
+  it.each([["useSessao", useSessao], ["useOffline", useOffline]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
     function SemProvider() {
-      useSessao();
+      gancho();
       return null;
     }
     const erroConsole = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => render(<SemProvider />)).toThrow(/useSessao deve ser usado dentro de <AppProvider>/);
+    expect(() => render(<SemProvider />)).toThrow(new RegExp(`${nome} deve ser usado dentro de <AppProvider>`));
     erroConsole.mockRestore();
   });
 });

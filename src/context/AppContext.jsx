@@ -3,6 +3,7 @@ import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { supabase } from "@/lib/supabase";
 import { SessaoContext } from "./SessaoContext";
+import { OfflineContext } from "./OfflineContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { obterSessaoAuth, entrarComSenha, sairDoAuth, aoMudarSessaoAuth } from "@/features/sessao/dados/auth";
 import {
@@ -2134,6 +2135,18 @@ export function AppProvider({ children }) {
     moduloHabilitadoEstavel, addonHabilitadoEstavel, loginEstavel, logoutEstavel,
     addUserEstavel, updateUserEstavel, removeUserEstavel, salvarPermissoesCargoEstavel]);
 
+  // ── Fatia offline (tarefa 2.3) ────────────────────────────────
+  // Rede, fila local e o que ainda espera o banco. `recarregarDadosDoEstabelecimento`
+  // é o mesmo `bootstrap` da abertura, com identidade fixa.
+  const enfileirarOfflineEstavel = useFuncaoEstavel(enfileirarOffline);
+  const recarregarDadosEstavel   = useFuncaoEstavel(bootstrap);
+  const valorOffline = useMemo(() => ({
+    redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
+    enfileirarOffline: enfileirarOfflineEstavel,
+    recarregarDadosDoEstabelecimento: recarregarDadosEstavel,
+  }), [redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
+    enfileirarOfflineEstavel, recarregarDadosEstavel]);
+
   const value = {
     loading,
     // dados
@@ -2194,6 +2207,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={value}>
       <SessaoContext.Provider value={valorSessao}>
+      <OfflineContext.Provider value={valorOffline}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -2206,6 +2220,7 @@ export function AppProvider({ children }) {
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
+      </OfflineContext.Provider>
       </SessaoContext.Provider>
     </AppContext.Provider>
   );
