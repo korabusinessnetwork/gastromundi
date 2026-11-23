@@ -8,7 +8,8 @@ import { useConfig } from "./ConfigContext";
 import { gravarConfig } from "./gravarConfig";
 import { CatalogoProvider, useCatalogoCarga } from "./CatalogoProvider";
 import { useCatalogo } from "./CatalogoContext";
-import { ComandasContext } from "./ComandasContext";
+import { ComandasProvider, useComandasCarga } from "./ComandasProvider";
+import { useComandas } from "./ComandasContext";
 import { CaixaContext } from "./CaixaContext";
 import { lerConfigDaAbertura } from "@/features/configuracoes/dados/config";
 // Carga e reenvio da fila: o resto do estoque mora no CatalogoProvider.
@@ -20,10 +21,8 @@ import {
 import {
   listarFechamentos, gravarFechamento, listarMovimentosRecentes, registrarMovimento, excluirLancamentosDaVenda,
 } from "@/features/caixa/dados/caixa";
-import {
-  listarComandas, inserirComanda, regravarComanda, atualizarComanda, excluirComanda, lerItensDaComanda,
-  adquirirTravaDaComanda, lerDonoDaTrava, liberarTravaDaComanda, assinarComandas,
-} from "@/features/comandas/dados/comandas";
+// Carga e reenvio da fila: o resto das comandas mora no ComandasProvider.
+import { listarComandas, regravarComanda, atualizarComanda, excluirComanda } from "@/features/comandas/dados/comandas";
 import { listarProdutosAtivos } from "@/features/cardapio/dados/produtos";
 import { listarGruposCategoria, listarCategoriaGrupos } from "@/features/cardapio/dados/gruposCategoria";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
@@ -48,12 +47,10 @@ import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
 import { lerValor, validarMovimento } from "@/lib/caixaMovimentos";
 import { gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
-import { LOCK_TTL_MS } from "@/lib/comandaLock";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia, setTenantObservabilidade } from "@/lib/observabilidade";
-import { separarCampos, COLUNAS_ESCRITA_USERS, COLUNAS_ESCRITA_PENDING, COLUNAS_REPLAY_PENDING } from "@/lib/camposPermitidos";
+import { separarCampos, COLUNAS_ESCRITA_USERS, COLUNAS_REPLAY_PENDING } from "@/lib/camposPermitidos";
 import { drenarFila } from "@/lib/offline/fila";
 // Fila local de operações offline (Leva 11) — singleton de módulo sobre o
 // IndexedDB (F021 fatia 2): sobrevive a reload/fechamento do app e é
@@ -108,18 +105,24 @@ export function AppProvider({ children }) {
   // O que os provedores de fora ainda precisam ler de dentro (usuário logado,
   // fila offline). Preenchido pelo AppProviderInterno a cada render.
   const pontesRef = useRef({ currentUser: null, enfileirarOffline: () => {} });
+  // Banco sem as colunas da trava de edição (migration não aplicada): a carga
+  // descobre, as travas das comandas obedecem.
+  const lockIndisponivelRef = useRef(false);
   return (
     <ConfigProvider tenantIdRef={tenantIdRef}>
       <CatalogoProvider pontesRef={pontesRef}>
-        <AppProviderInterno tenantIdRef={tenantIdRef} pontesRef={pontesRef}>{children}</AppProviderInterno>
+        <ComandasProvider pontesRef={pontesRef} lockIndisponivelRef={lockIndisponivelRef}>
+          <AppProviderInterno tenantIdRef={tenantIdRef} pontesRef={pontesRef} lockIndisponivelRef={lockIndisponivelRef}>
+            {children}
+          </AppProviderInterno>
+        </ComandasProvider>
       </CatalogoProvider>
     </ConfigProvider>
   );
 }
 
-function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
+function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivelRef }) {
   // ── Estado local ─────────────────────────────────────────────
-  const [pending,     setPendingLocal]     = useState([]);
   const [sales,       setSalesLocal]       = useState([]);
   const [users,       setUsersLocal]       = useState([]);
   const [fechamentos, setFechamentosLocal] = useState([]);
@@ -135,7 +138,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
   const [rolePermissions, setRolePermissionsLocal] = useState({});
   const [loading,       setLoading]          = useState(true);
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
-  const [lancadas,    setLancadas]         = useState(new Set());
 
   // ── Offline-first (Leva 11) ──────────────────────────────────
   const redeOnline = useStatusRede();
@@ -182,6 +184,12 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
     entradaEstoque, baixarEstoqueSubproduto, setMinimoEstoque, recarregarEstoque, setCategoriaGrupo,
   } = useCatalogo();
   const cargaCatalogo = useCatalogoCarga();
+  // As comandas em aberto moram no ComandasProvider desde a tarefa 2.9.
+  const {
+    pending, lancadas, addPending, removePending, updatePending,
+    adquirirTrava, liberarTrava, renovarTrava, addLancada,
+  } = useComandas();
+  const cargaComandas = useComandasCarga();
 
   // ── Auth ─────────────────────────────────────────────────────
   // `lerSessao` em vez de `loadSession` porque um inicializador de estado não
@@ -420,7 +428,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
   // não existem no banco (migration 20260747 não aplicada). Aí a trava
   // desliga por inteiro (fail-open) e o app opera como antes (merge da
   // Leva 2 continua sendo a rede de segurança contra escrita concorrente).
-  const lockIndisponivelRef = useRef(false);
 
   // Fail-open p/ o override de permissão por funcionário (users.permissions):
   // quando a migration 20260828 ainda não rodou no banco (coluna inexistente,
@@ -565,7 +572,7 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
         const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
         if (snapshot) {
           if (snapshot.products?.length) cargaCatalogo.definirProdutos(snapshot.products);
-          if (snapshot.pending)          setPendingLocal(snapshot.pending);
+          if (snapshot.pending)          cargaComandas.definirComandas(snapshot.pending);
           if (snapshot.estoque)          cargaCatalogo.definirSaldos(snapshot.estoque);
           if (snapshot.estoqueMinimos)   cargaCatalogo.definirMinimos(snapshot.estoqueMinimos);
           const config = snapshot.config ?? {};
@@ -582,7 +589,7 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
       if (movimentosData) setMovimentosCaixaLocal(movimentosData);
 
       if (productsData?.length)    cargaCatalogo.definirProdutos(productsData);
-      if (pendingData)             setPendingLocal(pendingData);
+      if (pendingData)             cargaComandas.definirComandas(pendingData);
       if (salesData)               setSalesLocal(salesData);
       // Matriz de permissões por cargo deste tenant (fallback no roles.js).
       const mapaCargos = montarMapaCargos(rolePermsData);
@@ -752,21 +759,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
     void executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, currentUser?.id]);
-
-  // ── Realtime: pedidos pendentes (palm ↔ caixa) ───────────────
-  useEffect(() => {
-    return assinarComandas((payload) => {
-        if (payload.eventType === "INSERT") {
-          setPendingLocal(prev =>
-            prev.find(p => p.id === payload.new.id) ? prev : [payload.new, ...prev]
-          );
-        } else if (payload.eventType === "UPDATE") {
-          setPendingLocal(prev => prev.map(p => p.id === payload.new.id ? payload.new : p));
-        } else if (payload.eventType === "DELETE") {
-          setPendingLocal(prev => prev.filter(p => p.id !== payload.old.id));
-        }
-    });
-  }, []);
 
   // ── Realtime: vendas fechadas (saldo do dia entre dispositivos) ──
   // Leva 15.4 — sem isso, cada caixa só enxergava as próprias vendas e o
@@ -1053,156 +1045,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
   // É por aqui que os cronômetros de inatividade e do teto de 8h chamam o
   // logout: eles guardam um callback estável e leem sempre a versão atual.
   logoutRef.current = logout;
-
-  // ── Actions: Pending ──────────────────────────────────────────
-  // O supabase-js NÃO lança em erro de RLS/constraint — resolve com
-  // { error }. Toda escrita aqui checa o .error, desfaz o estado
-  // otimista quando a gravação falha e devolve { error } para o
-  // chamador mostrar feedback — senão a UI finge sucesso enquanto o
-  // banco ficou para trás (pedido do garçom some, cobrança dupla).
-  const addPending = async (order) => {
-    // uid estável por item — base da reconciliação multi-dispositivo
-    // (Palm × PDV) feita no updatePending.
-    order = { ...order, items: garantirUidItens(order.items) };
-    setPendingLocal(prev => [order, ...prev]);
-    const { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } = order;
-    const { error } = await inserirComanda({ id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by });
-    if (error) {
-      // Sem internet o pedido NÃO some (Leva 11): mantém o estado
-      // otimista, guarda na fila local e reenvia quando a rede voltar.
-      if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } });
-        return { error: null, offline: true };
-      }
-      console.error("addPending error:", error);
-      reportarFalha(error, { acao: "addPending", tabela: "pending" });
-      setPendingLocal(prev => prev.filter(o => o.id !== id));
-      return { error };
-    }
-    emitirEvento("pedido.aberto", "pedidos", { pedido_id: id, comanda, mesa: mesa ?? null, total: total ?? null, garcom: garcom ?? null }, created_by ?? currentUser?.username);
-    return { error: null };
-  };
-
-  const removePending = async (id) => {
-    let removida = null;
-    setPendingLocal(prev => {
-      removida = prev.find(o => o.id === id) ?? removida;
-      return prev.filter(o => o.id !== id);
-    });
-    const { error } = await excluirComanda(id);
-    if (error) {
-      if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "delete", id });
-        return { error: null, offline: true };
-      }
-      console.error("removePending error:", error);
-      reportarFalha(error, { acao: "removePending", tabela: "pending", id });
-      // Restaura a comanda: ela continua existindo no banco.
-      if (removida) setPendingLocal(prev => prev.some(o => o.id === id) ? prev : [removida, ...prev]);
-      return { error };
-    }
-    return { error: null };
-  };
-
-  // `baseItems` = snapshot de onde o chamador derivou `changes.items`.
-  // Com ele, itens lançados por outro dispositivo (Palm) entre o snapshot
-  // e a gravação são preservados em vez de sobrescritos ("última escrita
-  // vence" fazia itens sumirem da conta). A janela de corrida residual
-  // (leitura→gravação não é atômica) fica registrada como dívida técnica —
-  // a solução definitiva é um RPC de append em jsonb no Postgres.
-  const updatePending = async (id, changes, { baseItems } = {}) => {
-    if (Array.isArray(changes.items)) {
-      changes = { ...changes, items: garantirUidItens(changes.items) };
-      if (Array.isArray(baseItems)) {
-        const { data: atual, error: erroLeitura } = await lerItensDaComanda(id);
-        if (!erroLeitura && atual) {
-          const { items, houveMescla } = mesclarItensComanda({ base: baseItems, propostos: changes.items, banco: atual.items });
-          if (houveMescla) {
-            changes = { ...changes, items };
-            if ("total" in changes) changes.total = totalItensAtivos(items);
-          }
-        }
-      }
-    }
-    // Allowlist antes de qualquer coisa. Aqui ela pesa mais que nos outros
-    // pontos: com a rede fora, este `changes` é gravado no localStorage pela
-    // fila offline e só volta ao banco no dreno, depois de ter passado por um
-    // armazenamento que o navegador deixa qualquer um editar. Filtrar na
-    // entrada é o que garante que o que sai da fila tem a mesma forma do que
-    // entrou nela.
-    const { campos: permitidos, ignorados } = separarCampos(changes, COLUNAS_ESCRITA_PENDING);
-    if (ignorados.length > 0) {
-      reportarInconsistencia("escrita com coluna fora da allowlist", { acao: "updatePending", tabela: "pending", id, ignorados });
-    }
-    const payload = { ...permitidos, updated_at: new Date().toISOString() };
-    let anterior = null;
-    setPendingLocal(prev => prev.map(o => {
-      if (o.id !== id) return o;
-      anterior = o;
-      return { ...o, ...permitidos };
-    }));
-    const { error } = await atualizarComanda(id, payload);
-    if (error) {
-      if (isErroDeRede(error)) {
-        enfileirarOffline({ tipo: "update", id, changes: payload });
-        return { error: null, offline: true };
-      }
-      console.error("updatePending error:", error);
-      reportarFalha(error, { acao: "updatePending", tabela: "pending", id });
-      if (anterior) setPendingLocal(prev => prev.map(o => o.id === id ? anterior : o));
-      return { error };
-    }
-    return { error: null };
-  };
-
-  // ── Trava de edição de comanda (Leva 14) ─────────────────────
-  // Enquanto uma pessoa está com a comanda aberta, outra não mexe.
-  // Adquirir = UPDATE condicional: só grava se a trava está livre, é minha,
-  // ou expirou (TTL). Quem chegar primeiro leva; o perdedor recebe ok:false
-  // com o nome de quem está editando. Tudo fail-open: sem migration (42703)
-  // ou sem rede, a trava se desliga e o app opera como antes.
-  const adquirirTrava = async (id) => {
-    if (lockIndisponivelRef.current || !currentUser?.username) return { ok: true, semTrava: true };
-    // X3 — o username entra cru no filtro .or() abaixo. Um username com `,`
-    // `.` `)` ou espaço reescreveria a lógica do filtro (roubo de trava).
-    // Só montamos o .or() com username em allowlist [a-zA-Z0-9._-]; fora
-    // dela, fail-open (não trava ninguém — coerente com o resto da função).
-    if (!/^[a-zA-Z0-9._-]+$/.test(currentUser.username)) return { ok: true, semTrava: true };
-    const agora = new Date();
-    const limiteExpirada = new Date(agora.getTime() - LOCK_TTL_MS).toISOString();
-    const { data, error } = await adquirirTravaDaComanda(id, {
-      usuario: currentUser.username,
-      nome: currentUser.name ?? currentUser.username,
-      agoraIso: agora.toISOString(),
-      limiteExpiradaIso: limiteExpirada,
-    });
-    if (error) {
-      if (error.code === "42703") lockIndisponivelRef.current = true;
-      // Rede fora ou banco sem migration: não bloqueia ninguém (fail-open).
-      return { ok: true, semTrava: true };
-    }
-    if (!data) {
-      // Outra pessoa segura a trava — busca quem, pra UI mostrar o nome.
-      const { data: dono } = await lerDonoDaTrava(id);
-      return { ok: false, nome: dono?.editando_nome || dono?.editando_por || "outra pessoa", desde: dono?.editando_desde ?? null };
-    }
-    setPendingLocal(prev => prev.map(o => o.id === id ? { ...o, ...data } : o));
-    return { ok: true };
-  };
-
-  // Renovação (heartbeat): reusa a aquisição — se a minha trava segue
-  // valendo, o UPDATE condicional só atualiza o editando_desde.
-  const renovarTrava = (id) => adquirirTrava(id);
-
-  const liberarTrava = async (id) => {
-    if (lockIndisponivelRef.current || !currentUser?.username) return { error: null };
-    setPendingLocal(prev => prev.map(o => (o.id === id && o.editando_por === currentUser.username)
-      ? { ...o, editando_por: null, editando_nome: null, editando_desde: null }
-      : o));
-    const { error } = await liberarTravaDaComanda(id, currentUser.username);
-    // Falhou (rede etc.)? Sem drama: a trava expira sozinha pelo TTL.
-    return { error: error ?? null };
-  };
 
   // ── Actions: Sales ────────────────────────────────────────────
   // TD009 (etapa 3) — a venda é gravada SÓ nas tabelas relacionais.
@@ -1541,7 +1383,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
   });
 
   // ── Context value ─────────────────────────────────────────────
-  const addLancada = (id) => setLancadas(prev => new Set([...prev, id]));
 
   // Fase 2 — camada de comercialização (ADR-005): única fonte de gating por
   // plano no front. Sidebar/rotas/telas novas devem checar por aqui, nunca
@@ -1615,23 +1456,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
     recarregarDadosDoEstabelecimento: recarregarDadosEstavel,
   }), [redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
     enfileirarOfflineEstavel, recarregarDadosEstavel]);
-
-  // ── Fatia das comandas (tarefa 2.6) ───────────────────────────
-  // Comandas em aberto, a trava de edição e o que o garçom já lançou.
-  const addPendingEstavel    = useFuncaoEstavel(addPending);
-  const removePendingEstavel = useFuncaoEstavel(removePending);
-  const updatePendingEstavel = useFuncaoEstavel(updatePending);
-  const adquirirTravaEstavel = useFuncaoEstavel(adquirirTrava);
-  const liberarTravaEstavel  = useFuncaoEstavel(liberarTrava);
-  const renovarTravaEstavel  = useFuncaoEstavel(renovarTrava);
-  const addLancadaEstavel    = useFuncaoEstavel(addLancada);
-  const valorComandas = useMemo(() => ({
-    pending, lancadas,
-    addPending: addPendingEstavel, removePending: removePendingEstavel, updatePending: updatePendingEstavel,
-    adquirirTrava: adquirirTravaEstavel, liberarTrava: liberarTravaEstavel, renovarTrava: renovarTravaEstavel,
-    addLancada: addLancadaEstavel,
-  }), [pending, lancadas, addPendingEstavel, removePendingEstavel, updatePendingEstavel,
-    adquirirTravaEstavel, liberarTravaEstavel, renovarTravaEstavel, addLancadaEstavel]);
 
   // ── Fatia do caixa (tarefa 2.7) ───────────────────────────────
   // Vendas, fechamentos, fundo, abertura do caixa e sangrias/suprimentos.
@@ -1713,7 +1537,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
     <AppContext.Provider value={value}>
       <SessaoContext.Provider value={valorSessao}>
       <OfflineContext.Provider value={valorOffline}>
-      <ComandasContext.Provider value={valorComandas}>
       <CaixaContext.Provider value={valorCaixa}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
@@ -1728,7 +1551,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef }) {
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
       </CaixaContext.Provider>
-      </ComandasContext.Provider>
       </OfflineContext.Provider>
       </SessaoContext.Provider>
     </AppContext.Provider>

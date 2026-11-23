@@ -1,3 +1,15 @@
+## Rodada 82, refatoração 2.9, as comandas donas do próprio estado, 2026-11-23
+- Spec: specs/refatoracao-2-9-comandas.md
+- Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
+  testes, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 1.756 para 1.578
+  linhas; `ComandasProvider.jsx` nasce com 238. Roteiro de fotos: 0 diferença. Sem
+  migration.
+- Mesmo molde da rodada 81, e por isso foi rápida: recorte por script, canal interno de
+  carga, ponte para usuário e fila. O único estado dividido de verdade entre a carga e as
+  ações é o aviso de que o banco não tem as colunas da trava (`lockIndisponivelRef`), e ele
+  passou a nascer no `AppProvider` externo, entregue aos dois lados.
+- Fica em aberto: sessão, offline e caixa. O caixa é o próximo (vendas, fechamentos e
+  movimentos); sessão e offline por último, porque é deles que as pontes saem.
 ## Rodada 81, refatoração 2.9, o catálogo dono do próprio estado, 2026-11-23
 - Spec: specs/refatoracao-2-9-catalogo.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353
