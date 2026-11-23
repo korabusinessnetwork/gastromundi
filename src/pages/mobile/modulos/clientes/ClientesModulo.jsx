@@ -10,7 +10,7 @@ import {
   LuTriangleAlert,
   LuCheck,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { listarFiadoEmAberto } from "@/features/financeiro/dados/lancamentos";
 import { formatarDocumento } from "@/lib/documento";
 import { formatarTelefone } from "@/lib/deliveryPedidos";
@@ -66,7 +66,7 @@ async function buscarFiadoEmAberto() {
 }
 
 export default function ClientesModulo({ onVoltar }) {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
 
   const [busca, setBusca] = useState("");
   const [clientes, setClientes] = useState([]);

@@ -224,12 +224,14 @@ arquivo do próprio provedor, já protegida pelos limites e pelos testes de cada
   chamadas ao Supabase daquele assunto saíram do `AppContext.jsx`, e um teste prova que a
   tela que usa o gancho não é redesenhada por mudança de outro assunto.
 
-**2.8 Remover a fachada**
-- As 61 telas que usam `useApp()` passam a usar o hook específico (`useSessao`, `useCaixa`
-  e os demais). Fazer por pasta, uma rodada podendo cobrir várias telas.
-- Inverter o teste da 2.1: mudar `movimentosCaixa` não redesenha mais a `CozinhaView`.
-- **Pronto quando:** `useApp` não existe mais e o `AppContext.jsx` foi removido ou só
-  compõe os provedores.
+**2.8 Telas nos ganchos de cada assunto** (feita em 2026-11-23)
+- As telas trocaram `useApp()` pelos ganchos (`useSessao`, `useCaixa` e os demais), por um
+  codemod que lê os campos de cada desestruturação e para com erro em campo sem fatia.
+- O teste da 2.1 deixou de ser `it.fails`: a tabela de fatias cobre o caso, e o guard
+  `telasSemUseApp.test.js` impede que uma tela volte a usar a fachada.
+- A fachada `useApp()` continua existindo só para os testes do próprio contexto. Ela sai
+  na 2.9, junto com a mudança do estado, porque esses testes precisam ser reescritos
+  provedor por provedor de qualquer jeito.
 
 **2.9 Mover o estado para os provedores**
 - Com as telas já nos ganchos, o estado e as ações de cada assunto saem do `AppProvider`

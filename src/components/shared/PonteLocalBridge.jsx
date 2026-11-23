@@ -16,17 +16,18 @@
 // O padrão dela é LIBERADO — só o texto "false" tranca. Se o padrão fosse o
 // contrário, esquecer de defini-la desligaria tudo outra vez, que é
 // exatamente o defeito que estamos corrigindo.
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig, useCatalogo, useComandas } from "@/context/AppContext";
 import { usePonteLocal } from "@/hooks/usePonteLocal";
 import AvisoImpressaoPonte from "./AvisoImpressaoPonte";
 
 const PONTE_LIBERADA_NO_PRODUTO = import.meta.env.VITE_PONTE_LOCAL_ATIVA !== "false";
 
 export default function PonteLocalBridge() {
-  const {
-    isMobile, currentUser, products, pending, addPending, updatePending,
-    ponteEndereco, setPonteEndereco, redeOnline, tenant, ponteLocalAtiva,
-  } = useApp();
+  const { isMobile, currentUser, tenant } = useSessao();
+  const { redeOnline } = useOffline();
+  const { ponteEndereco, setPonteEndereco, ponteLocalAtiva } = useConfig();
+  const { products } = useCatalogo();
+  const { pending, addPending, updatePending } = useComandas();
 
   // `ponteLocalAtiva === null` é "a config ainda não chegou" — e aí não se
   // liga nada. Chutar "ligado" faria o ciclo bater na porta da Ponte e encher

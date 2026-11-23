@@ -7,7 +7,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuArrowLeft, LuBanknote, LuCreditCard, LuZap, LuSmartphone, LuWallet, LuPercent, LuX, LuUsers, LuTrash2, LuMinus, LuPlus, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig } from "@/context/AppContext";
 import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { buscarClientePorId } from "@/lib/clientes";
@@ -49,7 +49,9 @@ const METODOS_CATALOG = [
 export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemoverItem }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { meiosPagamento, metodosCustom, taxaServico, currentUser, redeOnline, addonHabilitado, metodosTef } = useApp();
+  const { currentUser, addonHabilitado } = useSessao();
+  const { redeOnline } = useOffline();
+  const { meiosPagamento, metodosCustom, taxaServico, metodosTef } = useConfig();
   const catalogCompleto = [
     ...METODOS_CATALOG,
     ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),

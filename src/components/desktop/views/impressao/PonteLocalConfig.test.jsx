@@ -11,7 +11,11 @@ const { mockUseApp, mockPingPonte } = vi.hoisted(() => ({
   mockUseApp: vi.fn(),
   mockPingPonte: vi.fn(),
 }));
-vi.mock("@/context/AppContext", () => ({ useApp: mockUseApp }));
+vi.mock("@/context/AppContext", () => {
+  // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
+  const gancho = mockUseApp;
+  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+});
 vi.mock("@/lib/ponte", () => ({
   pingPonte: mockPingPonte,
   buscarInfoPonte: vi.fn(() => Promise.resolve({ data: null, error: null })),

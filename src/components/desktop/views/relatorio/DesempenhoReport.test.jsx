@@ -13,9 +13,11 @@ vi.mock("@/lib/supabase", async () => {
 // DesempenhoReport lê metodosCustom do AppContext para rotular formas de
 // pagamento custom (white-label). O teste não monta o AppProvider, então
 // mockamos o useApp com uma lista vazia (métodos nativos bastam aqui).
-vi.mock("@/context/AppContext", () => ({
-  useApp: () => ({ metodosCustom: [] }),
-}));
+vi.mock("@/context/AppContext", () => {
+  // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
+  const gancho = () => ({ metodosCustom: [] });
+  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+});
 
 import DesempenhoReport from "./DesempenhoReport";
 

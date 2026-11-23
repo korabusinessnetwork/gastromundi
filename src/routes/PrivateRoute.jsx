@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { assinaturaPermiteOperacao } from "@/lib/assinatura";
 import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
 import UpgradeNecessario from "@/components/desktop/UpgradeNecessario";
@@ -27,7 +27,7 @@ import SemAcesso from "@/components/desktop/SemAcesso";
  * mas a rota é a fonte de verdade da UI).
  */
 export default function PrivateRoute({ children, requiredPermission, requiredModulo, moduloLabel }) {
-  const { currentUser, moduloHabilitado, assinatura, loading } = useApp();
+  const { currentUser, moduloHabilitado, assinatura, loading } = useSessao();
   const location = useLocation();
 
   if (!currentUser) {

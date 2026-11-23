@@ -3,7 +3,7 @@ import "./Sidebar.css";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
 import { verificarSenhaUsuario, verificarSenhaAdmin } from "@/lib/adminAuth";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -41,7 +41,10 @@ const NAV_ICONS = {
 };
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovimentoCaixa, onLogout, onBackToChoice, onClose }) {
-  const { currentUser, pending, sales, sessaoAbertaEm, moduloHabilitado, cancelarVendaFechada, metodosCustom } = useApp();
+  const { currentUser, moduloHabilitado } = useSessao();
+  const { metodosCustom } = useConfig();
+  const { pending } = useComandas();
+  const { sales, sessaoAbertaEm, cancelarVendaFechada } = useCaixa();
   // Rótulos de método configurados pelo tenant (white-label, decisão 017).
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),

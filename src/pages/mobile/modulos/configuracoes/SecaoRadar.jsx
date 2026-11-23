@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { LuSearch, LuTriangleAlert } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useCatalogo } from "@/context/AppContext";
 import "./SecaoRadar.css";
 
 /**
@@ -19,7 +19,7 @@ import "./SecaoRadar.css";
  */
 
 export default function SecaoRadar() {
-  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useApp();
+  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useCatalogo();
   const [salvandoCat, setSalvandoCat] = useState(null);
   const [busca, setBusca] = useState("");
 

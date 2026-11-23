@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 vi.mock("@/context/AppContext", async () => {
-  const { mockUseApp } = await import("@/test/mockApp");
-  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+  const { ganchosDoMock } = await import("@/test/mockApp");
+  return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));

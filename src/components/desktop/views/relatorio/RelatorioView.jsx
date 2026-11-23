@@ -5,7 +5,7 @@ import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOpe
 import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
 import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
@@ -309,7 +309,10 @@ function FechamentoDetalheModal({ f, customLabels, onClose }) {
 // ── View principal ────────────────────────────────────────────────
 
 export default function RelatorioView() {
-  const { sales: salesBrutas, fechamentos, pending, users, currentUser, tenant, metodosCustom } = useApp();
+  const { users, currentUser, tenant } = useSessao();
+  const { metodosCustom } = useConfig();
+  const { pending } = useComandas();
+  const { sales: salesBrutas, fechamentos } = useCaixa();
   // Leva 15.3 — vendas canceladas ficam fora de todos os relatórios
   const sales = useMemo(() => (salesBrutas ?? []).filter(s => s && !s.cancelada), [salesBrutas]);
   // Rótulos de método configurados pelo tenant (white-label, decisão 017):

@@ -8,7 +8,7 @@ import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil, LuTriangleAlert } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useConfig, useCaixa } from "@/context/AppContext";
 import "./FechamentoModal.css";
 
 const METODOS_CATALOG = {
@@ -74,7 +74,8 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa)
 }
 
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
-  const { meiosPagamento, metodosCustom, movimentosCaixa } = useApp();
+  const { meiosPagamento, metodosCustom } = useConfig();
+  const { movimentosCaixa } = useCaixa();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),

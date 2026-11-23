@@ -15,8 +15,8 @@ import { fireEvent, act, screen } from "@testing-library/react";
 import { Routes, Route } from "react-router-dom";
 
 vi.mock("@/context/AppContext", async () => {
-  const { mockUseApp } = await import("@/test/mockApp");
-  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+  const { ganchosDoMock } = await import("@/test/mockApp");
+  return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 // A tela busca a marca do estabelecimento na abertura; sem tenant nenhum o
 // login normal aparece, que é o cenário aqui.

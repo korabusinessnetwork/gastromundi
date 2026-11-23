@@ -4,11 +4,12 @@
 //
 // Só desktop e só com alguém logado: é o PC que tem a impressora. No celular
 // o hook nem liga — ele não tem como falar com a térmica.
-import { useApp } from "@/context/AppContext";
+import { useSessao, useComandas } from "@/context/AppContext";
 import { useImpressaoLancamentos, useAparelhoImprime } from "@/hooks/useImpressaoLancamentos";
 
 export default function ImpressaoLancamentosBridge() {
-  const { isMobile, currentUser, pending, loading } = useApp();
+  const { isMobile, currentUser, loading } = useSessao();
+  const { pending } = useComandas();
   const aparelhoImprime = useAparelhoImprime();
 
   useImpressaoLancamentos({

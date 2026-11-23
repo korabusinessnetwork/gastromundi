@@ -16,8 +16,8 @@ import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/context/AppContext", async () => {
-  const { mockUseApp } = await import("@/test/mockApp");
-  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+  const { ganchosDoMock } = await import("@/test/mockApp");
+  return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
 vi.mock("@/lib/supabase", async () => {

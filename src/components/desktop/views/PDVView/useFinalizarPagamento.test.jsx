@@ -13,8 +13,8 @@ import { renderHook, waitFor } from "@testing-library/react";
  */
 
 vi.mock("@/context/AppContext", async () => {
-  const { mockUseApp } = await import("@/test/mockApp");
-  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+  const { ganchosDoMock } = await import("@/test/mockApp");
+  return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
 const rpcMock = vi.fn(() => Promise.resolve({ data: null, error: null }));

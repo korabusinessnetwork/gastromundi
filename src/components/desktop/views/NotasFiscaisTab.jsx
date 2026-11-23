@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { importarNotaFiscal, listarNotasEntrada, buscarNotaPorChave, listarItensDaNota } from "@/features/estoque/dados/notasEntrada";
 import { emitirEvento } from "@/lib/jarvas";
 import C from "@/constants/colors";
@@ -210,7 +210,8 @@ const ITEM_MANUAL_VAZIO = { descricaoXml: "", quantidade: "", unidadeXml: "", pr
 const novoItemManual = () => ({ ...ITEM_MANUAL_VAZIO, uid: novoUid() });
 
 export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) {
-  const { products, recarregarEstoque, currentUser } = useApp();
+  const { currentUser } = useSessao();
+  const { products, recarregarEstoque } = useCatalogo();
 
   const [view,        setView]       = useState("lista");
   const [notas,       setNotas]      = useState([]);

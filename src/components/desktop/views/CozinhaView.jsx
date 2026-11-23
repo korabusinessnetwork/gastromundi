@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido } from "@/lib/cozinha";
@@ -29,7 +29,7 @@ const COLUNAS = [
  * aqui é a comanda em `pending` (ver src/lib/cozinha.js).
  */
 export default function CozinhaView() {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const { pedidos, loading, erro, recarregar } = usePedidosCozinha();
   const { width } = useResponsive();
   const sz = getSizes(width);

@@ -7,11 +7,10 @@
 // serviço) redesenha TODA tela que usa `useApp()`, mesmo a que só lê o usuário
 // logado. No PDV, isso é a tela inteira sendo refeita no meio da venda.
 //
-// O teste descreve o comportamento DESEJADO e está marcado com `it.fails`:
-// hoje ele passa porque falha. Quando a fase 2 dividir o contexto e a tarefa
-// 2.8 trocar o `useApp()` da sonda pelo hook específico (`useSessao`), ele
-// passa a falhar de verdade, e aí vira um `it` comum. É de propósito: a
-// suíte avisa no dia em que o problema estiver resolvido.
+// A tarefa 2.1 registrou isso com um `it.fails`. A partir da 2.8 as telas
+// leem pelos ganchos de cada assunto: a tabela abaixo prova que cada fatia
+// não é redesenhada por outro assunto, e `telasSemUseApp.test.js` impede que
+// uma tela volte a usar a fachada.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act } from "@testing-library/react";
 
@@ -71,31 +70,6 @@ beforeEach(() => {
 });
 
 describe("redesenho do contexto (tarefa 2.1)", () => {
-  it.fails("tela que só lê o usuário logado não redesenha quando a taxa de serviço muda", async () => {
-    const app = { current: null };
-    let rendersDoLeitor = 0;
-
-    function Sonda() {
-      app.current = useApp();
-      return null;
-    }
-    // Só lê `currentUser`. Na tarefa 2.8, troca `useApp()` por `useSessao()`.
-    function LeitorDoUsuario() {
-      const { currentUser } = useApp();
-      rendersDoLeitor += 1;
-      return currentUser ? currentUser.name : null;
-    }
-
-    render(<AppProvider><Sonda /><LeitorDoUsuario /></AppProvider>);
-    await act(async () => {});
-
-    const antes = rendersDoLeitor;
-    await act(async () => { await app.current.setTaxaServico(true); });
-
-    expect(app.current.taxaServico).toBe(true);
-    expect(rendersDoLeitor).toBe(antes);
-  });
-
   // Tarefas 2.2 em diante: cada fatia, lida pelo próprio gancho, não é
   // redesenhada por mudança de outro assunto, e as ações dela têm identidade
   // fixa entre renders. Uma linha por fatia; a 2.4 em diante acrescenta a sua.

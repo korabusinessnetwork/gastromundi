@@ -3,7 +3,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { lerCadastrosAdministrativos, salvarCadastroAdministrativo, contarNotasFiscais } from "@/features/admin/dados/administrativo";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -1035,7 +1035,8 @@ export default function AdminView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
   const navigate = useNavigate();
-  const { products, estoque, currentUser } = useApp();
+  const { currentUser } = useSessao();
+  const { products, estoque } = useCatalogo();
 
   // Atalhos para telas próprias só aparecem para quem tem a permissão da
   // tela de destino (as abas internas ficam sempre visíveis).

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LuPrinter, LuReceipt, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { montarComprovantePagamento, montarCupomPreNota, buscarConfigImpressao } from "@/lib/impressao";
 import { imprimirDocumento } from "@/lib/impressao/drivers";
 import "./ImpressaoAcoes.css";
@@ -18,7 +18,7 @@ import "./ImpressaoAcoes.css";
  * template certo e abrir a janela de impressão.
  */
 export default function ImpressaoAcoes({ montarVenda }) {
-  const { tenant } = useApp();
+  const { tenant } = useSessao();
   const [status, setStatus] = useState(null); // null | "imprimindo" | "erro" | "sucesso"
   const [mensagemErro, setMensagemErro] = useState("");
   const contaAutomaticaRef = useRef(false);

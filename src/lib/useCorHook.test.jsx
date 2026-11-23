@@ -5,9 +5,11 @@ import { useCor } from "./useCorHook";
 
 // Mock do AppContext para controlar tenant.tema nos testes
 let temaMock = null;
-vi.mock("@/context/AppContext", () => ({
-  useApp: () => ({ tenant: { tema: temaMock } }),
-}));
+vi.mock("@/context/AppContext", () => {
+  // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
+  const gancho = () => ({ tenant: { tema: temaMock } });
+  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+});
 
 // Componente de teste que expõe a cor resolvida pelo hook
 function Sonda({ token }) {

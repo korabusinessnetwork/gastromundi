@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import "./ImportarExportarTab.css";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import {
   decodificarArquivo,
   validarPlanilhaProdutos,
@@ -93,7 +93,8 @@ function baixarArquivo(nome, conteudo) {
 }
 
 export default function ImportarExportarTab() {
-  const { recarregarProdutos, recarregarEstoque, currentUser } = useApp();
+  const { currentUser } = useSessao();
+  const { recarregarProdutos, recarregarEstoque } = useCatalogo();
   const inputRef = useRef(null);
   const tipoRef = useRef(null); // tipo escolhido no clique, lido no onChange do input
   const pdfRef = useRef(null); // { arquivo, cfg, nome, tipo } do PDF sem texto (p/ OCR/IA)

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useComandas } from "@/context/AppContext";
 import { HEARTBEAT_MS, travadaPorOutro } from "@/lib/comandaLock";
 
 /**
@@ -15,7 +15,8 @@ import { HEARTBEAT_MS, travadaPorOutro } from "@/lib/comandaLock";
  * devolve ok:true e o hook vira um no-op.
  */
 export function useTravaComanda(order, ativo) {
-  const { adquirirTrava, liberarTrava, renovarTrava, currentUser, pending } = useApp();
+  const { currentUser } = useSessao();
+  const { adquirirTrava, liberarTrava, renovarTrava, pending } = useComandas();
   const [bloqueio, setBloqueio] = useState(null);
   // Bump re-roda a aquisição (usado quando a trava do outro é liberada).
   const [tentativa, setTentativa] = useState(0);

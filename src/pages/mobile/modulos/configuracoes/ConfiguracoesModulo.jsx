@@ -14,7 +14,7 @@ import {
   LuUtensils,
   LuWallet,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import "../modulos.css";
 import "./ConfiguracoesModulo.css";
 
@@ -123,7 +123,7 @@ const SECOES = [
 
 export default function ConfiguracoesModulo({ onVoltar }) {
   const navigate = useNavigate();
-  const { currentUser, tenant } = useApp();
+  const { currentUser, tenant } = useSessao();
   const [secaoAberta, setSecaoAberta] = useState(null);
 
   const ehAdmin = currentUser?.role === "admin";

@@ -22,7 +22,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { usePedidosDelivery } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";
@@ -151,7 +151,8 @@ const cssCor = (base) =>
   typeof base === "string" && base.startsWith("--gm-") ? varColor(base) : base;
 
 export default function DeliveryView({ notify } = {}) {
-  const { products, tenant, currentUser, moduloHabilitado, addProduct, updateProduct, recarregarProdutos } = useApp();
+  const { tenant, currentUser, moduloHabilitado } = useSessao();
+  const { products, addProduct, updateProduct, recarregarProdutos } = useCatalogo();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);

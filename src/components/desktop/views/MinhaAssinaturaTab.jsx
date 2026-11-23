@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   LuCircleCheck, LuTriangleAlert, LuLoaderCircle, LuReceipt, LuCheck, LuBan,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import {
   listarPagamentosAssinatura, resumirPagamentos, resumirPlanoDoTenant, rotuloCompetencia,
 } from "@/lib/assinatura";
@@ -48,7 +48,7 @@ function dataHora(iso) {
  * errado: a tela informa e sai da frente.
  */
 export default function MinhaAssinaturaTab() {
-  const { tenant, assinatura } = useApp();
+  const { tenant, assinatura } = useSessao();
   const tenantId = tenant?.id ?? null;
 
   const [plano, setPlano] = useState(null);

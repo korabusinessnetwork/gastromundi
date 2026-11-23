@@ -11,7 +11,7 @@
 // o dono liga o recurso na própria tela, ninguém precisa recompilar nada.
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig } from "@/context/AppContext";
 import { pingPonte, buscarInfoPonte, montarEnderecoPalm } from "@/lib/ponte";
 // Endereço de onde o dono baixa a Ponte — o mesmo arquivo que a tela de
 // impressão oferece. Vazio quando o build não recebeu endereço válido.
@@ -22,10 +22,9 @@ import "./PonteLocalConfig.css";
 const INTERVALO_MS = 5000;
 
 export default function PonteLocalConfig() {
-  const {
-    ponteLocalAtiva, setPonteLocalAtiva, loading, redeOnline, abriuSemInternet,
-    recarregarDadosDoEstabelecimento,
-  } = useApp();
+  const { loading } = useSessao();
+  const { redeOnline, abriuSemInternet, recarregarDadosDoEstabelecimento } = useOffline();
+  const { ponteLocalAtiva, setPonteLocalAtiva } = useConfig();
   const [status, setStatus] = useState("procurando"); // procurando | rodando | ausente
   const [endereco, setEndereco] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState(null);

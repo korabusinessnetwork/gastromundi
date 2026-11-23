@@ -5,7 +5,7 @@ import {
   LuPalette, LuChartColumn, LuActivity, LuPuzzle, LuSearch, LuBanknote, LuReceipt, LuFilter,
   LuCopy, LuTag, LuExternalLink, LuWifiOff, LuInbox, LuStethoscope,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas,
@@ -67,7 +67,7 @@ const ROTULOS_FILTRO = {
 const BLOCO_LISTA = 20;
 
 export default function ConsolePage() {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout } = useSessao();
 
   const [tenants, setTenants] = useState([]);
   const [planos, setPlanos] = useState([]);

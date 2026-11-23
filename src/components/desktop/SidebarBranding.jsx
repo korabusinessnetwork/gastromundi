@@ -1,4 +1,4 @@
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import "./SidebarBranding.css";
@@ -19,7 +19,7 @@ import "./SidebarBranding.css";
  * big-bang: o resto do arquivo continua como está até ser tocado.
  */
 export default function SidebarBranding() {
-  const { tenant } = useApp();
+  const { tenant } = useSessao();
   // Sem estabelecimento resolvido, o nome exibido JÁ é o da plataforma —
   // assinar embaixo leria "KORA / by Kora".
   const { nome, logo: logoUrl, doTenant } = marcaDoCabecalho(tenant, lerBrandingCache());

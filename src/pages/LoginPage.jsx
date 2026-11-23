@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
@@ -16,7 +16,7 @@ import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "reac
 import "./LoginPage.css";
 
 export default function LoginPage() {
-  const { login, logout, currentUser, isMobile, loading: dbLoading } = useApp();
+  const { login, logout, currentUser, isMobile, loading: dbLoading } = useSessao();
   const { width } = useResponsive();
   const sz = getSizes(width);
   const navigate  = useNavigate();

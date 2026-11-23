@@ -8,7 +8,7 @@ import {
   LuFlame,
   LuTriangleAlert,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha } from "@/utils/hooks";
 import {
   estaAtrasado,
@@ -78,7 +78,7 @@ function statusDe(pedido) {
 }
 
 export default function CozinhaModulo({ onVoltar }) {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const { pedidos, loading, erro: erroCarga, recarregar } = usePedidosCozinha();
 
   const [filtro, setFiltro] = useState("aguardando");

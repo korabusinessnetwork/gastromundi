@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuPlus, LuRuler, LuX } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { excluirUnidadeMedida, listarUnidadesMedida, adicionarUnidadeMedida, contarUsoDaUnidade } from "@/features/estoque/dados/unidadesMedida";
 import "./SecaoUnidades.css";
 
@@ -42,7 +42,7 @@ const ROTULO_TIPO = { estoque: "unidade de estoque", compra: "unidade de compra"
 const EMPTY_ADD = { abbr: "", nome: "" };
 
 export default function SecaoUnidades() {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   // Só o admin grava unidade (policy `unidades_write_admin`), igual no computador.
   const isAdmin = currentUser?.role === "admin";
 

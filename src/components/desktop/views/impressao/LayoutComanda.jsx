@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota } from "@/lib/impressao";
 import {
   TIPOS_BLOCO,
@@ -62,7 +62,7 @@ const ADICIONAVEIS = [
 const mesmoLayout = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 export default function LayoutComanda() {
-  const { tenant } = useApp();
+  const { tenant } = useSessao();
 
   const [blocos, setBlocos] = useState([]);
   // Última versão gravada (já normalizada) — é contra ela que "Salvar"

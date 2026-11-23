@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { resolverCor } from "./tema";
 
 /**
@@ -17,7 +17,7 @@ import { resolverCor } from "./tema";
  * @returns {string} hex resolvido
  */
 export function useCor(tokenName) {
-  const { tenant } = useApp();
+  const { tenant } = useSessao();
   const [cor, setCor] = useState(() => resolverCor(tokenName));
 
   // Re-resolve quando tenant.tema muda

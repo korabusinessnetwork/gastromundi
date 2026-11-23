@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LuArmchair, LuMonitor, LuPencil, LuPlus, LuSearch, LuTrash2, LuUsers } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa } from "@/features/mesas/dados/mesas";
 import { logAction } from "@/lib/logger";
 import "./SecaoMesas.css";
@@ -47,7 +47,7 @@ function proximaPosicaoLivre(mesas) {
 }
 
 export default function SecaoMesas() {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
 
   const [mesas, setMesas] = useState([]);
   const [carregando, setCarregando] = useState(true);

@@ -8,7 +8,7 @@ import {
   LuSearchX,
   LuUtensilsCrossed,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./CardapioModulo.css";
@@ -50,7 +50,8 @@ function estaIndisponivel(produto) {
 }
 
 export default function CardapioModulo({ onVoltar }) {
-  const { products, updateProduct, loading, currentUser } = useApp();
+  const { loading, currentUser } = useSessao();
+  const { products, updateProduct } = useCatalogo();
 
   const [busca, setBusca] = useState("");
   const [catFiltro, setCatFiltro] = useState(CATEGORIA_TODOS);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { sanitizeInput } from "@/utils";
 import { LuEye, LuEyeOff, LuShieldCheck, LuTriangleAlert, LuTerminal } from "react-icons/lu";
 import "./ConsoleLoginPage.css";
@@ -34,7 +34,7 @@ import "./ConsoleLoginPage.css";
  * acesso restrito"), sem jargão técnico na tela.
  */
 export default function ConsoleLoginPage() {
-  const { login, currentUser, logout, loading: dbLoading } = useApp();
+  const { login, currentUser, logout, loading: dbLoading } = useSessao();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");

@@ -2,7 +2,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { useResponsive, useMesas } from "@/utils/hooks";
@@ -43,13 +43,11 @@ const fmtComanda = (name) =>
   /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 export default function PDVView({ notify }) {
-  const {
-    pending, products, estoque, estoqueMinimos,
-    addPending, updatePending, removePending,
-    caixaAberto, currentUser, sales, users, metodosCustom,
-    lancadas, addLancada, diasAlertaValidade,
-    loading: bootstrapLoading,
-  } = useApp();
+  const { currentUser, users, loading: bootstrapLoading } = useSessao();
+  const { metodosCustom, diasAlertaValidade } = useConfig();
+  const { products, estoque, estoqueMinimos } = useCatalogo();
+  const { pending, addPending, updatePending, removePending, lancadas, addLancada } = useComandas();
+  const { caixaAberto, sales } = useCaixa();
   const { finalizarPagamento } = useFinalizarPagamento();
   const { cancelarComanda } = useCancelarComanda();
 

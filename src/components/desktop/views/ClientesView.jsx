@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import {
@@ -31,7 +31,7 @@ import "./ClientesView.css";
  * ação de registrar pagamento (baixa da conta a receber).
  */
 export default function ClientesView() {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const { width } = useResponsive();
   const sz = getSizes(width);
 

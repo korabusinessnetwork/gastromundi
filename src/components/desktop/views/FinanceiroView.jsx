@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCaixa } from "@/context/AppContext";
 import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
 import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
 import { round2 } from "@/lib/vendas";
@@ -23,7 +23,8 @@ import "./FinanceiroView.css";
  */
 
 export default function FinanceiroView() {
-  const { currentUser, sales } = useApp();
+  const { currentUser } = useSessao();
+  const { sales } = useCaixa();
   const { width } = useResponsive();
   const sz = getSizes(width);
 

@@ -39,6 +39,23 @@ export function mockUseApp() {
 }
 
 /** Valores/spies padrão — suficiente para a maioria dos testes; sobrescreva o que precisar. */
+/**
+ * Todos os ganchos do contexto apontando para o mesmo mock (fase 2 do plano de
+ * refatoração). O mock é um superconjunto: cada gancho devolve o objeto
+ * inteiro, e a tela lê só o que precisa. Uso no `vi.mock` do teste:
+ *
+ *   return { ...ganchosDoMock, AppProvider: ({ children }) => children };
+ */
+export const ganchosDoMock = {
+  useApp: mockUseApp,
+  useSessao: mockUseApp,
+  useOffline: mockUseApp,
+  useConfig: mockUseApp,
+  useCatalogo: mockUseApp,
+  useComandas: mockUseApp,
+  useCaixa: mockUseApp,
+};
+
 export function createAppMockValue(overrides = {}) {
   return {
     loading: false,

@@ -2078,6 +2078,9 @@ export function AppProvider({ children }) {
   const moduloHabilitadoEstavel      = useFuncaoEstavel(moduloHabilitadoNoPlano);
   const addonHabilitadoEstavel       = useFuncaoEstavel(addonHabilitadoNoTenant);
   const valorSessao = useMemo(() => ({
+    // `loading` é a carga do estabelecimento depois do login; `isMobile`, a
+    // largura da tela. Os dois valem para o app inteiro e mudam raramente.
+    loading, isMobile,
     currentUser, users, tenant,
     assinatura: tenant?.assinatura ?? null,
     rolePermissions,
@@ -2089,7 +2092,7 @@ export function AppProvider({ children }) {
     login: loginEstavel, logout: logoutEstavel,
     addUser: addUserEstavel, updateUser: updateUserEstavel, removeUser: removeUserEstavel,
     salvarPermissoesCargo: salvarPermissoesCargoEstavel,
-  }), [currentUser, users, tenant, rolePermissions, aplicarTenantSalvo,
+  }), [loading, isMobile, currentUser, users, tenant, rolePermissions, aplicarTenantSalvo,
     moduloHabilitadoEstavel, addonHabilitadoEstavel, loginEstavel, logoutEstavel,
     addUserEstavel, updateUserEstavel, removeUserEstavel, salvarPermissoesCargoEstavel]);
 
@@ -2290,6 +2293,16 @@ export function AppProvider({ children }) {
     </AppContext.Provider>
   );
 }
+
+// Os ganchos de cada assunto (fase 2 do plano de refatoração). As telas
+// importam daqui, para continuar existindo uma porta só para o contexto e os
+// testes continuarem dublando um módulo só.
+export { useSessao } from "./SessaoContext";
+export { useOffline } from "./OfflineContext";
+export { useConfig } from "./ConfigContext";
+export { useCatalogo } from "./CatalogoContext";
+export { useComandas } from "./ComandasContext";
+export { useCaixa } from "./CaixaContext";
 
 export const useApp = () => {
   const ctx = useContext(AppContext);

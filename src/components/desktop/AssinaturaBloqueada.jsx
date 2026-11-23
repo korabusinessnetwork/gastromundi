@@ -2,7 +2,7 @@ import { LuTriangleAlert, LuLogOut, LuHeadset } from "react-icons/lu";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import "./AssinaturaBloqueada.css";
 
 /**
@@ -24,7 +24,7 @@ import "./AssinaturaBloqueada.css";
  * com o suporte.
  */
 export default function AssinaturaBloqueada() {
-  const { logout } = useApp();
+  const { logout } = useSessao();
   const contatoUrl = import.meta.env.VITE_CONTATO_URL || "";
 
   return (

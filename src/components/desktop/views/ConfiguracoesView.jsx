@@ -1,6 +1,6 @@
 ﻿import { useState, useMemo, useEffect } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig, useCatalogo } from "@/context/AppContext";
 import { excluirUnidadeMedida, listarUnidadesMedida, adicionarUnidadeMedida, contarUsoDaUnidade } from "@/features/estoque/dados/unidadesMedida";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -183,7 +183,7 @@ function traduzirErro(error) {
 // ── Aba Usuários ──────────────────────────────────────────────────
 
 export function UsuariosTab({ sz }) {
-  const { users, currentUser, addUser, updateUser, removeUser, rolePermissions, salvarPermissoesCargo } = useApp();
+  const { users, currentUser, addUser, updateUser, removeUser, rolePermissions, salvarPermissoesCargo } = useSessao();
 
   const [modal,    setModal]    = useState(null); // null | "novo" | "editar" | "resetpw"
   const [editId,   setEditId]   = useState(null);
@@ -786,7 +786,8 @@ const METODOS_CATALOG = [
 // ── Aba Meios de Pagamento ────────────────────────────────────────
 
 function MeiosPagamentoTab({ sz }) {
-  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, metodosTef, setMetodosTef, currentUser } = useApp();
+  const { currentUser } = useSessao();
+  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, metodosTef, setMetodosTef } = useConfig();
   const [ativos,       setAtivos]      = useState(
     meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id)
   );
@@ -1024,7 +1025,7 @@ const EMPTY_ADD = { abbr: "", nome: "" };
 // Exportada para teste: a exclusão em cascata é destrutiva e precisa ser
 // exercitada sozinha, sem arrastar as outras abas de Configurações.
 export function UnidadesMedidaTab({ sz }) {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const [unidades,    setUnidades]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [addForms,    setAddForms]    = useState({ estoque: EMPTY_ADD, compra: EMPTY_ADD, consumo: EMPTY_ADD });
@@ -1281,8 +1282,7 @@ const ABAS_CONFIG = [
 ];
 
 function GeralTab({ sz }) {
-  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade,
-          limiteSangria, setLimiteSangria } = useApp();
+  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade, limiteSangria, setLimiteSangria } = useConfig();
   const [saving, setSaving] = useState(false);
   const [dias, setDias] = useState(String(diasAlertaValidade ?? 7));
   const [savingDias, setSavingDias] = useState(false);
@@ -1448,7 +1448,7 @@ const horarioParaEdicao = (bruto) => {
   return { ...h, faixas: comUid(h.faixas) };
 };
 function DeliveryTab({ sz }) {
-  const { tenant, currentUser } = useApp();
+  const { tenant, currentUser } = useSessao();
   const [config, setConfig] = useState(null);
   const [horario, setHorario] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -1679,7 +1679,7 @@ function DeliveryTab({ sz }) {
 // venda que falta (comida sem bebida, comida sem sobremesa). Padrão das outras
 // tabs. Os grupos disponíveis vêm de grupos_categoria (semeados por tenant).
 function CategoriasGrupoTab({ sz }) {
-  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useApp();
+  const { products, gruposCategoria, categoriaGrupos, setCategoriaGrupo } = useCatalogo();
   const [salvandoCat, setSalvandoCat] = useState(null);
 
   // categorias existentes nos produtos (texto livre), únicas e ordenadas
@@ -1748,7 +1748,7 @@ function CategoriasGrupoTab({ sz }) {
 export default function ConfiguracoesView() {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const isAdmin = currentUser?.role === "admin";
   const isGerente = isAdmin || currentUser?.role === "gerente";
   const [aba, setAba] = useState("geral");

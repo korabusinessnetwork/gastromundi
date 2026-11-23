@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import C from "@/constants/colors";
-import { useApp } from "@/context/AppContext";
+import { useConfig } from "@/context/AppContext";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
@@ -112,7 +112,7 @@ export default function DesempenhoReport() {
   const { width } = useResponsive();
   // Rótulos de método configurados pelo tenant (white-label, decisão 017):
   // o gráfico "por forma de pagamento" mostra "Cielo", não o id cru.
-  const { metodosCustom } = useApp();
+  const { metodosCustom } = useConfig();
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
     [metodosCustom]

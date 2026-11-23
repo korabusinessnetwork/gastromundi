@@ -17,7 +17,7 @@ import { Suspense, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LuWifiOff } from "react-icons/lu";
 
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
@@ -100,25 +100,12 @@ function TelaModulo({ chave, onVoltar }) {
 
 export default function MobilePage() {
   const navigate = useNavigate();
-  const {
-    pending,
-    products,
-    currentUser,
-    caixaAberto,
-    loading: bootstrapLoading,
-    addPending,
-    updatePending,
-    lancadas,
-    addLancada,
-    logout,
-    sales,
-    sessaoAbertaEm,
-    categoriaGrupoMap,
-    redeOnline,
-    ponteEndereco,
-    moduloHabilitado,
-    tenant,
-  } = useApp();
+  const { currentUser, loading: bootstrapLoading, logout, moduloHabilitado, tenant } = useSessao();
+  const { redeOnline } = useOffline();
+  const { ponteEndereco } = useConfig();
+  const { products, categoriaGrupoMap } = useCatalogo();
+  const { pending, addPending, updatePending, lancadas, addLancada } = useComandas();
+  const { caixaAberto, sales, sessaoAbertaEm } = useCaixa();
 
   // ── Estado de UI ──────────────────────────────────────────────
   const [aba, setAba] = useState("pedido"); // pedido | comandas | painel | mais

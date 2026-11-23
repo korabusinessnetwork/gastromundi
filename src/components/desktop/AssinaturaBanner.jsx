@@ -1,4 +1,4 @@
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { LuCircleAlert, LuTriangleAlert } from "react-icons/lu";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
@@ -16,7 +16,7 @@ import "./AssinaturaBanner.css";
  * (princípio nº 1: rótulos claros, sem alarme desnecessário).
  */
 export default function AssinaturaBanner() {
-  const { assinatura, currentUser } = useApp();
+  const { assinatura, currentUser } = useSessao();
   const podeVer = currentUser?.role === "gerente" || currentUser?.role === "admin";
 
   if (!podeVer || !assinatura) return null;

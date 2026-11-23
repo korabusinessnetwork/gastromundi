@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { LuCircleCheck } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useConfig } from "@/context/AppContext";
 import "./SecaoGeral.css";
 
 /**
@@ -18,7 +18,7 @@ const DIAS_MIN = 1;
 const DIAS_MAX = 365;
 
 export default function SecaoGeral() {
-  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade } = useApp();
+  const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade } = useConfig();
 
   const [salvandoTaxa, setSalvandoTaxa] = useState(false);
   const [dias, setDias] = useState(String(diasAlertaValidade ?? 7));

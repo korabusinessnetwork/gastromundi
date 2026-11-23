@@ -1,3 +1,22 @@
+## Rodada 79, refatoração 2.8, telas nos ganchos de cada assunto, 2026-11-23
+- Spec: specs/refatoracao-2-8-telas-nos-ganchos.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 253 arquivos / 4350
+  testes, verde, sem falha esperada; `npm run build` limpo; lint 0 erros). Roteiro de
+  fotos: 0 diferença. Sem migration.
+- O que muda para quem opera: cada tela agora só é redesenhada quando muda o assunto que
+  ela lê. O PDV deixa de ser refeito inteiro quando, por exemplo, outro aparelho mexe num
+  saldo de estoque que ele não está mostrando.
+- Como: um codemod, e não 54 edições à mão. Ele lê os campos de cada desestruturação,
+  agrupa por fatia e para com erro se achar campo sem dono ou comentário no meio, em vez
+  de adivinhar. Rodou sem nenhum problema; os dois campos sem fatia (`loading` e
+  `isMobile`) tinham sido achados antes, num levantamento dos 77 campos que as telas usam.
+- A parte que quase passou batido: a `RelatorioPage` repassava o contexto inteiro como
+  propriedades (`{...app}`) para um componente que não recebe propriedade nenhuma. Não
+  quebrava nada, mas prendia a página a todo o contexto. Saiu.
+- O guard novo foi conferido contra uma regressão criada de propósito (um arquivo
+  temporário chamando `useApp()`): reprovou com o nome do arquivo e voltou a passar sem ele.
+- Fica em aberto: 2.9, o estado mudando do `AppProvider` para os provedores, e com ela o
+  fim da fachada.
 ## Rodada 78, refatoração 2.3 a 2.7, as outras cinco fatias do contexto, 2026-11-23
 - Spec: specs/refatoracao-2-3-a-2-7-fatias.md
 - Resultado: 7 de 7 critérios em sim nas cinco fatias, aprovado sem ressalvas (suíte 252

@@ -1,4 +1,4 @@
-import { useApp } from "@/context/AppContext";
+import { useSessao, useComandas } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 
@@ -14,7 +14,8 @@ const fmtComanda = (name) =>
  * botão sem motivo; aqui só aplicamos trim()).
  */
 export function useCancelarComanda() {
-  const { removePending, currentUser } = useApp();
+  const { currentUser } = useSessao();
+  const { removePending } = useComandas();
 
   const cancelarComanda = async (selected, motivoBruto) => {
     const motivo = motivoBruto.trim();

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { LuImagePlus, LuLoaderCircle, LuTrash2, LuTriangleAlert, LuCircleCheck } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
 import {
   ACCEPT_IMAGEM, MAX_NOME_EXIBICAO,
@@ -30,7 +30,7 @@ import "./IdentidadeTab.css";
  * botão de salvar só acende quando existe algo novo para salvar.
  */
 export default function IdentidadeTab() {
-  const { tenant, aplicarTenantSalvo } = useApp();
+  const { tenant, aplicarTenantSalvo } = useSessao();
 
   // Tema confirmado pela RPC nesta sessão. Ele tem precedência sobre o do
   // contexto porque o "salvo" precisa ser verdade no instante em que o

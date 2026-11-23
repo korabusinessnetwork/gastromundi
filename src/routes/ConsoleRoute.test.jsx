@@ -23,8 +23,8 @@ import { Routes, Route } from "react-router-dom";
  */
 
 vi.mock("@/context/AppContext", async () => {
-  const { mockUseApp } = await import("@/test/mockApp");
-  return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+  const { ganchosDoMock } = await import("@/test/mockApp");
+  return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));

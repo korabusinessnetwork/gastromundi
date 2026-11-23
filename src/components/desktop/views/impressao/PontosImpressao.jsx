@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { useApp } from "@/context/AppContext";
+import { useCatalogo } from "@/context/AppContext";
 import { buscarConfigImpressao, salvarConfigImpressao } from "@/lib/impressao";
 import {
   normalizarPontos, novoPonto, removerPonto, definirPadrao,
@@ -33,7 +33,7 @@ function resumoImpressora(impressora) {
 }
 
 export default function PontosImpressao() {
-  const { products } = useApp();
+  const { products } = useCatalogo();
   const [configCompleta, setConfigCompleta] = useState(null);
   const [pontos, setPontos] = useState([]);
   const [roteamento, setRoteamento] = useState({ categorias: {}, produtos: {} });

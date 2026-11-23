@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
 import SemAcesso from "@/components/desktop/SemAcesso";
 
@@ -18,7 +18,7 @@ import SemAcesso from "@/components/desktop/SemAcesso";
  * do hub "Mais" nunca abriam — só quicavam pro Palm.
  */
 export default function InicioApp() {
-  const { currentUser, moduloHabilitado, isMobile } = useApp();
+  const { currentUser, moduloHabilitado, isMobile } = useSessao();
   if (isMobile && currentUser?.permissions?.palm) {
     return <Navigate to="/palm" replace />;
   }

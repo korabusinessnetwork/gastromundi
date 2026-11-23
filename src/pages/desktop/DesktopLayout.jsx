@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -23,7 +23,9 @@ import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
 
 export default function DesktopLayout() {
-  const { currentUser, logout, caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, tenant, users, movimentosCaixa, registrarMovimentoCaixa, limiteSangria } = useApp();
+  const { currentUser, logout, tenant, users } = useSessao();
+  const { limiteSangria } = useConfig();
+  const { caixaAberto, setCaixaAberto, setSessaoAbertaEm, sessaoAbertaEm, addFechamento, setFundoAtual, fundoAtual, sales, movimentosCaixa, registrarMovimentoCaixa } = useCaixa();
   // tema.nome_exibicao → nome cadastrado do estabelecimento → cache de marca
   // desta origem (enquanto o bootstrap não responde) → marca neutra da
   // plataforma. Nunca a marca de outro cliente (decisão 017). Sem

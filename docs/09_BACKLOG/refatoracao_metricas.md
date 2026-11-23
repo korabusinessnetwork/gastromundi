@@ -32,6 +32,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-23 | 1.6 salvar subproduto | 2.194 | 22 | 70 | 162 (0 / 51 / 111) | 1.526 | 23 | 1 | 0 / 26 | 251 arquivos, 4.331 testes | 2.387 kB (703 kB gzip) |
 | 2026-11-23 | 2.1 e 2.2 sessão | 2.219 | 22 | 70 | 154 (0 / 43 / 111) | 1.526 | 23 | 1 | 0 / 26 | 252 arquivos, 4.334 testes | 2.387 kB (703 kB gzip) |
 | 2026-11-23 | 2.3 a 2.7 fatias | 2.299 | 22 | 70 | 111 (0 / 0 / 111) | 1.526 | 23 | 1 | 0 / 26 | 252 arquivos, 4.349 testes | 2.387 kB (703 kB gzip) |
+| 2026-11-23 | 2.8 telas nos ganchos | 2.309 | 22 | 70 | 111 (0 / 0 / 111) | 1.526 | 23 | 1 | 0 / 26 | 253 arquivos, 4.350 testes | 2.387 kB (703 kB gzip) |
 
 Os 50 avisos de lint da fase 0: 25 são as fronteiras de camada (zeradas nas fases 1 e 4),
 15 são comentários `eslint-disable` que não suprimem nada, e 10 são dependências de hook

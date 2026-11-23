@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import C from "@/constants/colors";
@@ -65,7 +65,8 @@ export function lerQuantidade(valor) {
 }
 
 export default function EstoqueView() {
-  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque, loading } = useApp();
+  const { loading } = useSessao();
+  const { products, estoque, estoqueMinimos, updateEstoque, entradaEstoque, setMinimoEstoque } = useCatalogo();
 
   // O bootstrap ainda está em voo e nada chegou: a tela mostrava "0 Total em
   // estoque · 0 Sem estoque" e uma lista vazia, ou seja, anunciava um estoque

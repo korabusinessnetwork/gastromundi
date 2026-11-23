@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { assinarInsightsJarvas } from "@/features/jarvas/dados/insights";
 import { buscarInsights, atualizarStatusInsight } from "@/lib/jarvas";
 import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
@@ -38,7 +38,7 @@ const tempoRelativo = (iso) => {
 };
 
 export default function JarvasPanel() {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const navigate = useNavigate();
   const [aberto, setAberto] = useState(false);
   const [insights, setInsights] = useState([]);

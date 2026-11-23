@@ -1,6 +1,6 @@
 ﻿import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { lerCategoriasExtra, salvarCategoriasExtra } from "@/features/cardapio/dados/categorias";
 import { listarUnidadesMedida } from "@/features/estoque/dados/unidadesMedida";
 import { logAction } from "@/lib/logger";
@@ -122,7 +122,8 @@ function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBus
 }
 
 export default function ProdutosView() {
-  const { products, addProduct, updateProduct, removeProduct, currentUser, loading } = useApp();
+  const { currentUser, loading } = useSessao();
+  const { products, addProduct, updateProduct, removeProduct } = useCatalogo();
   const { width } = useResponsive();
   const sz = getSizes(width);
 

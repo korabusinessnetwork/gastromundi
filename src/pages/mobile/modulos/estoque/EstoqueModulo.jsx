@@ -10,7 +10,7 @@ import {
   LuCircleX,
   LuMinus,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useCatalogo } from "@/context/AppContext";
 import { labelEstoque, fmtQtd } from "@/utils/conversaoUnidades";
 import { normalizarTexto } from "@/lib/importacao/planilha";
 import { controlaEstoque, MINIMO_PADRAO } from "@/lib/estoqueSituacao";
@@ -64,7 +64,8 @@ function parseContagem(valor) {
 }
 
 export default function EstoqueModulo({ onVoltar }) {
-  const { products, estoque, estoqueMinimos, updateEstoque, loading } = useApp();
+  const { loading } = useSessao();
+  const { products, estoque, estoqueMinimos, updateEstoque } = useCatalogo();
 
   const [busca, setBusca] = useState("");
   const [modo, setModo] = useState("lista"); // "lista" | "contagem" | "revisao"

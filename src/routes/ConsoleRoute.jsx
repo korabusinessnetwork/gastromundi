@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
 
 /**
@@ -18,7 +18,7 @@ import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
  * cliente não concede nenhum acesso a dado.
  */
 export default function ConsoleRoute({ children }) {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
   const location = useLocation();
 
   // Defesa-em-profundidade (Task #18): com o Console em subdomínio próprio

@@ -40,7 +40,7 @@ import {
   LuWifiOff,
   LuZap,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig, useCatalogo, useCaixa } from "@/context/AppContext";
 import { useFinalizarPagamento } from "@/components/desktop/views/PDVView/useFinalizarPagamento";
 import { round2 } from "@/lib/vendas";
 import { metodoUsaTef } from "@/lib/tef";
@@ -95,17 +95,11 @@ function Cabecalho({ titulo, subtitulo, onSair }) {
 }
 
 export default function PdvModulo({ onVoltar }) {
-  const {
-    products,
-    caixaAberto,
-    currentUser,
-    tenant,
-    meiosPagamento,
-    metodosCustom,
-    redeOnline,
-    metodosTef,
-    addonHabilitado,
-  } = useApp();
+  const { currentUser, tenant, addonHabilitado } = useSessao();
+  const { redeOnline } = useOffline();
+  const { meiosPagamento, metodosCustom, metodosTef } = useConfig();
+  const { products } = useCatalogo();
+  const { caixaAberto } = useCaixa();
   const { finalizarPagamento } = useFinalizarPagamento();
 
   const [passo, setPasso] = useState("itens"); // itens | cobrar | concluido

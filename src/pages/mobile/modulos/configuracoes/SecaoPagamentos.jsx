@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuWallet, LuPlus, LuTrash2, LuCircleCheck } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useConfig } from "@/context/AppContext";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import "./SecaoPagamentos.css";
 
@@ -35,12 +35,8 @@ const METODOS_CATALOG = [
 ];
 
 export default function SecaoPagamentos() {
-  const {
-    meiosPagamento, setMeiosPagamento,
-    metodosCustom, setMetodosCustom,
-    metodosTef, setMetodosTef,
-    currentUser,
-  } = useApp();
+  const { currentUser } = useSessao();
+  const { meiosPagamento, setMeiosPagamento, metodosCustom, setMetodosCustom, metodosTef, setMetodosTef } = useConfig();
 
   const isAdmin = currentUser?.role === "admin";
 

@@ -1,5 +1,5 @@
 import { limparReservaMesa } from "@/features/mesas/dados/mesas";
-import { useApp } from "@/context/AppContext";
+import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
@@ -49,7 +49,12 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * passa nada (todo o PDV de desktop) segue idêntico a antes.
  */
 export function useFinalizarPagamento() {
-  const { addSale, removePending, baixarEstoque, baixarEstoqueSubproduto, currentUser, addonHabilitado, products, redeOnline, metodosTef, enfileirarOffline } = useApp();
+  const { currentUser, addonHabilitado } = useSessao();
+  const { redeOnline, enfileirarOffline } = useOffline();
+  const { metodosTef } = useConfig();
+  const { baixarEstoque, baixarEstoqueSubproduto, products } = useCatalogo();
+  const { removePending } = useComandas();
+  const { addSale } = useCaixa();
 
   const finalizarPagamento = async (selected, cartItems, { pagamentos, total, taxaServico, valorTaxa, ajuste, valorAjuste, clienteId, cliente, dest }, { onNfce, semComanda = false } = {}) => {
     // TEF é só online: a maquininha precisa de comunicação em tempo real —

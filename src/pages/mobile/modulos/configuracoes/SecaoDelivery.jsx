@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import {
   DIAS_SEMANA,
   FAIXA_PADRAO,
@@ -48,7 +48,7 @@ const horarioParaEdicao = (bruto) => {
 };
 
 export default function SecaoDelivery() {
-  const { tenant, currentUser } = useApp();
+  const { tenant, currentUser } = useSessao();
   const [config, setConfig] = useState(null);
   const [horario, setHorario] = useState(null);
   const [carregando, setCarregando] = useState(true);

@@ -5,7 +5,7 @@ import {
   salvarCombo, listarCombos, listarSubprodutosAtivos, carregarSubprodutosDoCombo,
   carregarProdutosDoCombo, alterarSituacaoCombo, excluirCombo,
 } from "@/features/cardapio/dados/combos";
-import { useApp } from "@/context/AppContext";
+import { useCatalogo } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -493,7 +493,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
 // ── View principal ─────────────────────────────────────────────────
 
 export default function CombosView({ sz }) {
-  const { products } = useApp();
+  const { products } = useCatalogo();
   const [combos,      setCombos]      = useState([]);
   const [subprodutos, setSubprodutos] = useState([]);
   const [loading,     setLoading]     = useState(true);

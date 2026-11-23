@@ -2,7 +2,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { listarConfigFiscalDosItens, salvarConfigFiscalDoItem } from "@/features/fiscal/dados/itensFiscal";
-import { useApp } from "@/context/AppContext";
+import { useCatalogo } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -439,7 +439,7 @@ function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
 // ── Componente principal ─────────────────────────────────────────────
 
 export default function ImpostosAdmin({ sz }) {
-  const { products } = useApp();
+  const { products } = useCatalogo();
 
   const [fiscalMap,    setFiscalMap]    = useState({}); // { item_id: dados_fiscal }
   const [loading,      setLoading]      = useState(true);

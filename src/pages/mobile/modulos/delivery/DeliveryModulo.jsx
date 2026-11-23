@@ -11,7 +11,7 @@ import {
   LuTruck,
   LuX,
 } from "react-icons/lu";
-import { useApp } from "@/context/AppContext";
+import { useSessao } from "@/context/AppContext";
 import {
   STATUS_CANCELADO,
   STATUS_FLUXO,
@@ -103,7 +103,7 @@ function pedidosDoDia(pedidos) {
 }
 
 export default function DeliveryModulo({ onVoltar }) {
-  const { currentUser } = useApp();
+  const { currentUser } = useSessao();
 
   // Fonte única da lista: o hook já carrega, assina o realtime e expõe o
   // recarregar manual. `pedidos` pode vir null quando a consulta falha.
