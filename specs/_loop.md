@@ -1,3 +1,24 @@
+## Rodada 78, refatoração 2.3 a 2.7, as outras cinco fatias do contexto, 2026-11-23
+- Spec: specs/refatoracao-2-3-a-2-7-fatias.md
+- Resultado: 7 de 7 critérios em sim nas cinco fatias, aprovado sem ressalvas (suíte 252
+  arquivos / 4349 testes mais 1 falha esperada, verde; `npm run build` limpo; lint 0
+  erros). Chamadas ao Supabase no contexto: 43 para 0, e a regra de lint passou a cobrir
+  `src/context/`, o que fecha a tarefa 1.5. Roteiro de fotos: 0 diferença. Sem migration.
+- O teste de redesenho virou uma tabela, uma linha por fatia, e ganhou uma checagem que
+  faltava: além de provar que a fatia NÃO foi redesenhada, prova que a sonda da fachada FOI,
+  ou seja, que a mudança de outro assunto aconteceu de verdade. Sem isso, uma linha com uma
+  mudança que não mexe em nada passaria verde sem provar coisa alguma.
+- O que a rodada revelou de não óbvio: o mapa categoria para grupo era recalculado a cada
+  render da fachada. Posto assim numa fatia, o valor do contexto mudaria sempre e a
+  memorização não valeria nada. Na fatia do catálogo ele é memorizado pelos grupos.
+- A parte que quase passou batido: a suíte pegou o guard de `caixa_movimentos` falhando
+  depois da 2.7. Ele lia o `AppContext.jsx` procurando a consulta, que tinha se mudado para
+  `features/caixa/dados/caixa.js`. A rodada não fechou até corrigir: o guard passou a
+  seguir o código até a camada de dados e ficou mais forte, exigindo que a consulta exista
+  lá e proibindo o contexto de voltar a falar com a tabela.
+- Fica em aberto: 2.8 (telas nos ganchos) e 2.9 (estado nos provedores). O `AppContext.jsx`
+  está em 2.299 linhas, mais que antes, porque as seis fatias foram montadas dentro dele; ele
+  encolhe na 2.9.
 ## Rodada 77, refatoração 2.1 e 2.2, prova de redesenho e fatia da sessão, 2026-11-23
 - Spec: specs/refatoracao-2-1-2-2-sessao.md
 - Resultado: 8 de 8 critérios em sim, aprovado sem ressalvas (suíte 251 / 4331 para 252 /

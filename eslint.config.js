@@ -60,8 +60,9 @@ export default [
   },
   {
     // Fronteira da camada de dados: tela não fala com o Supabase direto.
-    // Erro desde a tarefa 1.4 do plano, quando a última tela saiu.
-    files: ["src/components/**", "src/pages/**", "src/routes/**", "src/layouts/**"],
+    // Erro desde a tarefa 1.4 do plano, quando a última tela saiu; o
+    // contexto entrou na regra na tarefa 2.7, quando a última chamada saiu dele.
+    files: ["src/components/**", "src/pages/**", "src/routes/**", "src/layouts/**", "src/context/**"],
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
       "no-restricted-imports": ["error", {

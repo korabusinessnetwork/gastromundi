@@ -156,9 +156,13 @@ describe("caixa_movimentos, o cliente JS não desmente o banco (F005)", () => {
     expect(tiposDoCheck).toBe(true);
   });
 
+  // As chamadas saíram do AppContext para a camada de dados na tarefa 2.7 do
+  // plano de refatoração; o guard segue o código para onde ele foi.
+  const DADOS_CAIXA = "src/features/caixa/dados/caixa.js";
+
   it("a leitura especifica colunas, nada de select * em tabela de caixa", () => {
-    const ctx = lerFonte("src/context/AppContext.jsx");
-    const trechos = [...ctx.matchAll(/from\("caixa_movimentos"\)[\s\S]{0,200}/g)].map((m) => m[0]);
+    const dados = lerFonte(DADOS_CAIXA);
+    const trechos = [...dados.matchAll(/from\("caixa_movimentos"\)[\s\S]{0,200}/g)].map((m) => m[0]);
     expect(trechos.length).toBeGreaterThan(0);
     for (const trecho of trechos) {
       expect(trecho).not.toMatch(/select\("\*"\)/);
@@ -176,8 +180,11 @@ describe("caixa_movimentos, o cliente JS não desmente o banco (F005)", () => {
   });
 
   it("o cliente nunca tenta apagar nem editar um movimento", () => {
-    const ctx = lerFonte("src/context/AppContext.jsx");
-    const trechos = [...ctx.matchAll(/from\("caixa_movimentos"\)[\s\S]{0,200}/g)].map((m) => m[0]);
+    const dados = lerFonte(DADOS_CAIXA);
+    const trechos = [...dados.matchAll(/from\("caixa_movimentos"\)[\s\S]{0,200}/g)].map((m) => m[0]);
+    expect(trechos.length).toBeGreaterThan(0);
+    // E ninguém fora da camada de dados fala com a tabela.
+    expect(lerFonte("src/context/AppContext.jsx")).not.toMatch(/from\("caixa_movimentos"\)/);
     for (const trecho of trechos) {
       expect(trecho).not.toMatch(/\.delete\(\)/);
       expect(trecho).not.toMatch(/\.update\(/);

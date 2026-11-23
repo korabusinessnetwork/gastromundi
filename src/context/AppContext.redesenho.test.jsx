@@ -55,6 +55,7 @@ import { useOffline } from "./OfflineContext";
 import { useConfig } from "./ConfigContext";
 import { useCatalogo } from "./CatalogoContext";
 import { useComandas } from "./ComandasContext";
+import { useCaixa } from "./CaixaContext";
 
 beforeEach(() => {
   mockSupabase.from.mockImplementation(() => {
@@ -128,6 +129,12 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       acoes: ["addPending", "removePending", "updatePending", "adquirirTrava", "liberarTrava", "renovarTrava", "addLancada"],
       mudarOutroAssunto: (app) => app.setTaxaServico(true),
     },
+    {
+      nome: "caixa", gancho: useCaixa, campo: "fundoAtual",
+      acoes: ["addSale", "cancelarVendaFechada", "addFechamento", "registrarMovimentoCaixa",
+        "setFundoAtual", "setCaixaAberto", "setSessaoAbertaEm"],
+      mudarOutroAssunto: (app) => app.setTaxaServico(true),
+    },
   ];
 
   describe.each(FATIAS)("fatia $nome", ({ gancho, campo, acoes, mudarOutroAssunto }) => {
@@ -180,7 +187,7 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
     });
   });
 
-  it.each([["useSessao", useSessao], ["useOffline", useOffline], ["useConfig", useConfig], ["useCatalogo", useCatalogo], ["useComandas", useComandas]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
+  it.each([["useSessao", useSessao], ["useOffline", useOffline], ["useConfig", useConfig], ["useCatalogo", useCatalogo], ["useComandas", useComandas], ["useCaixa", useCaixa]])("%s fora do AppProvider avisa em vez de devolver vazio", (nome, gancho) => {
     function SemProvider() {
       gancho();
       return null;

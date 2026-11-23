@@ -1,17 +1,24 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
-import { supabase } from "@/lib/supabase";
 import { SessaoContext } from "./SessaoContext";
 import { OfflineContext } from "./OfflineContext";
 import { ConfigContext } from "./ConfigContext";
 import { CatalogoContext } from "./CatalogoContext";
 import { ComandasContext } from "./ComandasContext";
+import { CaixaContext } from "./CaixaContext";
 import { lerConfigDaAbertura, gravarChaveConfig } from "@/features/configuracoes/dados/config";
 import {
   listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
   entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
 } from "@/features/estoque/dados/saldos";
+import {
+  listarVendasDesde, listarItensDasVendas, listarPagamentosDasVendas, listarVendasLegadasDesde,
+  gravarVendaNormalizada, marcarVendaCancelada, assinarVendas,
+} from "@/features/caixa/dados/vendas";
+import {
+  listarFechamentos, gravarFechamento, listarMovimentosRecentes, registrarMovimento, excluirLancamentosDaVenda,
+} from "@/features/caixa/dados/caixa";
 import {
   listarComandas, inserirComanda, regravarComanda, atualizarComanda, excluirComanda, lerItensDaComanda,
   adquirirTravaDaComanda, lerDonoDaTrava, liberarTravaDaComanda, assinarComandas,
@@ -37,7 +44,7 @@ import { salvarBrandingCache } from "@/lib/brandingCache";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
-import { montarVendaLegada, persistirVendaNormalizada } from "@/lib/vendas";
+import { montarVendaLegada } from "@/lib/vendas";
 import { criarLancamento } from "@/lib/financeiro";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { emitirDocumentoFiscal } from "@/lib/fiscal";
@@ -365,11 +372,7 @@ export function AppProvider({ children }) {
     const desde = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     try {
       const COLUNAS_BASE = "id,comanda,mesa,subtotal,taxa_servico,valor_taxa,valor_ajuste,total,cashier,at";
-      const lerVendas = (colunas) => supabase
-        .from("vendas")
-        .select(colunas)
-        .gte("at", desde)
-        .order("at", { ascending: false });
+      const lerVendas = (colunas) => listarVendasDesde(colunas, desde);
 
       let { data: vendasData, error: eVendas } = await lerVendas(
         `${COLUNAS_BASE},cancelada,motivo_cancelamento,cancelada_por,cancelada_em`
@@ -388,8 +391,8 @@ export function AppProvider({ children }) {
       let itensData = [], pagamentosData = [];
       if (ids.length > 0) {
         const [itensRes, pagamentosRes] = await Promise.all([
-          supabase.from("venda_itens").select("venda_id,product_id,nome,preco,qtd,cancelado,motivo_cancelamento,cancelado_por").in("venda_id", ids),
-          supabase.from("venda_pagamentos").select("venda_id,metodo,valor").in("venda_id", ids),
+          listarItensDasVendas(ids),
+          listarPagamentosDasVendas(ids),
         ]);
         if (itensRes.error) throw itensRes.error;
         if (pagamentosRes.error) throw pagamentosRes.error;
@@ -415,8 +418,7 @@ export function AppProvider({ children }) {
       }));
     } catch (err) {
       console.error("[bootstrap] falha ao ler vendas normalizadas, usando fallback em sales:", err);
-      const { data: salesData, error: eSales } = await supabase
-        .from("sales").select("id,data,at").gte("at", desde).order("at", { ascending: false });
+      const { data: salesData, error: eSales } = await listarVendasLegadasDesde(desde);
       if (eSales) {
         console.error("[bootstrap] sales fallback error:", eSales);
         return [];
@@ -530,7 +532,7 @@ export function AppProvider({ children }) {
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),
         buscarUsers(),
-        supabase.from("fechamentos").select("id,data,created_at").order("created_at", { ascending: false }),
+        listarFechamentos(),
         lerConfigDaAbertura(),
         listarSaldos(),
         // Fases 1-2 — camada de comercialização (ADR-005): nunca lança, então nunca bloqueia o resto do bootstrap.
@@ -543,10 +545,7 @@ export function AppProvider({ children }) {
         // F005 — sangrias/suprimentos. Campos nomeados: tabela de caixa não
         // aceita `select *`. Só a janela recente interessa (a conta é sempre
         // da sessão aberta), então limita em vez de arrastar o histórico.
-        supabase.from("caixa_movimentos")
-          .select("id,tipo,valor,motivo,autor,autorizado_por,created_at")
-          .order("created_at", { ascending: false })
-          .limit(200),
+        listarMovimentosRecentes(200),
       ]);
 
       if (eUsers)    console.error("[bootstrap] users error:", eUsers);
@@ -838,9 +837,7 @@ export function AppProvider({ children }) {
   // Saldo do Dia / fechamento divergiam entre dispositivos (bug A4/TD010).
   // Requer Realtime habilitado na tabela `sales` (Database → Replication).
   useEffect(() => {
-    const channel = supabase
-      .channel("sales-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, (payload) => {
+    return assinarVendas((payload) => {
         if (payload.eventType === "INSERT") {
           const venda = payload.new?.data;
           if (!venda?.id) return;
@@ -854,10 +851,7 @@ export function AppProvider({ children }) {
           const id = payload.old?.id;
           if (id) setSalesLocal(prev => prev.filter(s => !s || s.id !== id));
         }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   // ── Offline-first (Leva 11): reenvio da fila local ───────────
@@ -923,7 +917,7 @@ export function AppProvider({ children }) {
   // gravada de fato.
   const reenviarVendaOffline = async (op) => {
     const sale = op.payload.data;
-    const resultado = await persistirVendaNormalizada(supabase, sale, {
+    const resultado = await gravarVendaNormalizada(sale, {
       onFalha: ({ etapa, error: e, venda_id }) => {
         // Rede caiu no meio do dreno: a op fica na fila e volta na próxima
         // passada. Isso é o dreno funcionando, não inconsistência de dado.
@@ -1356,7 +1350,7 @@ export function AppProvider({ children }) {
   const addSale = async (sale) => {
     setSalesLocal(prev => [sale, ...prev]);
 
-    const resultado = await persistirVendaNormalizada(supabase, sale, {
+    const resultado = await gravarVendaNormalizada(sale, {
       onFalha: ({ etapa, error, venda_id }) => {
         // Sem internet a venda vai para a fila offline logo abaixo e sobe
         // depois: caminho previsto, não inconsistência. Registrar aqui
@@ -1441,16 +1435,7 @@ export function AppProvider({ children }) {
     // .select() após o update: PostgREST devolve sucesso HTTP com 0 linhas
     // quando a RLS filtra tudo ou o id não existe (mesmo padrão do
     // updateUser) — sem checar, a UI fingiria que cancelou.
-    const { data: linhas, error } = await supabase
-      .from("vendas")
-      .update({
-        cancelada: true,
-        motivo_cancelamento: motivo,
-        cancelada_por: canceladaPor,
-        cancelada_em: canceladaEm,
-      })
-      .eq("id", vendaId)
-      .select("id");
+    const { data: linhas, error } = await marcarVendaCancelada(vendaId, { motivo, canceladaPor, canceladaEm });
     if (error) {
       // 42703 = coluna inexistente: a migration 20260920 não foi aplicada.
       // Falha explícita de propósito. Fingir sucesso seria pior que o erro:
@@ -1471,7 +1456,7 @@ export function AppProvider({ children }) {
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, venda inexistente ou sem permissão." } };
     }
 
-    const { error: eLanc } = await supabase.from("lancamentos").delete().eq("venda_id", vendaId);
+    const { error: eLanc } = await excluirLancamentosDaVenda(vendaId);
     if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);
 
     setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));
@@ -1602,7 +1587,7 @@ export function AppProvider({ children }) {
   // ── Actions: Fechamentos ──────────────────────────────────────
   const addFechamento = async (f) => {
     setFechamentosLocal(prev => [f, ...prev]);
-    const { error } = await supabase.from("fechamentos").insert({ data: f });
+    const { error } = await gravarFechamento(f);
     if (error) {
       console.error("addFechamento error:", error);
       reportarFalha(error, { acao: "addFechamento", tabela: "fechamentos" });
@@ -1644,11 +1629,7 @@ export function AppProvider({ children }) {
       sessao_aberta_em: sessaoAbertaEm ?? null,
     };
 
-    const { data, error } = await supabase
-      .from("caixa_movimentos")
-      .insert(linha)
-      .select("id,tipo,valor,motivo,autor,autorizado_por,created_at")
-      .single();
+    const { data, error } = await registrarMovimento(linha);
 
     if (error) {
       console.error("registrarMovimentoCaixa error:", error);
@@ -2204,6 +2185,25 @@ export function AppProvider({ children }) {
   }), [pending, lancadas, addPendingEstavel, removePendingEstavel, updatePendingEstavel,
     adquirirTravaEstavel, liberarTravaEstavel, renovarTravaEstavel, addLancadaEstavel]);
 
+  // ── Fatia do caixa (tarefa 2.7) ───────────────────────────────
+  // Vendas, fechamentos, fundo, abertura do caixa e sangrias/suprimentos.
+  const addSaleEstavel                 = useFuncaoEstavel(addSale);
+  const cancelarVendaFechadaEstavel    = useFuncaoEstavel(cancelarVendaFechada);
+  const addFechamentoEstavel           = useFuncaoEstavel(addFechamento);
+  const registrarMovimentoCaixaEstavel = useFuncaoEstavel(registrarMovimentoCaixa);
+  const setFundoAtualEstavel           = useFuncaoEstavel(setFundoAtual);
+  const setCaixaAbertoEstavel          = useFuncaoEstavel(setCaixaAberto);
+  const setSessaoAbertaEmEstavel       = useFuncaoEstavel(setSessaoAbertaEm);
+  const valorCaixa = useMemo(() => ({
+    sales, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, movimentosCaixa,
+    addSale: addSaleEstavel, cancelarVendaFechada: cancelarVendaFechadaEstavel,
+    addFechamento: addFechamentoEstavel, registrarMovimentoCaixa: registrarMovimentoCaixaEstavel,
+    setFundoAtual: setFundoAtualEstavel, setCaixaAberto: setCaixaAbertoEstavel,
+    setSessaoAbertaEm: setSessaoAbertaEmEstavel,
+  }), [sales, fechamentos, fundoAtual, caixaAberto, sessaoAbertaEm, movimentosCaixa,
+    addSaleEstavel, cancelarVendaFechadaEstavel, addFechamentoEstavel, registrarMovimentoCaixaEstavel,
+    setFundoAtualEstavel, setCaixaAbertoEstavel, setSessaoAbertaEmEstavel]);
+
   const value = {
     loading,
     // dados
@@ -2268,6 +2268,7 @@ export function AppProvider({ children }) {
       <ConfigContext.Provider value={valorConfig}>
       <CatalogoContext.Provider value={valorCatalogo}>
       <ComandasContext.Provider value={valorComandas}>
+      <CaixaContext.Provider value={valorCaixa}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -2280,6 +2281,7 @@ export function AppProvider({ children }) {
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
+      </CaixaContext.Provider>
       </ComandasContext.Provider>
       </CatalogoContext.Provider>
       </ConfigContext.Provider>
