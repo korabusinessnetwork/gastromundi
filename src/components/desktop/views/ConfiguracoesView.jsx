@@ -1,6 +1,7 @@
 ﻿import { useState, useMemo, useEffect } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useApp } from "@/context/AppContext";
+import { excluirUnidadeMedida } from "@/features/estoque/dados/unidadesMedida";
 import { supabase } from "@/lib/supabase";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -1093,51 +1094,23 @@ export function UnidadesMedidaTab({ sz }) {
   };
 
   /**
-   * Exclusão em cascata: desvincula a unidade dos produtos e só então apaga a
-   * própria unidade. Cada passo é conferido e o primeiro erro interrompe a
-   * cascata — antes, nenhum dos quatro comandos era checado, então uma falha
-   * de permissão deixava produtos apontando para uma unidade que a tela
-   * dizia ter excluído (a linha sumia da lista mesmo sem ter sumido do banco).
+   * Exclusão em cascata numa transação só (tarefa 1.3 do plano de
+   * refatoração): desvincula a unidade dos produtos e apaga a unidade, ou não
+   * faz nada. Antes eram quatro passos soltos, e com um gerente (que altera
+   * produto mas não apaga unidade) os produtos perdiam a unidade enquanto a
+   * unidade continuava cadastrada.
    */
   const confirmarRemover = async () => {
     if (!deleteInfo || deletando) return;
     setDeletando(true);
     setErro("");
-    const { abbr } = deleteInfo;
-    const falhar = (mensagem) => {
-      setErro(mensagem);
+    try {
+      await excluirUnidadeMedida(deleteInfo.id);
+    } catch (e) {
+      setErro(e.message);
       setDeletando(false);
-      return false;
-    };
-
-    // 1. Desvincula unidade_estoque → volta para string vazia (field not null, mas produtos sem unidade ficam sem config)
-    const r1 = await supabase.from("products").update({ unidade_estoque: "" }).eq("unidade_estoque", abbr);
-    if (r1.error) return falhar("Não deu para desvincular a unidade de estoque dos produtos. Nada foi excluído.");
-
-    // 2. Limpa unidade_consumo
-    const r2 = await supabase.from("products").update({ unidade_consumo: null }).eq("unidade_consumo", abbr);
-    if (r2.error) return falhar("Não deu para limpar a unidade de consumo dos produtos. A exclusão foi interrompida.");
-
-    // 3. Remove entradas de unidades_compra que usam essa abreviação
-    const { data: comCompra, error: erroCompra } = await supabase
-      .from("products")
-      .select("id, unidades_compra")
-      .not("unidades_compra", "eq", "[]");
-    if (erroCompra) return falhar("Não deu para ler as unidades de compra dos produtos. A exclusão foi interrompida.");
-    const afetadosCompra = (comCompra || []).filter(p =>
-      Array.isArray(p.unidades_compra) && p.unidades_compra.some(c => c.unidade === abbr)
-    );
-    for (const p of afetadosCompra) {
-      const { error } = await supabase
-        .from("products")
-        .update({ unidades_compra: p.unidades_compra.filter(c => c.unidade !== abbr) })
-        .eq("id", p.id);
-      if (error) return falhar("Não deu para atualizar as unidades de compra de todos os produtos. A exclusão foi interrompida.");
+      return;
     }
-
-    // 4. Exclui a unidade
-    const { error: erroDelete } = await supabase.from("unidades_medida").delete().eq("id", deleteInfo.id);
-    if (erroDelete) return falhar("Os produtos foram desvinculados, mas a unidade não pôde ser excluída. Tente de novo.");
 
     setUnidades(prev => prev.filter(u => u.id !== deleteInfo.id));
     setDeleteInfo(null);

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
-// B1 da auditoria — a exclusão de uma unidade de medida roda uma cascata de
-// quatro comandos destrutivos sobre `products`. Nenhum deles era conferido:
-// a unidade sumia da tela mesmo quando o banco recusava, e a contagem de
+// B1 da auditoria: a exclusão de uma unidade de medida rodava uma cascata de
+// quatro comandos destrutivos sobre `products`, sem conferir nenhum. Desde a
+// tarefa 1.3 do plano de refatoração ela é uma RPC atômica. A contagem de
 // "produtos afetados" mostrada na confirmação vinha de uma consulta cujo erro
 // também era descartado (falha de leitura virava "Nenhum produto utiliza
 // essa unidade" — e o usuário confirmava a cascata achando que era inócua).
@@ -99,70 +99,20 @@ describe("UnidadesMedidaTab, contagem antes de excluir (B1)", () => {
   });
 });
 
-describe("UnidadesMedidaTab, cascata de exclusão (B1)", () => {
-  /**
-   * Faz a cascata falhar exatamente no passo escolhido. Os quatro passos são,
-   * em ordem: update de unidade_estoque, update de unidade_consumo, leitura de
-   * unidades_compra e delete da própria unidade.
-   */
-  function falharNoPasso(passo) {
-    const erro = { message: "permission denied" };
-    mockSupabase.current.setTableHandler("products", ({ method, args }) => {
-      if (method === "select") {
-        // A contagem inicial (3 colunas) sempre funciona; a leitura de
-        // unidades_compra é a do passo 3.
-        const colunas = String(args?.[0] ?? "");
-        if (colunas.includes("unidade_estoque")) return { data: [produtoQueUsaKg], error: null };
-        return passo === 3 ? { data: null, error: erro } : { data: [], error: null };
-      }
-      if (method === "update") {
-        const payload = args?.[0] ?? {};
-        if (passo === 1 && "unidade_estoque" in payload) return { data: null, error: erro };
-        if (passo === 2 && "unidade_consumo" in payload) return { data: null, error: erro };
-        return { data: null, error: null };
-      }
-      return undefined;
-    });
-    if (passo === 4) mockSupabase.current.setTableHandler("unidades_medida", ({ method }) =>
-      method === "delete" ? { data: null, error: erro } : undefined);
+// Tarefa 1.3 do plano de refatoração: a cascata virou a RPC atômica
+// `excluir_unidade_medida`. Os quatro passos soltos (e o teste de cada um)
+// deixaram de existir no navegador; o "tudo ou nada" é do banco, provado em
+// supabase/tests/excluir_unidade_medida_cenarios.sql. Aqui fica o contrato.
+describe("UnidadesMedidaTab, exclusão (B1)", () => {
+  /** Nenhuma escrita direta: tudo passa pela RPC. */
+  function escritasDiretas() {
+    return mockSupabase.current.calls.filter(
+      (c) => ["insert", "update", "delete", "upsert"].includes(c.method)
+        && ["products", "unidades_medida"].includes(c.table),
+    );
   }
 
-  it.each([
-    [1, /não deu para desvincular a unidade de estoque/i],
-    [2, /não deu para limpar a unidade de consumo/i],
-    [3, /não deu para ler as unidades de compra/i],
-    [4, /a unidade não pôde ser excluída/i],
-  ])("falha no passo %i interrompe a cascata e mantém a unidade na tela", async (passo, mensagem) => {
-    await montarComKg();
-    falharNoPasso(passo);
-    const user = userEvent.setup();
-    await abrirExclusao(user);
-
-    await user.click(screen.getByRole("button", { name: /sim, excluir/i }));
-
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(mensagem));
-    // A unidade continua existindo no banco — precisa continuar na tela.
-    expect(screen.getByText("Quilograma")).toBeInTheDocument();
-    // E o diálogo continua aberto: a ação não terminou.
-    expect(screen.getByText("Excluir unidade")).toBeInTheDocument();
-  });
-
-  it("falha no passo 1 não chega a apagar a unidade no banco", async () => {
-    await montarComKg();
-    falharNoPasso(1);
-    const user = userEvent.setup();
-    await abrirExclusao(user);
-
-    await user.click(screen.getByRole("button", { name: /sim, excluir/i }));
-    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
-
-    const deletes = mockSupabase.current.calls.filter(
-      (c) => c.table === "unidades_medida" && c.method === "delete",
-    );
-    expect(deletes).toHaveLength(0);
-  });
-
-  it("cascata inteira bem-sucedida remove a unidade e fecha o diálogo", async () => {
+  it("exclusão bem-sucedida chama a RPC uma vez, tira a unidade da tela e fecha o diálogo", async () => {
     await montarComKg();
     mockSupabase.current.setTableResult("products", { data: [produtoQueUsaKg], error: null });
     const user = userEvent.setup();
@@ -173,10 +123,29 @@ describe("UnidadesMedidaTab, cascata de exclusão (B1)", () => {
     await waitFor(() => expect(screen.queryByText("Excluir unidade")).not.toBeInTheDocument());
     expect(screen.queryByText("Quilograma")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    const deletes = mockSupabase.current.calls.filter(
-      (c) => c.table === "unidades_medida" && c.method === "delete",
-    );
-    expect(deletes).toHaveLength(1);
+    const chamadas = mockSupabase.current.calls.filter((c) => c.rpc === "excluir_unidade_medida");
+    expect(chamadas).toHaveLength(1);
+    expect(chamadas[0].args[0]).toEqual({ p_unidade_id: KG.id });
+    expect(escritasDiretas()).toHaveLength(0);
+  });
+
+  it("recusa do banco mantém a unidade na tela, o diálogo aberto, e diz o motivo", async () => {
+    await montarComKg();
+    mockSupabase.current.setTableResult("products", { data: [produtoQueUsaKg], error: null });
+    // Frase e código como a migration 20261125 levanta para quem não é admin.
+    mockSupabase.current.setRpcError("excluir_unidade_medida", {
+      code: "42501",
+      message: "Seu usuário não pode excluir unidades de medida. Peça ao administrador.",
+    });
+    const user = userEvent.setup();
+    await abrirExclusao(user);
+
+    await user.click(screen.getByRole("button", { name: /sim, excluir/i }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/peça ao administrador/i));
+    expect(screen.getByText("Quilograma")).toBeInTheDocument();
+    expect(screen.getByText("Excluir unidade")).toBeInTheDocument();
+    expect(escritasDiretas()).toHaveLength(0);
   });
 });
 

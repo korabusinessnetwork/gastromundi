@@ -1,3 +1,19 @@
+## Rodada 73, refatoração 1.3, excluir unidade de medida numa transação só, 2026-11-23
+- Spec: specs/refatoracao-1-3-excluir-unidade.md
+- Resultado: 9 de 9 critérios em sim, aprovado sem ressalvas (suíte 248 arquivos / 4313
+  testes para 250 / 4317, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
+  dados/: 207 (45 / 51 / 111). Migration `20261125` ainda não aplicada em produção.
+- O que a rodada revelou de não óbvio: o risco não era só a rede cair no meio, era um dano
+  certo e repetível. Lendo as policies de produção para montar o teste, apareceu que o
+  gerente altera produto mas não apaga unidade, e as duas telas mostram o botão para ele.
+  DELETE barrado pela RLS não dá erro, então a cascata desvinculava os produtos, não apagava
+  nada e a tela dizia "excluída". O cenário SQL 1 é exatamente esse caso, e agora nada muda.
+- A decisão que a rodada precisou tomar: manter a busca por abreviação sem olhar o tipo,
+  igual às telas faziam, e registrar como TD022 em vez de corrigir. Excluir a unidade de
+  compra "un" também limpa a unidade de estoque "un" dos produtos; mudar isso é decisão de
+  produto, e uma refatoração que muda regra no meio fica impossível de revisar.
+- Fica em aberto: aplicar `20261124` e `20261125` em produção (decisão do dono, D6); TD022;
+  esconder o botão de excluir de quem não é admin, se o dono quiser.
 ## Rodada 72, refatoração 1.2, importar nota fiscal numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-2-importar-nota.md
 - Resultado: 10 de 10 critérios em sim, aprovado sem ressalvas (suíte 246 arquivos / 4297

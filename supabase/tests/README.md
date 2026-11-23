@@ -55,3 +55,19 @@ sudo -u postgres psql -q -d teste_nf -f supabase/tests/importar_nota_fiscal_cena
 8. Formato inválido: recusa `P0001`.
 9. Estado final confere com os passos acima.
 10. Anônimo não executa a função.
+
+## Cenários de `excluir_unidade_medida` (2026-11-23, todos conforme)
+
+```
+sudo -u postgres psql -q -f supabase/tests/excluir_unidade_medida_base.sql
+sudo -u postgres psql -q -d teste_unidade -f supabase/migrations/20261125_excluir_unidade_medida_atomica.sql
+sudo -u postgres psql -q -d teste_unidade -f supabase/tests/excluir_unidade_medida_cenarios.sql
+```
+
+1. Gerente tenta excluir: recusa `42501`, e nenhum produto perde a unidade. Era o defeito de antes.
+2. Caixa: recusa `42501`, nada muda.
+3. Admin exclui `kg`: some da unidade de estoque, de consumo e da lista de compra; o produto do outro estabelecimento fica igual.
+4. Admin exclui `cx`: sai da lista de compra dos dois produtos, o resto da lista fica.
+5. Unidade que não existe mais: recusa `P0002`.
+6. Unidade de outro estabelecimento: invisível, recusa `P0002`, nada muda.
+7. Anônimo não executa a função.

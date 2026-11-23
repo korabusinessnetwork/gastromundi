@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuPlus, LuRuler, LuX } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
 import { supabase } from "@/lib/supabase";
+import { excluirUnidadeMedida } from "@/features/estoque/dados/unidadesMedida";
 import "./SecaoUnidades.css";
 
 /**
@@ -164,49 +165,21 @@ export default function SecaoUnidades() {
 
   const confirmarRemover = async () => {
     if (!confirmacao || confirmacao.calculando || removendo) return;
-    const { id, abbr, nome } = confirmacao;
+    const { id, nome } = confirmacao;
     setRemovendo(true);
     setMensagem(null);
 
-    // Mesmos 4 passos do desktop: desvincula a unidade dos produtos que a
-    // usam (estoque, consumo, compra) antes de excluir o cadastro dela.
-    const { error: erroEstoque } = await supabase
-      .from("products")
-      .update({ unidade_estoque: "" })
-      .eq("unidade_estoque", abbr);
-
-    const { error: erroConsumo } = await supabase
-      .from("products")
-      .update({ unidade_consumo: null })
-      .eq("unidade_consumo", abbr);
-
-    const { data: comCompra, error: erroBusca } = await supabase
-      .from("products")
-      .select("id, unidades_compra")
-      .not("unidades_compra", "eq", "[]");
-
-    let erroCompra = null;
-    if (!erroBusca) {
-      const afetadosCompra = (comCompra || []).filter(
-        (p) => Array.isArray(p.unidades_compra) && p.unidades_compra.some((c) => c.unidade === abbr),
-      );
-      for (const p of afetadosCompra) {
-        const { error } = await supabase
-          .from("products")
-          .update({ unidades_compra: p.unidades_compra.filter((c) => c.unidade !== abbr) })
-          .eq("id", p.id);
-        if (error) erroCompra = error;
-      }
-    }
-
-    const { error: erroExcluir } = await supabase.from("unidades_medida").delete().eq("id", id);
-
-    setRemovendo(false);
-
-    if (erroEstoque || erroConsumo || erroBusca || erroCompra || erroExcluir) {
-      setMensagem({ tipo: "erro", texto: "Não foi possível concluir a exclusão. Confira a conexão e tente de novo." });
+    // Mesma função do computador: desvincula a unidade dos produtos e a
+    // exclui numa transação só (tarefa 1.3 do plano de refatoração). Se o
+    // banco recusar, nada foi alterado.
+    try {
+      await excluirUnidadeMedida(id);
+    } catch (e) {
+      setRemovendo(false);
+      setMensagem({ tipo: "erro", texto: e.message });
       return;
     }
+    setRemovendo(false);
 
     setUnidades((prev) => prev.filter((u) => u.id !== id));
     setConfirmacao(null);
