@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CaixaContext } from "./CaixaContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
+import { useOffline } from "./OfflineContext";
 import { gravarConfig } from "./gravarConfig";
 import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/features/caixa/dados/vendas";
 import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
@@ -37,6 +38,8 @@ export function useCaixaCarga() {
 }
 
 export function CaixaProvider({ pontesRef, children }) {
+  // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
+  const { enfileirarOffline } = useOffline();
   const [sales,       setSalesLocal]       = useState([]);
   const [fechamentos, setFechamentosLocal] = useState([]);
   const [fundoAtual,      setFundoAtualLocal]    = useState(0);
@@ -75,7 +78,7 @@ export function CaixaProvider({ pontesRef, children }) {
       // sozinha quando a conexão voltar. O evento fica para o reenvio
       // confirmado (executarOpOffline), senão duplicaria.
       if (isErroDeRede(error)) {
-        pontesRef.current.enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
+        enfileirarOffline({ tipo: "insert_venda", payload: { id: sale.id, data: sale } });
         return { error: null, offline: true };
       }
       // A2 da auditoria — a venda NÃO existe no banco (RLS, constraint...).

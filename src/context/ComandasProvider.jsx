@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { ComandasContext } from "./ComandasContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
+import { useOffline } from "./OfflineContext";
 import {
   inserirComanda, atualizarComanda, excluirComanda, lerItensDaComanda,
   adquirirTravaDaComanda, lerDonoDaTrava, liberarTravaDaComanda, assinarComandas,
@@ -35,6 +36,8 @@ export function useComandasCarga() {
 }
 
 export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
+  // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
+  const { enfileirarOffline } = useOffline();
   const [pending,  setPendingLocal] = useState([]);
   const [lancadas, setLancadas]     = useState(new Set());
 
@@ -55,7 +58,7 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
       // Sem internet o pedido NÃO some (Leva 11): mantém o estado
       // otimista, guarda na fila local e reenvia quando a rede voltar.
       if (isErroDeRede(error)) {
-        pontesRef.current.enfileirarOffline({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } });
+        enfileirarOffline({ tipo: "insert", payload: { id, comanda, mesa, apelido, cliente_id, cliente_nome, items, status, note, total, garcom, created_by } });
         return { error: null, offline: true };
       }
       console.error("addPending error:", error);
@@ -76,7 +79,7 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
     const { error } = await excluirComanda(id);
     if (error) {
       if (isErroDeRede(error)) {
-        pontesRef.current.enfileirarOffline({ tipo: "delete", id });
+        enfileirarOffline({ tipo: "delete", id });
         return { error: null, offline: true };
       }
       console.error("removePending error:", error);
@@ -128,7 +131,7 @@ export function ComandasProvider({ pontesRef, lockIndisponivelRef, children }) {
     const { error } = await atualizarComanda(id, payload);
     if (error) {
       if (isErroDeRede(error)) {
-        pontesRef.current.enfileirarOffline({ tipo: "update", id, changes: payload });
+        enfileirarOffline({ tipo: "update", id, changes: payload });
         return { error: null, offline: true };
       }
       console.error("updatePending error:", error);

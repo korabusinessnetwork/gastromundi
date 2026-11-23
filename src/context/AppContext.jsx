@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect, useLayoutEffect, useCal
 import { getPermissions, mesclarPermissoes, ROLES } from "@/constants/roles";
 import { useIsMobile, useIdleTimer } from "@/utils/hooks";
 import { SessaoContext } from "./SessaoContext";
-import { OfflineContext } from "./OfflineContext";
+import { OfflineProvider, useOfflineCarga } from "./OfflineProvider";
+import { useOffline } from "./OfflineContext";
 import { ConfigProvider, useConfigCarga } from "./ConfigProvider";
 import { useConfig } from "./ConfigContext";
 import { CatalogoProvider, useCatalogoCarga } from "./CatalogoProvider";
@@ -56,9 +57,8 @@ import { drenarFila } from "@/lib/offline/fila";
 // real) e pela tela de notas emitidas, que conta as pendências fiscais
 // guardadas nela. O banco responde depois do primeiro render, por isso o
 // contador reassina em `assinarFilaOffline`.
-import { filaOffline, contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
+import { filaOffline } from "@/lib/offline/filaApp";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
-import { useStatusRede } from "@/hooks/useStatusRede";
 import IndicadorRede from "@/components/shared/IndicadorRede";
 import AvisoSessao from "@/components/shared/AvisoSessao";
 import PonteLocalBridge from "@/components/shared/PonteLocalBridge";
@@ -100,28 +100,32 @@ function montarMapaCargos(rows) {
  */
 export function AppProvider({ children }) {
   const tenantIdRef = useRef(null);
-  // O que os provedores de fora ainda precisam ler de dentro (usuário logado,
-  // fila offline). Preenchido pelo AppProviderInterno a cada render.
-  const pontesRef = useRef({ currentUser: null, enfileirarOffline: () => {} });
+  // O que os provedores de fora ainda precisam ler de dentro (o usuário
+  // logado). Preenchido pelo AppProviderInterno a cada render.
+  const pontesRef = useRef({ currentUser: null });
+  // "Recarregar os dados" é a carga da coordenação, lá dentro.
+  const recarregarRef = useRef(() => {});
   // Banco sem as colunas da trava de edição (migration não aplicada): a carga
   // descobre, as travas das comandas obedecem.
   const lockIndisponivelRef = useRef(false);
   return (
+    <OfflineProvider tenantIdRef={tenantIdRef} recarregarRef={recarregarRef}>
     <ConfigProvider tenantIdRef={tenantIdRef}>
       <CatalogoProvider pontesRef={pontesRef}>
         <ComandasProvider pontesRef={pontesRef} lockIndisponivelRef={lockIndisponivelRef}>
           <CaixaProvider pontesRef={pontesRef}>
-            <AppProviderInterno tenantIdRef={tenantIdRef} pontesRef={pontesRef} lockIndisponivelRef={lockIndisponivelRef}>
+            <AppProviderInterno tenantIdRef={tenantIdRef} pontesRef={pontesRef} lockIndisponivelRef={lockIndisponivelRef} recarregarRef={recarregarRef}>
               {children}
             </AppProviderInterno>
           </CaixaProvider>
         </ComandasProvider>
       </CatalogoProvider>
     </ConfigProvider>
+    </OfflineProvider>
   );
 }
 
-function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivelRef }) {
+function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivelRef, recarregarRef }) {
   // ── Estado local ─────────────────────────────────────────────
   const [users,       setUsersLocal]       = useState([]);
   // F005 — sangrias e suprimentos da sessão de caixa (trilha de auditoria).
@@ -134,33 +138,11 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
   // IDs de comandas com pedido lançado na sessão atual (sobrevive troca de aba)
 
   // ── Offline-first (Leva 11) ──────────────────────────────────
-  const redeOnline = useStatusRede();
-  // A última carga de dados não alcançou o banco e o app seguiu com o que
-  // estava salvo neste computador (o snapshot). É um sinal DIFERENTE do
-  // `redeOnline`: `navigator.onLine` só sabe se a placa de rede deste aparelho
-  // está de pé, e o caso comum do restaurante é justamente o outro — roteador
-  // ligado, link do provedor caído. Aí o navegador continua se dizendo online
-  // enquanto nenhuma leitura chega ao Supabase. Quem precisa separar "o ajuste
-  // ainda vem" de "o ajuste não vem mais" (a aba Pedidos sem Internet) tem de
-  // olhar os dois sinais, não só o do navegador.
-  //
-  // Ele se apaga de duas formas: no começo de cada nova carga (bootstrap) e
-  // quando este computador reconecta (efeito do evento `online`, mais abaixo).
-  const [abriuSemInternet, setAbriuSemInternet] = useState(false);
-  const [pendenciasOffline, setPendenciasOffline] = useState(() => filaOffline.tamanho());
+  // O offline (rede, fila, notas pendentes) mora no OfflineProvider desde a
+  // tarefa 2.9. Daqui sai só a DRENAGEM, que reenvia todos os assuntos.
+  const { redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais, enfileirarOffline } = useOffline();
+  const cargaOffline = useOfflineCarga();
   const drenandoRef = useRef(false);
-  // Notas fiscais que ficaram na fila: a venda saiu, a nota não. Fica visível
-  // para o admin/contador em "Notas emitidas" — pendência fiscal não pode
-  // existir em silêncio.
-  const pendenciasFiscais = useMemo(
-    () => contarPendenciasFiscais(),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pendenciasOffline],
-  );
-  // A fila mora no IndexedDB (F021 fatia 2), que responde depois do primeiro
-  // render: o `useState` acima leu o espelho ainda vazio. Quando a hidratação
-  // traz o que ficou da sessão anterior, o número chega por aqui.
-  useEffect(() => assinarFilaOffline(() => setPendenciasOffline(filaOffline.tamanho())), []);
   // A configuração (pagamento, TEF, taxa, ponte, alertas) mora no
   // ConfigProvider desde a tarefa 2.9; daqui só se lê e se hidrata na carga.
   const {
@@ -509,7 +491,7 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
     // Cada carga recomeça sem o carimbo de "abriu sem internet": um bootstrap
     // que agora deu certo (login depois de a conexão voltar) não pode deixar a
     // tela dizendo que o estabelecimento está sem rede.
-    setAbriuSemInternet(false);
+    cargaOffline.definirAbriuSemInternet(false);
     try {
       const [
         { data: productsData, error: eProducts },
@@ -570,7 +552,7 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
         // depende do ramo lá em cima que chama o bootstrap quando a leitura do
         // perfil falha por rede e existe sessão local salva — sem ele a
         // restauração parava antes e este trecho nunca rodava nesse cenário.
-        setAbriuSemInternet(true);
+        cargaOffline.definirAbriuSemInternet(true);
         const snapshot = lerSnapshot(window.localStorage, tenantIdRef.current);
         if (snapshot) {
           if (snapshot.products?.length) cargaCatalogo.definirProdutos(snapshot.products);
@@ -862,13 +844,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
     return { error: null };
   };
 
-  // Enfileira uma operação para reenvio quando a internet voltar e
-  // atualiza o contador do badge — único caminho para fora do provider.
-  // Carimba a op com o tenant da sessão (JWT). No drain, ops de outro tenant
-  // são puladas e preservadas (isolamento em origem compartilhada). Ver fila.js.
-  const enfileirarOffline = (op) =>
-    setPendenciasOffline(filaOffline.enfileirar({ ...op, __tenant: tenantIdRef.current }));
-
   const drenarPendenciasOffline = async () => {
     if (drenandoRef.current || filaOffline.tamanho() === 0) return;
     drenandoRef.current = true;
@@ -907,7 +882,7 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
       }
     } finally {
       drenandoRef.current = false;
-      setPendenciasOffline(filaOffline.tamanho());
+      cargaOffline.definirPendencias(filaOffline.tamanho());
     }
   };
 
@@ -915,24 +890,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
     if (redeOnline && !loading) drenarPendenciasOffline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [redeOnline, loading, pendenciasOffline]);
-
-  // O carimbo conta o que aconteceu na ÚLTIMA carga, e nada relê os dados
-  // sozinho depois. Se ele nunca se apagasse, a tela seguiria afirmando no
-  // presente que o estabelecimento está sem internet com a conexão já de
-  // volta — e escondendo o botão "Recarregar a tela", que nessa hora é
-  // justamente o que resolve. Quando este computador reconecta, o navegador
-  // avisa (mesmo evento que o `redeOnline` já escuta) e o carimbo cai.
-  //
-  // O aviso só existe quando é ESTE aparelho que perde e recupera a rede.
-  // Link do provedor que volta sem o computador ter caído não emite evento
-  // nenhum: nesse caso quem apaga o carimbo é uma pessoa, pedindo a carga de
-  // novo pela tela (`recarregarDadosDoEstabelecimento`, exposto no contexto).
-  // Nada aqui tenta sozinho de tempos em tempos.
-  useEffect(() => {
-    const aoVoltarAConexao = () => setAbriuSemInternet(false);
-    window.addEventListener("online", aoVoltarAConexao);
-    return () => window.removeEventListener("online", aoVoltarAConexao);
-  }, []);
 
   // ── Actions: Auth ─────────────────────────────────────────────
   const login = async (username, password) => {
@@ -1142,7 +1099,8 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
   // Pontes para os provedores de fora (ver AppProvider). Layout effect: as
   // ações só são chamadas depois do render, quando isto já está atualizado.
   useLayoutEffect(() => {
-    pontesRef.current = { currentUser, enfileirarOffline };
+    pontesRef.current = { currentUser };
+    recarregarRef.current = bootstrap;
   });
 
   // ── Context value ─────────────────────────────────────────────
@@ -1208,18 +1166,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
     moduloHabilitadoEstavel, addonHabilitadoEstavel, loginEstavel, logoutEstavel,
     addUserEstavel, updateUserEstavel, removeUserEstavel, salvarPermissoesCargoEstavel]);
 
-  // ── Fatia offline (tarefa 2.3) ────────────────────────────────
-  // Rede, fila local e o que ainda espera o banco. `recarregarDadosDoEstabelecimento`
-  // é o mesmo `bootstrap` da abertura, com identidade fixa.
-  const enfileirarOfflineEstavel = useFuncaoEstavel(enfileirarOffline);
-  const recarregarDadosEstavel   = useFuncaoEstavel(bootstrap);
-  const valorOffline = useMemo(() => ({
-    redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
-    enfileirarOffline: enfileirarOfflineEstavel,
-    recarregarDadosDoEstabelecimento: recarregarDadosEstavel,
-  }), [redeOnline, abriuSemInternet, pendenciasOffline, pendenciasFiscais,
-    enfileirarOfflineEstavel, recarregarDadosEstavel]);
-
   const value = {
     loading,
     // dados
@@ -1280,7 +1226,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
   return (
     <AppContext.Provider value={value}>
       <SessaoContext.Provider value={valorSessao}>
-      <OfflineContext.Provider value={valorOffline}>
       {children}
       <IndicadorRede online={redeOnline} pendencias={pendenciasOffline} visivel={!!currentUser} />
       {/* O clique no botão já conta como atividade (o useIdleTimer escuta
@@ -1293,7 +1238,6 @@ function AppProviderInterno({ children, tenantIdRef, pontesRef, lockIndisponivel
       />
       <PonteLocalBridge />
       <ImpressaoLancamentosBridge />
-      </OfflineContext.Provider>
       </SessaoContext.Provider>
     </AppContext.Provider>
   );

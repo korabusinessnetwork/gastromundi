@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CatalogoContext } from "./CatalogoContext";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
+import { useOffline } from "./OfflineContext";
 import {
   listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
   entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
@@ -57,6 +58,8 @@ export function aplicarNumeroRemoto(mapa, produtoId, valor) {
 }
 
 export function CatalogoProvider({ pontesRef, children }) {
+  // A fila offline mora no OfflineProvider, por fora deste (tarefa 2.9).
+  const { enfileirarOffline } = useOffline();
   const [products,        setProductsLocal]        = useState([]);
   const [estoque,         setEstoqueLocal]         = useState({});
   const [estoqueMinimos,  setEstoqueMinimosLocal]  = useState({});
@@ -199,7 +202,7 @@ export function CatalogoProvider({ pontesRef, children }) {
       // a conexão voltar, carregando o MESMO opId — reenviar não desconta
       // duas vezes (migration 20260830_idempotencia_baixa_estoque.sql).
       if (isErroDeRede(error)) {
-        pontesRef.current.enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty, opId });
+        enfileirarOffline({ tipo: "rpc_baixar_estoque", produtoId: productId, qtd: qty, opId });
         return { error: null, offline: true };
       }
       // Baixa não confirmada no servidor: desfaz o desconto otimista e deixa
@@ -322,7 +325,7 @@ export function CatalogoProvider({ pontesRef, children }) {
         // `nome` viaja junto: se esta op for recusada lá no dreno, o alerta
         // precisa dizer "Queijo mussarela" e não "Item 42" — o subproduto não
         // está no estado local do provider para ser resolvido depois.
-        pontesRef.current.enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd, nome: nome ?? null, opId });
+        enfileirarOffline({ tipo: "rpc_baixar_estoque_subproduto", subprodutoId, qtd, nome: nome ?? null, opId });
         return { error: null, offline: true };
       }
       reportarFalha(error, { acao: "baixarEstoqueSubproduto", tabela: "estoque", subproduto_id: subprodutoId, quantidade: qtd });
