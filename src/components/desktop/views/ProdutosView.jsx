@@ -1,7 +1,8 @@
 ﻿import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
+import { lerCategoriasExtra, salvarCategoriasExtra } from "@/features/cardapio/dados/categorias";
+import { listarUnidadesMedida } from "@/features/estoque/dados/unidadesMedida";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -157,7 +158,7 @@ export default function ProdutosView() {
   const [catExtraCarregado, setCatExtraCarregado] = useState(false);
 
   useEffect(() => {
-    supabase.from("config").select("value").eq("key", "categorias_extra").single()
+    lerCategoriasExtra()
       .then(({ data, error }) => {
         // Toda gravação de categoria é um upsert da lista inteira. Se a leitura
         // falhou e mesmo assim deixássemos gravar, o upsert seguinte apagaria
@@ -171,7 +172,7 @@ export default function ProdutosView() {
         setCatExtraCarregado(true);
         if (data?.value && Array.isArray(data.value)) setCatExtra(data.value);
       });
-    supabase.from("unidades_medida").select("*").order("ordem")
+    listarUnidadesMedida()
       .then(({ data }) => { if (data) setUnidadesMedida(data); });
   }, []);
 
@@ -181,7 +182,7 @@ export default function ProdutosView() {
   const salvarCatExtra = async (lista) => {
     const anterior = catExtra;
     setCatExtra(lista);
-    const { error } = await supabase.from("config").upsert({ key: "categorias_extra", value: lista });
+    const { error } = await salvarCategoriasExtra(lista);
     if (error) {
       setCatExtra(anterior);
       return { error };

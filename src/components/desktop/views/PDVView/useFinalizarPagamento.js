@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { limparReservaMesa } from "@/features/mesas/dados/mesas";
 import { useApp } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
@@ -190,7 +190,7 @@ export function useFinalizarPagamento() {
       remocaoFalhou = error ?? null;
     }
     if (selected.mesa) {
-      supabase.rpc("limpar_reserva_mesa", { mesa_numero: selected.mesa })
+      limparReservaMesa(selected.mesa)
         .then(() => {}, (err) => console.error("Falha ao limpar reserva da mesa:", resumoErro(err)));
     }
 

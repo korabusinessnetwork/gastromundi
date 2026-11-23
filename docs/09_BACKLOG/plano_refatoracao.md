@@ -172,6 +172,13 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 - **Pronto quando:** o `AppContext.jsx` não importa `@/lib/supabase`, e a regra de lint
   da tarefa 0.2 vira erro.
 
+**1.6 Salvar subproduto numa transação só** (achada na tarefa 1.4)
+- Hoje `SubprodutosView.jsx` grava o subproduto e, numa segunda chamada, o saldo dele em
+  `estoque_subprodutos`. Se a segunda falhar na criação, o subproduto já existe e o
+  "tentar de novo" cria um duplicado.
+- RPC `salvar_subproduto`, `SECURITY INVOKER`, no mesmo molde das tarefas 1.1 a 1.3.
+- **Pronto quando:** criar e editar subproduto é tudo ou nada, com cenários SQL locais.
+
 ### Fase 2, dividir o `AppContext`
 
 **2.1 Prova de re-render**

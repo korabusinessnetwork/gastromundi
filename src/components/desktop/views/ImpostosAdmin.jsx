@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
+import { listarConfigFiscalDosItens, salvarConfigFiscalDoItem } from "@/features/fiscal/dados/itensFiscal";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -206,7 +206,7 @@ function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
         observacao_fiscal:     form.observacao_fiscal.trim() || null,
         updated_at:            new Date().toISOString(),
       };
-      const { error } = await supabase.from("itens_fiscal").upsert(payload, { onConflict: "item_id" });
+      const { error } = await salvarConfigFiscalDoItem(payload);
       if (error) throw error;
       onSaved(item.id, payload);
       onClose();
@@ -465,10 +465,7 @@ export default function ImpostosAdmin({ sz }) {
     setLoading(true);
     setLoadErro("");
     const ids = itens.map(p => p.id);
-    const { data, error } = await supabase
-      .from("itens_fiscal")
-      .select("item_id, ncm, cest, cfop, origem_mercadoria, csosn, cst_icms, aliquota_icms, reducao_base_icms, cst_ipi, aliquota_ipi, cst_pis, aliquota_pis, cst_cofins, aliquota_cofins, aliquota_ibs, aliquota_cbs, aliquota_is, regime_tributario, observacao_fiscal")
-      .in("item_id", ids);
+    const { data, error } = await listarConfigFiscalDosItens(ids);
     if (error) {
       // Sem os dados reais, mostrar tudo como "Pendente" enganaria o usuário.
       setLoadErro("Não foi possível carregar as configurações fiscais.");

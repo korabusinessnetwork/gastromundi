@@ -1,7 +1,10 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
+import {
+  listarSubprodutos, listarUsosEmCombos, atualizarSubproduto, criarSubproduto,
+  gravarSaldoSubproduto, alterarSituacaoSubproduto, excluirSubproduto,
+} from "@/features/cardapio/dados/subprodutos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -78,22 +81,17 @@ function ModalSubproduto({ item, onClose, onSalvo }) {
     try {
       let subprodutoId = item?.id ?? null;
       if (item) {
-        const { error } = await supabase.from("subprodutos").update(payload).eq("id", item.id);
+        const { error } = await atualizarSubproduto(item.id, payload);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from("subprodutos").insert(payload).select("id").single();
+        const { data, error } = await criarSubproduto(payload);
         if (error) throw error;
         subprodutoId = data?.id ?? null;
       }
       // B4 — saldo de estoque do subproduto (tabela estoque_subprodutos),
       // mesmo padrão de upsert do estoque de produtos.
       if (form.controla_estoque && subprodutoId != null) {
-        const { error } = await supabase
-          .from("estoque_subprodutos")
-          .upsert(
-            { subproduto_id: subprodutoId, quantidade, minimo, updated_at: new Date().toISOString() },
-            { onConflict: "subproduto_id" }
-          );
+        const { error } = await gravarSaldoSubproduto(subprodutoId, { quantidade, minimo });
         if (error) throw error;
       }
       onSalvo();
@@ -241,8 +239,8 @@ export default function SubprodutosView({ sz }) {
     // em uso NÃO pode ser excluído — prevenimos o erro (Princípio nº 1) em
     // vez de deixar o banco recusar.
     const [{ data, error }, { data: usos, error: erroUsos }] = await Promise.all([
-      supabase.from("subprodutos").select("*, estoque_subprodutos(quantidade, minimo)").order("nome"),
-      supabase.from("combo_subprodutos").select("subproduto_id"),
+      listarSubprodutos(),
+      listarUsosEmCombos(),
     ]);
     // Falha de leitura não é lista vazia. Sem avisar, a tela dizia "Nenhum
     // subproduto cadastrado" e o operador recadastrava tudo por cima.
@@ -275,9 +273,7 @@ export default function SubprodutosView({ sz }) {
   const toggleAtivo = async (s) => {
     setErroTela("");
     setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: !x.ativo } : x));
-    const { error } = await supabase.from("subprodutos")
-      .update({ ativo: !s.ativo, updated_at: new Date().toISOString() })
-      .eq("id", s.id);
+    const { error } = await alterarSituacaoSubproduto(s.id, !s.ativo);
     if (error) {
       setLista(prev => prev.map(x => x.id === s.id ? { ...x, ativo: s.ativo } : x));
       setErroTela(`Não deu para ${s.ativo ? "desativar" : "ativar"} "${s.nome}". Nada mudou, tente de novo.`);
@@ -291,7 +287,7 @@ export default function SubprodutosView({ sz }) {
     if (!excluindo || deletando) return;
     setDeletando(true);
     setErroDelete("");
-    const { error } = await supabase.from("subprodutos").delete().eq("id", excluindo.id);
+    const { error } = await excluirSubproduto(excluindo.id);
     if (error) {
       setErroDelete(error.message ?? "Não foi possível excluir o subproduto.");
       setDeletando(false);

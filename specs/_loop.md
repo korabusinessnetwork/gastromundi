@@ -1,6 +1,26 @@
+## Rodada 75, refatoração 1.4, nenhuma tela fala com o Supabase direto, 2026-11-23
+- Spec: specs/refatoracao-1-4-dados-nas-telas.md
+- Resultado: 6 de 6 critérios em sim nas três fatias, aprovado sem ressalvas (suíte 249 /
+  4320 para 250 / 4323, verde; `npm run build` limpo; lint 0 erros e 26 avisos, eram 50).
+  Chamadas ao Supabase em telas: 45 para 0, e a regra `no-restricted-imports` de tela
+  virou erro. Roteiro de fotos: 0 diferença em 44 telas contra a `main` anterior. Sem
+  migration.
+- O que mudou de lugar: 15 arquivos de tela passaram a usar 11 módulos em
+  `src/features/*/dados/`. Cada função devolve o mesmo `{ data, error }` de antes e a tela
+  segue decidindo a frase de erro, então nenhum teste de tela precisou mudar.
+- O que a rodada revelou de não óbvio: a contagem de "produtos que perdem a unidade" estava
+  escrita duas vezes, uma no computador e outra no celular, e é exatamente o tipo de regra
+  que diverge com o tempo. Virou `contarProdutosComUnidade`, com teste. A fase 4 vai achar
+  mais casos assim.
+- A parte que quase passou batido, duas: a primeira comparação de fotos acusou o PDV 99%
+  diferente, e era o roteiro fotografando o código no meio da edição. Refeita com o código
+  parado, deu zero. E salvar subproduto grava em duas etapas (subproduto, depois saldo): se
+  a segunda falhar na criação, "tentar de novo" cria um subproduto duplicado. O levantamento
+  não tinha listado; virou a tarefa 1.6 do plano, porque precisa de migration.
+- Fica em aberto: 1.5 (o contexto) e 1.6 (salvar subproduto atômico).
 ## Rodada 74, botões de unidade de medida só para quem pode, 2026-11-23
 - Pedido: "faça o recomendado" sobre a decisão deixada na rodada 73.
-- Resultado: aprovado sem ressalvas (suíte 250 arquivos / 4320 testes, verde; build limpo;
+- Resultado: aprovado sem ressalvas (suíte 249 arquivos / 4320 testes, verde; build limpo;
   lint 0 erros). Sem migration.
 - O que mudou: as duas telas mostravam adicionar e remover unidade para o gerente, e a
   policy `unidades_write_admin` do banco, desde 2024, só deixa o admin gravar. Os botões
@@ -13,7 +33,7 @@
 ## Rodada 73, refatoração 1.3, excluir unidade de medida numa transação só, 2026-11-23
 - Spec: specs/refatoracao-1-3-excluir-unidade.md
 - Resultado: 9 de 9 critérios em sim, aprovado sem ressalvas (suíte 248 arquivos / 4313
-  testes para 250 / 4317, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
+  testes para 249 / 4317, verde; `npm run build` limpo; lint 0 erros). Supabase fora de
   dados/: 207 (45 / 51 / 111). Migration `20261125` aplicada em produção com aprovação
   do dono, conferida no catálogo e com uma chamada recusada de prova.
 - O que a rodada revelou de não óbvio: o risco não era só a rede cair no meio, era um dano

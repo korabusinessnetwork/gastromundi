@@ -17,7 +17,8 @@ import { produtosVencendo } from "@/lib/validade";
 import { classificarEstoque } from "@/lib/estoqueSituacao";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
-import { supabase } from "@/lib/supabase";
+import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
+import { listarCancelamentosDeComandaDesde } from "@/features/auditoria/dados/logsOperador";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/lib/combos";
 import { buscarClientePorId } from "@/lib/clientes";
@@ -152,10 +153,7 @@ export default function PDVView({ notify }) {
   const [combos, setCombos] = useState([]);
   useEffect(() => {
     let ativo = true;
-    supabase
-      .from("combos")
-      .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
-      .eq("ativo", true)
+    listarCombosParaVenda()
       .then(({ data, error }) => {
         if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
         if (ativo) setCombos(data ?? []);
@@ -1879,11 +1877,7 @@ function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autoriz
   useEffect(() => {
     if (!autorizado) return;
     const inicioDia = new Date(new Date().toDateString()).toISOString();
-    supabase
-      .from("operator_logs")
-      .select("payload, created_at")
-      .eq("action_type", "comanda:cancelar")
-      .gte("created_at", inicioDia)
+    listarCancelamentosDeComandaDesde(inicioDia)
       .then(({ data }) => setLogsComandaCancelada(data ?? []));
   }, [autorizado]);
 

@@ -2,7 +2,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { lerCadastrosAdministrativos, salvarCadastroAdministrativo, contarNotasFiscais } from "@/features/admin/dados/administrativo";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -1052,9 +1052,8 @@ export default function AdminView() {
 
   useEffect(() => {
     Promise.all([
-      supabase.from("config").select("key, value")
-        .in("key", ["fichas_tecnicas", "fornecedores", "compras", "impostos"]),
-      supabase.from("notas_fiscais").select("id", { count: "exact", head: true }),
+      lerCadastrosAdministrativos(),
+      contarNotasFiscais(),
     ]).then(([{ data, error }, { count }]) => {
       // Sem checar o erro, uma falha de leitura zerava fichas técnicas,
       // fornecedores e compras na tela — e quem estivesse cadastrando salvava
@@ -1078,7 +1077,7 @@ export default function AdminView() {
   // sumia no próximo carregamento.
   const handleSave = async (key, value) => {
     setErroTela("");
-    const { error } = await supabase.from("config").upsert({ key, value });
+    const { error } = await salvarCadastroAdministrativo(key, value);
     if (error) {
       setErroTela("Não deu para salvar. A alteração não foi gravada, tente de novo.");
       return { error };

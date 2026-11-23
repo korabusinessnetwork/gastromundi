@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
 import { useApp } from "@/context/AppContext";
-import { importarNotaFiscal } from "@/features/estoque/dados/notasEntrada";
+import { importarNotaFiscal, listarNotasEntrada, buscarNotaPorChave, listarItensDaNota } from "@/features/estoque/dados/notasEntrada";
 import { emitirEvento } from "@/lib/jarvas";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -273,10 +272,7 @@ export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) 
     setLoadingList(true);
     // Sem xml_raw: a lista só precisa do cabeçalho (o XML inteiro de
     // cada nota deixaria a listagem pesada à toa).
-    const { data } = await supabase
-      .from("notas_fiscais")
-      .select("id, numero, serie, data_emissao, fornecedor_nome, fornecedor_cnpj, valor_total, status, created_at, notas_fiscais_itens(id)")
-      .order("created_at", { ascending: false });
+    const { data } = await listarNotasEntrada();
     setNotas(data || []);
     setLoadingList(false);
   };
@@ -404,11 +400,7 @@ export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) 
     }
     setCheckingDup(true);
     setDupErro("");
-    const { data, error } = await supabase
-      .from("notas_fiscais")
-      .select("created_at")
-      .eq("chave_acesso", parsed.cabecalho.chaveAcesso)
-      .maybeSingle();
+    const { data, error } = await buscarNotaPorChave(parsed.cabecalho.chaveAcesso);
     setCheckingDup(false);
     if (error) {
       // Sem confirmar que a nota é inédita, não deixa avançar: se a
@@ -474,11 +466,7 @@ export default function NotasFiscaisTab({ fornecedores = [], onAddFornecedor }) 
 
   const openDetalhe = async (nota) => {
     setNotaDetalhe(nota);
-    const { data } = await supabase
-      .from("notas_fiscais_itens")
-      .select("*, products(name, emoji, unidade_estoque)")
-      .eq("nota_fiscal_id", nota.id)
-      .order("id");
+    const { data } = await listarItensDaNota(nota.id);
     setNotaItens(data || []);
     setView("detalhe");
   };

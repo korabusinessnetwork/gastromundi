@@ -6,7 +6,7 @@ import { calcularVariacaoPercentual } from "@/lib/relatorios";
 import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
+import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -347,11 +347,7 @@ export default function RelatorioView() {
   useEffect(() => {
     if (aba !== "Logs") return;
     setLoadingLogs(true);
-    supabase
-      .from("operator_logs")
-      .select("id, operator_id, action_type, payload, created_at")
-      .order("created_at", { ascending: false })
-      .limit(2000)
+    listarLogsOperador()
       .then(({ data }) => {
         setOpLogs(data ?? []);
         setLoadingLogs(false);
@@ -1324,11 +1320,7 @@ export default function RelatorioView() {
                 <button
                   onClick={() => {
                     setLoadingLogs(true);
-                    supabase
-                      .from("operator_logs")
-                      .select("id, operator_id, action_type, payload, created_at")
-                      .order("created_at", { ascending: false })
-                      .limit(2000)
+                    listarLogsOperador()
                       .then(({ data }) => { setOpLogs(data ?? []); setLoadingLogs(false); });
                   }}
                   className="relatorio-view__log-refresh"

@@ -63,3 +63,27 @@ export async function importarNotaFiscal(dadosDaTela) {
       .map((l) => ({ produtoId: l.produto_id, quantidade: Number(l.quantidade), minimo: Number(l.minimo) })),
   };
 }
+
+// ── Leituras da tela de notas (tarefa 1.4) ────────────────────────────
+// Devolvem o `{ data, error }` do Supabase sem interpretar.
+
+/** Cabeçalho das notas, sem o XML, mais recentes primeiro. */
+export function listarNotasEntrada() {
+  return supabase
+    .from("notas_fiscais")
+    .select("id, numero, serie, data_emissao, fornecedor_nome, fornecedor_cnpj, valor_total, status, created_at, notas_fiscais_itens(id)")
+    .order("created_at", { ascending: false });
+}
+
+/** `data` nulo quando a nota ainda não foi importada. */
+export function buscarNotaPorChave(chaveAcesso) {
+  return supabase.from("notas_fiscais").select("created_at").eq("chave_acesso", chaveAcesso).maybeSingle();
+}
+
+export function listarItensDaNota(notaId) {
+  return supabase
+    .from("notas_fiscais_itens")
+    .select("*, products(name, emoji, unidade_estoque)")
+    .eq("nota_fiscal_id", notaId)
+    .order("id");
+}

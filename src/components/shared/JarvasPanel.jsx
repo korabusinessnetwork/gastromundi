@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
+import { assinarInsightsJarvas } from "@/features/jarvas/dados/insights";
 import { buscarInsights, atualizarStatusInsight } from "@/lib/jarvas";
 import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
 import C from "@/constants/colors";
@@ -93,22 +93,18 @@ export default function JarvasPanel() {
   // Requer Realtime habilitado na tabela `jarvas_insights` (Database → Replication).
   useEffect(() => {
     if (!currentUser) return;
-    const channel = supabase
-      .channel("jarvas-insights-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "jarvas_insights" }, (payload) => {
-        setInsights(prev => prev.find(i => i.id === payload.new.id) ? prev : [payload.new, ...prev]);
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "jarvas_insights" }, (payload) => {
-        const atualizado = payload.new;
+    return assinarInsightsJarvas({
+      aoInserir: (novo) => {
+        setInsights(prev => prev.find(i => i.id === novo.id) ? prev : [novo, ...prev]);
+      },
+      aoAtualizar: (atualizado) => {
         setInsights(prev =>
           ["descartado", "executado"].includes(atualizado.status)
             ? prev.filter(i => i.id !== atualizado.id)
             : prev.map(i => (i.id === atualizado.id ? atualizado : i)),
         );
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+      },
+    });
   }, [currentUser]);
 
   if (!currentUser) return null;

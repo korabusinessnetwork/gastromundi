@@ -1,8 +1,10 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
-import { salvarCombo } from "@/features/cardapio/dados/combos";
+import {
+  salvarCombo, listarCombos, listarSubprodutosAtivos, carregarSubprodutosDoCombo,
+  carregarProdutosDoCombo, alterarSituacaoCombo, excluirCombo,
+} from "@/features/cardapio/dados/combos";
 import { useApp } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -68,10 +70,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
   // ao editar — carrega combo_subprodutos
   useEffect(() => {
     if (!combo) return;
-    supabase
-      .from("combo_subprodutos")
-      .select("*, subprodutos(*)")
-      .eq("combo_id", combo.id)
+    carregarSubprodutosDoCombo(combo.id)
       .then(({ data }) => {
         if (!data) return;
         setItens(data.map(r => ({
@@ -87,10 +86,7 @@ function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
   // ao editar — carrega combo_produtos (produtos adicionais do catálogo)
   useEffect(() => {
     if (!combo) return;
-    supabase
-      .from("combo_produtos")
-      .select("*, products(id, name, price, emoji, category)")
-      .eq("combo_id", combo.id)
+    carregarProdutosDoCombo(combo.id)
       .then(({ data }) => {
         if (!data) return;
         setItensProd(data.filter(r => r.products).map(r => ({
@@ -513,8 +509,8 @@ export default function CombosView({ sz }) {
     setLoading(true);
     setErroTela("");
     const [{ data: c, error: erroCombos }, { data: s, error: erroSubs }] = await Promise.all([
-      supabase.from("combos").select("*, combo_subprodutos(quantidade, subprodutos(nome, preco)), combo_produtos(quantidade, products(name))").order("created_at", { ascending: false }),
-      supabase.from("subprodutos").select("*").eq("ativo", true).order("nome"),
+      listarCombos(),
+      listarSubprodutosAtivos(),
     ]);
     // Sem isto, uma falha de leitura virava "Nenhum combo cadastrado" — e o
     // usuário recriava combos que já existem.
@@ -540,7 +536,7 @@ export default function CombosView({ sz }) {
   const toggleAtivo = async (c) => {
     setErroTela("");
     setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: !x.ativo } : x));
-    const { error } = await supabase.from("combos").update({ ativo: !c.ativo, updated_at: new Date().toISOString() }).eq("id", c.id);
+    const { error } = await alterarSituacaoCombo(c.id, !c.ativo);
     if (error) {
       setCombos(prev => prev.map(x => x.id === c.id ? { ...x, ativo: c.ativo } : x));
       setErroTela("Não deu para mudar a situação do combo. Tente de novo.");
@@ -554,7 +550,7 @@ export default function CombosView({ sz }) {
     if (!excluindo || deletando) return;
     setDeletando(true);
     setErroDelete("");
-    const { error } = await supabase.from("combos").delete().eq("id", excluindo.id);
+    const { error } = await excluirCombo(excluindo.id);
     if (error) {
       setErroDelete(error.message ?? "Não foi possível excluir o combo.");
       setDeletando(false);

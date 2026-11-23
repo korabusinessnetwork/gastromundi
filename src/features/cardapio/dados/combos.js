@@ -59,3 +59,45 @@ export function mensagemDeRecusa(error) {
   if (error?.code === "42501") return "Seu usuário não pode alterar combos. Peça a um gerente ou ao administrador.";
   return error?.message || "Não deu para salvar o combo. Tente de novo.";
 }
+
+// ── Leituras e escritas simples da tela de combos (tarefa 1.4) ─────────
+// Devolvem o `{ data, error }` do Supabase sem interpretar: a frase de erro
+// continua sendo decisão da tela.
+
+/** Combos com a composição resumida, mais recentes primeiro. */
+export function listarCombos() {
+  return supabase
+    .from("combos")
+    .select("*, combo_subprodutos(quantidade, subprodutos(nome, preco)), combo_produtos(quantidade, products(name))")
+    .order("created_at", { ascending: false });
+}
+
+/** Subprodutos que estão à venda, para montar a composição. */
+export function listarSubprodutosAtivos() {
+  return supabase.from("subprodutos").select("*").eq("ativo", true).order("nome");
+}
+
+export function carregarSubprodutosDoCombo(comboId) {
+  return supabase.from("combo_subprodutos").select("*, subprodutos(*)").eq("combo_id", comboId);
+}
+
+export function carregarProdutosDoCombo(comboId) {
+  return supabase.from("combo_produtos").select("*, products(id, name, price, emoji, category)").eq("combo_id", comboId);
+}
+
+export function alterarSituacaoCombo(comboId, ativo) {
+  return supabase.from("combos").update({ ativo, updated_at: new Date().toISOString() }).eq("id", comboId);
+}
+
+/** A composição some em cascata (FK ON DELETE CASCADE); o catálogo não é tocado. */
+export function excluirCombo(comboId) {
+  return supabase.from("combos").delete().eq("id", comboId);
+}
+
+/** Combos à venda, com o que o PDV precisa para montar o item e baixar estoque. */
+export function listarCombosParaVenda() {
+  return supabase
+    .from("combos")
+    .select("id, nome, item_principal_id, modo, preco_total, combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque)), combo_produtos(quantidade, products(id, name))")
+    .eq("ativo", true);
+}

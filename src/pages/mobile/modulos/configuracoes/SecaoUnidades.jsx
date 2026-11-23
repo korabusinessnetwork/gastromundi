@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuPlus, LuRuler, LuX } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
-import { excluirUnidadeMedida } from "@/features/estoque/dados/unidadesMedida";
+import { excluirUnidadeMedida, listarUnidadesMedida, adicionarUnidadeMedida, contarUsoDaUnidade } from "@/features/estoque/dados/unidadesMedida";
 import "./SecaoUnidades.css";
 
 /**
@@ -66,11 +65,7 @@ export default function SecaoUnidades() {
   const carregar = useCallback(async () => {
     setLoading(true);
     setErroCarga(null);
-    const { data, error } = await supabase
-      .from("unidades_medida")
-      .select("id, abreviacao, nome, tipo, ordem")
-      .order("ordem")
-      .order("nome");
+    const { data, error } = await listarUnidadesMedida();
     if (error) {
       setErroCarga("Não foi possível carregar as unidades de medida.");
       setLoading(false);
@@ -111,11 +106,7 @@ export default function SecaoUnidades() {
     if (!abbr || !nome || salvando) return;
     setSalvando(true);
     setErroAdicionar(null);
-    const { data, error } = await supabase
-      .from("unidades_medida")
-      .insert({ abreviacao: abbr, nome, tipo: filtroTipo, ordem: 99 })
-      .select("id, abreviacao, nome, tipo, ordem")
-      .single();
+    const { data, error } = await adicionarUnidadeMedida({ abreviacao: abbr, nome, tipo: filtroTipo });
     setSalvando(false);
     if (error || !data) {
       setErroAdicionar("Não foi possível adicionar essa unidade. Confira a conexão e tente de novo.");
@@ -138,9 +129,7 @@ export default function SecaoUnidades() {
       erroContagem: false,
     });
 
-    const { data: produtos, error } = await supabase
-      .from("products")
-      .select("id, unidade_estoque, unidade_consumo, unidades_compra");
+    const { data: afetados, error } = await contarUsoDaUnidade(unidade.abreviacao);
 
     if (error) {
       setConfirmacao((prev) =>
@@ -148,13 +137,6 @@ export default function SecaoUnidades() {
       );
       return;
     }
-
-    const afetados = (produtos || []).filter(
-      (p) =>
-        p.unidade_estoque === unidade.abreviacao ||
-        p.unidade_consumo === unidade.abreviacao ||
-        (Array.isArray(p.unidades_compra) && p.unidades_compra.some((c) => c.unidade === unidade.abreviacao)),
-    ).length;
 
     setConfirmacao((prev) => (prev && prev.id === unidade.id ? { ...prev, calculando: false, afetados } : prev));
   };

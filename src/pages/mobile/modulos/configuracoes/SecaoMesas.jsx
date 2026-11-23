@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LuArmchair, LuMonitor, LuPencil, LuPlus, LuSearch, LuTrash2, LuUsers } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
+import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa } from "@/features/mesas/dados/mesas";
 import { logAction } from "@/lib/logger";
 import "./SecaoMesas.css";
 
@@ -80,10 +80,7 @@ export default function SecaoMesas() {
   async function fetchMesas() {
     setCarregando(true);
     setErro("");
-    const { data, error } = await supabase
-      .from("mesas")
-      .select("numero,capacidade,posicao_x,posicao_y")
-      .order("numero");
+    const { data, error } = await listarMesas();
     if (error) {
       setErro("Erro ao carregar mesas.");
     } else {
@@ -135,9 +132,7 @@ export default function SecaoMesas() {
     setFormErro("");
     const pos = proximaPosicaoLivre(mesas);
     try {
-      const { error } = await supabase
-        .from("mesas")
-        .insert({ numero, capacidade, posicao_x: pos.posicao_x, posicao_y: pos.posicao_y });
+      const { error } = await criarMesa({ numero, capacidade, posicao_x: pos.posicao_x, posicao_y: pos.posicao_y });
       if (error) throw error;
       logAction(currentUser?.username, "mesas:criar", {
         msg: `Mesa ${numero} criada (${capacidade} lugares)`,
@@ -178,7 +173,7 @@ export default function SecaoMesas() {
     setSalvandoEdicao(true);
     setEditErro("");
     try {
-      const { error } = await supabase.from("mesas").update({ capacidade }).eq("numero", mesa.numero);
+      const { error } = await alterarCapacidadeMesa(mesa.numero, capacidade);
       if (error) throw error;
       logAction(currentUser?.username, "mesas:editar", {
         msg: `Mesa ${mesa.numero}: lugares alterados para ${capacidade}`,
@@ -213,7 +208,7 @@ export default function SecaoMesas() {
     if (removendo) return;
     setRemovendo(true);
     setErro("");
-    const { error } = await supabase.from("mesas").delete().eq("numero", mesa.numero);
+    const { error } = await excluirMesa(mesa.numero);
     setRemovendo(false);
     if (error) {
       setErro("Erro ao remover mesa.");

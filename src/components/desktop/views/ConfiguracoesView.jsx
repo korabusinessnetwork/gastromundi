@@ -1,8 +1,7 @@
 ﻿import { useState, useMemo, useEffect } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useApp } from "@/context/AppContext";
-import { excluirUnidadeMedida } from "@/features/estoque/dados/unidadesMedida";
-import { supabase } from "@/lib/supabase";
+import { excluirUnidadeMedida, listarUnidadesMedida, adicionarUnidadeMedida, contarUsoDaUnidade } from "@/features/estoque/dados/unidadesMedida";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { passwordStrength, sanitizeInput } from "@/utils";
@@ -1040,7 +1039,7 @@ export function UnidadesMedidaTab({ sz }) {
   const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
-    supabase.from("unidades_medida").select("*").order("ordem").order("nome")
+    listarUnidadesMedida()
       .then(({ data, error }) => {
         // Sem checar o erro, a aba dizia "Nenhuma unidade cadastrada" para uma
         // base cheia — e o usuário recadastrava tudo em cima do que já existe.
@@ -1058,11 +1057,7 @@ export function UnidadesMedidaTab({ sz }) {
     if (!abbr.trim() || !nome.trim()) return;
     setSalvando(s => ({ ...s, [tipo]: true }));
     setErro("");
-    const { data, error } = await supabase
-      .from("unidades_medida")
-      .insert({ abreviacao: abbr.trim(), nome: nome.trim(), tipo, ordem: 99 })
-      .select()
-      .single();
+    const { data, error } = await adicionarUnidadeMedida({ abreviacao: abbr.trim(), nome: nome.trim(), tipo });
     if (error || !data) {
       setErro("Não deu para adicionar a unidade. Tente de novo.");
     } else {
@@ -1081,18 +1076,11 @@ export function UnidadesMedidaTab({ sz }) {
   const iniciarRemover = async (unidade) => {
     const abbr = unidade.abreviacao;
     setErro("");
-    const { data: produtos, error } = await supabase
-      .from("products")
-      .select("id, unidade_estoque, unidade_consumo, unidades_compra");
+    const { data: afetados, error } = await contarUsoDaUnidade(abbr);
     if (error) {
       setErro("Não deu para verificar quais produtos usam esta unidade. Tente de novo antes de excluir.");
       return;
     }
-    const afetados = (produtos || []).filter(p =>
-      p.unidade_estoque === abbr ||
-      p.unidade_consumo === abbr ||
-      (Array.isArray(p.unidades_compra) && p.unidades_compra.some(c => c.unidade === abbr))
-    ).length;
     setDeleteInfo({ id: unidade.id, nome: unidade.nome, abbr, afetados });
   };
 

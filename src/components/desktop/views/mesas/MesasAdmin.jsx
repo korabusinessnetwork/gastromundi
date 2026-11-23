@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase } from "@/lib/supabase";
+import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa, salvarLayoutMesas } from "@/features/mesas/dados/mesas";
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
@@ -55,10 +55,7 @@ export default function MesasAdmin({ sz }) {
   async function fetchMesas() {
     setLoading(true);
     setErro("");
-    const { data, error } = await supabase
-      .from("mesas")
-      .select("numero,capacidade,posicao_x,posicao_y,status_manual")
-      .order("numero");
+    const { data, error } = await listarMesas();
     if (error) setErro("Erro ao carregar mesas.");
     else setMesas(data ?? []);
     setLoading(false);
@@ -126,15 +123,10 @@ export default function MesasAdmin({ sz }) {
     setFormErro("");
     try {
       if (editando) {
-        const { error } = await supabase
-          .from("mesas")
-          .update({ capacidade })
-          .eq("numero", editando.numero);
+        const { error } = await alterarCapacidadeMesa(editando.numero, capacidade);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("mesas")
-          .insert({ numero, capacidade, posicao_x: formPosX, posicao_y: formPosY });
+        const { error } = await criarMesa({ numero, capacidade, posicao_x: formPosX, posicao_y: formPosY });
         if (error) throw error;
       }
       fecharModal();
@@ -152,10 +144,7 @@ export default function MesasAdmin({ sz }) {
   async function executarDelete() {
     if (!confirmDelete || deletando) return;
     setDeletando(true);
-    const { error } = await supabase
-      .from("mesas")
-      .delete()
-      .eq("numero", confirmDelete.numero);
+    const { error } = await excluirMesa(confirmDelete.numero);
     if (error) {
       setErro("Erro ao remover mesa.");
     } else {
@@ -212,9 +201,7 @@ export default function MesasAdmin({ sz }) {
         posicao_y:     m.posicao_y,
         status_manual: m.status_manual ?? "livre",
       }));
-      const { error } = await supabase
-        .from("mesas")
-        .upsert(rows, { onConflict: "tenant_id,numero" });
+      const { error } = await salvarLayoutMesas(rows);
       if (error) throw error;
       setPosicoesDirty(false);
     } catch {

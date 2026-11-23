@@ -60,11 +60,11 @@ export default [
   },
   {
     // Fronteira da camada de dados: tela não fala com o Supabase direto.
-    // Aviso agora; erro no fim da fase 1 do plano.
+    // Erro desde a tarefa 1.4 do plano, quando a última tela saiu.
     files: ["src/components/**", "src/pages/**", "src/routes/**", "src/layouts/**"],
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
-      "no-restricted-imports": ["warn", {
+      "no-restricted-imports": ["error", {
         paths: [{ name: "@/lib/supabase", message: "Tela não chama o Supabase direto: use a camada dados/ da feature (fase 1 do plano de refatoração)." }],
         patterns: [{ group: ["**/lib/supabase"], message: "Tela não chama o Supabase direto: use a camada dados/ da feature (fase 1 do plano de refatoração)." }],
       }],

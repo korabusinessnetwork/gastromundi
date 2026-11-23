@@ -11,7 +11,7 @@ import {
   LuCheck,
 } from "react-icons/lu";
 import { useApp } from "@/context/AppContext";
-import { supabase } from "@/lib/supabase";
+import { listarFiadoEmAberto } from "@/features/financeiro/dados/lancamentos";
 import { formatarDocumento } from "@/lib/documento";
 import { formatarTelefone } from "@/lib/deliveryPedidos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
@@ -49,13 +49,7 @@ const LIMITE_HISTORICO_EXIBIDO = 200;
 /** Soma de fiado em aberto por cliente, a partir de `lancamentos` de todos
  * os clientes de uma vez (evita 1 consulta por cliente na lista). */
 async function buscarFiadoEmAberto() {
-  const { data, error } = await supabase
-    .from("lancamentos")
-    .select("cliente_id, valor, status")
-    .eq("tipo", "receita")
-    .in("status", ["previsto", "vencido"])
-    .not("cliente_id", "is", null)
-    .limit(5000);
+  const { data, error } = await listarFiadoEmAberto();
   if (error) return { mapa: new Map(), error };
 
   const porCliente = new Map();

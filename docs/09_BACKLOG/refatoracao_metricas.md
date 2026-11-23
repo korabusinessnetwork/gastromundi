@@ -28,6 +28,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-23 | 1.1 salvar combo | 2.194 | 22 | 70 | 220 (58 / 51 / 111) | 1.526 | 23 | 1 | 0 / 50 | 246 arquivos, 4.297 testes | 2.387 kB (703 kB gzip) |
 | 2026-11-23 | 1.2 importar nota | 2.194 | 22 | 70 | 217 (55 / 51 / 111) | 1.526 | 23 | 1 | 0 / 50 | 248 arquivos, 4.313 testes | 2.387 kB (703 kB gzip) |
 | 2026-11-23 | 1.3 excluir unidade | 2.194 | 22 | 70 | 207 (45 / 51 / 111) | 1.526 | 23 | 1 | 0 / 50 | 250 arquivos, 4.317 testes | 2.387 kB (703 kB gzip) |
+| 2026-11-23 | 1.4 dados fora das telas | 2.194 | 22 | 70 | 162 (0 / 51 / 111) | 1.526 | 23 | 1 | 0 / 26 | 250 arquivos, 4.323 testes | 2.387 kB (703 kB gzip) |
 
 Os 50 avisos de lint da fase 0: 25 são as fronteiras de camada (zeradas nas fases 1 e 4),
 15 são comentários `eslint-disable` que não suprimem nada, e 10 são dependências de hook
