@@ -5,7 +5,7 @@ import { render, act } from "@testing-library/react";
 /**
  * Run 5, leva 10 — o gating de plano mentindo para quem paga.
  *
- * `useApp().moduloHabilitado` é a única fonte de gating por plano no front
+ * `useContextoCompleto().moduloHabilitado` é a única fonte de gating por plano no front
  * (ADR-005): quem consulta é a rota (`PrivateRoute` → tela de upgrade), a
  * Sidebar (item travado), o hub do Palm (cartão some) e o escolhedor da
  * primeira tela do usuário. Era `moduloHabilitado(tenant?.modulosDisponiveis)`,
@@ -67,7 +67,8 @@ vi.mock("@/lib/tenant", async () => {
   return { ...real, buscarBootstrapTenant: mockBootstrapTenant };
 });
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 import { saveSession } from "@/utils/session";
 
 const SESSAO_AUTH = { data: { session: { user: { id: "AUTH1", app_metadata: { tenant_id: "t1" } } } } };
@@ -120,7 +121,7 @@ function porOffline() {
 async function montar() {
   const app = { current: null };
   const Sonda = () => {
-    app.current = useApp();
+    app.current = useContextoCompleto();
     return null;
   };
   await act(async () => {

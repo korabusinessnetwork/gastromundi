@@ -78,12 +78,13 @@ vi.mock("@/lib/tenant", () => ({
 
 import { emitirEvento, registrarInsight } from "@/lib/jarvas";
 import { reportarFalha } from "@/lib/observabilidade";
-import { AppProvider, useApp, aplicarNumeroRemoto } from "./AppContext";
+import { AppProvider, aplicarNumeroRemoto } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 
 /** Expõe o contexto para o teste sem depender de nenhuma tela. */
 function capturarApp(alvo) {
   return function Sonda() {
-    alvo.current = useApp();
+    alvo.current = useContextoCompleto();
     return null;
   };
 }

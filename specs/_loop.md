@@ -1,3 +1,19 @@
+## Rodada 85, refatoração 2.10, a coordenação no próprio arquivo e o fim da fachada, 2026-11-23
+- Spec: specs/refatoracao-2-10-coordenacao.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4354
+  testes, verde; `npm run build` limpo; lint 0 erros). `AppContext.jsx`: 731 para 63
+  linhas, só montando provedores. Roteiro de fotos: 0 diferença. Sem migration. **A fase 2
+  do plano está concluída.**
+- A ordem que fez a rodada ser segura: primeiro os testes deixaram de depender da fachada
+  (com um auxiliar que só existe em `src/test/`), depois a fachada saiu, depois o código
+  mudou de arquivo, com os 119 testes do contexto rodando entre cada passo.
+- O guard da 2.8 ficou mais rígido: antes cobrava "nenhuma tela usa `useApp`"; agora cobra
+  "nenhum arquivo, nem de teste, usa ou declara `useApp`, e o `AppContext` não o exporta".
+- Da fase 2 inteira, o número que importa: o `AppContext.jsx` tinha 2.194 linhas no
+  começo do plano e tem 63. As seis fatias moram em arquivos próprios entre 103 e 597
+  linhas, a coordenação em 606, e cada tela só é redesenhada pelo assunto que lê.
+- Fica em aberto: a coordenação passou de 600 linhas por 6 e entra na lista da fase 3;
+  a próxima é a fase 3, quebrar as telas grandes.
 ## Rodada 84, refatoração 2.9, offline e sessão donos do próprio estado, 2026-11-23
 - Spec: specs/refatoracao-2-9-offline-sessao.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 254 arquivos / 4353

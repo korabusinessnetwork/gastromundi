@@ -27,7 +27,7 @@ const { mockTenant } = vi.hoisted(() => ({ mockTenant: { valor: null } }));
 vi.mock("@/context/AppContext", () => {
   // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
   const gancho = () => ({ tenant: mockTenant.valor });
-  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+  return { useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
 });
 
 const CONFIG_BASE = {

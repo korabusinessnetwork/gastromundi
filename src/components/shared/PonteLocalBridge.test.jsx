@@ -21,7 +21,7 @@ const { mockUseApp, mockUsePonteLocal } = vi.hoisted(() => ({
 vi.mock("@/context/AppContext", () => {
   // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
   const gancho = mockUseApp;
-  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+  return { useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
 });
 vi.mock("@/hooks/usePonteLocal", () => ({ usePonteLocal: mockUsePonteLocal }));
 

@@ -4,7 +4,7 @@
 //
 // O `AppContext` entrega cerca de 80 itens num único objeto, criado de novo a
 // cada render e sem memorização. Qualquer mudança de estado (aqui, a taxa de
-// serviço) redesenha TODA tela que usa `useApp()`, mesmo a que só lê o usuário
+// serviço) redesenha TODA tela que usa `useContextoCompleto()`, mesmo a que só lê o usuário
 // logado. No PDV, isso é a tela inteira sendo refeita no meio da venda.
 //
 // A tarefa 2.1 registrou isso com um `it.fails`. A partir da 2.8 as telas
@@ -48,7 +48,8 @@ vi.mock("@/lib/tenant", () => ({
   addonHabilitado: () => false,
 }));
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 import { useSessao } from "./SessaoContext";
 import { useOffline } from "./OfflineContext";
 import { useConfig } from "./ConfigContext";
@@ -117,7 +118,7 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       let renders = 0;
       let rendersDaSonda = 0;
       function Sonda() {
-        app.current = useApp();
+        app.current = useContextoCompleto();
         rendersDaSonda += 1;
         return null;
       }
@@ -142,7 +143,7 @@ describe("redesenho do contexto (tarefa 2.1)", () => {
       const app = { current: null };
       const valores = [];
       function Sonda() {
-        app.current = useApp();
+        app.current = useContextoCompleto();
         valores.push(gancho());
         return null;
       }

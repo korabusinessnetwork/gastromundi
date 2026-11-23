@@ -62,7 +62,8 @@ vi.mock("@/lib/ponte", () => ({
   montarEnderecoPalm: vi.fn(() => null),
 }));
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 import PonteLocalConfig from "@/components/desktop/views/impressao/PonteLocalConfig";
 import { saveSession } from "@/utils/session";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
@@ -184,7 +185,7 @@ function oLinkVoltou() {
 async function montar(tela = null) {
   const app = { current: null };
   const Sonda = () => {
-    app.current = useApp();
+    app.current = useContextoCompleto();
     return null;
   };
   await act(async () => {

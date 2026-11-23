@@ -8,7 +8,7 @@ let temaMock = null;
 vi.mock("@/context/AppContext", () => {
   // Todos os ganchos do contexto devolvem o mesmo dublê (tarefa 2.8).
   const gancho = () => ({ tenant: { tema: temaMock } });
-  return { useApp: gancho, useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
+  return { useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
 });
 
 // Componente de teste que expõe a cor resolvida pelo hook

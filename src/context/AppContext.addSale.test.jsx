@@ -63,12 +63,13 @@ vi.mock("@/lib/vendas", async (importOriginal) => ({
 
 import { emitirEvento } from "@/lib/jarvas";
 import { reportarFalha } from "@/lib/observabilidade";
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 
 /** Expõe o contexto para o teste sem depender de nenhuma tela. */
 function capturarApp(alvo) {
   return function Sonda() {
-    alvo.current = useApp();
+    alvo.current = useContextoCompleto();
     return null;
   };
 }

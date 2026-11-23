@@ -56,7 +56,8 @@ vi.mock("@/lib/tenant", () => ({
   addonHabilitado: () => false,
 }));
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 import { getAttempts } from "@/utils/session";
 
 const EMAIL = "admin@casacoffee.local";
@@ -84,7 +85,7 @@ function comTabelasVazias() {
 async function montar() {
   const app = { current: null };
   const Sonda = () => {
-    app.current = useApp();
+    app.current = useContextoCompleto();
     return null;
   };
   await act(async () => {

@@ -64,11 +64,12 @@ vi.mock("@/lib/offline/filaApp", () => ({
   },
 }));
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 
 function capturarApp(alvo) {
   return function Sonda() {
-    alvo.current = useApp();
+    alvo.current = useContextoCompleto();
     return null;
   };
 }

@@ -47,7 +47,6 @@ export function mockUseApp() {
  *   return { ...ganchosDoMock, AppProvider: ({ children }) => children };
  */
 export const ganchosDoMock = {
-  useApp: mockUseApp,
   useSessao: mockUseApp,
   useOffline: mockUseApp,
   useConfig: mockUseApp,
@@ -139,7 +138,7 @@ export function createAppMockValue(overrides = {}) {
   };
 }
 
-/** Define (ou redefine) o valor que `useApp()` devolve neste teste. */
+/** Define (ou redefine) o valor que os ganchos do contexto devolvem neste teste. */
 export function setAppMock(overrides = {}) {
   currentMock = createAppMockValue(overrides);
   return currentMock;

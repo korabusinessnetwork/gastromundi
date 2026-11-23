@@ -241,7 +241,7 @@ arquivo do próprio provedor, já protegida pelos limites e pelos testes de cada
 - Antes de qualquer estado mudar de lugar nasceu a rede de proteção de ponta a ponta da
   fila offline (`AppContext.offlinePontaAPonta.test.jsx`).
 
-**2.10 A coordenação no próprio arquivo e o fim da fachada**
+**2.10 A coordenação no próprio arquivo e o fim da fachada** (feita em 2026-11-23; a fase 2 está concluída)
 - O que sobrou no `AppContext.jsx` (carga, dreno da fila, análise do Jarvas, pontes de
   impressão) vai para `src/app/CoordenacaoDaCarga.jsx`, e o `AppContext.jsx` passa a só
   compor os provedores.

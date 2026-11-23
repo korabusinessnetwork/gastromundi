@@ -54,12 +54,13 @@ vi.mock("@/lib/tenant", () => ({
   addonHabilitado: () => false,
 }));
 
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 import { saveSession, loadSession, lerSessao, SESSION_MS, IDLE_MS, MAX_ATTEMPTS, getAttempts } from "@/utils/session";
 
 function capturarApp(alvo) {
   return function Sonda() {
-    alvo.current = useApp();
+    alvo.current = useContextoCompleto();
     return null;
   };
 }

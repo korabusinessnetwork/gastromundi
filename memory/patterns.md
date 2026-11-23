@@ -1082,3 +1082,17 @@ oficial da Anthropic, recebe `DO_NOT_INSTALL` do SkillSpector por ler chave de A
 ambiente e mandar num cabeçalho HTTP, que é o trabalho dele. O `vibesec` recebe o mesmo por
 citar `rm -rf /` e `/etc/passwd` dentro de tabelas que documentam ataques. Ler o achado é o
 passo que decide, não o número.
+
+## Contexto por assunto (ADR-015, fase 2, 2026-11-23)
+
+- Tela lê o contexto pelo gancho do assunto (`useSessao`, `useOffline`, `useConfig`,
+  `useCatalogo`, `useComandas`, `useCaixa`), importado de `@/context/AppContext`. Nunca
+  um objeto com tudo: a tela seria redesenhada por qualquer mudança do app.
+- Cada provedor tem valor memorizado e ações com identidade fixa (`useFuncaoEstavel`).
+  Ação nova entra pelo `useFuncaoEstavel`, senão o `useMemo` nunca acerta.
+- Quem carrega dados de vários assuntos (a coordenação) hidrata cada provedor pelo canal
+  interno dele (`use*Carga()`), nunca segurando estado de outro assunto.
+- Mudança de lugar de código grande: recortar por script os blocos inteiros, deixar o
+  lint apontar nome sem origem e `import` sem uso, e só então rodar os testes. Guard que
+  lê código-fonte tem de seguir o código para o arquivo novo, sem afrouxar.
+

@@ -3,16 +3,17 @@ import { join, relative } from "path";
 import { describe, it, expect } from "vitest";
 
 /**
- * Tarefa 2.8 do plano de refatoração: nenhuma tela lê pela fachada `useApp()`.
+ * Tarefas 2.8 e 2.10 do plano de refatoração: a fachada `useApp()` não existe.
  *
- * `useApp()` entrega o contexto inteiro, recriado a cada render: tela que o usa
- * é redesenhada a cada mudança do app, inclusive o PDV no meio da venda. As
- * telas leem pelos ganchos de cada assunto (`useSessao`, `useCaixa`...). A
- * fachada continua existindo só para os testes do próprio contexto, até a
- * tarefa 2.9 mover o estado para os provedores.
+ * Ela entregava o contexto inteiro, recriado a cada render: tela que a usava
+ * era redesenhada a cada mudança do app, inclusive o PDV no meio da venda. As
+ * telas leem pelos ganchos de cada assunto (`useSessao`, `useCaixa`...), e os
+ * testes do próprio contexto usam `useContextoCompleto()`, que só existe em
+ * `src/test/`.
  */
 
 const SRC = join(process.cwd(), "src");
+const ESTE_ARQUIVO = "src/context/telasSemUseApp.test.js";
 
 function listar(dir) {
   return readdirSync(dir).flatMap((nome) => {
@@ -21,16 +22,21 @@ function listar(dir) {
   });
 }
 
-describe("telas sem useApp (tarefa 2.8)", () => {
-  it("nenhum arquivo fora do contexto e dos testes chama useApp()", () => {
+describe("a fachada useApp não existe (tarefas 2.8 e 2.10)", () => {
+  it("nenhum arquivo do app, nem de teste, chama ou declara useApp", () => {
     const usando = listar(SRC)
-      .filter((f) => /\.(js|jsx)$/.test(f) && !/\.test\.(js|jsx)$/.test(f))
+      .filter((f) => /\.(js|jsx)$/.test(f))
       .map((f) => relative(process.cwd(), f))
-      .filter((f) => !f.startsWith("src/context/") && !f.startsWith("src/test/"))
-      .filter((f) => /\buseApp\s*\(/.test(
+      .filter((f) => f !== ESTE_ARQUIVO)
+      .filter((f) => /\buseApp\b/.test(
         // Comentários citam o nome; só código conta.
         readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""),
       ));
     expect(usando).toEqual([]);
+  });
+
+  it("o AppContext não exporta mais a fachada", async () => {
+    const modulo = await import("@/context/AppContext");
+    expect(modulo.useApp).toBeUndefined();
   });
 });

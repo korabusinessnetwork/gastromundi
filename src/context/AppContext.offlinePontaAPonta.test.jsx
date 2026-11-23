@@ -124,7 +124,8 @@ vi.mock("@/lib/tenant", () => ({
 
 import { reportarFalha } from "@/lib/observabilidade";
 import { filaOffline } from "@/lib/offline/filaApp";
-import { AppProvider, useApp } from "./AppContext";
+import { AppProvider } from "./AppContext";
+import { useContextoCompleto } from "@/test/contextoCompleto";
 
 const VENDA = {
   id: "venda-offline-1",
@@ -149,7 +150,7 @@ async function rede(ligada) {
 function montar() {
   const app = { current: null };
   function Sonda() {
-    app.current = useApp();
+    app.current = useContextoCompleto();
     return null;
   }
   render(<AppProvider><Sonda /></AppProvider>);
