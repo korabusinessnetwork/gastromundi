@@ -12,7 +12,9 @@
    aba usa para `configuracoes/apoio.jsx`. A tela ficou com 82 linhas. `UsuariosTab` e
    `UnidadesMedidaTab` continuam exportados por `ConfiguracoesView`, porque os testes os
    importam de lá.
-3. Nenhum código mudou além de caminho e import: o recorte é feito por script, que copia
+3. O menu da foto e a galeria do `ModalProduto` vão para o gancho `useGaleriaFotos`,
+   que nasce com teste.
+4. Fora isso, nenhum código mudou além de caminho e import: o recorte é feito por script, que copia
    cada componente inteiro e poda só os imports que o lint aponta como sem uso.
 
 ## Critérios de aceite
@@ -27,7 +29,8 @@
 
 ## Resultado
 
-Critérios 1, 3, 4 e 5 em sim. O critério 2 vale para as Configurações (máximo 11) e falha
-num arquivo da Delivery: o `ModalProduto.jsx` tem 18 `useState`. Ele já tinha 18 dentro do
-arquivo antigo; separar não piorou nem resolveu. Fica para a próxima rodada da fase 3,
-agrupando o estado do formulário.
+5 de 5 critérios em sim. O critério 2 falhou na primeira passada: o `ModalProduto.jsx`
+da Delivery tinha 18 `useState` (já tinha antes, dentro do arquivo antigo). O menu da foto
+e a galeria, 6 desses estados, foram para o gancho
+`src/features/delivery/hooks/useGaleriaFotos.js`, com teste próprio (carregar, erro e nova
+tentativa, menu preso dentro da tela), e o modal ficou com 12. Nenhuma tela mudou.

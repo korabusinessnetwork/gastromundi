@@ -272,7 +272,8 @@ fatias, como o `PDVView` e o `DeliveryView` já saíram na F018.
   passa de 15 `useState`.
 
 **Andamento:** 3.1 e 3.3 feitas em 2026-11-23, um componente por arquivo (Delivery com
-355 linhas, Configurações com 82). Falta na 3.1 o `ModalProduto.jsx`, com 18 `useState`.
+355 linhas, Configurações com 82). O menu e a galeria de fotos da Delivery viraram o
+gancho `features/delivery/hooks/useGaleriaFotos.js`.
 
 ### Fase 4, celular e computador compartilham a lógica
 

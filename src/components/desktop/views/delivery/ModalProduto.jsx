@@ -9,7 +9,8 @@ import {
 import {
   salvarProdutoDelivery, formatarReais
 } from "@/lib/deliveryAdmin";
-import { enviarFotoProduto, listarFotosDelivery, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
+import { enviarFotoProduto, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
+import { useGaleriaFotos } from "@/features/delivery/hooks/useGaleriaFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 
 // Modal criar/editar item do delivery.
@@ -41,12 +42,10 @@ export default function ModalProduto({
   const [erro, setErro] = useState("");
 
   // Menu de escolha (clicar na foto) + modal da galeria.
-  const [menuFotoAberto, setMenuFotoAberto] = useState(false);
-  const [menuPos, setMenuPos] = useState(null);
-  const [galeriaAberta, setGaleriaAberta] = useState(false);
-  const [galeriaFotos, setGaleriaFotos] = useState([]);
-  const [galeriaCarregando, setGaleriaCarregando] = useState(false);
-  const [galeriaErro, setGaleriaErro] = useState("");
+  const {
+    menuFotoAberto, menuPos, alternarMenuFoto, fecharMenuFoto,
+    galeriaAberta, galeriaFotos, galeriaCarregando, galeriaErro, abrirGaleria, fecharGaleria,
+  } = useGaleriaFotos({ tenantId: tenant?.id, alvoRef: fotoAlvoRef });
 
   // Libera o object URL da prévia ao trocar/fechar (evita vazamento).
   useEffect(() => {
@@ -73,40 +72,6 @@ export default function ModalProduto({
     setFotoGaleriaOrigem(null);
   };
 
-  // Abre/fecha o menu de escolha da foto. O menu é posicionado por coordenadas
-  // (position:fixed via getBoundingClientRect) para NÃO ser recortado pelo
-  // overflow-y do modal — bug real: em tela mais baixa ou com o modal rolado o
-  // menu abria para fora da área visível e parecia "não abrir". Clamp na
-  // viewport garante que ele apareça inteiro em qualquer tela.
-  const alternarMenuFoto = () => {
-    if (menuFotoAberto) return setMenuFotoAberto(false);
-    const r = fotoAlvoRef.current?.getBoundingClientRect();
-    if (r) {
-      const LARG = 210, ALT = 168, M = 8; // dimensões aprox. do menu + margem
-      setMenuPos({
-        top: Math.max(M, Math.min(r.bottom + 6, window.innerHeight - ALT - M)),
-        left: Math.max(M, Math.min(r.left, window.innerWidth - LARG - M)),
-      });
-    }
-    setMenuFotoAberto(true);
-  };
-
-  // Abre a galeria e carrega as fotos já enviadas por este estabelecimento.
-  const abrirGaleria = async () => {
-    setMenuFotoAberto(false);
-    setGaleriaAberta(true);
-    setGaleriaErro("");
-    setGaleriaCarregando(true);
-    const { fotos, error } = await listarFotosDelivery(tenant?.id);
-    if (error) {
-      setGaleriaErro(error.message || "Não foi possível carregar a galeria.");
-      setGaleriaCarregando(false);
-      return;
-    }
-    setGaleriaFotos(fotos);
-    setGaleriaCarregando(false);
-  };
-
   // Escolhe uma foto da galeria: mostra na prévia e marca para copiar no salvar.
   const selecionarDaGaleria = (foto) => {
     if (fotoPreview) URL.revokeObjectURL(fotoPreview);
@@ -114,7 +79,7 @@ export default function ModalProduto({
     setFotoFile(null);
     setFotoUrl(foto.url);
     setFotoGaleriaOrigem(foto.path);
-    setGaleriaAberta(false);
+    fecharGaleria();
     setErro("");
   };
 
@@ -290,13 +255,13 @@ export default function ModalProduto({
 
               {menuFotoAberto && (
                 <>
-                  <div className="delivery-view__foto-menu-fundo" onClick={() => setMenuFotoAberto(false)} />
+                  <div className="delivery-view__foto-menu-fundo" onClick={() => fecharMenuFoto()} />
                   <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left }}>
                     <button
                       type="button"
                       role="menuitem"
                       className="delivery-view__foto-menu-item"
-                      onClick={() => { setMenuFotoAberto(false); fotoInputRef.current?.click(); }}
+                      onClick={() => { fecharMenuFoto(); fotoInputRef.current?.click(); }}
                     >
                       <LuUpload size={15} color={varColor(C.accent)} /> Enviar nova foto
                     </button>
@@ -313,7 +278,7 @@ export default function ModalProduto({
                         type="button"
                         role="menuitem"
                         className="delivery-view__foto-menu-item delivery-view__foto-menu-item--perigo"
-                        onClick={() => { removerFoto(); setMenuFotoAberto(false); }}
+                        onClick={() => { removerFoto(); fecharMenuFoto(); }}
                       >
                         <LuTrash2 size={15} /> Remover foto
                       </button>
@@ -359,14 +324,14 @@ export default function ModalProduto({
 
     {/* Galeria: todas as fotos já enviadas por este estabelecimento. */}
     {galeriaAberta && (
-      <div className="delivery-view__overlay" {...fecharAoClicarFora(() => setGaleriaAberta(false))}>
+      <div className="delivery-view__overlay" {...fecharAoClicarFora(() => fecharGaleria())}>
         <div className="delivery-view__modal delivery-view__galeria">
           <div className="delivery-view__modal-topo">
             <div className="delivery-view__modal-titulo">
               <LuImages size={16} className="delivery-view__titulo-icone" />
               Galeria de fotos
             </div>
-            <button onClick={() => setGaleriaAberta(false)} className="delivery-view__modal-fechar">
+            <button onClick={() => fecharGaleria()} className="delivery-view__modal-fechar">
               <LuX size={18} />
             </button>
           </div>

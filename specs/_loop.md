@@ -1,11 +1,12 @@
 ## Rodada 86, refatoração 3.1 e 3.3, um componente por arquivo na Delivery e nas Configurações, 2026-11-23
 - Spec: specs/refatoracao-3-1-e-3-3-um-componente-por-arquivo.md
-- Resultado: suíte 254 arquivos / 4354 testes, verde; `npm run build` limpo; lint 0
+- Resultado: 5 de 5 critérios em sim; suíte 255 arquivos / 4357 testes, verde; `npm run build` limpo; lint 0
   erros e os mesmos 26 avisos. Roteiro de fotos: 0 diferença nas duas. Sem migration.
   `DeliveryView.jsx`: 2.706 para 355 linhas; `ConfiguracoesView.jsx`: 1.846 para 82.
   Arquivos acima de 600 linhas: 22 para 20.
-- Ressalva: o `ModalProduto.jsx` da Delivery tem 18 `useState`, acima do limite de 15 da
-  fase. Já tinha antes; a próxima rodada agrupa o estado do formulário dele.
+- Aprovado sem ressalvas depois de uma correção: o `ModalProduto.jsx` da Delivery tinha 18
+  `useState`, acima do limite de 15 da fase. O menu da foto e a galeria foram para o gancho
+  `features/delivery/hooks/useGaleriaFotos.js`, com 3 testes; o modal ficou com 12.
 - O que a rodada revelou: o `ConfiguracoesView.jsx` começava com BOM, e o script de
   recorte não reconhecia a primeira linha como import, então o import do React sumia dos
   arquivos novos. O lint pegou; o script passou a ler o arquivo sem o BOM.
