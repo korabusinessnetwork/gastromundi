@@ -1,3 +1,15 @@
+## Rodada 92, refatoração 3, Sidebar e tela do celular em ganchos, 2026-11-24
+- Spec: specs/refatoracao-3-sidebar-celular.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 256 arquivos / 4367
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. Sidebar: 815 para 247 linhas; celular: 795 para 431.
+- Testes novos: o cancelamento de venda fechada (senha certa grava com o motivo, senha
+  recusada não grava nada) e a janela de acesso restrito do relatório para o caixa.
+  Provado por sabotagem: ignorando a senha recusada, o teste falha.
+- O que a rodada revelou: o filtro de nomes do gerador ignorava o nome logo depois de
+  reticências (`...linkStyle(x)`), porque tratava o último ponto como acesso a
+  propriedade. E a Sidebar define componentes dentro de si (`NavItem`), que são desenho de
+  tela e ficaram nela; o `navigate`, que as ações do gancho usam, subiu para o gancho.
 ## Rodada 91, refatoração 3, Mesas e Estoque em ganchos, 2026-11-24
 - Spec: specs/refatoracao-3-mesas-estoque.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 256 arquivos / 4364

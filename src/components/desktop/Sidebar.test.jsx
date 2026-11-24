@@ -72,3 +72,64 @@ describe("Sidebar, gating por plano (F013/ADR-005, Fase 2)", () => {
     expect(screen.getByRole("link", { name: /frente de caixa/i })).toBeInTheDocument();
   });
 });
+
+// Refatoração 3: a lógica da barra lateral foi para `useSidebar` e as janelas
+// para `components/desktop/sidebar/`. O cancelamento de venda fechada tira
+// dinheiro do saldo do dia e não tinha teste de tela; estes prendem o caminho
+// inteiro, e a guarda de senha do relatório para o caixa.
+describe("Sidebar, cancelar venda fechada", () => {
+  const VENDA = {
+    id: "v1", comanda: "12", total: 6, at: new Date().toISOString(), cashier: "Ana",
+    items: [{ name: "Café", qty: 1, price: 6 }], payments: [{ method: "dinheiro", value: 6 }],
+  };
+
+  async function abrirCancelamento(user) {
+    await user.click(screen.getByText("Comandas fechadas"));
+    await user.click(screen.getByText("Comanda 12"));
+    await user.click(screen.getByRole("button", { name: /Cancelar venda/ }));
+    await user.type(screen.getByPlaceholderText("Ex: cobrança duplicada, pagamento não confirmado..."), "cobrança duplicada");
+    await user.type(screen.getByPlaceholderText("Senha"), "1234");
+    const botoes = screen.getAllByRole("button", { name: /Cancelar venda/ });
+    await user.click(botoes[botoes.length - 1]);
+  }
+
+  it("com a senha de gerente, cancela a venda com o motivo informado", async () => {
+    const { verificarSenhaAdmin } = await import("@/lib/adminAuth");
+    verificarSenhaAdmin.mockResolvedValueOnce({ ok: true, erro: null });
+    const cancelarVendaFechada = vi.fn(() => Promise.resolve({ error: null }));
+    const user = userEvent.setup();
+    setup({ sales: [VENDA], cancelarVendaFechada });
+
+    await abrirCancelamento(user);
+
+    expect(cancelarVendaFechada).toHaveBeenCalledWith("v1", "cobrança duplicada");
+  });
+
+  it("senha recusada não cancela nada e diz o motivo", async () => {
+    const cancelarVendaFechada = vi.fn(() => Promise.resolve({ error: null }));
+    const user = userEvent.setup();
+    setup({ sales: [VENDA], cancelarVendaFechada });
+
+    await abrirCancelamento(user);
+
+    expect(cancelarVendaFechada).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Senha incorreta/)).toBeInTheDocument();
+  });
+});
+
+describe("Sidebar, relatório pede senha para quem não tem a permissão", () => {
+  it("o caixa sem permissão de relatório vê a janela de acesso restrito", async () => {
+    const user = userEvent.setup();
+    setup({
+      currentUser: {
+        id: 2, name: "Caixa Teste", username: "caixa1", role: "caixa",
+        permissions: { pdv: true, relatorio: false },
+      },
+    });
+
+    await user.click(screen.getByRole("button", { name: /Relat/ }));
+
+    expect(screen.getByText("Acesso Restrito")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("nome de usuário")).toBeInTheDocument();
+  });
+});
