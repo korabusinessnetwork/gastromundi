@@ -1,3 +1,11 @@
+## Rodada 109, refatoração 5.3, Fichas Técnicas sem estilo inline, 2026-11-24
+- Spec: specs/refatoracao-5-3-fichas-tecnicas.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 51 telas, 0
+  diferença. Sem migration. Estilo inline: 1.440 para 1.365.
+- Fichas Técnicas 74 para 0; Compras 22 para 21 pelo rótulo de seção compartilhado.
+- Roteiro ganhou uma ficha técnica e três telas (lista, editor, excluir) antes da conversão.
+- Lacuna registrada: o editor em tela estreita não é fotografado.
 ## Rodada 108, refatoração 5.2, o carrinho do PDV sem estilo inline, 2026-11-24
 - Spec: specs/refatoracao-5-2-cartpanel.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430

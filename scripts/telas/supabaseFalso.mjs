@@ -80,6 +80,16 @@ const tabelas = {
     { key: "fundo_atual", value: 100 },
     { key: "sessao_aberta_em", value: "2026-11-20T11:00:00.000Z" },
     { key: "meios_pagamento", value: ["dinheiro", "credito", "debito", "pix"] },
+    // Fase 5: uma ficha técnica para a tela de Fichas Técnicas e o editor dela
+    // (um ingrediente ligado a produto e um digitado à mão).
+    { key: "fichas_tecnicas", value: [{
+      id: "ficha-misto", produtoId: 5, nome: "", categoria: "Lanches", rendimento: "1",
+      preparo: "Montar o pão com presunto e queijo e tostar na chapa.",
+      ingredientes: [
+        { produtoId: 4, nome: "Pão de queijo", emoji: "🧀", qtd: "1", unidade: "un", custoUnit: "1.20" },
+        { produtoId: null, nome: "Presunto fatiado", emoji: "", qtd: "50", unidade: "g", custoUnit: "0.06" },
+      ],
+    }] },
   ],
   grupos_categoria: [
     { id: 1, nome: "comida" }, { id: 2, nome: "bebida" },

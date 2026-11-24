@@ -1,0 +1,349 @@
+/* Fichas Técnicas: o que era estilo inline no JSX (fase 5 do plano de
+   refatoração). O resto das regras desta aba continua em AdminView.css; quando
+   uma propriedade daqui também está lá para a mesma classe, a regra daqui usa
+   duas classes, para vencer pela especificidade e não pela ordem dos arquivos.
+   Transparências: o mesmo `color-mix` que o `alfa()` gerava, mesma porcentagem.
+   Tela estreita (menos de 640px): modificador `--estreito`, ligado ao mesmo
+   `isNarrow` do JavaScript. */
+
+/* ── Cartão da ficha ── */
+.fichas-tab__card-identidade {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fichas-tab__card-emoji,
+.fichas-tab__ing-emoji,
+.fichas-tab__vinculado-emoji,
+.fichas-tab__dropdown-emoji,
+.fichas-tab__ing-chip-emoji,
+.fichas-tab__produto-item-emoji,
+.fichas-tab__icone-fixo { flex-shrink: 0; }
+
+.fichas-tab__card-acoes {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.fichas-tab__kpi.fichas-tab__kpi--custo {
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  border-color: color-mix(in srgb, var(--gm-green) 20%, transparent);
+}
+
+.fichas-tab__kpi-valor--custo { color: var(--gm-green); }
+
+.fichas-tab__ing-th--centro { text-align: center; }
+.fichas-tab__ing-th--direita { text-align: right; }
+
+/* Divisória entre as linhas de ingrediente, menos na última. */
+.fichas-tab__ing-linha.fichas-tab__ing-linha { border-bottom: 1px solid var(--gm-border); }
+.fichas-tab__ing-linha.fichas-tab__ing-linha:last-child { border-bottom: none; }
+
+.fichas-tab__sem-nome {
+  color: var(--gm-muted);
+  font-style: italic;
+}
+
+.fichas-tab__ing-qtd.fichas-tab__ing-qtd {
+  font-weight: 700;
+  color: var(--gm-text);
+  text-align: center;
+}
+
+.fichas-tab__ing-qtd-pilha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.fichas-tab__ing-qtd-conv.fichas-tab__ing-qtd-conv {
+  color: var(--gm-muted);
+  font-weight: 500;
+}
+
+.fichas-tab__traco { color: var(--gm-muted); }
+
+.fichas-tab__ing-estoque { text-align: right; }
+
+.fichas-tab__ing-estoque-vazio.fichas-tab__ing-estoque-vazio { color: var(--gm-muted); }
+
+.fichas-tab__ing-estoque-pilha {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+/* Saldo em estoque do ingrediente: zerado, suficiente ou insuficiente. */
+.fichas-tab__ing-estoque-valor--zerado {
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+
+.fichas-tab__ing-estoque-valor--suficiente {
+  color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+}
+
+.fichas-tab__ing-estoque-valor--insuficiente {
+  color: var(--gm-warn);
+  background: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 27%, transparent);
+}
+
+.fichas-tab__valor-forte { color: var(--gm-text); }
+.fichas-tab__valor-porcao { color: var(--gm-green); }
+
+/* ── Editor da ficha ── */
+.fichas-tab__form-cabecalho {
+  display: grid;
+  grid-template-columns: 1fr 1fr 140px;
+  gap: 12px;
+}
+
+.fichas-tab__form-cabecalho--estreito { grid-template-columns: 1fr; }
+
+.fichas-tab__ancora { position: relative; }
+
+.fichas-tab__produto-vinculado.fichas-tab__produto-vinculado {
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+}
+
+.fichas-tab__vinculado-nome.fichas-tab__vinculado-nome {
+  flex: 1;
+  font-weight: 700;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botão "x" de limpar: o do produto vinculado e o de dentro da busca. */
+.fichas-tab__btn-limpar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--gm-muted);
+  display: flex;
+  padding: 2px;
+}
+
+.fichas-tab__btn-limpar--no-campo {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.fichas-tab__icone-busca {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.fichas-tab__icone-busca--sobre { z-index: 1; }
+
+/* No foco, a borda segue a regra global dos campos (src/styles/inputs.css). */
+.fichas-tab__input-busca {
+  width: 100%;
+  padding: 8px 10px 8px 30px;
+  border-radius: 9px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.fichas-tab__dropdown-vazio.fichas-tab__dropdown-vazio {
+  padding: 14px 12px;
+  color: var(--gm-muted);
+  text-align: center;
+}
+
+.fichas-tab__dropdown-item.fichas-tab__dropdown-item:hover { background: var(--gm-surface); }
+
+.fichas-tab__texto-flex {
+  flex: 1;
+  min-width: 0;
+}
+
+.fichas-tab__dropdown-nome.fichas-tab__dropdown-nome {
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fichas-tab__dropdown-categoria.fichas-tab__dropdown-categoria { color: var(--gm-muted); }
+
+.fichas-tab__categoria-preenchida.fichas-tab__categoria-preenchida { color: var(--gm-muted); }
+.fichas-tab__categoria-preenchida.fichas-tab__categoria-preenchida--com-valor { color: var(--gm-text); }
+
+.fichas-tab__rendimento {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fichas-tab__rendimento-unidade.fichas-tab__rendimento-unidade {
+  font-weight: 700;
+  color: var(--gm-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.fichas-tab__rendimento-unidade.fichas-tab__rendimento-unidade--vinculado { color: var(--gm-accent); }
+
+.fichas-tab__form-corpo {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 14px;
+  align-items: start;
+}
+
+.fichas-tab__form-corpo--estreito { grid-template-columns: 1fr; }
+
+.fichas-tab__coluna-ingredientes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fichas-tab__ingredientes {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Grade dos ingredientes: cabeçalho e linhas com as mesmas colunas. */
+.fichas-tab__ing-grade {
+  display: grid;
+  grid-template-columns: 1fr 64px 54px 80px 28px;
+  gap: 6px;
+}
+
+.fichas-tab__ing-grade--estreito { grid-template-columns: 1fr 56px 44px 28px; }
+
+.fichas-tab__ing-grade--cabecalho {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.fichas-tab__ing-grade--item { align-items: center; }
+
+.fichas-tab__ing-col-header.fichas-tab__ing-col-header {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  text-align: left;
+}
+
+.fichas-tab__ing-col-header.fichas-tab__ing-col-header:not(:first-child) { text-align: center; }
+
+.fichas-tab__ing-chip.fichas-tab__ing-chip {
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 20%, transparent);
+}
+
+.fichas-tab__ing-chip-nome.fichas-tab__ing-chip-nome {
+  font-weight: 600;
+  color: var(--gm-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.fichas-tab__ing-input.fichas-tab__ing-input--centro { text-align: center; }
+.fichas-tab__ing-input.fichas-tab__ing-input--direita { text-align: right; }
+
+.fichas-tab__ing-vazio-msg.fichas-tab__ing-vazio-msg {
+  color: var(--gm-muted);
+  padding: 24px 0;
+  text-align: center;
+  border: 1.5px dashed var(--gm-border);
+  border-radius: 10px;
+}
+
+.fichas-tab__resumo-linha.fichas-tab__resumo-linha { color: var(--gm-muted); }
+
+/* ── Painel "Itens do Estoque" ── */
+.fichas-tab__painel-estoque.fichas-tab__painel-estoque { height: 380px; }
+
+.fichas-tab__painel-estoque.fichas-tab__painel-estoque--estreito {
+  height: auto;
+  min-height: 200px;
+}
+
+.fichas-tab__filtro-toggle.fichas-tab__filtro-toggle {
+  border-color: var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+}
+
+.fichas-tab__filtro-toggle.fichas-tab__filtro-toggle--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
+}
+
+.fichas-tab__seta {
+  transform: rotate(0deg);
+  transition: transform 0.2s;
+}
+
+.fichas-tab__seta--aberta { transform: rotate(180deg); }
+
+.fichas-tab__filtro-chip.fichas-tab__filtro-chip {
+  border-color: var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+}
+
+.fichas-tab__filtro-chip.fichas-tab__filtro-chip--ativo {
+  border-color: var(--gm-accent);
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.fichas-tab__lista-produtos.fichas-tab__lista-produtos--estreito { max-height: 200px; }
+
+.fichas-tab__lista-vazia.fichas-tab__lista-vazia {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Produto do estoque: já adicionado à receita fica marcado e não reage ao mouse. */
+.fichas-tab__produto-item.fichas-tab__produto-item {
+  border-color: transparent;
+  background: none;
+  cursor: pointer;
+}
+
+.fichas-tab__produto-item.fichas-tab__produto-item:not(.fichas-tab__produto-item--adicionado):hover {
+  background: var(--gm-faint);
+}
+
+.fichas-tab__produto-item.fichas-tab__produto-item--adicionado {
+  border-color: color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+  cursor: default;
+}
+
+.fichas-tab__produto-item-nome.fichas-tab__produto-item-nome { color: var(--gm-text); }
+
+.fichas-tab__produto-item--adicionado .fichas-tab__produto-item-nome { color: var(--gm-accent); }

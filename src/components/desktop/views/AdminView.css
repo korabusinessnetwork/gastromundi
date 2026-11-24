@@ -21,6 +21,10 @@
 .admin__secao-label {
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .admin__field {

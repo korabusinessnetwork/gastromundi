@@ -128,7 +128,7 @@ export default function ComprasTab({ compras, fornecedores, onSave, onDelete }) 
 
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div className="admin__secao-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>Itens</div>
+              <div className="admin__secao-label">Itens</div>
               <button onClick={addItem} className="compras-tab__btn-add-item" style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: varColor(C.accent), fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
                 <LuPlus size={12} /> Adicionar item
               </button>

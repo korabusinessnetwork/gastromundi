@@ -116,6 +116,23 @@ function roteiro(largura) {
       await page.getByRole("button", { name: "Sim, finalizar" }).click({ timeout: 3000 });
     },
   });
+  // Fase 5: Fichas Técnicas (lista, editor e confirmação de excluir).
+  const abrirFichas = (page) => page.getByText("Ficha Técnica", { exact: true }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-admin-fichas", perfil: "dono", caminho: "/app/admin", passo: abrirFichas });
+  telas.push({
+    nome: "app-admin-ficha-editar", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirFichas(page);
+      await page.locator(".fichas-tab__card").first().locator("button").first().click({ timeout: 3000 });
+    },
+  });
+  telas.push({
+    nome: "app-admin-ficha-excluir", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirFichas(page);
+      await page.locator(".fichas-tab__card").first().locator("button").nth(1).click({ timeout: 3000 });
+    },
+  });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,

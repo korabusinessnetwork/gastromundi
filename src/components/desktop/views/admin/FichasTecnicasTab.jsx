@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import {
   LuPlus, LuPencil, LuTrash2, LuX, LuClipboardList, LuCheck, LuChevronDown, LuSearch, LuLink, LuPackage, LuSlidersHorizontal
@@ -20,6 +19,7 @@ import EmptyMsg from "./EmptyMsg";
 import AddBtn from "./AddBtn";
 import { uid, fmtR, FICHA_VAZIA, ING_VAZIO } from "./apoio";
 import { nomeBateComBusca } from "@/lib/busca";
+import "./FichasTecnicasTab.css";
 
 export default function FichasTecnicasTab({ fichas, products, estoque, onSave, onDelete }) {
   const { width: vw } = useResponsive();
@@ -144,14 +144,14 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
 
                 {/* Cabeçalho */}
                 <div className="fichas-tab__card-topo">
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    {emojiCard && <span className="fichas-tab__card-emoji" style={{ flexShrink: 0 }}>{emojiCard}</span>}
+                  <div className="fichas-tab__card-identidade">
+                    {emojiCard && <span className="fichas-tab__card-emoji">{emojiCard}</span>}
                     <div>
                       <div className="fichas-tab__card-nome">{nomeCard}</div>
                       {f.categoria && <div className="fichas-tab__card-categoria">{f.categoria}</div>}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <div className="fichas-tab__card-acoes">
                     <CardBtn onClick={() => abrirEditar(f)}><LuPencil size={12} /></CardBtn>
                     <CardBtn onClick={() => setDeleteId(f.id)}><LuTrash2 size={12} /></CardBtn>
                   </div>
@@ -163,9 +163,9 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                     <div className="fichas-tab__kpi-label">Rendimento</div>
                     <div className="fichas-tab__kpi-valor">{f.rendimento || "—"} porç.</div>
                   </div>
-                  <div className="fichas-tab__kpi fichas-tab__kpi--custo" style={{ background: alfa(C.green, "10"), borderColor: alfa(C.green, "33") }}>
+                  <div className="fichas-tab__kpi fichas-tab__kpi--custo">
                     <div className="fichas-tab__kpi-label">Custo/porção</div>
-                    <div className="fichas-tab__kpi-valor" style={{ color: varColor(C.green) }}>{fmtR(cp)}</div>
+                    <div className="fichas-tab__kpi-valor fichas-tab__kpi-valor--custo">{fmtR(cp)}</div>
                   </div>
                 </div>
 
@@ -175,8 +175,8 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                     {/* Cabeçalho da tabela */}
                     <div className="fichas-tab__ing-tabela-header">
                       <div className="fichas-tab__ing-th">Ingrediente</div>
-                      <div className="fichas-tab__ing-th" style={{ textAlign: "center" }}>Necessário</div>
-                      <div className="fichas-tab__ing-th" style={{ textAlign: "right" }}>Em estoque</div>
+                      <div className="fichas-tab__ing-th fichas-tab__ing-th--centro">Necessário</div>
+                      <div className="fichas-tab__ing-th fichas-tab__ing-th--direita">Em estoque</div>
                     </div>
 
                     {ings.map((ing, i) => {
@@ -189,7 +189,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                       const qtdNecEst  = produto ? consumoParaEstoque(qtdNec, produto) : qtdNec;
                       const qtdEstq    = produto ? (estoque[produto.id] ?? 0) : null;
                       const suficiente = qtdEstq === null ? null : qtdEstq >= qtdNecEst;
-                      const corEstq    = qtdEstq === null ? varColor(C.muted) : qtdEstq === 0 ? varColor(C.red) : suficiente ? varColor(C.green) : varColor(C.warn);
+                      const situacaoEstq = qtdEstq === 0 ? "zerado" : suficiente ? "suficiente" : "insuficiente";
                       const ueLabel    = produto ? labelEstoque(produto) : "";
                       const ucLabel    = produto ? labelConsumo(produto) : (ing.unidade || "");
                       const temConv    = produto ? temConversaoConsumo(produto) : false;
@@ -198,45 +198,41 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                         <div
                           key={i}
                           className="fichas-tab__ing-linha"
-                          style={{ borderBottom: i < ings.length - 1 ? `1px solid var(${C.border})` : "none" }}
                         >
                           {/* Nome */}
                           <div className="fichas-tab__ing-nome">
                             {emojiShow
-                              ? <span className="fichas-tab__ing-emoji" style={{ flexShrink: 0 }}>{emojiShow}</span>
-                              : <LuPackage size={13} color={varColor(C.muted)} style={{ flexShrink: 0 }} />}
+                              ? <span className="fichas-tab__ing-emoji">{emojiShow}</span>
+                              : <LuPackage size={13} color={varColor(C.muted)} className="fichas-tab__icone-fixo" />}
                             <span className="fichas-tab__ing-nome-texto">
-                              {nomeShow || <span style={{ color: varColor(C.muted), fontStyle: "italic" }}>sem nome</span>}
+                              {nomeShow || <span className="fichas-tab__sem-nome">sem nome</span>}
                             </span>
                             {produto && (
-                              <LuLink size={10} color={varColor(C.accent)} style={{ flexShrink: 0 }} title="Vinculado ao estoque" />
+                              <LuLink size={10} color={varColor(C.accent)} className="fichas-tab__icone-fixo" title="Vinculado ao estoque" />
                             )}
                           </div>
 
                           {/* Qtd necessária */}
-                          <div className="fichas-tab__ing-qtd" style={{ fontWeight: 700, color: varColor(C.text), textAlign: "center" }}>
+                          <div className="fichas-tab__ing-qtd">
                             {qtdNec > 0 ? (
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+                              <div className="fichas-tab__ing-qtd-pilha">
                                 <span>{fmtQtd(qtdNec)} {ucLabel}</span>
                                 {temConv && (
-                                  <span className="fichas-tab__ing-qtd-conv" style={{ color: varColor(C.muted), fontWeight: 500 }}>
+                                  <span className="fichas-tab__ing-qtd-conv">
                                     ={fmtQtd(qtdNecEst)} {ueLabel}
                                   </span>
                                 )}
                               </div>
-                            ) : <span style={{ color: varColor(C.muted) }}>—</span>}
+                            ) : <span className="fichas-tab__traco">—</span>}
                           </div>
 
                           {/* Qtd em estoque */}
-                          <div style={{ textAlign: "right" }}>
+                          <div className="fichas-tab__ing-estoque">
                             {qtdEstq === null ? (
-                              <span className="fichas-tab__ing-estoque-vazio" style={{ color: varColor(C.muted) }}>—</span>
+                              <span className="fichas-tab__ing-estoque-vazio">—</span>
                             ) : (
-                              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
-                                <span className="fichas-tab__ing-estoque-valor" style={{
-                                  color: corEstq,
-                                  background: alfa(corEstq, "15"), border: `1px solid ${alfa(corEstq, "44")}`,
-                                }}>
+                              <div className="fichas-tab__ing-estoque-pilha">
+                                <span className={`fichas-tab__ing-estoque-valor fichas-tab__ing-estoque-valor--${situacaoEstq}`}>
                                   {fmtQtd(qtdEstq)} {ueLabel}
                                 </span>
                               </div>
@@ -257,7 +253,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                 {/* Custo total */}
                 {ct > 0 && (
                   <div className="fichas-tab__custo-total">
-                    Custo total dos ingredientes: <strong style={{ color: varColor(C.text) }}>{fmtR(ct)}</strong>
+                    Custo total dos ingredientes: <strong className="fichas-tab__valor-forte">{fmtR(ct)}</strong>
                   </div>
                 )}
               </div>
@@ -276,18 +272,18 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
           width={860}
         >
           {/* Cabeçalho da ficha */}
-          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr 140px", gap: 12 }}>
+          <div className={`fichas-tab__form-cabecalho${isNarrow ? " fichas-tab__form-cabecalho--estreito" : ""}`}>
             <Field label="Produto vinculado *">
-              <div style={{ position: "relative" }}>
+              <div className="fichas-tab__ancora">
                 {produtoVinculado ? (
-                  <div className="fichas-tab__produto-vinculado" style={{ background: alfa(C.accent, "10") }}>
-                    <span className="fichas-tab__vinculado-emoji" style={{ flexShrink: 0 }}>{produtoVinculado.emoji || "📦"}</span>
-                    <span className="fichas-tab__vinculado-nome" style={{ flex: 1, fontWeight: 700, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{produtoVinculado.name}</span>
-                    <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}><LuX size={13} /></button>
+                  <div className="fichas-tab__produto-vinculado">
+                    <span className="fichas-tab__vinculado-emoji">{produtoVinculado.emoji || "📦"}</span>
+                    <span className="fichas-tab__vinculado-nome">{produtoVinculado.name}</span>
+                    <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} className="fichas-tab__btn-limpar"><LuX size={13} /></button>
                   </div>
                 ) : (
-                  <div style={{ position: "relative" }}>
-                    <LuSearch size={13} color={varColor(C.muted)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", zIndex: 1 }} />
+                  <div className="fichas-tab__ancora">
+                    <LuSearch size={13} color={varColor(C.muted)} className="fichas-tab__icone-busca fichas-tab__icone-busca--sobre" />
                     <input
                       ref={buscaPratoRef}
                       value={buscaPrato}
@@ -295,26 +291,23 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                       onFocus={() => setShowPratoDD(true)}
                       onBlur={() => setTimeout(() => setShowPratoDD(false), 150)}
                       placeholder="Buscar produto..."
-                      className="fichas-tab__input-busca-prato"
-                      style={{ width: "100%", padding: "8px 10px 8px 30px", borderRadius: 9, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: varColor(C.text), fontFamily: "inherit", outline: "none", boxSizing: "border-box" }}
+                      className="fichas-tab__input-busca fichas-tab__input-busca-prato"
                     />
                     {showPratoDD && (
                       <div className="fichas-tab__dropdown">
                         {pratoElegiveis.length === 0 ? (
-                          <div className="fichas-tab__dropdown-vazio" style={{ padding: "14px 12px", color: varColor(C.muted), textAlign: "center" }}>Nenhum produto encontrado</div>
+                          <div className="fichas-tab__dropdown-vazio">Nenhum produto encontrado</div>
                         ) : pratoElegiveis.map(p => (
                           <button
                             key={p.id}
                             type="button"
                             onMouseDown={() => { setF("produtoId", p.id); setF("nome", p.name); setF("categoria", p.category ?? ""); setBuscaPrato(""); setShowPratoDD(false); }}
                             className="fichas-tab__dropdown-item"
-                            onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                            onMouseLeave={e => e.currentTarget.style.background = "none"}
                           >
-                            <span className="fichas-tab__dropdown-emoji" style={{ flexShrink: 0 }}>{p.emoji || "📦"}</span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div className="fichas-tab__dropdown-nome" style={{ fontWeight: 600, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
-                              {p.category && <div className="fichas-tab__dropdown-categoria" style={{ color: varColor(C.muted) }}>{p.category}</div>}
+                            <span className="fichas-tab__dropdown-emoji">{p.emoji || "📦"}</span>
+                            <div className="fichas-tab__texto-flex">
+                              <div className="fichas-tab__dropdown-nome">{p.name}</div>
+                              {p.category && <div className="fichas-tab__dropdown-categoria">{p.category}</div>}
                             </div>
                           </button>
                         ))}
@@ -325,14 +318,14 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
               </div>
             </Field>
             <Field label="Categoria">
-              <div className="fichas-tab__categoria-preenchida" style={{ color: form.categoria ? varColor(C.text) : varColor(C.muted) }}>
+              <div className={`fichas-tab__categoria-preenchida${form.categoria ? " fichas-tab__categoria-preenchida--com-valor" : ""}`}>
                 {form.categoria || "Preenchida ao vincular produto"}
               </div>
             </Field>
             <Field label="Rendimento">
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div className="fichas-tab__rendimento">
                 <Inp type="number" value={form.rendimento} onChange={v => setF("rendimento", v)} placeholder="1" />
-                <span className="fichas-tab__rendimento-unidade" style={{ fontWeight: 700, color: produtoVinculado ? varColor(C.accent) : varColor(C.muted), whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span className={`fichas-tab__rendimento-unidade${produtoVinculado ? " fichas-tab__rendimento-unidade--vinculado" : ""}`}>
                   {produtoVinculado ? (labelConsumo(produtoVinculado) || labelEstoque(produtoVinculado)) : "un"}
                 </span>
               </div>
@@ -340,21 +333,21 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
           </div>
 
           {/* Painel de ingredientes — 2 colunas */}
-          <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 280px", gap: 14, alignItems: "start" }}>
+          <div className={`fichas-tab__form-corpo${isNarrow ? " fichas-tab__form-corpo--estreito" : ""}`}>
 
             {/* Esquerda: lista de ingredientes adicionados */}
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className="admin__secao-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
+            <div className="fichas-tab__coluna-ingredientes">
+              <div className="admin__secao-label">
                 Ingredientes da receita
               </div>
 
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="fichas-tab__ingredientes">
                 {/* Cabeçalho das colunas */}
                 {form.ingredientes.length > 0 && (
-                  <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, paddingBottom: 4, borderBottom: `1px solid var(${C.border})` }}>
+                  <div className={`fichas-tab__ing-grade fichas-tab__ing-grade--cabecalho${isNarrow ? " fichas-tab__ing-grade--estreito" : ""}`}>
                     {(isNarrow ? ["Ingrediente", "Qtd", "Un", ""] : ["Ingrediente", "Qtd", "Un", "R$/un", ""]).map((h, i) => (
                       // TD015: cabeçalho literal, escrito na linha acima, tamanho fixo.
-                      <div key={i} className="fichas-tab__ing-col-header" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 0.8, textAlign: i > 0 ? "center" : "left" }}>{h}</div>
+                      <div key={i} className="fichas-tab__ing-col-header">{h}</div>
                     ))}
                   </div>
                 )}
@@ -365,13 +358,13 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                   const nomeChip   = prodVinc?.name  ?? ing.nome;
                   const emojiChip  = prodVinc?.emoji ?? ing.emoji;
                   return (
-                  <div key={ing.uid} style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr 56px 44px 28px" : "1fr 64px 54px 80px 28px", gap: 6, alignItems: "center" }}>
+                  <div key={ing.uid} className={`fichas-tab__ing-grade fichas-tab__ing-grade--item${isNarrow ? " fichas-tab__ing-grade--estreito" : ""}`}>
                     {/* Nome — chip se vinculado, input se manual */}
                     {prodVinc ? (
-                      <div className="fichas-tab__ing-chip" style={{ background: alfa(C.accent, "12"), border: `1px solid ${alfa(C.accent, "33")}` }}>
-                        {emojiChip && <span className="fichas-tab__ing-chip-emoji" style={{ flexShrink: 0 }}>{emojiChip}</span>}
-                        <span className="fichas-tab__ing-chip-nome" style={{ fontWeight: 600, color: varColor(C.text), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{nomeChip}</span>
-                        <LuLink size={11} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
+                      <div className="fichas-tab__ing-chip">
+                        {emojiChip && <span className="fichas-tab__ing-chip-emoji">{emojiChip}</span>}
+                        <span className="fichas-tab__ing-chip-nome">{nomeChip}</span>
+                        <LuLink size={11} color={varColor(C.accent)} className="fichas-tab__icone-fixo" />
                       </div>
                     ) : (
                       <input
@@ -384,21 +377,18 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                     <input
                       type="number" value={ing.qtd} onChange={e => setIng(i, "qtd", e.target.value)}
                       placeholder="0"
-                      className="fichas-tab__ing-input"
-                      style={{ textAlign: "center" }}
+                      className="fichas-tab__ing-input fichas-tab__ing-input--centro"
                     />
                     <input
                       value={ing.unidade} onChange={e => setIng(i, "unidade", e.target.value)}
                       placeholder="un"
-                      className="fichas-tab__ing-input"
-                      style={{ textAlign: "center" }}
+                      className="fichas-tab__ing-input fichas-tab__ing-input--centro"
                     />
                     {!isNarrow && (
                       <input
                         type="number" value={ing.custoUnit} onChange={e => setIng(i, "custoUnit", e.target.value)}
                         placeholder="0,00"
-                        className="fichas-tab__ing-input"
-                        style={{ textAlign: "right" }}
+                        className="fichas-tab__ing-input fichas-tab__ing-input--direita"
                       />
                     )}
                     <button onClick={() => removeIng(i)} className="fichas-tab__btn-remover-ing">
@@ -409,7 +399,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                 })}
 
                 {form.ingredientes.length === 0 && (
-                  <div className="fichas-tab__ing-vazio-msg" style={{ color: varColor(C.muted), padding: "24px 0", textAlign: "center", border: `1.5px dashed var(${C.border})`, borderRadius: 10 }}>
+                  <div className="fichas-tab__ing-vazio-msg">
                     Selecione itens do estoque ao lado<br />
                     <span className="fichas-tab__ing-vazio-linha2">ou adicione manualmente</span>
                   </div>
@@ -427,40 +417,34 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
               {/* Resumo de custo */}
               {form.ingredientes.length > 0 && (
                 <div className="fichas-tab__resumo-custo">
-                  <div className="fichas-tab__resumo-linha" style={{ color: varColor(C.muted) }}>
-                    Custo total: <strong style={{ color: varColor(C.text) }}>{fmtR(custoTotal)}</strong>
+                  <div className="fichas-tab__resumo-linha">
+                    Custo total: <strong className="fichas-tab__valor-forte">{fmtR(custoTotal)}</strong>
                   </div>
-                  <div className="fichas-tab__resumo-linha" style={{ color: varColor(C.muted) }}>
-                    Por porção: <strong style={{ color: varColor(C.green) }}>{fmtR(custoPorcao)}</strong>
+                  <div className="fichas-tab__resumo-linha">
+                    Por porção: <strong className="fichas-tab__valor-porcao">{fmtR(custoPorcao)}</strong>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Direita: painel de busca no estoque */}
-            <div className="fichas-tab__painel-estoque" style={{ height: isNarrow ? "auto" : 380, minHeight: isNarrow ? 200 : "unset" }}>
-              <div className="admin__secao-label" style={{ fontWeight: 700, color: varColor(C.muted), textTransform: "uppercase", letterSpacing: 1 }}>
+            <div className={`fichas-tab__painel-estoque${isNarrow ? " fichas-tab__painel-estoque--estreito" : ""}`}>
+              <div className="admin__secao-label">
                 Itens do Estoque
               </div>
 
               {/* Campo de busca */}
-              <div style={{ position: "relative" }}>
-                <LuSearch size={13} color={varColor(C.muted)} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <div className="fichas-tab__ancora">
+                <LuSearch size={13} color={varColor(C.muted)} className="fichas-tab__icone-busca" />
                 <input
                   ref={buscaRef}
                   value={busca}
                   onChange={e => setBusca(e.target.value)}
                   placeholder="Buscar produto..."
-                  className="fichas-tab__input-busca-estoque"
-                  style={{
-                    width: "100%", padding: "8px 10px 8px 30px",
-                    borderRadius: 9, border: "1.5px solid var(--gm-input-border)",
-                    background: "var(--gm-input-bg)", color: varColor(C.text),
-                    fontFamily: "inherit", outline: "none", boxSizing: "border-box",
-                  }}
+                  className="fichas-tab__input-busca fichas-tab__input-busca-estoque"
                 />
                 {busca && (
-                  <button onClick={() => setBusca("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: varColor(C.muted), display: "flex", padding: 2 }}>
+                  <button onClick={() => setBusca("")} className="fichas-tab__btn-limpar fichas-tab__btn-limpar--no-campo">
                     <LuX size={12} />
                   </button>
                 )}
@@ -471,16 +455,11 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                 <button
                   type="button"
                   onClick={() => setShowFiltroIng(v => !v)}
-                  className="fichas-tab__filtro-toggle"
-                  style={{
-                    borderColor: catFiltroIng !== "Todos" ? varColor(C.accent) : varColor(C.border),
-                    background: catFiltroIng !== "Todos" ? alfa(C.accent, "12") : varColor(C.card),
-                    color: catFiltroIng !== "Todos" ? varColor(C.accent) : varColor(C.muted),
-                  }}
+                  className={`fichas-tab__filtro-toggle${catFiltroIng !== "Todos" ? " fichas-tab__filtro-toggle--ativo" : ""}`}
                 >
                   <LuSlidersHorizontal size={13} />
                   Filtro{catFiltroIng !== "Todos" ? `: ${catFiltroIng}` : ""}
-                  <LuChevronDown size={13} style={{ transform: showFiltroIng ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+                  <LuChevronDown size={13} className={`fichas-tab__seta${showFiltroIng ? " fichas-tab__seta--aberta" : ""}`} />
                 </button>
 
                 {showFiltroIng && (
@@ -490,12 +469,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                         key={cat}
                         type="button"
                         onClick={() => { setCatFiltroIng(cat); if (cat !== "Todos") setShowFiltroIng(false); }}
-                        className="fichas-tab__filtro-chip"
-                        style={{
-                          borderColor: catFiltroIng === cat ? varColor(C.accent) : varColor(C.border),
-                          background: catFiltroIng === cat ? varColor(C.accent) : varColor(C.card),
-                          color: catFiltroIng === cat ? "#fff" : varColor(C.muted),
-                        }}
+                        className={`fichas-tab__filtro-chip${catFiltroIng === cat ? " fichas-tab__filtro-chip--ativo" : ""}`}
                       >
                         {cat}
                       </button>
@@ -505,9 +479,9 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
               </div>
 
               {/* Lista de produtos */}
-              <div className="fichas-tab__lista-produtos" style={{ maxHeight: isNarrow ? 200 : "unset" }}>
+              <div className={`fichas-tab__lista-produtos${isNarrow ? " fichas-tab__lista-produtos--estreito" : ""}`}>
                 {produtosFiltrados.length === 0 ? (
-                  <div className="fichas-tab__lista-vazia" style={{ color: varColor(C.muted), textAlign: "center", padding: "20px 0" }}>
+                  <div className="fichas-tab__lista-vazia">
                     Nenhum produto encontrado
                   </div>
                 ) : (
@@ -517,24 +491,17 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                       <button
                         key={p.id}
                         onClick={() => !jaAdicionado && adicionarDoProduto(p)}
-                        className="fichas-tab__produto-item"
-                        style={{
-                          borderColor: jaAdicionado ? alfa(C.accent, "44") : "transparent",
-                          background: jaAdicionado ? alfa(C.accent, "0c") : "none",
-                          cursor: jaAdicionado ? "default" : "pointer",
-                        }}
-                        onMouseEnter={e => { if (!jaAdicionado) e.currentTarget.style.background = varColor(C.faint); }}
-                        onMouseLeave={e => { if (!jaAdicionado) e.currentTarget.style.background = "none"; }}
+                        className={`fichas-tab__produto-item${jaAdicionado ? " fichas-tab__produto-item--adicionado" : ""}`}
                       >
-                        <span className="fichas-tab__produto-item-emoji" style={{ flexShrink: 0 }}>{p.emoji || "📦"}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="fichas-tab__produto-item-nome" style={{ color: jaAdicionado ? varColor(C.accent) : varColor(C.text) }}>{p.name}</div>
+                        <span className="fichas-tab__produto-item-emoji">{p.emoji || "📦"}</span>
+                        <div className="fichas-tab__texto-flex">
+                          <div className="fichas-tab__produto-item-nome">{p.name}</div>
                           <div className="fichas-tab__produto-item-categoria">{p.category}</div>
                         </div>
                         {jaAdicionado ? (
-                          <LuCheck size={13} color={varColor(C.accent)} style={{ flexShrink: 0 }} />
+                          <LuCheck size={13} color={varColor(C.accent)} className="fichas-tab__icone-fixo" />
                         ) : (
-                          <LuPlus size={13} color={varColor(C.muted)} style={{ flexShrink: 0 }} />
+                          <LuPlus size={13} color={varColor(C.muted)} className="fichas-tab__icone-fixo" />
                         )}
                       </button>
                     );
