@@ -51,6 +51,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-24 | 3 bibliotecas, fim da fase 3 | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+13 em features/) | 0 / 38 | 258 arquivos, 4.373 testes | 2.429 kB |
 | 2026-11-24 | 4.1 ganchos do caixa | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+10 em features/) | 0 / 35 | 258 arquivos, 4.376 testes | 2.429 kB |
 | 2026-11-24 | 4.2 pdv | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+8 em features/) | 0 / 33 | 260 arquivos, 4.387 testes | 2.429 kB |
+| 2026-11-24 | 4.3 delivery | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+8 em features/) | 0 / 33 | 260 arquivos, 4.395 testes | 2.429 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

@@ -304,3 +304,34 @@ export async function atualizarStatusPedido(pedidoId, novoStatus, contexto = {})
     return { data: null, error };
   }
 }
+
+// Avançar e cancelar pedido, usados pela aba de pedidos do computador e pelo
+// módulo de delivery do celular (refatoração 4.3). A regra é uma só: qual é o
+// próximo status, e que dados vão para a guarda de transição e para a auditoria
+// (status de origem, operador e número). A mensagem para o operador fica com
+// cada tela.
+
+/**
+ * Leva o pedido para o próximo status do fluxo. Pedido em status final não tem
+ * próximo: volta `proximo: null` sem chamar o banco.
+ * @returns {Promise<{ data: object|null, error: Error|null, proximo: string|null }>}
+ */
+export async function avancarPedido(pedido, operador) {
+  const proximo = proximoStatus(pedido?.status);
+  if (!proximo) return { data: null, error: null, proximo: null };
+  const { data, error } = await atualizarStatusPedido(pedido.id, proximo, {
+    de: pedido.status,
+    operador,
+    numero: pedido.numero,
+  });
+  return { data, error, proximo };
+}
+
+/** Cancela o pedido. A guarda de transição barra cancelar o que já terminou. */
+export function cancelarPedido(pedido, operador) {
+  return atualizarStatusPedido(pedido?.id, STATUS_CANCELADO, {
+    de: pedido?.status,
+    operador,
+    numero: pedido?.numero,
+  });
+}

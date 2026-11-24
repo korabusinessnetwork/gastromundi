@@ -8,15 +8,20 @@ vi.mock("@/context/AppContext", async () => {
   return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
-const { carregarItensPedido, usePedidosDelivery } = vi.hoisted(() => ({
+const { carregarItensPedido, usePedidosDelivery, avancarPedido, cancelarPedido } = vi.hoisted(() => ({
   carregarItensPedido: vi.fn(),
   usePedidosDelivery: vi.fn(),
+  avancarPedido: vi.fn(() => Promise.resolve({ error: null, proximo: "em_preparo" })),
+  cancelarPedido: vi.fn(() => Promise.resolve({ error: null })),
 }));
 
 vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   carregarItensPedido,
-  atualizarStatusPedido: vi.fn(() => Promise.resolve({ error: null })),
+  // Desde a refatoração 4.3 as telas mudam o status por estas duas ações da
+  // biblioteca; substituir a função interna que elas chamam não as alcança.
+  avancarPedido,
+  cancelarPedido,
 }));
 
 vi.mock("@/utils/hooks", () => ({ usePedidosDelivery }));
@@ -189,5 +194,37 @@ describe("DeliveryModulo, falha ao atualizar com pedidos na tela (Run 6, leva 7)
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText(/#42 · Ana/)).toBeInTheDocument();
+  });
+});
+
+// Refatoração 4.3: avançar e cancelar pedido passaram a ser as mesmas ações no
+// computador e no celular (`avancarPedido` e `cancelarPedido`). Estes testes
+// prendem a ligação da tela do celular com elas.
+describe("DeliveryModulo, mudar o status do pedido", () => {
+  async function abrirPedido(user) {
+    carregarItensPedido.mockResolvedValue({ data: [], error: null });
+    setAppMock({ currentUser: { id: 1, username: "ana", name: "Ana", role: "gerente", permissions: {} } });
+    render(<DeliveryModulo onVoltar={vi.fn()} />);
+    await user.click(screen.getByRole("button", { expanded: false }));
+  }
+
+  it("aceitar o pedido avança com o pedido e o operador", async () => {
+    const user = userEvent.setup();
+    await abrirPedido(user);
+
+    await user.click(screen.getByRole("button", { name: "Aceitar e preparar" }));
+
+    expect(avancarPedido).toHaveBeenCalledWith(PEDIDO, "ana");
+  });
+
+  it("cancelar pede confirmação e só então cancela", async () => {
+    const user = userEvent.setup();
+    await abrirPedido(user);
+
+    await user.click(screen.getByRole("button", { name: /^Cancelar$/ }));
+    expect(cancelarPedido).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Cancelar mesmo" }));
+    expect(cancelarPedido).toHaveBeenCalledWith(PEDIDO, "ana");
   });
 });

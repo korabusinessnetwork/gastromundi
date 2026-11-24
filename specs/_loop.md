@@ -1,3 +1,15 @@
+## Rodada 98, refatoração 4.3, o Delivery do computador e do celular com as mesmas ações, 2026-11-24
+- Spec: specs/refatoracao-4-3-delivery.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4395
+  testes, verde; `npm run build` limpo; lint 0 erros, 33 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- Avançar e cancelar pedido viraram `avancarPedido` e `cancelarPedido` na biblioteca, usados
+  pelas duas telas. O agrupamento por status ficou separado de propósito: as duas telas
+  mostram coisas diferentes (o computador tem a coluna de cancelados, o celular ordena).
+- O que a rodada revelou: nenhum teste de tela passava por avançar ou cancelar pedido; a
+  sabotagem que impedia avançar passou em todos. Agora as duas telas têm teste das duas
+  ações, provado por sabotagem. E o mock do teste do celular mirava uma função interna que
+  as ações novas chamam por dentro do módulo, fora do alcance dele; foi trocado.
 ## Rodada 97, refatoração 4.2, o PDV do computador e do celular com as mesmas regras, 2026-11-24
 - Spec: specs/refatoracao-4-2-pdv.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4387

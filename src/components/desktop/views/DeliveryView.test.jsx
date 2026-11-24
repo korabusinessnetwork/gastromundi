@@ -12,7 +12,7 @@
 // AbaPedidos não é exportada: o teste monta o DeliveryView de verdade e vive
 // com a aba "pedidos", que é a inicial.
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 vi.mock("@/context/AppContext", async () => {
@@ -36,6 +36,17 @@ const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery } = v
 vi.mock("@/utils/hooks", async (importOriginal) => ({
   ...(await importOriginal()),
   usePedidosDelivery,
+}));
+
+const { avancarPedido, cancelarPedido } = vi.hoisted(() => ({
+  avancarPedido: vi.fn(() => Promise.resolve({ error: null, proximo: "em_preparo" })),
+  cancelarPedido: vi.fn(() => Promise.resolve({ error: null })),
+}));
+
+vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
+  ...(await importOriginal()),
+  avancarPedido,
+  cancelarPedido,
 }));
 
 vi.mock("@/lib/deliveryAdmin", async (importOriginal) => ({
@@ -212,5 +223,32 @@ describe("DeliveryView, a prévia abre a loja DESTE estabelecimento", () => {
       "_blank",
       "noopener,noreferrer",
     );
+  });
+});
+
+// Refatoração 4.3: avançar e cancelar pedido passaram a ser as mesmas ações no
+// computador e no celular (`avancarPedido` e `cancelarPedido`). Estes testes
+// prendem a ligação da aba de pedidos do computador com elas.
+describe("DeliveryView, mudar o status do pedido", () => {
+  const GERENTE = { id: 1, username: "ana", name: "Ana Gerente", role: "admin", permissions: {} };
+
+  it("aceitar o pedido avança com o pedido e o operador", async () => {
+    setAppMock({ currentUser: GERENTE });
+    await montar();
+
+    fireEvent.click(screen.getByRole("button", { name: /Aceitar e preparar/ }));
+
+    await waitFor(() => expect(avancarPedido).toHaveBeenCalledWith(PEDIDO, "ana"));
+  });
+
+  it("cancelar pede confirmação e só então cancela", async () => {
+    setAppMock({ currentUser: GERENTE });
+    await montar();
+
+    fireEvent.click(screen.getByTitle("Cancelar este pedido"));
+    expect(cancelarPedido).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Cancelar mesmo/ }));
+    await waitFor(() => expect(cancelarPedido).toHaveBeenCalledWith(PEDIDO, "ana"));
   });
 });

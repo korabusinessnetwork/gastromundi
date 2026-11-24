@@ -27,6 +27,8 @@ import {
   formatarReais,
   tempoDecorrido,
   atualizarStatusPedido,
+  avancarPedido,
+  cancelarPedido,
 } from "./deliveryPedidos";
 import { supabase } from "./supabase";
 
@@ -336,5 +338,38 @@ describe("atualizarStatusPedido (DL2)", () => {
     const { data, error } = await atualizarStatusPedido("p1", "em_preparo");
     expect(error).toBeNull();
     expect(data).toEqual({ id: "p1", numero: 7, status: "em_preparo" });
+  });
+});
+
+describe("avancarPedido e cancelarPedido (refatoração 4.3)", () => {
+  beforeEach(() => {
+    supabase.reset();
+  });
+
+  it("pedido recebido vai para em preparo e devolve o próximo status", async () => {
+    supabase.setTableResult("delivery_pedidos", { data: { id: "p1", numero: 7, status: "em_preparo" }, error: null });
+    const { error, proximo } = await avancarPedido({ id: "p1", numero: 7, status: "recebido" }, "ana");
+    expect(error).toBeNull();
+    expect(proximo).toBe("em_preparo");
+  });
+
+  it("pedido entregue não tem próximo: não chama o banco", async () => {
+    supabase.setTableError("delivery_pedidos", { message: "não devia chegar aqui" });
+    const { error, proximo } = await avancarPedido({ id: "p1", status: "entregue" }, "ana");
+    expect(proximo).toBeNull();
+    expect(error).toBeNull();
+  });
+
+  it("cancelar pedido em preparo grava o cancelamento", async () => {
+    supabase.setTableResult("delivery_pedidos", { data: { id: "p1", numero: 7, status: "cancelado" }, error: null });
+    const { error } = await cancelarPedido({ id: "p1", numero: 7, status: "em_preparo" }, "ana");
+    expect(error).toBeNull();
+  });
+
+  it("cancelar pedido já entregue é barrado antes do banco", async () => {
+    supabase.setTableResult("delivery_pedidos", { data: { id: "p1", status: "cancelado" }, error: null });
+    const { data, error } = await cancelarPedido({ id: "p1", status: "entregue" }, "ana");
+    expect(error).toBeTruthy();
+    expect(data).toBeNull();
   });
 });

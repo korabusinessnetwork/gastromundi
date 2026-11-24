@@ -13,9 +13,9 @@ import {
 } from "react-icons/lu";
 import { useSessao } from "@/context/AppContext";
 import {
-  STATUS_CANCELADO,
   STATUS_FLUXO,
-  atualizarStatusPedido,
+  avancarPedido,
+  cancelarPedido,
   carregarItensPedido,
   formatarReais,
   linkWhatsApp,
@@ -173,11 +173,7 @@ export default function DeliveryModulo({ onVoltar }) {
     if (!proximo || processando[pedido.id]) return;
     setProcessando((prev) => ({ ...prev, [pedido.id]: true }));
     setMensagem(null);
-    const { error } = await atualizarStatusPedido(pedido.id, proximo, {
-      de: pedido.status,
-      operador: currentUser?.username,
-      numero: pedido.numero,
-    });
+    const { error } = await avancarPedido(pedido, currentUser?.username);
     setProcessando((prev) => ({ ...prev, [pedido.id]: false }));
     if (error) {
       setMensagem({ tipo: "erro", texto: "Não foi possível atualizar o pedido. Toque para tentar de novo." });
@@ -194,11 +190,7 @@ export default function DeliveryModulo({ onVoltar }) {
     if (processando[pedido.id]) return;
     setProcessando((prev) => ({ ...prev, [pedido.id]: true }));
     setMensagem(null);
-    const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
-      de: pedido.status,
-      operador: currentUser?.username,
-      numero: pedido.numero,
-    });
+    const { error } = await cancelarPedido(pedido, currentUser?.username);
     setProcessando((prev) => ({ ...prev, [pedido.id]: false }));
     setConfirmandoCancelarId(null);
     if (error) {

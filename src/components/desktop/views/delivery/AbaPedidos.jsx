@@ -4,7 +4,7 @@ import {
   LuRefreshCw, LuBell, LuBellOff
 } from "react-icons/lu";
 import {
-  statusLabel, proximoStatus, ehTerminal, agruparPorStatus, atualizarStatusPedido, STATUS_CANCELADO
+  statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido
 } from "@/lib/deliveryPedidos";
 import {
   detectarNovosPedidos, alertarPedidosNovos, permissaoNotificacao, pedirPermissaoNotificacao, notificacoesSuportadas
@@ -83,13 +83,8 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
 
   const avancar = useCallback(
     async (pedido) => {
-      const proximo = proximoStatus(pedido.status);
+      const { error, proximo } = await avancarPedido(pedido, currentUser?.username);
       if (!proximo) return;
-      const { error } = await atualizarStatusPedido(pedido.id, proximo, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
       if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
       aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
       await recarregar();
@@ -99,11 +94,7 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
 
   const cancelar = useCallback(
     async (pedido) => {
-      const { error } = await atualizarStatusPedido(pedido.id, STATUS_CANCELADO, {
-        de: pedido.status,
-        operador: currentUser?.username,
-        numero: pedido.numero,
-      });
+      const { error } = await cancelarPedido(pedido, currentUser?.username);
       if (error) return aviso("Não foi possível cancelar. Tente novamente.", "err");
       aviso(`Pedido ${pedido.numero} cancelado.`, "ok");
       await recarregar();
