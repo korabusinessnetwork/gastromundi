@@ -1,3 +1,15 @@
+## Rodada 90, refatoração 3.6, o Checkout em gancho e regiões próprias, 2026-11-24
+- Spec: specs/refatoracao-3-6-checkout.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4360
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. `CheckoutView.jsx`: 1.374 para 116 linhas.
+- Teste novo: a janela de desconto, que mexe no valor cobrado e não tinha teste de tela.
+  Senha certa aplica 10% e o total vai de R$ 68,30 para R$ 61,47; senha recusada não
+  aplica e diz o motivo. Provado por sabotagem: aceitando qualquer senha, o teste falha.
+- O que a rodada revelou, duas falhas do gerador pegas pelo lint na primeira passada: as
+  constantes do módulo eram copiadas em todo arquivo novo (agora saem antes para um
+  `apoio.js`), e a tela desestruturava do gancho um nome que já recebia como propriedade
+  (`comanda`). As duas viraram correção permanente do gerador.
 ## Rodada 89, refatoração 3.5, o Console em gancho e aba própria, 2026-11-24
 - Spec: specs/refatoracao-3-5-console.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4358

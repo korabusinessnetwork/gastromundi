@@ -183,3 +183,38 @@ describe("CheckoutView, remoção parcial gera uid próprio para o cancelado", (
     expect(items).toContainEqual(PORCAO);
   });
 });
+
+// Refatoração 3: a janela de desconto e acréscimo saiu para um arquivo próprio
+// e lê o estado do gancho `useCheckout`. Ela mexe no valor cobrado e não tinha
+// teste de tela; estes prendem o caminho inteiro, da abertura ao total.
+describe("CheckoutView, desconto com senha de gerente", () => {
+  const campoValor = () => document.querySelector(".checkout-view__modal input[placeholder='0']")
+    ?? screen.getByPlaceholderText("0");
+
+  it("10% de desconto com a senha certa muda o total da conta", async () => {
+    await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
+
+    await clicar("Desconto / Acréscimo");
+    fireEvent.change(campoValor(), { target: { value: "10" } });
+    fireEvent.change(screen.getByPlaceholderText("Digite a senha"), { target: { value: "1234" } });
+    await clicar("Aplicar");
+
+    // R$ 68,30 menos 10% = R$ 61,47; o botão passa a dizer o que foi aplicado.
+    expect(screen.getAllByText(/61[,.]47/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /^Desconto$/ })).toBeInTheDocument();
+  });
+
+  it("senha recusada não aplica o desconto e diz o motivo", async () => {
+    const { verificarSenhaAdmin } = await import("@/lib/adminAuth");
+    verificarSenhaAdmin.mockResolvedValueOnce({ ok: false, erro: null });
+    await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
+
+    await clicar("Desconto / Acréscimo");
+    fireEvent.change(campoValor(), { target: { value: "10" } });
+    fireEvent.change(screen.getByPlaceholderText("Digite a senha"), { target: { value: "0000" } });
+    await clicar("Aplicar");
+
+    expect(screen.getByText(/Senha incorreta/)).toBeInTheDocument();
+    expect(screen.queryAllByText(/61[,.]47/).filter(el => !el.closest(".checkout-view__modal"))).toHaveLength(0);
+  });
+});
