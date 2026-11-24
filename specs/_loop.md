@@ -1,3 +1,14 @@
+## Rodada 101, refatoração 4.6, o Financeiro do celular vê as contas vencidas, 2026-11-24
+- Spec: specs/refatoracao-4-6-financeiro.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 261 arquivos / 4407
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- Defeito achado ao comparar as telas: o celular só buscava contas `previsto`, e as que o
+  Financeiro do computador já tinha marcado `vencido` sumiam da seção "Vencidos". Agora o
+  celular busca as contas em aberto pela regra e usa `resumirContasEmAberto`.
+- O módulo do celular não tinha teste; o novo falha contra a versão anterior do arquivo.
+- No meio da rodada criei uma segunda constante igual à `STATUS_EM_ABERTO` que já existia;
+  removida antes do commit, e a existente passou a ser exportada.
 ## Rodada 100, refatoração 4.5, Clientes com a mesma regra de fiado, 2026-11-24
 - Spec: specs/refatoracao-4-5-clientes.md
 - Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4402

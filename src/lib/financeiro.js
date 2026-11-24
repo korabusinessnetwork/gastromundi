@@ -117,7 +117,7 @@ export async function baixarConta(id, usuario) {
  * @param {string} [opts.de] - YYYY-MM-DD
  * @param {string} [opts.ate] - YYYY-MM-DD
  * @param {"receita"|"despesa"} [opts.tipo]
- * @param {"previsto"|"pago"|"recebido"|"vencido"} [opts.status]
+ * @param {"previsto"|"pago"|"recebido"|"vencido"|string[]} [opts.status] - um status, ou uma lista
  * @returns {Promise<{data: object[]|null, error: object|null}>}
  */
 export async function listarLancamentos({ de, ate, tipo, status } = {}) {
@@ -129,7 +129,8 @@ export async function listarLancamentos({ de, ate, tipo, status } = {}) {
   if (de) query = query.gte("competencia", de);
   if (ate) query = query.lte("competencia", ate);
   if (tipo) query = query.eq("tipo", tipo);
-  if (status) query = query.eq("status", status);
+  if (Array.isArray(status)) query = query.in("status", status);
+  else if (status) query = query.eq("status", status);
   const { data, error } = await query;
   return { data, error };
 }
@@ -169,7 +170,7 @@ export async function processarVencidos(lancamentos, hoje = new Date()) {
  * é a conta mais urgente que existe, e por isso não pode desaparecer da conta
  * do previsto nem perder o botão de baixa (era o defeito da Run 2).
  */
-const STATUS_EM_ABERTO = ["previsto", "vencido"];
+export const STATUS_EM_ABERTO = ["previsto", "vencido"];
 
 /** Status de conta já liquidada: virou dinheiro de verdade no período. */
 const STATUS_REALIZADO = ["pago", "recebido"];
@@ -257,4 +258,34 @@ export function marcarVencidos(lancamentos, hoje = new Date()) {
   return (lancamentos ?? [])
     .filter((l) => l.status === "previsto" && l.vencimento && dataCalendario(l.vencimento) < hojeStr)
     .map((l) => l.id);
+}
+
+/**
+ * Resumo das contas em aberto para o painel: as vencidas (com o total) e as
+ * próximas a vencer.
+ *
+ * Vencida é a que já está marcada `vencido` no banco OU a `previsto` cuja data
+ * passou. Refatoração 4.6: o painel do celular só olhava `previsto`, e depois
+ * que o Financeiro do computador marcava as atrasadas como `vencido`
+ * (`processarVencidos`), elas sumiam do celular, que passava a dizer que não
+ * havia nada vencido.
+ *
+ * @param {object[]} lancamentos - contas em aberto (previsto ou vencido)
+ * @param {Date|string} [hoje]
+ * @param {number} [limiteProximas]
+ */
+export function resumirContasEmAberto(lancamentos, hoje = new Date(), limiteProximas = 5) {
+  const abertas = (lancamentos ?? []).filter(contaEmAberto);
+  const venceuPelaData = new Set(marcarVencidos(abertas, hoje));
+  const ehVencida = (l) => l.status === "vencido" || venceuPelaData.has(l.id);
+  const vencidas = abertas.filter(ehVencida);
+  const proximas = abertas
+    .filter((l) => !ehVencida(l) && l.vencimento)
+    .sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
+    .slice(0, limiteProximas);
+  return {
+    vencidas,
+    totalVencido: round2(vencidas.reduce((s, l) => s + (Number(l.valor) || 0), 0)),
+    proximas,
+  };
 }

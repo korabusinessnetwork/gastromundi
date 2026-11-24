@@ -312,6 +312,10 @@ duas telas, como já era no alerta do PDV, e contagem negativa no celular deixa 
 **4.5 Clientes feita em 2026-11-24:** as contas de fiado em aberto vêm de
 `contasDeFiadoEmAberto`, sobre a regra `contaEmAberto` do financeiro.
 
+**4.6 Financeiro feita em 2026-11-24:** o painel do celular busca as contas em aberto (previsto
+e vencido) e usa `resumirContasEmAberto`; antes as contas já marcadas vencidas pelo computador
+sumiam do celular.
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

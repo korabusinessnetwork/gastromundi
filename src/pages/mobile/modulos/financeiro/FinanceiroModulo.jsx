@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { LuArrowLeft, LuCircleCheck, LuMonitor, LuTriangleAlert } from "react-icons/lu";
-import { listarLancamentos, calcularFluxoCaixa, marcarVencidos } from "@/lib/financeiro";
+import { listarLancamentos, calcularFluxoCaixa, resumirContasEmAberto, STATUS_EM_ABERTO } from "@/lib/financeiro";
 import { intervaloDoMes, intervaloUltimosDias } from "@/lib/periodos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
@@ -45,11 +45,12 @@ export default function FinanceiroModulo({ onVoltar }) {
       setErro("");
 
       // Dois recortes: os lançamentos do período (para o fluxo de caixa) e
-      // TODOS os previstos (para vencidos/próximos, que não são "do mês
-      // escolhido" — uma conta vencida importa mesmo fora do chip ativo).
+      // TODAS as contas em aberto (para vencidos/próximos, que não são "do mês
+      // escolhido": uma conta vencida importa mesmo fora do chip ativo). Em
+      // aberto inclui as já marcadas `vencido` pelo Financeiro do computador.
       const [resPeriodo, resPrevistos] = await Promise.all([
         listarLancamentos({ de: periodo.de, ate: periodo.ate }),
-        listarLancamentos({ status: "previsto" }),
+        listarLancamentos({ status: STATUS_EM_ABERTO }),
       ]);
 
       if (cancelado) return;
@@ -74,23 +75,9 @@ export default function FinanceiroModulo({ onVoltar }) {
     [lancamentos, periodo.de, periodo.ate],
   );
 
-  const vencidosIds = useMemo(() => new Set(marcarVencidos(previstos)), [previstos]);
-  const vencidosLista = useMemo(
-    () => previstos.filter((l) => vencidosIds.has(l.id)),
-    [previstos, vencidosIds],
-  );
-  const totalVencido = useMemo(
-    () => vencidosLista.reduce((s, l) => s + (Number(l.valor) || 0), 0),
-    [vencidosLista],
-  );
-
-  const proximos = useMemo(
-    () =>
-      previstos
-        .filter((l) => l.vencimento && !vencidosIds.has(l.id))
-        .sort((a, b) => new Date(a.vencimento) - new Date(b.vencimento))
-        .slice(0, 5),
-    [previstos, vencidosIds],
+  const { vencidas: vencidosLista, totalVencido, proximas: proximos } = useMemo(
+    () => resumirContasEmAberto(previstos),
+    [previstos],
   );
 
   return (

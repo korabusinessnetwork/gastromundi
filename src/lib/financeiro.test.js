@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("./supabase", () => ({ supabase: {} }));
 vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
 
-import { calcularFluxoCaixa, marcarVencidos, contaEmAberto, criarLancamento } from "./financeiro";
+import { calcularFluxoCaixa, marcarVencidos, contaEmAberto, criarLancamento, resumirContasEmAberto } from "./financeiro";
 
 describe("calcularFluxoCaixa", () => {
   const lancamentos = [
@@ -233,5 +233,35 @@ describe("marcarVencidos", () => {
       { id: "ontem",  status: "previsto", vencimento: "2026-07-14" }, // venceu ontem → vencido
     ];
     expect(marcarVencidos(lancamentos, agoraTarde)).toEqual(["ontem"]);
+  });
+});
+
+// Refatoração 4.6: o painel do celular usa este resumo. Antes ele só via conta
+// `previsto`, e as já marcadas `vencido` pelo computador sumiam da lista.
+describe("resumirContasEmAberto", () => {
+  const HOJE = "2026-11-24T12:00:00";
+  const contas = [
+    { id: "a", valor: 100, status: "vencido",  vencimento: "2026-11-10" },
+    { id: "b", valor: 50,  status: "previsto", vencimento: "2026-11-20" },
+    { id: "c", valor: 30,  status: "previsto", vencimento: "2026-11-24" },
+    { id: "d", valor: 20,  status: "previsto", vencimento: "2026-12-01" },
+    { id: "e", valor: 999, status: "pago",     vencimento: "2026-11-01" },
+  ];
+
+  it("conta já marcada vencido entra nas vencidas, junto com a previsto atrasada", () => {
+    const { vencidas, totalVencido } = resumirContasEmAberto(contas, HOJE);
+    expect(vencidas.map((l) => l.id)).toEqual(["a", "b"]);
+    expect(totalVencido).toBe(150);
+  });
+
+  it("próximas são as em aberto ainda no prazo, da mais perto para a mais longe", () => {
+    const { proximas } = resumirContasEmAberto(contas, HOJE);
+    // A que vence hoje ainda não venceu.
+    expect(proximas.map((l) => l.id)).toEqual(["c", "d"]);
+  });
+
+  it("conta paga não entra em nada", () => {
+    const { vencidas, proximas } = resumirContasEmAberto(contas, HOJE);
+    expect([...vencidas, ...proximas].some((l) => l.id === "e")).toBe(false);
   });
 });
