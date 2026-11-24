@@ -5,6 +5,7 @@ import { registrarInsight, buscarInsights } from "./jarvas";
 // vezes na mesma noite de operação — justo no horário de pico.
 import { hojeLocalISO } from "@/utils/datas";
 import { esperadoEmCaixa, diferencaCaixa } from "./caixa";
+import { ehGerencia } from "@/constants/roles";
 
 /**
  * Jarvas — motor de regras (fase 3).
@@ -43,7 +44,7 @@ const dias = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 /** Executa todas as regras. Chamar como fire-and-forget: `void executarAnaliseJarvas(ctx)`. */
 export async function executarAnaliseJarvas({ products, estoque, estoqueMinimos, sales, fechamentos, currentUser }) {
   try {
-    if (!currentUser || !["admin", "gerente"].includes(currentUser.role)) return;
+    if (!currentUser || !ehGerencia(currentUser)) return;
 
     // throttle por dispositivo
     const ultima = Number(localStorage.getItem(THROTTLE_KEY) ?? 0);

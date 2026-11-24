@@ -1,6 +1,13 @@
 import C from "./colors";
 import { varColor } from "@/lib/tema";
 
+/**
+ * Gerência: admin ou gerente. É quem pode excluir cliente, ver documento,
+ * pausar produto, autorizar sozinho e conversar com o Jarvas. Refatoração 4.9:
+ * a conta estava escrita à mão em 11 lugares.
+ */
+export const ehGerencia = (usuario) => usuario?.role === "admin" || usuario?.role === "gerente";
+
 export const ROLES = {
   garcom: {
     label: "Garçom",

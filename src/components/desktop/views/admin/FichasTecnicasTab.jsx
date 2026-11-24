@@ -19,6 +19,7 @@ import CardBtn from "./CardBtn";
 import EmptyMsg from "./EmptyMsg";
 import AddBtn from "./AddBtn";
 import { uid, fmtR, FICHA_VAZIA, ING_VAZIO } from "./apoio";
+import { nomeBateComBusca } from "@/lib/busca";
 
 export default function FichasTecnicasTab({ fichas, products, estoque, onSave, onDelete }) {
   const { width: vw } = useResponsive();
@@ -79,7 +80,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
     if (catFiltroIng !== "Todos") ativos = ativos.filter(p => p.category === catFiltroIng);
     if (!busca.trim()) return ativos;
     const q = busca.toLowerCase();
-    return ativos.filter(p => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
+    return ativos.filter(p => nomeBateComBusca(p.name, q) || p.category?.toLowerCase().includes(q));
   }, [products, busca, catFiltroIng]);
 
   // Produtos elegíveis para ser o "prato" da ficha (excluindo Insumo)
@@ -87,7 +88,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
     const ativos = products.filter(p => p.active !== false && p.category !== "Insumo");
     if (!buscaPrato.trim()) return ativos;
     const q = buscaPrato.toLowerCase();
-    return ativos.filter(p => p.name.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
+    return ativos.filter(p => nomeBateComBusca(p.name, q) || p.category?.toLowerCase().includes(q));
   }, [products, buscaPrato]);
 
   const produtoVinculado = useMemo(() =>

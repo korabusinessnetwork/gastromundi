@@ -8,6 +8,7 @@ import { LuSearch, LuX, LuTriangleAlert } from "react-icons/lu";
 import "./ImpostosAdmin.css";
 import ModalFiscal from "./impostos/ModalFiscal";
 import { CATS_EXCLUIDAS } from "./impostos/apoio";
+import { nomeBateComBusca } from "@/lib/busca";
 
 export default function ImpostosAdmin({ sz }) {
   const { products } = useCatalogo();
@@ -62,7 +63,7 @@ export default function ImpostosAdmin({ sz }) {
       if (catFiltro    !== "Todos" && p.category !== catFiltro) return false;
       if (statusFiltro === "Configurados" && !temConf)  return false;
       if (statusFiltro === "Pendentes"    &&  temConf)  return false;
-      if (busca && !p.name.toLowerCase().includes(busca.toLowerCase())) return false;
+      if (busca && !nomeBateComBusca(p.name, busca.toLowerCase())) return false;
       return true;
     });
   }, [itens, fiscalMap, catFiltro, statusFiltro, busca]);

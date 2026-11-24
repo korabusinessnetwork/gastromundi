@@ -322,6 +322,9 @@ sumiam do celular.
 **4.8 Cozinha feita em 2026-11-24:** `itensNaoCancelados` (14 cópias), `statusCozinha` e
 `referenciaDaEtapa`. Corrigido: no computador, pedido sem status ficava sem o botão de iniciar.
 
+**4.9 Cardápio feita em 2026-11-24:** busca por nome sem acento em todas as telas
+(`nomeBateComBusca`, 9 lugares) e gerência numa regra só (`ehGerencia`, 11 cópias).
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

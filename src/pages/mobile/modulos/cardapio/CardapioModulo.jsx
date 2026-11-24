@@ -12,6 +12,8 @@ import { useSessao, useCatalogo } from "@/context/AppContext";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./CardapioModulo.css";
+import { nomeBateComBusca } from "@/lib/busca";
+import { ehGerencia } from "@/constants/roles";
 
 /**
  * CardapioModulo — tela mobile do Cardápio no Palm (hub "Mais").
@@ -59,7 +61,7 @@ export default function CardapioModulo({ onVoltar }) {
   const [erro, setErro] = useState("");
 
   const isAdmin =
-    currentUser?.role === "admin" || currentUser?.role === "gerente";
+    ehGerencia(currentUser);
 
   const categorias = useMemo(() => {
     return [...new Set(products.map((p) => p.category).filter(Boolean))].sort(
@@ -83,7 +85,7 @@ export default function CardapioModulo({ onVoltar }) {
     }
     const q = busca.trim().toLowerCase();
     if (q) {
-      lista = lista.filter((p) => p.name?.toLowerCase().includes(q));
+      lista = lista.filter((p) => nomeBateComBusca(p.name, q));
     }
     return [...lista].sort((a, b) =>
       (a.name ?? "").localeCompare(b.name ?? "", "pt-BR")

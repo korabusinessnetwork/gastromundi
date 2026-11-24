@@ -21,6 +21,7 @@ import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
 import "./DesktopLayout.css";
+import { ehGerencia } from "@/constants/roles";
 
 export default function DesktopLayout() {
   const { currentUser, logout, tenant, users } = useSessao();
@@ -59,10 +60,10 @@ export default function DesktopLayout() {
   // Só admin/gerente autorizam sangria acima do limite — e autorizam a si
   // mesmos, sem digitar a própria senha.
   const autorizadores = useMemo(
-    () => (users ?? []).filter(u => (u.role === "admin" || u.role === "gerente") && u.active !== false),
+    () => (users ?? []).filter(u => ehGerencia(u) && u.active !== false),
     [users]
   );
-  const podeAutorizarSozinho = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  const podeAutorizarSozinho = ehGerencia(currentUser);
 
   const isMob = width < 768;
   const [sidebarRecolhida, setSidebarRecolhida] = useState(false);

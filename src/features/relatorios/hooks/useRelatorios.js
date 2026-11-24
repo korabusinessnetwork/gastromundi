@@ -13,6 +13,7 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
 import { ABAS_BASE, SALE_PREFIXES, filtrarPorPeriodo, fmtData } from "@/components/desktop/views/relatorio/apoio";
+import { ehGerencia } from "@/constants/roles";
 
 // Estado, filtros, números e exportações da tela de Relatórios. Cada aba lê daqui.
 export function useRelatorios() {
@@ -64,7 +65,7 @@ export function useRelatorios() {
       });
   }, [aba]);
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  const isAdmin = ehGerencia(currentUser);
   // Visão administrativa consolidada (B3): só role admin — gerente/caixa não veem.
   const isSuperAdmin = currentUser?.role === "admin";
   const ABAS = isSuperAdmin ? [...ABAS_BASE, "Admin"] : ABAS_BASE;

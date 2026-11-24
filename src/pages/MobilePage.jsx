@@ -44,6 +44,7 @@ import { TOTAL_COMANDAS, PAGE, MODULOS_MAIS, formatHoraCurta } from "./mobile/pa
 import { useMobilePage } from "@/pages/mobile/hooks/useMobilePage";
 import "./MobilePage.css";
 import { ticketMedio } from "@/lib/vendas";
+import { nomeBateComBusca } from "@/lib/busca";
 
 export default function MobilePage() {
   const tela = useMobilePage();
@@ -70,7 +71,7 @@ export default function MobilePage() {
   // (a) PedidoTab
   const qItens = buscaItens.trim().toLowerCase();
   const produtosFiltrados = qItens
-    ? filtrados.filter((p) => p.name.toLowerCase().includes(qItens))
+    ? filtrados.filter((p) => nomeBateComBusca(p.name, qItens))
     : filtrados;
   const qtdPorId = cartItems.reduce((acc, i) => {
     acc[i.id] = i.qty;

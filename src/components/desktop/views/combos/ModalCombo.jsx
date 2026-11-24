@@ -12,6 +12,7 @@ import {
 } from "react-icons/lu";
 import Toggle from "./Toggle";
 import { CATS_NAO_VENDAVEIS, fmtBRL } from "./apoio";
+import { nomeBateComBusca } from "@/lib/busca";
 
 export default function ModalCombo({ combo, products, subprodutos, onClose, onSalvo }) {
   const isEdit = !!combo;
@@ -75,7 +76,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
   const prodsFiltrados = useMemo(() => {
     const q = buscaProd.toLowerCase();
     const vendaveis = products.filter(p => !CATS_NAO_VENDAVEIS.includes(p.category));
-    return q ? vendaveis.filter(p => p.name.toLowerCase().includes(q)) : vendaveis;
+    return q ? vendaveis.filter(p => nomeBateComBusca(p.name, q)) : vendaveis;
   }, [products, buscaProd]);
 
   // subprodutos filtrados (excluindo já adicionados)
@@ -94,7 +95,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
       !CATS_NAO_VENDAVEIS.includes(p.category) &&
       p.id !== principal?.id &&
       !jaAdd.has(p.id) &&
-      (!q || p.name.toLowerCase().includes(q))
+      (!q || nomeBateComBusca(p.name, q))
     );
   }, [products, itensProd, principal, buscaComp]);
 

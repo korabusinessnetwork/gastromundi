@@ -4,6 +4,7 @@ import {
   LuX, LuSearch
 } from "react-icons/lu";
 import { fmtR } from "./apoio";
+import { nomeBateComBusca } from "@/lib/busca";
 
 export default function VinculaRow({ item, products, onChange }) {
   const [busca,  setBusca]  = useState(item.produto?.name || "");
@@ -11,7 +12,7 @@ export default function VinculaRow({ item, products, onChange }) {
   const ref = useRef(null);
 
   const filtrados = busca.length > 1
-    ? products.filter(p => p.name.toLowerCase().includes(busca.toLowerCase())).slice(0, 8)
+    ? products.filter(p => nomeBateComBusca(p.name, busca.toLowerCase())).slice(0, 8)
     : [];
 
   const selectProduto = (p) => {

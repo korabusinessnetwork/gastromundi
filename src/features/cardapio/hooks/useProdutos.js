@@ -10,6 +10,8 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { novoUid } from "@/lib/uidLista";
 import { EMPTY_COMPRA, EMPTY_FORM, CAT_SEM_CATEGORIA } from "@/components/desktop/views/produtos/apoio";
 import { useEstadoCategorias } from "./useEstadoCategorias";
+import { nomeBateComBusca } from "@/lib/busca";
+import { ehGerencia } from "@/constants/roles";
 
 // Estado e ações da tela de Produtos: lista, filtros, cadastro e exclusão do
 // produto e as categorias personalizadas.
@@ -151,7 +153,7 @@ export function useProdutos() {
   const produtosFiltrados = useMemo(() => {
     return products
       .filter(p => catFiltro === "Todos" || p.category === catFiltro)
-      .filter(p => !busca || p.name.toLowerCase().includes(busca.toLowerCase()));
+      .filter(p => !busca || nomeBateComBusca(p.name, busca.toLowerCase()));
   }, [products, catFiltro, busca]);
 
   // ── Modal ─────────────────────────────────────────────────────
@@ -308,7 +310,7 @@ export function useProdutos() {
     setDeleteId(null);
   };
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  const isAdmin = ehGerencia(currentUser);
 
   const unidadesEstoque = unidadesMedida.filter(u => u.tipo === "estoque");
   const unidadesCompra  = unidadesMedida.filter(u => u.tipo === "compra");

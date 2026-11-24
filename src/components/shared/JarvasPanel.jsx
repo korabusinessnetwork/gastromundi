@@ -10,6 +10,7 @@ import { varColor } from "@/lib/tema";
 import { novoUid } from "@/lib/uidLista";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
 import "./JarvasPanel.css";
+import { ehGerencia } from "@/constants/roles";
 
 /**
  * Jarvas — central de insights (fase 4 da spec JARVAS.md).
@@ -54,7 +55,7 @@ export default function JarvasPanel() {
   const [texto, setTexto] = useState("");
   const [perguntando, setPerguntando] = useState(false);
   const fimChatRef = useRef(null);
-  const podeConversar = ["admin", "gerente"].includes(currentUser?.role);
+  const podeConversar = ehGerencia(currentUser);
 
   useEffect(() => {
     fimChatRef.current?.scrollIntoView({ behavior: "smooth" });

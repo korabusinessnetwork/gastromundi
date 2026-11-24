@@ -3,9 +3,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useSessao } from "@/context/AppContext";
 import { passwordStrength, sanitizeInput } from "@/utils";
 import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
-import {
-  getPermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_DESCRICOES, mesclarPermissoes, calcularOverride
-} from "@/constants/roles";
+import { getPermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_DESCRICOES, mesclarPermissoes, calcularOverride, ehGerencia } from "@/constants/roles";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
@@ -161,7 +159,7 @@ export default function UsuariosTab({ sz }) {
     }
   };
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  const isAdmin = ehGerencia(currentUser);
   // Só o admin de verdade grava permissões: a RLS de role_permissions e de
   // users (override) exige gastro_role='admin'. Gerente vê, mas não edita
   // (prevenção de erro — Princípio nº 1: não oferecer o que vai falhar).

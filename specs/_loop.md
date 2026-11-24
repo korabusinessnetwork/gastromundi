@@ -1,3 +1,12 @@
+## Rodada 104, refatoração 4.9, Cardápio com a mesma busca e a mesma regra de gerência, 2026-11-24
+- Spec: specs/refatoracao-4-9-cardapio.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 264 arquivos / 4423
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- Busca por nome: 9 lugares não ignoravam acento, enquanto Estoque e Delivery ignoravam.
+  Agora todos usam `nomeBateComBusca`; "cafe" acha "Café" em toda parte.
+- Gerência: 11 cópias de "admin ou gerente" viraram `ehGerencia`.
+- O Cardápio do celular não tinha teste; o novo falha contra a versão anterior do arquivo.
 ## Rodada 103, refatoração 4.8, a Cozinha do computador e do celular com as mesmas regras, 2026-11-24
 - Spec: specs/refatoracao-4-8-cozinha.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 262 arquivos / 4415

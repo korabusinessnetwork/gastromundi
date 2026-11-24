@@ -50,6 +50,7 @@ import AbaPedidos from "./delivery/AbaPedidos";
 import AbaCardapio from "./delivery/AbaCardapio";
 import AbaComplementos from "./delivery/AbaComplementos";
 import AbaEntrega from "./delivery/AbaEntrega";
+import { ehGerencia } from "@/constants/roles";
 
 export default function DeliveryView({ notify } = {}) {
   const { tenant, currentUser, moduloHabilitado } = useSessao();
@@ -137,7 +138,7 @@ export default function DeliveryView({ notify } = {}) {
     [ehAddon, products, linhas]
   );
 
-  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "gerente";
+  const isAdmin = ehGerencia(currentUser);
 
   // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
   // o Supabase recusar. Só admin/gerente mexe.

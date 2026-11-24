@@ -20,6 +20,7 @@ import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
 import "./ClientesView.css";
 import ClienteDetalhe from "./clientes/ClienteDetalhe";
 import ClienteEdicao from "./clientes/ClienteEdicao";
+import { ehGerencia } from "@/constants/roles";
 
 /**
  * F010 — Clientes (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -296,11 +297,11 @@ export default function ClientesView() {
         <ClienteDetalhe
           cliente={clienteAberto}
           usuario={currentUser?.username}
-          podeExcluir={currentUser?.role === "admin" || currentUser?.role === "gerente"}
+          podeExcluir={ehGerencia(currentUser)}
           // Mesma régua da exclusão: quem responde pelo cadastro é quem pode
           // abrir o CPF por inteiro. Garçom e caixa continuam com o cliente
           // (precisam para delivery e fiado), mas veem o documento oculto.
-          podeVerDocumento={currentUser?.role === "admin" || currentUser?.role === "gerente"}
+          podeVerDocumento={ehGerencia(currentUser)}
           sz={sz}
           onClose={() => setClienteAberto(null)}
           onEditar={() => setClienteEditando(clienteAberto)}
