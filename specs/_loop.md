@@ -1,3 +1,19 @@
+## Rodada 94, refatoração 3, PDV do celular e coordenação da carga, 2026-11-24
+- Spec: specs/refatoracao-3-pdv-celular-coordenacao.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4373
+  testes, verde; `npm run build` limpo; lint 0 erros, 38 avisos). Roteiro de fotos: 0
+  diferença. Sem migration. PDV do celular: 656 para 363 linhas; coordenação: 607 para 455.
+- Marco: nenhuma tela passa mais de 600 linhas. Os 3 arquivos que restam acima são
+  bibliotecas de regras em `src/lib/`.
+- Testes novos: a venda de balcão do celular, que não tinha teste (dois cafés em dinheiro,
+  R$ 20 recebidos, registra R$ 12 e mostra R$ 8 de troco; dinheiro abaixo do total trava
+  o botão). Provado por sabotagem. E o dreno da fila: desligado no gancho novo, os 3 testes
+  de ponta a ponta falham, então é ele que roda.
+- O que a rodada revelou: o aviso "celular importa da pasta do computador" foi a zero sem
+  a dependência acabar, porque o import passou para um gancho em `features/`. A mesma seta
+  invertida já estava em 10 arquivos das rodadas anteriores. Lint e métrica passam a contar
+  `features/` importando de `components/desktop/`: 13 imports em 11 arquivos, a zerar nas
+  fases 4 e 6. Por isso os avisos sobem de 26 para 38, e esse é o número honesto.
 ## Rodada 93, refatoração 3.2, o PDV em ganchos e janelas próprias, 2026-11-24
 - Spec: specs/refatoracao-3-2-pdv.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 257 arquivos / 4371

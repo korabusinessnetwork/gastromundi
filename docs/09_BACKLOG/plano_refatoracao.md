@@ -283,7 +283,8 @@ Checkout (3.6): tela com 116 linhas, gancho em `features/pdv/hooks/useCheckout.j
 Mesas e Estoque, com ganchos em `features/mesas` e `features/estoque`. E a Sidebar (gancho em
 `src/app/hooks/`) e a tela do celular (gancho em `src/pages/mobile/hooks/`). E o PDV (3.2): tela
 com 332 linhas, gancho em `features/pdv/hooks/usePdv.js`; desde então nenhum arquivo passa de
-15 `useState`.
+15 `useState`. Depois, o PDV do celular e a coordenação da carga: desde então nenhuma tela
+passa de 600 linhas, e restam três bibliotecas de regras em `src/lib/`.
 
 ### Fase 4, celular e computador compartilham a lógica
 

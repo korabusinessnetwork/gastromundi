@@ -47,11 +47,17 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-24 | 3 mesas e estoque | 66 | 8 | 50 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 256 arquivos, 4.364 testes | 2.416 kB |
 | 2026-11-24 | 3 sidebar e celular | 66 | 6 | 50 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 256 arquivos, 4.367 testes | 2.420 kB |
 | 2026-11-24 | 3.2 pdv | 66 | 5 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 1 | 0 / 26 | 257 arquivos, 4.371 testes | 2.429 kB |
+| 2026-11-24 | 3 pdv do celular e coordenação | 66 | 3 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+13 em features/) | 0 / 38 | 258 arquivos, 4.373 testes | 2.429 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;
 a cor hexadecimal caiu de 17 para 16 porque a cor da Delivery saiu do `.jsx` para um `.js`,
 que a métrica não lê, e não porque alguma cor foi trocada por variável.
+
+A coluna "Celular importa desktop" passa a mostrar também os imports de `src/features/` para
+`components/desktop/` (13 em 11 arquivos na rodada do PDV do celular): o celular usa esses
+ganchos, então a dependência chega a ele por ali. Os avisos de lint sobem 12: são 13 desta regra, menos o da fronteira do celular, que mudou de
+lugar e passou a ser contado aqui.
 
 Os 50 avisos de lint da fase 0: 25 são as fronteiras de camada (zeradas nas fases 1 e 4),
 15 são comentários `eslint-disable` que não suprimem nada, e 10 são dependências de hook

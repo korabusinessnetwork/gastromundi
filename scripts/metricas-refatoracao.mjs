@@ -65,6 +65,7 @@ let estilosSoVariavel = 0;
 const estilosPorArquivo = [];
 let hexNoJsx = 0;
 const celularImportaDesktop = [];
+const featuresImportaDesktop = [];
 let maiorUseState = { caminho: "", total: 0 };
 
 for (const { caminho, texto } of arquivos) {
@@ -80,6 +81,13 @@ for (const { caminho, texto } of arquivos) {
     estilosSoVariavel += soVariavel;
     if (outros) estilosPorArquivo.push({ caminho, total: outros });
     hexNoJsx += contar(texto, /#[0-9a-fA-F]{6}\b/g);
+  }
+
+  // A camada de funcionalidade (`src/features/`) também não depende das telas do
+  // computador: um gancho que o celular usa e que importa de lá carrega a mesma
+  // dependência, só que um passo adiante, e a contagem de cima não a veria.
+  if (caminho.startsWith("src/features/") && /from\s+["'][^"']*components\/desktop\//.test(texto)) {
+    featuresImportaDesktop.push(caminho);
   }
 
   if (caminho.startsWith("src/pages/mobile/") && /from\s+["'][^"']*components\/desktop\//.test(texto)) {
@@ -118,6 +126,7 @@ const metricas = {
   estiloPorArquivo: estilosPorArquivo.sort((a, b) => b.total - a.total),
   hexNoJsx,
   celularImportaDesktop,
+  featuresImportaDesktop,
   maiorPacoteJs: maiorPacote,
 };
 
@@ -138,6 +147,7 @@ if (process.argv.includes("--json")) {
   linha("style={{}} só com variável CSS (permitido)", metricas.estiloSoVariavel);
   linha("Cor hexadecimal em JSX", metricas.hexNoJsx);
   linha("Telas de celular importando components/desktop", celularImportaDesktop.length);
+  linha("Arquivos de features/ importando components/desktop", featuresImportaDesktop.length);
   linha("Maior pacote JS em dist/", maiorPacote ? `${maiorPacote.kb} kB (${maiorPacote.nome})` : "sem dist/, rode npm run build");
   console.log("\nArquivos acima de 600 linhas:");
   for (const g of grandes) console.log(`  ${String(g.linhas).padStart(5)}  ${g.caminho}`);
