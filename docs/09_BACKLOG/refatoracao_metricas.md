@@ -59,6 +59,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-24 | 4.8 cozinha | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+5 em features/) | 0 / 30 | 262 arquivos, 4.415 testes | 2.429 kB |
 | 2026-11-24 | 4.9 cardápio | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (+5 em features/) | 0 / 30 | 264 arquivos, 4.423 testes | 2.429 kB |
 | 2026-11-24 | 4.10 configurações no celular, fim da fase 4 | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.505 | 16 | 0 (0 em features/) | 0 / 25 | 266 arquivos, 4.428 testes | 2.428 kB |
+| 2026-11-24 | 5.1 guard do estilo inline | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.516 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.430 testes | 2.428 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;
@@ -69,6 +70,9 @@ A coluna "Celular importa desktop" passa a mostrar também os imports de `src/fe
 `components/desktop/` (13 em 11 arquivos na rodada do PDV do celular): o celular usa esses
 ganchos, então a dependência chega a ele por ali. Os avisos de lint sobem 12: são 13 desta regra, menos o da fronteira do celular, que mudou de
 lugar e passou a ser contado aqui.
+
+A partir da 5.1 a coluna de estilo inline vem do guard (`scripts/contarEstiloInline.mjs`), que
+lê a árvore de sintaxe e conta também `style={variavel}`: 1.516, contra 1.505 da contagem por texto.
 
 Os 50 avisos de lint da fase 0: 25 são as fronteiras de camada (zeradas nas fases 1 e 4),
 15 são comentários `eslint-disable` que não suprimem nada, e 10 são dependências de hook

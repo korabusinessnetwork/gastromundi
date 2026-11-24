@@ -346,7 +346,8 @@ hooks e funções de dados das abas da fase 3.3.
 
 **5.1** Teste guard `inlineStyleGuard.test.js`, no mesmo molde do `travessaoGuard`: conta
 `style={{}}` que não seja atribuição de variável CSS e falha se o número **subir**. A lista
-de arquivos permitidos só diminui.
+de arquivos permitidos só diminui. **Feita em 2026-11-24:** 96 arquivos, 1.516 atributos na
+linha de base.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

@@ -1,3 +1,11 @@
+## Rodada 106, refatoração 5.1, o guard do estilo inline, 2026-11-24
+- Spec: specs/refatoracao-5-1-guard-estilo-inline.md
+- Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 267 arquivos / 4430 testes,
+  verde; `npm run build` limpo; lint 0 erros, 25 avisos). Sem migration. Começa a fase 5.
+- `inlineStyleGuard` lê a árvore de sintaxe e compara cada arquivo com a linha de base
+  (96 arquivos, 1.516 atributos). Falha se sobe, se aparece arquivo novo, e se desce sem a
+  linha de base acompanhar. Provado nos dois sentidos por sabotagem.
+- A contagem é uma função só (`scripts/contarEstiloInline.mjs`) para o guard e as métricas.
 ## Rodada 105, refatoração 4.10, Configurações do celular e o fim da fase 4, 2026-11-24
 - Spec: specs/refatoracao-4-10-configuracoes-celular.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 266 arquivos / 4428

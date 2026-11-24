@@ -12,6 +12,7 @@
 // importa é a tendência entre uma medição e outra, não o número absoluto.
 
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { contarEstiloInline } from "./contarEstiloInline.mjs";
 import { join, relative, resolve } from "node:path";
 
 const RAIZ = resolve(import.meta.dirname, "..");
@@ -76,7 +77,9 @@ for (const { caminho, texto } of arquivos) {
   }
 
   if (caminho.endsWith(".jsx")) {
-    const { soVariavel, outros } = classificarEstilos(texto);
+    const { soVariavel } = classificarEstilos(texto);
+    // Mesma contagem do guard (inlineStyleGuard), pela árvore de sintaxe.
+    const outros = contarEstiloInline(texto);
     estilosOutros += outros;
     estilosSoVariavel += soVariavel;
     if (outros) estilosPorArquivo.push({ caminho, total: outros });
