@@ -1,3 +1,21 @@
+## Rodada 95, refatoração 3, as bibliotecas de regras por assunto, 2026-11-24
+- Spec: specs/refatoracao-3-bibliotecas.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4373
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 38 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. **A fase 3 do plano está concluída**: 0 arquivos
+  acima de 600 linhas (eram 22) e nenhum acima de 15 `useState` (o máximo era 70).
+- `console.js`, `deliveryAdmin.js` e `delivery.js` viraram pastas com um arquivo por
+  assunto; o arquivo original só reexporta, e os conjuntos de nomes exportados foram
+  conferidos iguais aos de antes (53, 35 e 28).
+- O que a rodada revelou, três ajustes no divisor, todos pegos antes dos testes: o nome
+  logo depois de reticências ficava sem import (`...sanitizarConfig(config)`); o
+  comentário de abertura do arquivo era copiado em cada parte; e o título de cada seção,
+  separado por uma linha em branco, ficava no fim da parte anterior.
+- Da fase 3 inteira: 17 rodadas, todas com 0 diferença nas 44 telas. As telas sem teste
+  que mudaram de arquivo ganharam teste provado por sabotagem (Relatórios, desconto do
+  Checkout, Mesas, cancelamento na Sidebar, janelas do PDV, venda de balcão do celular).
+  Sobram para as fases seguintes: 13 imports de `features/` para a pasta do computador
+  (fases 4 e 6), e dois ganchos rentes ao limite de 600 linhas (`useConsole`, `usePdv`).
 ## Rodada 94, refatoração 3, PDV do celular e coordenação da carga, 2026-11-24
 - Spec: specs/refatoracao-3-pdv-celular-coordenacao.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4373
