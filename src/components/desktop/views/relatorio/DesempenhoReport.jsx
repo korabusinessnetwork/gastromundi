@@ -7,9 +7,9 @@ import { useResponsive } from "@/utils/hooks";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown } from "react-icons/lu";
 import {
-  calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual,
-  calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
+  calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual, calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
 } from "@/lib/relatorios";
+import { ticketMedio } from "@/lib/vendas";
 import "./DesempenhoReport.css";
 
 const PERIODOS = [
@@ -182,15 +182,15 @@ export default function DesempenhoReport() {
 
   const faturamento = atual?.faturamento ?? 0;
   const numeroVendas = atual?.numero_vendas ?? 0;
-  const ticketMedio = numeroVendas > 0 ? faturamento / numeroVendas : 0;
+  const ticketMedioAtual = ticketMedio(faturamento, numeroVendas);
 
   const faturamentoAnterior = anterior?.faturamento ?? 0;
   const numeroVendasAnterior = anterior?.numero_vendas ?? 0;
-  const ticketMedioAnterior = numeroVendasAnterior > 0 ? faturamentoAnterior / numeroVendasAnterior : 0;
+  const ticketMedioAnterior = ticketMedio(faturamentoAnterior, numeroVendasAnterior);
 
   const varFaturamento = comparar && anterior ? calcularVariacaoPercentual(faturamento, faturamentoAnterior) : null;
   const varVendas = comparar && anterior ? calcularVariacaoPercentual(numeroVendas, numeroVendasAnterior) : null;
-  const varTicket = comparar && anterior ? calcularVariacaoPercentual(ticketMedio, ticketMedioAnterior) : null;
+  const varTicket = comparar && anterior ? calcularVariacaoPercentual(ticketMedioAtual, ticketMedioAnterior) : null;
 
   // Rótulo da janela de comparação: no selo do KPI ("vs. ontem") e no botão.
   const rotuloVs = rotuloComparacao(tipoComparacao, { inicio: compInicio, fim: compFim });
@@ -349,7 +349,7 @@ export default function DesempenhoReport() {
           <div className="desempenho__kpis">
             <KpiCard label="Faturamento" value={fmtR(faturamento)} color={varColor(C.green)} Icon={LuBanknote} variacao={varFaturamento} rotuloVs={rotuloVs} />
             <KpiCard label="Vendas Realizadas" value={numeroVendas} color={varColor(C.blue)} Icon={LuReceipt} variacao={varVendas} rotuloVs={rotuloVs} />
-            <KpiCard label="Ticket Médio" value={fmtR(ticketMedio)} color={varColor(C.accent)} Icon={LuChartBar} variacao={varTicket} rotuloVs={rotuloVs} />
+            <KpiCard label="Ticket Médio" value={fmtR(ticketMedioAtual)} color={varColor(C.accent)} Icon={LuChartBar} variacao={varTicket} rotuloVs={rotuloVs} />
           </div>
 
           {/* Vendas por dia */}

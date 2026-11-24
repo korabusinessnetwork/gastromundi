@@ -316,6 +316,9 @@ duas telas, como já era no alerta do PDV, e contagem negativa no celular deixa 
 e vencido) e usa `resumirContasEmAberto`; antes as contas já marcadas vencidas pelo computador
 sumiam do celular.
 
+**4.7 Relatórios feita em 2026-11-24:** o ticket médio, escrito oito vezes, é `ticketMedio` em
+`lib/vendas.js`.
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

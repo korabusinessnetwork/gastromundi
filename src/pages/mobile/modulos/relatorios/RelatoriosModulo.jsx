@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { LuArrowLeft, LuChartBar, LuMonitor, LuTrendingDown, LuTrendingUp } from "react-icons/lu";
 import {
-  buscarRelatorioVendas,
-  calcularPeriodo,
-  calcularPeriodoAnterior,
-  calcularVariacaoPercentual,
+  buscarRelatorioVendas, calcularPeriodo, calcularPeriodoAnterior, calcularVariacaoPercentual,
 } from "@/lib/relatorios";
+import { ticketMedio } from "@/lib/vendas";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./RelatoriosModulo.css";
@@ -77,7 +75,7 @@ export default function RelatoriosModulo({ onVoltar }) {
 
   const faturamento = atual?.faturamento ?? 0;
   const numeroVendas = atual?.numero_vendas ?? 0;
-  const ticketMedio = numeroVendas > 0 ? faturamento / numeroVendas : 0;
+  const ticketMedioAtual = ticketMedio(faturamento, numeroVendas);
   const faturamentoAnterior = anterior?.faturamento ?? 0;
   const variacao = anterior ? calcularVariacaoPercentual(faturamento, faturamentoAnterior) : null;
   const topProdutos = (atual?.top_produtos ?? []).slice(0, 10);
@@ -151,7 +149,7 @@ export default function RelatoriosModulo({ onVoltar }) {
             </div>
             <div className="mod-cartao">
               <span className="mod-cartao__sub">Ticket médio</span>
-              <strong className="relatorios-modulo__valorSecundario">{fmtDinheiro(ticketMedio)}</strong>
+              <strong className="relatorios-modulo__valorSecundario">{fmtDinheiro(ticketMedioAtual)}</strong>
             </div>
           </section>
 

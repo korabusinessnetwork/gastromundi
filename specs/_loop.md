@@ -1,3 +1,15 @@
+## Rodada 102, refatoração 4.7, Relatórios com o mesmo ticket médio, 2026-11-24
+- Spec: specs/refatoracao-4-7-relatorios.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 262 arquivos / 4410
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- O ticket médio estava escrito oito vezes; agora é `ticketMedio` em `lib/vendas.js`.
+- O que a rodada revelou: a primeira versão pôs a função em `lib/relatorios.js`, mas dois
+  dos oito lugares estão em `utils/datas.js`, que é puro e não pode carregar o Supabase.
+  Mudou para `lib/vendas.js`. E o script do teste enfiou o nome novo no import do vitest;
+  o teste falhou e foi corrigido.
+- O resumo de relatórios do celular não tinha teste; o novo confere o ticket na tela e
+  falha com a regra sabotada.
 ## Rodada 101, refatoração 4.6, o Financeiro do celular vê as contas vencidas, 2026-11-24
 - Spec: specs/refatoracao-4-6-financeiro.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 261 arquivos / 4407

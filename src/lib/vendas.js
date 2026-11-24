@@ -1,6 +1,17 @@
 import { normalizarPagamentos } from "@/utils/pagamentos";
 
 /**
+ * Ticket médio: quanto entra, em média, por venda. Sem venda no período, zero
+ * (e não "NaN" na tela). Refatoração 4.7: a conta estava escrita seis vezes, nos
+ * relatórios do computador, no resumo do celular, na tela do garçom e nos
+ * agrupamentos por dia e por operador.
+ */
+export function ticketMedio(total, quantidade) {
+  const n = Number(quantidade) || 0;
+  return n > 0 ? (Number(total) || 0) / n : 0;
+}
+
+/**
  * P7 — arredonda um valor monetário para 2 casas sem viés de ponto
  * flutuante (0.1 + 0.2 !== 0.3). Sem isso, subtotal/total acumulam
  * erro de centavo ao longo de várias vendas — pouco por venda, mas

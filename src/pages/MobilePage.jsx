@@ -43,6 +43,7 @@ import TelaModulo from "./mobile/pagina/TelaModulo";
 import { TOTAL_COMANDAS, PAGE, MODULOS_MAIS, formatHoraCurta } from "./mobile/pagina/apoio";
 import { useMobilePage } from "@/pages/mobile/hooks/useMobilePage";
 import "./MobilePage.css";
+import { ticketMedio } from "@/lib/vendas";
 
 export default function MobilePage() {
   const tela = useMobilePage();
@@ -128,7 +129,7 @@ export default function MobilePage() {
     username: currentUser?.username,
     desde: sessaoAbertaEm,
   });
-  const ticketMedio = meu.comandas > 0 ? meu.total / meu.comandas : 0;
+  const ticketMedioDoGarcom = ticketMedio(meu.total, meu.comandas);
   const oportunidades = radarOportunidades(
     abertas,
     categoriaGrupoMap,
@@ -273,7 +274,7 @@ export default function MobilePage() {
         {aba === "painel" && (
           <PainelTab
             meu={meu}
-            ticketMedio={ticketMedio}
+            ticketMedio={ticketMedioDoGarcom}
             oportunidades={oportunidades}
           />
         )}

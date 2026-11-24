@@ -284,3 +284,4 @@ describe("buscarFichasTecnicas", () => {
     expect(data).toEqual([]);
   });
 });
+

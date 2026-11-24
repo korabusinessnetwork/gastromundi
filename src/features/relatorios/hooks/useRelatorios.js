@@ -1,7 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
-import { calcularVariacaoPercentual } from "@/lib/relatorios";
+import {
+  calcularVariacaoPercentual,
+} from "@/lib/relatorios";
+import { ticketMedio } from "@/lib/vendas";
 import { esperadoEmCaixa, diferencaCaixa } from "@/lib/caixa";
 import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
 import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
@@ -79,7 +82,7 @@ export function useRelatorios() {
   const kpis = useMemo(() => {
     const total  = vendasFiltradas.reduce((s, v) => s + (v.total ?? 0), 0);
     const count  = vendasFiltradas.length;
-    const ticket = count > 0 ? total / count : 0;
+    const ticket = ticketMedio(total, count);
     const porMetodo = {};
     vendasFiltradas.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
     const top = Object.entries(porMetodo).sort((a, b) => b[1] - a[1])[0];
@@ -106,7 +109,7 @@ export function useRelatorios() {
       : sales.filter((v) => { const t = atMs(v); return (ini == null || t >= ini) && (fim == null || t <= fim); });
 
     const totalAtual = atuais.reduce((s, v) => s + (v.total ?? 0), 0);
-    const ticket = atuais.length > 0 ? totalAtual / atuais.length : 0;
+    const ticket = ticketMedio(totalAtual, atuais.length);
 
     let totalAnterior = null, variacao = null;
     if (ini != null && fim != null) {

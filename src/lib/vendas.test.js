@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2, validarAjuste } from "./vendas";
+import { AJUSTE_PERCENTUAL_MAX, ajusteExigeSenha, mapearVendaParaLinhas, montarVendaLegada, persistirVendaNormalizada, round2, validarAjuste, ticketMedio } from "./vendas";
 
 describe("validarAjuste, desconto que zerava a conta calado", () => {
   const CONTA = 262.5;
@@ -479,5 +479,18 @@ describe("persistirVendaNormalizada (dual-write, detecção de falha)", () => {
 
     expect(res.ok).toBe(true);
     expect(client.calls.map((c) => c.table)).toEqual(["vendas"]);
+  });
+});
+
+// Refatoração 4.7: a mesma conta nos relatórios do computador, no resumo do
+// celular e na tela do garçom.
+describe("ticketMedio", () => {
+  it("divide o total pelo número de vendas", () => {
+    expect(ticketMedio(150, 3)).toBe(50);
+  });
+
+  it("sem venda no período é zero, nunca NaN na tela", () => {
+    expect(ticketMedio(0, 0)).toBe(0);
+    expect(ticketMedio(100, undefined)).toBe(0);
   });
 });

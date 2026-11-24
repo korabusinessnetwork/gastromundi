@@ -1,3 +1,4 @@
+import { ticketMedio } from "@/lib/vendas";
 // Utilidades de data com fuso local — B2 (relatórios dia a dia).
 //
 // As vendas gravam `at` em ISO8601 UTC. Agrupar por dia usando o dia UTC
@@ -102,7 +103,7 @@ export function agruparVendasPorDia(vendas, opts = {}) {
     }
   }
   return [...mapa.values()]
-    .map((g) => ({ ...g, ticket: g.comandas > 0 ? g.total / g.comandas : 0 }))
+    .map((g) => ({ ...g, ticket: ticketMedio(g.total, g.comandas) }))
     .sort((a, b) => (a.dia < b.dia ? 1 : a.dia > b.dia ? -1 : 0));
 }
 
@@ -156,7 +157,7 @@ export function agruparVendasPorOperador(vendas) {
   return [...mapa.values()]
     .map((g) => ({
       ...g,
-      ticket: g.vendas > 0 ? g.total / g.vendas : 0,
+      ticket: ticketMedio(g.total, g.vendas),
       participacao: totalGeral > 0 ? (g.total / totalGeral) * 100 : 0,
     }))
     .sort((a, b) => b.total - a.total);
