@@ -57,3 +57,17 @@ Precisa da sua decisão: [as perguntas do passo 7, numeradas e com recomendaçã
 ```
 
 Nunca declare "feito" se houver qualquer critério do spec ainda como "não" — nesse caso, ou você corrigiu, ou está perguntado na rodada de decisão. Não existe terceira opção silenciosa.
+
+## Regras v2 (skill `engenharia-com-evidencia`, adaptadas do obra/superpowers, licença MIT)
+
+Acrescentadas em 2026-11-24 conforme a versão atual da skill `loop-spec-build-review`. Em
+conflito com o texto acima, a Regra v2 vence.
+
+- **Duas etapas separadas, a partir do diff:** primeiro o spec (cada critério sim/não/parcial
+  com evidência), depois a qualidade (padrões do projeto, segurança, testes). Classifique cada
+  problema como crítico, importante ou menor. Crítico trava o "feito".
+- **Evidência fresca:** rode build, lint e a suíte completa nesta rodada antes de qualquer
+  veredicto. Mostre o comando e o resultado no relatório. Resultado de rodada anterior não vale.
+- Correção de bug encontrado no review segue a depuração sistemática: teste que reproduz,
+  correção na causa raiz, nova verificação. Se 3 correções falharem, o item vai para "precisa
+  da sua decisão" com o diagnóstico.

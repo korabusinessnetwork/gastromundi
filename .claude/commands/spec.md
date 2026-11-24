@@ -102,3 +102,11 @@ sem regressão nos fluxos existentes (suíte verde)".
 
 Ao terminar, mostre o spec resumido no chat e informe: "Spec salvo em `specs/<slug>.md`.
 Rode /build quando estiver de acordo."
+
+## Regras v2 (skill `engenharia-com-evidencia`, adaptadas do obra/superpowers, licença MIT)
+
+Acrescentadas em 2026-11-24 conforme a versão atual da skill `loop-spec-build-review`. Em
+conflito com o texto acima, a Regra v2 vence.
+
+- Cada critério de aceite precisa dizer **como será provado**: qual teste ou comando mostra
+  que ele está cumprido. Critério sem prova possível volta para ser reescrito.

@@ -82,6 +82,25 @@ function roteiro(largura) {
     "cozinha", "clientes", "admin", "notas-fiscais"]) {
     telas.push({ nome: `app-${modulo}`, perfil: "dono", caminho: `/app/${modulo}` });
   }
+  // Fase 5: o carrinho e a finalização só aparecem com uma comanda aberta.
+  const abrirComanda15 = (page) =>
+    page.locator("button.comanda-card", { hasText: "R$ 32.00" }).first().click({ timeout: 3000 });
+
+  telas.push({
+    nome: "app-pdv-comanda", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByRole("button", { name: /Brigadeiro/ }).first().click({ timeout: 3000 });
+    },
+  });
+  telas.push({
+    nome: "app-pdv-finalizar", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByRole("button", { name: /Finalizar Comanda/ }).first().click({ timeout: 3000 });
+      await page.getByRole("button", { name: "Sim, finalizar" }).click({ timeout: 3000 });
+    },
+  });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,

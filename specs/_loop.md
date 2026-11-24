@@ -1,3 +1,12 @@
+## Rodada 107, refatoração 5.2a, a prova visual cobre o carrinho e a finalização, 2026-11-24
+- Spec: specs/refatoracao-5-2a-prova-visual-do-caixa.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 46 telas. Sem migration.
+- O roteiro de fotos ganhou o carrinho do PDV (observação, item cancelado, item novo) e a
+  finalização, para a conversão de estilo da fase 5 não ser às cegas.
+- Defeito do Supabase falso achado pela causa raiz: o UPDATE da trava da comanda recebia lista
+  vazia e o PDV lia "em uso por outra pessoa". Duas hipóteses descartadas por evidência antes.
+- Skills revistas a pedido do dono: Regras v2 da `engenharia-com-evidencia` nos comandos do loop.
 ## Rodada 106, refatoração 5.1, o guard do estilo inline, 2026-11-24
 - Spec: specs/refatoracao-5-1-guard-estilo-inline.md
 - Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 267 arquivos / 4430 testes,

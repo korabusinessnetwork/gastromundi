@@ -98,6 +98,21 @@ Relê o spec, relê o código, e audita um contra o outro: item por item do crit
 aceite, com evidência. Corrige sozinho o que é seguro corrigir, e leva o resto para você
 como rodada de perguntas. Ver `.claude/commands/review.md`.
 
+## Regras v2 (adaptadas do obra/superpowers, licença MIT)
+
+As três regras vêm da skill `engenharia-com-evidencia`; leia ela antes de rodar o loop. Já
+estão acrescentadas ao final de `.claude/commands/spec.md`, `build.md` e `review.md`; em
+conflito com o texto original do comando, a Regra v2 vence.
+
+- **`/spec`:** cada critério de aceite diz como será provado (teste ou comando).
+- **`/build`:** TDD obrigatório (vermelho, ver falhar pelo motivo certo, verde, refatorar);
+  exceções só para `docs/`, `memory/`, config e código gerado, listadas no relatório.
+- **`/review`:** duas etapas a partir do diff (spec, depois qualidade), problemas como
+  crítico, importante ou menor, e evidência rodada na própria rodada.
+
+Esta cópia do projeto mantém a entrevista (grilling) no início do `/spec`, que a versão da
+skill na conta não traz mais em 2026-11-24.
+
 ## O ciclo completo
 
 1. Rode `/spec <descrição da feature>` e responda as rodadas de perguntas até fechar o

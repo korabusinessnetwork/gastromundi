@@ -30,3 +30,17 @@ Argumento opcional (caminho do spec, se não for o mais recente): $ARGUMENTS
    - Qualquer desvio do spec que você teve que fazer, e por quê
 
 Termine com: "Build concluído. Rode /review para auditar contra o spec."
+
+## Regras v2 (skill `engenharia-com-evidencia`, adaptadas do obra/superpowers, licença MIT)
+
+Acrescentadas em 2026-11-24 conforme a versão atual da skill `loop-spec-build-review`. Em
+conflito com o texto acima, a Regra v2 vence.
+
+- **TDD obrigatório.** Para cada critério de aceite: escreva o teste, rode e veja falhar pelo
+  motivo certo, escreva o código mínimo, rode e veja passar, refatore mantendo verde. Isso
+  substitui o item "Não rode testes de aprovação aqui": o `/build` roda os testes da própria
+  tarefa, e o `/review` roda a suíte completa.
+- Exceções ao TDD: `docs/`, `memory/`, config e código gerado. Liste as exceções usadas no
+  relatório final.
+- Se algo quebrar durante o build, siga a depuração sistemática: causa raiz antes de qualquer
+  correção.

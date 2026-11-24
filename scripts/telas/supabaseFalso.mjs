@@ -61,6 +61,19 @@ const tabelas = {
       total: 28.5, garcom: "Bruno Demo", created_by: "Bruno Demo",
       created_at: CRIADO_EM, updated_at: CRIADO_EM, mesa: null, apelido: null,
     },
+    // Fase 5: a comanda que o carrinho do PDV e a finalização desenham com os
+    // estados que o estilo precisa cobrir (emoji, observação, item cancelado).
+    {
+      id: "demo-comanda-15", comanda: "15", status: "open", note: null,
+      items: [
+        { uid: "c15-1", id: 5, name: "Misto quente", price: 14, qty: 1, category: "Lanches", emoji: "🥪", obs: ["sem tomate"] },
+        { uid: "c15-2", id: 2, name: "Suco de laranja", price: 9, qty: 2, category: "Bebidas", emoji: "🍊" },
+        { uid: "c15-3", id: 6, name: "Coxinha", price: 8, qty: 1, category: "Lanches", emoji: "🍗",
+          cancelado: true, motivoCancelamento: "cliente desistiu" },
+      ],
+      total: 32, garcom: "Bruno Demo", created_by: "Bruno Demo",
+      created_at: CRIADO_EM, updated_at: CRIADO_EM, mesa: "4", apelido: null,
+    },
   ],
   config: [
     { key: "caixa_aberto", value: true },
@@ -164,8 +177,18 @@ async function responder(route) {
 
   if (url.pathname.startsWith("/rest/v1/")) {
     const tabela = url.pathname.slice("/rest/v1/".length);
-    // Escrita não persiste: o roteiro só fotografa.
-    if (metodo !== "GET" && metodo !== "HEAD") return json(route, 201, []);
+    // Escrita não persiste: o roteiro só fotografa. Mas o UPDATE que pede a
+    // representação de volta (`Prefer: return=representation`, como a trava da
+    // comanda) recebe as linhas com a mudança aplicada, igual ao banco: com a
+    // lista vazia, o PDV lia "a trava é de outra pessoa" e não abria comanda.
+    if (metodo !== "GET" && metodo !== "HEAD") {
+      const querDeVolta = (req.headers().prefer ?? "").includes("return=representation");
+      if (metodo === "PATCH" && querDeVolta) {
+        const mudanca = JSON.parse(req.postData() || "{}");
+        return json(route, 200, filtrar(tabelas[tabela] ?? [], url.searchParams).map((l) => ({ ...l, ...mudanca })));
+      }
+      return json(route, 201, []);
+    }
     const linhas = filtrar(tabelas[tabela] ?? [], url.searchParams);
     const umaLinha = (req.headers().accept ?? "").includes("vnd.pgrst.object");
     const intervalo = { "content-range": linhas.length ? `0-${linhas.length - 1}/${linhas.length}` : "*/0" };
