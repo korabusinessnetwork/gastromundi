@@ -1,7 +1,7 @@
 import { logAction } from "@/lib/logger";
 import { mesmoItemDeVenda } from "@/lib/combos";
 import { totalItensAtivos } from "@/lib/comandaItens";
-import { fmtComanda } from "@/components/desktop/views/PDVView/pdv/apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Ações de transferir itens entre comandas: abrir a janela e executar a transferência.
 // Não guarda estado: recebe o estado de `useEstadoTransferencia` e o que a tela do PDV

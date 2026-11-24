@@ -5,6 +5,7 @@ import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
 import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido } from "@/lib/caixaMovimentos";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
+import { METODOS_PADRAO } from "@/features/pdv/regras/pagamento";
 
 /**
  * Dono do estado da configuração do estabelecimento (tarefa 2.9 do plano de
@@ -24,7 +25,7 @@ export function useConfigCarga() {
 }
 
 export function ConfigProvider({ tenantIdRef, children }) {
-  const [meiosPagamento,     setMeiosPagamentoLocal]     = useState(["dinheiro", "credito", "debito", "pix"]);
+  const [meiosPagamento,     setMeiosPagamentoLocal]     = useState(() => [...METODOS_PADRAO]);
   const [metodosCustom,      setMetodosCustomLocal]      = useState([]);
   const [metodosTef,         setMetodosTefLocal]         = useState(METODOS_TEF_PADRAO); // quais métodos usam maquininha (TEF)
   const [taxaServico,        setTaxaServicoLocal]        = useState(false);

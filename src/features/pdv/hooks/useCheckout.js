@@ -3,7 +3,6 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuWallet } from "react-icons/lu";
 import { useSessao, useOffline, useConfig } from "@/context/AppContext";
-import { metodoUsaTef } from "@/lib/tef";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { buscarClientePorId } from "@/lib/clientes";
 import { ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
@@ -13,6 +12,7 @@ import { ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
 // `buildPayloadPagamentos` e `buildPrintPagamentos` montam campo a campo, então ele
 // não chega à venda nem ao cupom.
 import { novoUid } from "@/lib/uidLista";
+import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/features/pdv/regras/pagamento";
 import { METODOS_CATALOG } from "@/components/desktop/views/PDVView/checkout/apoio";
 import { useEstadoAjusteCheckout } from "./useEstadoAjusteCheckout";
 import { useEstadoRemocaoCheckout } from "./useEstadoRemocaoCheckout";
@@ -29,7 +29,7 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
     ...METODOS_CATALOG,
     ...(metodosCustom ?? []).map(m => ({ ...m, Icon: LuWallet })),
   ];
-  const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_CATALOG.map(m => m.id);
+  const ativos = meiosPagamento?.length ? meiosPagamento : METODOS_PADRAO;
   const METODOS = ativos.map(id => catalogCompleto.find(m => m.id === id)).filter(Boolean);
 
   const [pagamentos,    setPagamentos]    = useState([{ metodo: null, valor: 0, recebido: 0, uid: novoUid() }]);
@@ -136,7 +136,7 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
   // (TEF) ficam desabilitados na hora de escolher — em vez de deixar
   // selecionar e falhar na confirmação. Só vale com o add-on TEF ativo.
   const metodoIndisponivelOffline = (id) =>
-    !redeOnline && addonHabilitado?.("tef") && metodoUsaTef(id, metodosTef);
+    metodoBloqueadoSemRede(id, { redeOnline, tefLigado: addonHabilitado?.("tef"), metodosTef });
   const tefOffline = pagamentos.some(p => p.metodo && metodoIndisponivelOffline(p.metodo));
 
   // Dinheiro com "Recebido" digitado abaixo do que aquele pagamento cobre
@@ -287,9 +287,9 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
         metodo:   p.metodo,
         valor:    p.valor,
         recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
-        troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
+        troco:    p.metodo === "dinheiro" ? trocoEmDinheiro(p.recebido, p.valor) : 0,
       }))
-    : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+    : [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: singleMetodo === "dinheiro" ? trocoEmDinheiro(singleRecebido, total) : 0 }];
 
   // Finaliza de fato a venda. `dest` é o destinatário fiscal (CPF/CNPJ na nota)
   // resolvido na etapa "CPF na nota": objeto = documento informado, null = nota
@@ -346,10 +346,10 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
         metodo:   p.metodo,
         valor:    p.valor,
         recebido: p.metodo === "dinheiro" ? (p.recebido || 0) : 0,
-        troco:    p.metodo === "dinheiro" ? Math.max(0, (p.recebido || 0) - p.valor) : 0,
+        troco:    p.metodo === "dinheiro" ? trocoEmDinheiro(p.recebido, p.valor) : 0,
       }));
     }
-    return [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: Math.max(0, singleTroco) }];
+    return [{ metodo: singleMetodo, valor: total, recebido: singleRecebido, troco: singleMetodo === "dinheiro" ? trocoEmDinheiro(singleRecebido, total) : 0 }];
   };
 
   // F015 — dados para os templates de impressão (comprovante/pré-nota).

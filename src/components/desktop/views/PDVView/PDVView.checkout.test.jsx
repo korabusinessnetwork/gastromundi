@@ -218,3 +218,32 @@ describe("CheckoutView, desconto com senha de gerente", () => {
     expect(screen.queryAllByText(/61[,.]47/).filter(el => !el.closest(".checkout-view__modal"))).toHaveLength(0);
   });
 });
+
+// Refatoração 4.2: o troco do computador passou a usar a mesma regra do celular
+// (`trocoEmDinheiro`), em centavos exatos. Antes, R$ 10 numa conta de R$ 6,10
+// gravava 3.9000000000000004 na venda.
+describe("CheckoutView, troco gravado em centavos exatos", () => {
+  it("R$ 10 numa conta de R$ 6,10 grava R$ 3,90 de troco", async () => {
+    const addSale = vi.fn(() => Promise.resolve({ error: null }));
+    const SUCO = { uid: "i9", id: 9, name: "Suco", price: 6.1, qty: 1 };
+    setAppMock({
+      caixaAberto: true, pending: [comanda("ORDEM5", "5", [SUCO], 6.1)], products: [],
+      updatePending, addSale,
+      addPending: vi.fn(() => Promise.resolve({ error: null })),
+      removePending: vi.fn(() => Promise.resolve({ error: null })),
+    });
+    render(<MemoryRouter><PDVView notify={notify} /></MemoryRouter>);
+    fireEvent.change(screen.getByPlaceholderText("Buscar comanda..."), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: /Comanda 5/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Finalizar Comanda/ }));
+    await clicar("Sim, finalizar");
+
+    await clicar("Dinheiro");
+    fireEvent.change(campoRecebido(), { target: { value: "10" } });
+    await clicar(/Confirmar Pagamento/);
+
+    expect(addSale).toHaveBeenCalledTimes(1);
+    const [venda] = addSale.mock.calls[0];
+    expect(venda.pagamentos).toEqual([expect.objectContaining({ metodo: "dinheiro", recebido: 10, troco: 3.9 })]);
+  });
+});

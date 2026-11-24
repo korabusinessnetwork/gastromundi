@@ -9,9 +9,7 @@
  *   livres (ex.: "Mesa VIP") passam intactos.
  */
 
-export function fmtComanda(name) {
-  return /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
-}
+export { fmtComanda } from "@/lib/rotuloComanda";
 
 export function fmtDinheiro(v) {
   return `R$ ${Number(v ?? 0).toFixed(2)}`;

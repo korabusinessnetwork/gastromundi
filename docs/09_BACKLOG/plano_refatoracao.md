@@ -297,6 +297,10 @@ de `src/features/` para `components/desktop/`, contados pelo lint e pela métric
 `components/desktop/views/PDVView/` para `features/pdv/hooks/`. **Feita em 2026-11-24**, com o
 `consolePagamentoGuard` reapontado para os ganchos onde a lógica do caixa mora desde a fase 3.
 
+**4.2 PDV feita em 2026-11-24:** rótulo da comanda, meios de pagamento padrão, bloqueio do TEF
+sem internet e troco em dinheiro passam a existir uma vez só (`lib/rotuloComanda.js`,
+`features/pdv/regras/pagamento.js`).
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

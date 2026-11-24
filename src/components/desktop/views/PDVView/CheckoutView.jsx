@@ -9,7 +9,7 @@ import ModalCpfNota from "./ModalCpfNota";
 // valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
 // `buildPayloadPagamentos` e `buildPrintPagamentos` montam campo a campo, então ele
 // não chega à venda nem ao cupom.
-import { fmtComanda } from "./checkout/apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 import { useCheckout } from "@/features/pdv/hooks/useCheckout";
 import PopupAjuste from "./checkout/PopupAjuste";
 import PopupRemocao from "./checkout/PopupRemocao";

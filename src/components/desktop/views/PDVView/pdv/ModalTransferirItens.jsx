@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { LuArrowLeftRight } from "react-icons/lu";
-import { fmtComanda } from "./apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Janela de transferir itens para outra comanda.
 export default function ModalTransferirItens({ tela }) {

@@ -1,3 +1,16 @@
+## Rodada 97, refatoração 4.2, o PDV do computador e do celular com as mesmas regras, 2026-11-24
+- Spec: specs/refatoracao-4-2-pdv.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4387
+  testes, verde; `npm run build` limpo; lint 0 erros, 33 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- Regras que existiam em mais de um lugar e agora existem em um: o rótulo da comanda (8
+  cópias), os meios de pagamento padrão (3), o bloqueio do TEF sem internet (2) e o troco
+  em dinheiro (2, com comportamentos diferentes).
+- Mudança deliberada: o troco gravado pelo computador passa a sair em centavos exatos,
+  como no celular. Antes, R$ 10 numa conta de R$ 6,10 gravava 3.9000000000000004.
+- O que a rodada revelou: o primeiro teste do troco usava R$ 20 por R$ 6,10, e 20 − 6,1
+  dá exatamente 13,9 em ponto flutuante. A sabotagem passou, mostrando que o teste não
+  provava nada. Trocado para 10 − 6,1, a sabotagem passou a falhar como deve.
 ## Rodada 96, refatoração 4.1, os ganchos do caixa na pasta da funcionalidade, 2026-11-24
 - Spec: specs/refatoracao-4-1-ganchos-do-caixa.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4376

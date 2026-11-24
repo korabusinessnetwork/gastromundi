@@ -2,7 +2,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
-import { fmtComanda } from "./apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Janela de cancelar a comanda inteira, com motivo e senha de gerente.
 export default function ModalCancelarComanda({ tela }) {

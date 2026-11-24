@@ -6,8 +6,6 @@ import { LuBanknote, LuCreditCard, LuZap, LuSmartphone } from "react-icons/lu";
 // não chega à venda nem ao cupom.
 
 // Formatação e catálogo de métodos da finalização, usados pela tela e pelo gancho.
-export const fmtComanda = (name) =>
-  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 /**
  * Dinheiro na mão nunca é negativo. `min="0"` num <input type="number"> só

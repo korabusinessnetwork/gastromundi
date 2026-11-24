@@ -9,9 +9,8 @@ import { getSizes } from "@/constants/sizes";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
-const fmtComanda = (name) =>
-  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {
   const { width } = useResponsive();

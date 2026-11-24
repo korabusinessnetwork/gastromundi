@@ -27,13 +27,13 @@ import {
 import { useSessao, useOffline, useConfig, useCatalogo, useCaixa } from "@/context/AppContext";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { round2 } from "@/lib/vendas";
-import { metodoUsaTef } from "@/lib/tef";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import {
   buscarConfigImpressao, montarComprovantePagamento
 } from "@/lib/impressao";
 import { imprimirDocumento } from "@/lib/impressao/drivers";
-import { ICONES_METODO, METODOS_PADRAO, COMANDA_BALCAO, precoDoItem } from "@/pages/mobile/modulos/pdv/apoio";
+import { ICONES_METODO, COMANDA_BALCAO, precoDoItem } from "@/pages/mobile/modulos/pdv/apoio";
+import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/features/pdv/regras/pagamento";
 
 // Estado e ações da venda de balcão no celular: catálogo, carrinho, meios de pagamento,
 // troco e os três passos (itens, cobrar, concluído).
@@ -127,7 +127,7 @@ export function usePdvCelular({ onVoltar }) {
   // maquininha não responde — o botão já nasce bloqueado em vez de deixar
   // o operador tentar e falhar depois de cobrar.
   const bloqueadoOffline = (id) =>
-    !redeOnline && Boolean(addonHabilitado?.("tef")) && metodoUsaTef(id, metodosTef);
+    metodoBloqueadoSemRede(id, { redeOnline, tefLigado: addonHabilitado?.("tef"), metodosTef });
 
   // Fiado exige cliente identificado (F010) e o PDV rápido não tem seleção
   // de cliente — em vez de gravar fiado sem dono, bloqueia e diz o caminho.
@@ -138,7 +138,7 @@ export function usePdvCelular({ onVoltar }) {
   // ── Troco ───────────────────────────────────────────────────────
   const ehDinheiro = metodo === "dinheiro";
   const recebidoNum = round2(Number(String(recebido).replace(",", ".")) || 0);
-  const troco = ehDinheiro ? Math.max(0, round2(recebidoNum - total)) : 0;
+  const troco = ehDinheiro ? trocoEmDinheiro(recebidoNum, total) : 0;
   const falta = ehDinheiro ? Math.max(0, round2(total - recebidoNum)) : 0;
 
   const podeConfirmar =

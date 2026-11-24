@@ -2,7 +2,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
-import { fmtComanda } from "./apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Confirmação antes de cancelar o pedido em andamento.
 export default function ConfirmarCancelarPedido({ tela }) {

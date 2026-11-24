@@ -7,6 +7,7 @@ import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock, LuTriangleAlert } from "react-icons/lu";
 import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 const TOTAL = 1000;
 const PAGE  = 50;
@@ -15,9 +16,6 @@ const PAGE  = 50;
 // cravado aqui deixava esta cor de fora do white-label (decisão 017, TD018).
 const AMBER = varColor(C.warn);
 
-function fmtComanda(name) {
-  return /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
-}
 
 // Nota (F018, leva 1 fechamento): os blends com transparência abaixo
 // usam `alfa(cor, "HH")` (src/constants/colorAlfa.js) — color-mix()

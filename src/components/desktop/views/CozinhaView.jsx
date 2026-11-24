@@ -9,9 +9,8 @@ import { varColor } from "@/lib/tema";
 import { alfa } from "@/constants/colorAlfa";
 import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
-const fmtComanda = (name) =>
-  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 // AMBER ("em preparo") é o âmbar de ATENÇÃO do design system — token
 // --gm-warn, sobrescrevível pelo tenant como as demais cores da coluna

@@ -1,4 +1,5 @@
 import { rotuloMetodo } from "@/utils/pagamentos";
+import { fmtComanda as fmtComandaBase } from "@/lib/rotuloComanda";
 
 /**
  * F020 — LAYOUT EDITÁVEL DA COMANDA (Leva 16).
@@ -385,8 +386,9 @@ export function formatarCnpj(valor) {
   return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
 }
 
+// No cupom, comanda sem nome sai com o marcador de vazio em vez de nada.
 export function fmtComanda(nome) {
-  return /^\d+$/.test(String(nome ?? "").trim()) ? `Comanda ${nome}` : (nome ?? "—");
+  return fmtComandaBase(nome) ?? "—";
 }
 
 function aplicarCaixa(texto, bloco) {

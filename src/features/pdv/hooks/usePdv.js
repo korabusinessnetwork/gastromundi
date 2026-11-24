@@ -19,7 +19,7 @@ import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
 import { totalItensAtivos } from "@/lib/comandaItens";
 import { useCancelarComanda } from "./useCancelarComanda";
-import { fmtComanda } from "@/components/desktop/views/PDVView/pdv/apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 import { useEstadoJanelasPdv } from "./useEstadoJanelasPdv";
 import { useEstadoCancelamentoComanda } from "./useEstadoCancelamentoComanda";
 import { useEstadoMesaCliente } from "./useEstadoMesaCliente";

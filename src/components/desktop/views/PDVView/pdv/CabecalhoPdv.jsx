@@ -1,6 +1,6 @@
 import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuX, LuChartBar, LuPencil, LuScanBarcode, LuUser } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
-import { fmtComanda } from "./apoio";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Cabeçalho da Frente de Caixa: título, saldo do dia, nova comanda, alertas e abas.
 export default function CabecalhoPdv({ tela }) {

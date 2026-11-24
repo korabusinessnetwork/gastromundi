@@ -1,9 +1,8 @@
 import { useSessao, useComandas } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
+import { fmtComanda } from "@/lib/rotuloComanda";
 
-const fmtComanda = (name) =>
-  /^\d+$/.test(String(name ?? "").trim()) ? `Comanda ${name}` : name;
 
 /**
  * TD011 — extraído de PDVView (popup "Cancelar Comanda") para ser
