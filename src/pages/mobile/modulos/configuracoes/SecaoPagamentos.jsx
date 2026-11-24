@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuWallet, LuPlus, LuTrash2, LuCircleCheck } from "react-icons/lu";
+import { LuWallet, LuPlus, LuTrash2, LuCircleCheck } from "react-icons/lu";
 import { useSessao, useConfig } from "@/context/AppContext";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import "./SecaoPagamentos.css";
+import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 
 /**
  * SecaoPagamentos — aba "Meios de Pagamento" das Configurações, versão nativa do Palm.
@@ -27,12 +28,6 @@ import "./SecaoPagamentos.css";
  *   polegar — igual às outras seções de Configurações do Palm.
  */
 
-const METODOS_CATALOG = [
-  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote, desc: "Pagamento em espécie" },
-  { id: "credito", label: "Crédito", Icon: LuCreditCard, desc: "Cartão de crédito" },
-  { id: "debito", label: "Débito", Icon: LuSmartphone, desc: "Cartão de débito" },
-  { id: "pix", label: "Pix", Icon: LuZap, desc: "Pagamento via Pix" },
-];
 
 export default function SecaoPagamentos() {
   const { currentUser } = useSessao();

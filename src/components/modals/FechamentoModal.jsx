@@ -7,16 +7,11 @@ import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/lib/
 import C from "@/constants/colors";
 import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
-import { LuLock, LuBanknote, LuCreditCard, LuSmartphone, LuZap, LuPencil, LuTriangleAlert } from "react-icons/lu";
+import { LuLock, LuBanknote, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useConfig, useCaixa } from "@/context/AppContext";
 import "./FechamentoModal.css";
+import { METODOS_POR_ID } from "@/constants/metodosPagamento";
 
-const METODOS_CATALOG = {
-  dinheiro: { label: "Dinheiro", Icon: LuBanknote   },
-  credito:  { label: "Crédito",  Icon: LuCreditCard },
-  debito:   { label: "Débito",   Icon: LuSmartphone },
-  pix:      { label: "Pix",      Icon: LuZap        },
-};
 
 function fmtR(v) { return "R$ " + Number(v ?? 0).toFixed(2); }
 function parsVal(s) { return Math.max(0, parseFloat(String(s ?? "").replace(",", ".")) || 0); }
@@ -76,7 +71,7 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa)
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
   const { meiosPagamento, metodosCustom } = useConfig();
   const { movimentosCaixa } = useCaixa();
-  const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_CATALOG);
+  const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_POR_ID);
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
     [metodosCustom]
@@ -189,7 +184,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
           </div>
 
           {meios.map(metodo => {
-            const { Icon, label } = METODOS_CATALOG[metodo] ?? { label: rotuloMetodo(metodo, customLabels), Icon: LuBanknote };
+            const { Icon, label } = METODOS_POR_ID[metodo] ?? { label: rotuloMetodo(metodo, customLabels), Icon: LuBanknote };
             const sistemaVal = sistema[metodo] ?? 0;
             const confVal    = parsVal(confDe(metodo));
             const diff       = round2(confVal - sistemaVal);

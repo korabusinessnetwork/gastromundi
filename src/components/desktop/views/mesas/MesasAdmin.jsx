@@ -3,7 +3,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import { LuPlus, LuSave, LuTriangleAlert } from "react-icons/lu";
 import CardMesaAdmin from "./CardMesaAdmin";
-import { CARD_W, CARD_H, CARD_GAP } from "./apoio";
+import { CARD_W, CARD_H, CARD_GAP } from "@/features/mesas/regras/mapa";
 import { useMesasAdmin } from "@/features/mesas/hooks/useMesasAdmin";
 import ModalMesa from "./ModalMesa";
 import ConfirmarExclusaoMesa from "./ConfirmarExclusaoMesa";

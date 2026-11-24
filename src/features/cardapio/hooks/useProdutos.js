@@ -8,7 +8,7 @@ import { getSizes } from "@/constants/sizes";
 import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { novoUid } from "@/lib/uidLista";
-import { EMPTY_COMPRA, EMPTY_FORM, CAT_SEM_CATEGORIA } from "@/components/desktop/views/produtos/apoio";
+import { EMPTY_COMPRA, EMPTY_FORM, CAT_SEM_CATEGORIA } from "@/features/cardapio/regras/produto";
 import { useEstadoCategorias } from "./useEstadoCategorias";
 import { nomeBateComBusca } from "@/lib/busca";
 import { ehGerencia } from "@/constants/roles";

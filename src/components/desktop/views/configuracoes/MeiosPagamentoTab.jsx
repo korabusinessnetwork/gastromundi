@@ -6,7 +6,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { LuPlus, LuTrash2, LuWallet } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import ToggleChip from "./ToggleChip";
-import { METODOS_CATALOG } from "./apoio";
+import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 
 export default function MeiosPagamentoTab({ sz }) {
   const { currentUser } = useSessao();

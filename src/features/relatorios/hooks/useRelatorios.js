@@ -12,7 +12,7 @@ import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";
-import { ABAS_BASE, SALE_PREFIXES, filtrarPorPeriodo, fmtData } from "@/components/desktop/views/relatorio/apoio";
+import { ABAS_BASE, SALE_PREFIXES, filtrarPorPeriodo, fmtData } from "@/features/relatorios/regras/relatorio";
 import { ehGerencia } from "@/constants/roles";
 
 // Estado, filtros, números e exportações da tela de Relatórios. Cada aba lê daqui.

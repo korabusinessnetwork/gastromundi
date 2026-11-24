@@ -1,3 +1,20 @@
+## Rodada 105, refatoração 4.10, Configurações do celular e o fim da fase 4, 2026-11-24
+- Spec: specs/refatoracao-4-10-configuracoes-celular.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 266 arquivos / 4428
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro de fotos: 0
+  diferença. Sem migration. **A fase 4 do plano está concluída.**
+- Em dobro e agora únicos: catálogo dos meios de pagamento (4 cópias), edição do horário do
+  delivery (2) e as regras de mesa nova (2).
+- Fronteiras zeradas: nenhuma tela do celular e nenhum arquivo de `features/` importa da
+  pasta do computador; as duas regras de lint viraram erro.
+- O que a rodada revelou: a primeira versão pôs as funções de edição do horário no módulo de
+  horário, que se declara puro e não gera identificador; desfeito ao reler o comentário.
+  E o recorte deixou um `};` solto em dois arquivos, que o lint pegou.
+- TD025 aberto: dois recortes de período "espelhados" que tratam diferente o fim do período.
+- Da fase 4 inteira: 10 rodadas. Achados que eram defeito de verdade, todos corrigidos e
+  provados contra a versão anterior: contas vencidas sumindo do celular, pedido sem status
+  sem o botão de iniciar na Cozinha, saldo negativo mostrado como "baixo", contagem negativa
+  gravando zero, troco com resíduo de ponto flutuante, busca que não achava "Café".
 ## Rodada 104, refatoração 4.9, Cardápio com a mesma busca e a mesma regra de gerência, 2026-11-24
 - Spec: specs/refatoracao-4-9-cardapio.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 264 arquivos / 4423

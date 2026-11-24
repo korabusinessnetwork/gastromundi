@@ -77,22 +77,22 @@ export default [
   {
     // A camada de funcionalidade também não importa das telas do computador:
     // o celular usa esses ganchos, então a dependência chegaria a ele um passo
-    // adiante, sem a regra de baixo ver. Aviso agora; erro nas fases 4 e 6.
+    // adiante, sem a regra de baixo ver. Erro desde o fim da fase 4 (2026-11-24).
     files: ["src/features/**"],
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
-      "no-restricted-imports": ["warn", {
+      "no-restricted-imports": ["error", {
         patterns: [{ group: ["@/components/desktop/**", "**/components/desktop/**"], message: "Funcionalidade não depende de tela do computador: o que é comum sai de components/desktop para a feature (fases 4 e 6 do plano de refatoração)." }],
       }],
     },
   },
   {
-    // Celular não importa código da árvore do computador. Aviso agora; erro no
-    // fim da fase 4 do plano.
+    // Celular não importa código da árvore do computador. Erro desde o fim da
+    // fase 4 do plano (2026-11-24), quando a contagem chegou a zero.
     files: ["src/pages/mobile/**", "src/pages/MobilePage.jsx"],
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
-      "no-restricted-imports": ["warn", {
+      "no-restricted-imports": ["error", {
         patterns: [{ group: ["@/components/desktop/**", "**/components/desktop/**"], message: "Lógica compartilhada mora em hooks da feature, não na pasta do computador (fase 4 do plano de refatoração)." }],
       }],
     },

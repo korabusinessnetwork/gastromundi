@@ -1,16 +1,8 @@
 import { useEffect, useState } from "react";
 import { useSessao } from "@/context/AppContext";
-import {
-  DIAS_SEMANA,
-  FAIXA_PADRAO,
-  HORARIO_PADRAO,
-  deliveryDeveEstarAberto,
-  horarioValido,
-  normalizarHorario,
-  resumoHorario,
-} from "@/lib/deliveryHorario";
+import { DIAS_SEMANA, HORARIO_PADRAO, deliveryDeveEstarAberto, horarioValido, normalizarHorario, resumoHorario } from "@/lib/deliveryHorario";
+import { faixaNova, horarioParaEdicao } from "@/features/delivery/regras/edicaoHorario";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
-import { novoUid, comUid } from "@/lib/uidLista";
 import { logAction } from "@/lib/logger";
 import "./SecaoDelivery.css";
 
@@ -38,14 +30,9 @@ import "./SecaoDelivery.css";
  *
  * TD015: mesma identidade de renderização das faixas que a aba do desktop usa,
  * pelo mesmo motivo, o `uid` vive só no state e `normalizarHorario` o descarta na
- * fronteira do save. Os dois helpers abaixo são gêmeos dos de ConfiguracoesView:
- * o módulo de horário se declara puro e não pode gerar identificador.
+ * fronteira do save. Os dois helpers moram em features/delivery/regras/edicaoHorario.js,
+ * os mesmos da aba do computador.
  */
-const faixaNova = () => ({ ...FAIXA_PADRAO, uid: novoUid() });
-const horarioParaEdicao = (bruto) => {
-  const h = normalizarHorario(bruto);
-  return { ...h, faixas: comUid(h.faixas) };
-};
 
 export default function SecaoDelivery() {
   const { tenant, currentUser } = useSessao();

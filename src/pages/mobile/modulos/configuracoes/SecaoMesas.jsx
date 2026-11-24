@@ -4,6 +4,7 @@ import { useSessao } from "@/context/AppContext";
 import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa } from "@/features/mesas/dados/mesas";
 import { logAction } from "@/lib/logger";
 import "./SecaoMesas.css";
+import { EMPTY_FORM, proximaPosicaoLivre, capacidadeDaMesa, erroNovaMesa } from "@/features/mesas/regras/mapa";
 
 /**
  * SecaoMesas — aba "Mesas" das Configurações, versão nativa do Palm.
@@ -33,18 +34,6 @@ import "./SecaoMesas.css";
  * - Estados de carregando, erro, vazio (inclusive "nada encontrado" na
  *   busca) e sucesso sempre visíveis, com texto humano.
  */
-
-const EMPTY_FORM = { numero: "", capacidade: "4" };
-
-// Mesma lógica de src/components/desktop/views/mesas/MesasAdmin.jsx: a nova
-// mesa entra numa coluna livre à direita da última, sempre na linha 1. Não é
-// bonito, mas é uma posição SEMPRE válida — o mapa do desktop nunca quebra
-// por causa de uma mesa criada no celular.
-function proximaPosicaoLivre(mesas) {
-  if (mesas.length === 0) return { posicao_x: 1, posicao_y: 1 };
-  const maxX = Math.max(...mesas.map((m) => m.posicao_x ?? 1));
-  return { posicao_x: maxX + 1, posicao_y: 1 };
-}
 
 export default function SecaoMesas() {
   const { currentUser } = useSessao();
@@ -115,16 +104,16 @@ export default function SecaoMesas() {
 
   async function salvarNovaMesa() {
     const numero = form.numero.trim();
-    const capacidade = Math.max(1, parseInt(form.capacidade, 10) || 4);
+    const capacidade = capacidadeDaMesa(form.capacidade);
 
     if (!numero) {
-      setFormErro("Informe o número ou nome da mesa.");
+      setFormErro(erroNovaMesa(numero, mesas));
       return;
     }
     if (salvandoForm) return;
-    const existe = mesas.some((m) => m.numero === numero);
-    if (existe) {
-      setFormErro("Já existe uma mesa com este número/nome.");
+    const motivo = erroNovaMesa(numero, mesas);
+    if (motivo) {
+      setFormErro(motivo);
       return;
     }
 

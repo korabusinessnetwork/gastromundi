@@ -1,10 +1,5 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { LuBanknote, LuCreditCard, LuSmartphone, LuZap } from "react-icons/lu";
-import {
-  FAIXA_PADRAO, normalizarHorario
-} from "@/lib/deliveryHorario";
-import { novoUid, comUid } from "@/lib/uidLista";
 
 export const ROLES = [
   { id: "admin",   label: "Administrador", color: varColor(C.accent) },
@@ -40,12 +35,6 @@ export function traduzirErro(error) {
 
 // ── Aba Usuários ──────────────────────────────────────────────────
 
-export const METODOS_CATALOG = [
-  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote,   desc: "Pagamento em espécie" },
-  { id: "credito",  label: "Crédito",  Icon: LuCreditCard, desc: "Cartão de crédito" },
-  { id: "debito",   label: "Débito",   Icon: LuSmartphone, desc: "Cartão de débito" },
-  { id: "pix",      label: "Pix",      Icon: LuZap,        desc: "Pagamento via Pix" },
-];
 
 // ── Aba Meios de Pagamento ────────────────────────────────────────
 
@@ -74,23 +63,3 @@ export const ABAS_CONFIG = [
   // garçom não veem (mesmo recorte do banner do topo).
   { id: "assinatura",       label: "Minha assinatura",    gerenteOnly: true },
 ];
-
-// ── Aba Delivery (abertura automática por horário) ────────────────
-// Centraliza a configuração do delivery nas Configurações. Por ora: o
-// AGENDAMENTO de abertura/fechamento automático (dias da semana + horário).
-// Mora em config_delivery.horario; quem reconcilia o flag `aberto` com o
-// horário é o app do operador aberto (ver DeliveryView) — sem cron no
-// servidor (fase de custo zero). Toda a lógica de horário é pura e testada
-// em src/lib/deliveryHorario.js.
-//
-// TD015: as faixas são adicionadas e removidas do meio da lista, então cada uma
-// precisa de identidade própria para renderizar. Esse `uid` vive SÓ no state desta
-// tela: `normalizarHorario` reconstrói cada faixa como `{ abre, fecha }`, então ele
-// morre na fronteira do save sem precisar de limpeza explícita. O módulo de horário
-// se declara puro, por isso o carimbo mora aqui e não lá.
-export const faixaNova = () => ({ ...FAIXA_PADRAO, uid: novoUid() });
-
-export const horarioParaEdicao = (bruto) => {
-  const h = normalizarHorario(bruto);
-  return { ...h, faixas: comUid(h.faixas) };
-};

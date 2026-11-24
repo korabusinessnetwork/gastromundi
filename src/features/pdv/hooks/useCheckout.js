@@ -13,7 +13,7 @@ import { ajusteExigeSenha, validarAjuste } from "@/lib/vendas";
 // não chega à venda nem ao cupom.
 import { novoUid } from "@/lib/uidLista";
 import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/features/pdv/regras/pagamento";
-import { METODOS_CATALOG } from "@/components/desktop/views/PDVView/checkout/apoio";
+import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 import { useEstadoAjusteCheckout } from "./useEstadoAjusteCheckout";
 import { useEstadoRemocaoCheckout } from "./useEstadoRemocaoCheckout";
 import { itensNaoCancelados } from "@/lib/comandaItens";

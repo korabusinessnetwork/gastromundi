@@ -325,6 +325,12 @@ sumiam do celular.
 **4.9 Cardápio feita em 2026-11-24:** busca por nome sem acento em todas as telas
 (`nomeBateComBusca`, 9 lugares) e gerência numa regra só (`ehGerencia`, 11 cópias).
 
+**4.10 Configurações no celular feita em 2026-11-24:** catálogo dos meios de pagamento, edição
+do horário do delivery e regras de mesa nova numa cópia só.
+
+**A fase 4 está concluída (2026-11-24):** nenhum arquivo de `pages/mobile` nem de `features/`
+importa de `components/desktop`, e as duas regras de lint são erro.
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

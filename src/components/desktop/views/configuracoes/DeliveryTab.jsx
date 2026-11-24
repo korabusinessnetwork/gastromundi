@@ -7,7 +7,7 @@ import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmi
 import {
   DIAS_SEMANA, HORARIO_PADRAO, normalizarHorario, horarioValido, resumoHorario, deliveryDeveEstarAberto
 } from "@/lib/deliveryHorario";
-import { faixaNova, horarioParaEdicao } from "./apoio";
+import { faixaNova, horarioParaEdicao } from "@/features/delivery/regras/edicaoHorario";
 
 export default function DeliveryTab({ sz }) {
   const { tenant, currentUser } = useSessao();

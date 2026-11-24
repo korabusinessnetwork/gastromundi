@@ -1,4 +1,3 @@
-import { LuBanknote, LuCreditCard, LuZap, LuSmartphone } from "react-icons/lu";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
 // lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
 // valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
@@ -20,9 +19,3 @@ export const valorRecebido = (texto) => {
   return Number.isFinite(n) && n > 0 ? n : 0;
 };
 
-export const METODOS_CATALOG = [
-  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote   },
-  { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
-  { id: "debito",   label: "Débito",   Icon: LuSmartphone },
-  { id: "pix",      label: "Pix",      Icon: LuZap        },
-];

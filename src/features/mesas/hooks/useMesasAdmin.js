@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa, salvarLayoutMesas } from "@/features/mesas/dados/mesas";
-import { CARD_W, CARD_H, CARD_GAP, MIN_COLS, MIN_ROWS, EMPTY_FORM, proximaPosicaoLivre } from "@/components/desktop/views/mesas/apoio";
+import { CARD_W, CARD_H, CARD_GAP, MIN_COLS, MIN_ROWS, EMPTY_FORM, proximaPosicaoLivre, capacidadeDaMesa, erroNovaMesa } from "@/features/mesas/regras/mapa";
 import { useEstadoFormMesa } from "./useEstadoFormMesa";
 
 // Estado e ações do mapa de mesas: carga, posições, arrastar, criar, editar e excluir.
@@ -87,14 +87,14 @@ export function useMesasAdmin({ sz }) {
 
   async function salvar() {
     const numero     = form.numero.trim();
-    const capacidade = Math.max(1, parseInt(form.capacidade) || 4);
+    const capacidade = capacidadeDaMesa(form.capacidade);
 
-    if (!editando && !numero) { setFormErro("Informe o número ou nome da mesa."); return; }
+    if (!editando && !numero) { setFormErro(erroNovaMesa(numero, mesas)); return; }
     if (salvando) return;
 
     if (!editando) {
-      const existe = mesas.some(m => m.numero === numero);
-      if (existe) { setFormErro("Já existe uma mesa com este número/nome."); return; }
+      const motivo = erroNovaMesa(numero, mesas);
+      if (motivo) { setFormErro(motivo); return; }
     }
 
     setSalvando(true);

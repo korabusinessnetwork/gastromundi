@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { EMPTY_FORM } from "@/components/desktop/views/mesas/apoio";
+import { EMPTY_FORM } from "@/features/mesas/regras/mapa";
 
 // Estado da janela de criar ou editar uma mesa.
 export function useEstadoFormMesa() {
