@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   situacaoEstoque,
+  situacaoDoSaldo,
   classificarEstoque,
   controlaEstoque,
   MINIMO_PADRAO,
@@ -57,5 +58,24 @@ describe("classificarEstoque", () => {
 
   it("aguenta lista e mapas vazios", () => {
     expect(classificarEstoque(undefined, undefined, undefined)).toEqual({ semEstoque: [], baixos: [] });
+  });
+});
+
+// Refatoração 4.4: a cor da tela de Estoque e a etiqueta do celular usam esta
+// mesma regra. Antes as duas só chamavam de ruptura o saldo EXATAMENTE zero.
+describe("situacaoDoSaldo", () => {
+  it("saldo negativo é ruptura, como no alerta do PDV", () => {
+    expect(situacaoDoSaldo(-2, 5)).toBe("sem_estoque");
+    expect(situacaoEstoque(9, { 9: -2 }, { 9: 5 })).toBe("sem_estoque");
+  });
+
+  it("zero é ruptura, até o mínimo é baixo, acima é ok", () => {
+    expect(situacaoDoSaldo(0, 5)).toBe("sem_estoque");
+    expect(situacaoDoSaldo(5, 5)).toBe("baixo");
+    expect(situacaoDoSaldo(6, 5)).toBe("ok");
+  });
+
+  it("quem não controla estoque não tem situação de saldo", () => {
+    expect(situacaoDoSaldo(0, 5, false)).toBe("nao_controlado");
   });
 });

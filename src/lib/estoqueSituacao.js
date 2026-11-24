@@ -34,10 +34,25 @@ export function minimoDoProduto(estoqueMinimos, produtoId) {
  * Só produto que controla estoque pode estar em ruptura.
  */
 export function situacaoEstoque(produtoId, estoque, estoqueMinimos) {
-  if (!controlaEstoque(estoque, produtoId)) return "nao_controlado";
-  const saldo = estoque[produtoId] ?? 0;
-  if (saldo <= 0) return "sem_estoque";
-  return saldo <= minimoDoProduto(estoqueMinimos, produtoId) ? "baixo" : "ok";
+  return situacaoDoSaldo(
+    estoque?.[produtoId] ?? 0,
+    minimoDoProduto(estoqueMinimos, produtoId),
+    controlaEstoque(estoque, produtoId),
+  );
+}
+
+/**
+ * A mesma regra, para quem já tem o saldo e o mínimo na mão (a cor da tela de
+ * Estoque, a etiqueta do celular). Saldo NEGATIVO é ruptura: acontece com venda
+ * feita sem internet, e antes as telas de Estoque o mostravam como "baixo"
+ * enquanto o alerta do PDV dizia "sem estoque" (refatoração 4.4).
+ * Devolve "sem_estoque" | "baixo" | "ok" | "nao_controlado".
+ */
+export function situacaoDoSaldo(saldo, minimo, controlado = true) {
+  if (!controlado) return "nao_controlado";
+  const n = Number(saldo) || 0;
+  if (n <= 0) return "sem_estoque";
+  return n <= minimo ? "baixo" : "ok";
 }
 
 /**

@@ -1,3 +1,15 @@
+## Rodada 99, refatoração 4.4, o Estoque do computador e do celular com as mesmas regras, 2026-11-24
+- Spec: specs/refatoracao-4-4-estoque.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4400
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- Divergência achada e resolvida: a biblioteca (alerta do PDV) chamava saldo negativo de
+  ruptura; a cor da tela de Estoque e a etiqueta do celular, de "baixo". Era a mesma
+  contradição que `estoqueSituacao.js` diz ter resolvido, voltando por outra porta. Agora
+  há `situacaoDoSaldo`, usada pelas três.
+- Segunda divergência: a contagem do celular gravava zero quando se digitava "-5"; o
+  computador ignorava. Agora as duas telas usam `lerQuantidade`.
+- Fronteira de `features/`: 8 para 5 arquivos importando da pasta do computador.
 ## Rodada 98, refatoração 4.3, o Delivery do computador e do celular com as mesmas ações, 2026-11-24
 - Spec: specs/refatoracao-4-3-delivery.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4395

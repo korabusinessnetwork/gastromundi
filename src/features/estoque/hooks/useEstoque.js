@@ -8,9 +8,9 @@ import {
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { normalizarTexto } from "@/lib/importacao/planilha";
 import {
-  classificarEstoque
+  classificarEstoque, MINIMO_PADRAO as MINIMO_FALLBACK,
 } from "@/lib/estoqueSituacao";
-import { MINIMO_FALLBACK, lerQuantidade } from "@/components/desktop/views/estoque/apoio";
+import { lerQuantidade } from "@/features/estoque/regras/quantidade";
 import { useEstadoAutorizacaoEstoque } from "./useEstadoAutorizacaoEstoque";
 
 // Estado e ações da tela de Estoque: filtros, ordenação, entradas, rascunhos dos campos

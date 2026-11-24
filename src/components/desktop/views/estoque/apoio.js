@@ -1,8 +1,6 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  MINIMO_PADRAO
-} from "@/lib/estoqueSituacao";
+import { MINIMO_PADRAO, situacaoDoSaldo } from "@/lib/estoqueSituacao";
 
 // Cores, colunas e leitura de número da tela de Estoque, usadas pela tela e pelo gancho.
 // A regra de "sem estoque"/"estoque baixo" mora em src/lib/estoqueSituacao.js —
@@ -18,27 +16,12 @@ export const COLUNAS = [
   { key: "entrada",  label: "Entrada",   align: "center", sortable: false },
 ];
 
+const COR_DA_SITUACAO = { nao_controlado: C.muted, sem_estoque: C.red, baixo: C.warn, ok: C.green };
+
 export function estoqueColor(qty, minimo, controlado = true) {
-  if (!controlado)    return varColor(C.muted);
-  if (qty === 0)      return varColor(C.red);
-  if (qty <= minimo)  return varColor(C.warn);
-  return varColor(C.green);
+  return varColor(COR_DA_SITUACAO[situacaoDoSaldo(qty, minimo, controlado)]);
 }
 
 // Reexportado para não quebrar quem já importava daqui; a definição é uma só.
 
-/**
- * Lê o que o operador digitou num campo de quantidade.
- *
- * Devolve `null` quando não há nada gravável — campo vazio, texto, negativo ou
- * infinito. Campo vazio NUNCA vira zero: apagar o número na tela é o operador
- * limpando o campo para digitar outro, não pedindo para zerar o estoque.
- */
-export function lerQuantidade(valor) {
-  if (valor === null || valor === undefined) return null;
-  const texto = String(valor).trim();
-  if (texto === "") return null;
-  const n = parseFloat(texto.replace(",", "."));
-  if (!Number.isFinite(n) || n < 0) return null;
-  return n;
-}
+export { lerQuantidade } from "@/features/estoque/regras/quantidade";

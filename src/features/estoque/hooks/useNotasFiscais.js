@@ -12,7 +12,7 @@ import { arredondarQtd } from "@/utils/conversaoUnidades";
 // TD015: a linha da nota carrega estado próprio (busca do produto, dropdown
 // aberto), então a chave de renderização não pode ser a posição na lista.
 import { novoUid } from "@/lib/uidLista";
-import { novoItemManual } from "@/components/desktop/views/notasFiscais/apoio";
+import { novoItemManual } from "@/features/estoque/regras/notaManual";
 import { useEstadoImportacaoXml } from "./useEstadoImportacaoXml";
 import { useEstadoNotaManual } from "./useEstadoNotaManual";
 

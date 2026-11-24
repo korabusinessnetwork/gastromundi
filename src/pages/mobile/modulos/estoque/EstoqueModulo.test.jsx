@@ -284,3 +284,21 @@ describe("EstoqueModulo, contagem não muda debaixo do operador", () => {
     expect(cartao("Café").querySelector(".estoque-modulo__qtd")).toHaveTextContent("17");
   });
 });
+
+// Refatoração 4.4: situação e leitura da contagem vêm das regras únicas, as mesmas
+// do computador.
+describe("EstoqueModulo, as mesmas regras do computador", () => {
+  it("insumo com saldo negativo aparece como ruptura, não como estoque baixo", () => {
+    montar({ estoque: { 1: -2 }, estoqueMinimos: { 1: 5 } });
+    expect(cartao("Café")).toHaveTextContent("Ruptura");
+  });
+
+  it("número negativo na contagem não vira ajuste de saldo", () => {
+    montar({ estoque: { 1: 20 }, estoqueMinimos: { 1: 5 } });
+    fireEvent.click(screen.getByRole("button", { name: /Iniciar contagem/ }));
+    fireEvent.change(screen.getByLabelText("Quantidade contada de Café"), { target: { value: "-5" } });
+
+    // Antes "-5" virava zero e o saldo de 20 ia para 0 na revisão.
+    expect(screen.getByRole("button", { name: /Revisar ajustes/ })).toBeDisabled();
+  });
+});

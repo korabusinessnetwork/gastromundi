@@ -13,7 +13,8 @@ import {
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { labelEstoque, fmtQtd } from "@/utils/conversaoUnidades";
 import { normalizarTexto } from "@/lib/importacao/planilha";
-import { controlaEstoque, MINIMO_PADRAO } from "@/lib/estoqueSituacao";
+import { controlaEstoque, situacaoDoSaldo, MINIMO_PADRAO } from "@/lib/estoqueSituacao";
+import { lerQuantidade } from "@/features/estoque/regras/quantidade";
 import "../modulos.css";
 import "./EstoqueModulo.css";
 
@@ -39,11 +40,13 @@ const MINIMO_FALLBACK = MINIMO_PADRAO; // mesmo mínimo do PDV e da EstoqueView
 // Reexportado para não quebrar quem já importava daqui.
 export { controlaEstoque };
 
+// A situação vem da regra única (`situacaoDoSaldo`); aqui só o nome que esta
+// tela usa para cada uma.
+const NOME_NESTA_TELA = { sem_estoque: "ruptura", nao_controlado: "nao_controla" };
+
 function situacaoDoItem(quantidade, minimo, controlado = true) {
-  if (!controlado) return "nao_controla";
-  if (quantidade === 0) return "ruptura";
-  if (quantidade <= minimo) return "baixo";
-  return "ok";
+  const situacao = situacaoDoSaldo(quantidade, minimo, controlado);
+  return NOME_NESTA_TELA[situacao] ?? situacao;
 }
 
 // Quem não controla estoque desce para o fim da lista: não é problema para
@@ -57,11 +60,6 @@ const compararItens = (a, b) => {
   return a.nome.localeCompare(b.nome, "pt-BR");
 };
 
-function parseContagem(valor) {
-  if (valor === "" || valor === null || valor === undefined) return null;
-  const n = parseFloat(String(valor).replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
 
 export default function EstoqueModulo({ onVoltar }) {
   const { loading } = useSessao();
@@ -155,7 +153,7 @@ export default function EstoqueModulo({ onVoltar }) {
   const diffs = useMemo(() => {
     return itensContagem
       .map((item) => {
-        const digitado = parseContagem(contagemValores[item.id]);
+        const digitado = lerQuantidade(contagemValores[item.id]);
         if (digitado === null) return null;
         const novaQtd = Math.max(0, digitado);
         const diferenca = novaQtd - item.quantidade;
@@ -407,7 +405,7 @@ function CartaoItem({ item, contagemAtiva, valor, onValor }) {
         ? "mod-cartao mod-cartao--warn"
         : "mod-cartao";
 
-  const digitado = parseContagem(valor);
+  const digitado = lerQuantidade(valor);
   const diferenca = digitado === null ? null : Math.max(0, digitado) - item.quantidade;
 
   return (

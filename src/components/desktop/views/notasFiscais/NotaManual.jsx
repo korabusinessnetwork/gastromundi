@@ -11,7 +11,8 @@ import { alfa } from "@/constants/colorAlfa";
 import {
   LuX, LuSearch, LuArrowLeft, LuTriangleAlert, LuPlus, LuTruck
 } from "react-icons/lu";
-import { fmtCnpj, novoItemManual } from "./apoio";
+import { fmtCnpj } from "./apoio";
+import { novoItemManual } from "@/features/estoque/regras/notaManual";
 
 // Lançamento manual da nota, quando não há XML.
 export default function NotaManual({ nf }) {

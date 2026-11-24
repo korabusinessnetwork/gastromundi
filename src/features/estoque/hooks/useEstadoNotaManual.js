@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { hojeLocalISO } from "@/utils/datas";
-import { novoItemManual } from "@/components/desktop/views/notasFiscais/apoio";
+import { novoItemManual } from "@/features/estoque/regras/notaManual";
 
 // Estado do lançamento manual da nota e da escolha ou cadastro do fornecedor.
 export function useEstadoNotaManual() {

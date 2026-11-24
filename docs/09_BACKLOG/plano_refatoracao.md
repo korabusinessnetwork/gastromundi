@@ -305,6 +305,10 @@ sem internet e troco em dinheiro passam a existir uma vez só (`lib/rotuloComand
 `cancelarPedido` em `lib/deliveryPedidos.js`, usados pelas duas telas. O agrupamento por
 status continua de cada tela, porque as duas mostram coisas diferentes.
 
+**4.4 Estoque feita em 2026-11-24:** a situação do saldo (`situacaoDoSaldo`) e a leitura da
+quantidade digitada (`lerQuantidade`) passam a ser uma regra só. Saldo negativo vira ruptura nas
+duas telas, como já era no alerta do PDV, e contagem negativa no celular deixa de gravar zero.
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o
