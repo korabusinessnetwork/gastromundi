@@ -281,7 +281,9 @@ os ganchos: Notas Fiscais (3.8), Produtos e Relatórios (3.4) saíram do limite,
 tela com 313 linhas, gancho em `features/console`, aba Estabelecimentos em arquivo próprio. E o
 Checkout (3.6): tela com 116 linhas, gancho em `features/pdv/hooks/useCheckout.js`. Depois,
 Mesas e Estoque, com ganchos em `features/mesas` e `features/estoque`. E a Sidebar (gancho em
-`src/app/hooks/`) e a tela do celular (gancho em `src/pages/mobile/hooks/`).
+`src/app/hooks/`) e a tela do celular (gancho em `src/pages/mobile/hooks/`). E o PDV (3.2): tela
+com 332 linhas, gancho em `features/pdv/hooks/usePdv.js`; desde então nenhum arquivo passa de
+15 `useState`.
 
 ### Fase 4, celular e computador compartilham a lógica
 

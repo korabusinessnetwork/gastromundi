@@ -1,3 +1,17 @@
+## Rodada 93, refatoração 3.2, o PDV em ganchos e janelas próprias, 2026-11-24
+- Spec: specs/refatoracao-3-2-pdv.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 257 arquivos / 4371
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. `PDVView/index.jsx`: 2.190 para 332 linhas.
+- Marco da fase 3: o maior número de `useState` num arquivo caiu de 50 para 15. A meta de
+  estado da fase está cumprida no sistema inteiro; restam 5 arquivos acima de 600 linhas.
+- Testes novos: a mesa pedida ao abrir comanda vazia (e a comanda com mesa entrando
+  direto) e o cancelamento da comanda inteira com senha e motivo. Provado por sabotagem:
+  liberando a senha recusada, o teste falha.
+- O que a rodada revelou: a transferência não podia sair inteira para um gancho chamado
+  no lugar das funções, porque um efeito da tela lê `transferindo` ao desenhar, antes
+  desse ponto. Saiu em duas peças: o estado no começo, as ações onde estavam. E a poda de
+  imports não reconhecia `import X   from` com espaços extras; corrigido no script.
 ## Rodada 92, refatoração 3, Sidebar e tela do celular em ganchos, 2026-11-24
 - Spec: specs/refatoracao-3-sidebar-celular.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 256 arquivos / 4367
