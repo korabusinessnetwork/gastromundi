@@ -36,6 +36,9 @@ export default [
     rules: {
       // Sem isto, componente usado só como <Tag /> conta como variável sem uso.
       "react/jsx-uses-vars": "error",
+      // Componente usado no JSX sem import quebra só na hora de desenhar a tela;
+      // a regra pega no lint (achado na refatoração 3, Console).
+      "react/jsx-no-undef": "error",
       ...reactHooks.configs.recommended.rules,
       "no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrors: "none" }],
       // Espaço inseparável e BOM aparecem de propósito em regex (o formatador

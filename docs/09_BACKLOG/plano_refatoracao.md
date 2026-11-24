@@ -277,7 +277,8 @@ gancho `features/delivery/hooks/useGaleriaFotos.js`. No mesmo dia, um componente
 em Admin (3.7), Impostos, Pontos de impressão, Combos e Clientes, que saíram do limite, e em
 Relatórios, Notas Fiscais e Produtos, que ficaram menores mas ainda pedem ganchos. Depois,
 os ganchos: Notas Fiscais (3.8), Produtos e Relatórios (3.4) saíram do limite, com o estado em
-`features/estoque`, `features/cardapio` e `features/relatorios`.
+`features/estoque`, `features/cardapio` e `features/relatorios`. Em 2026-11-24, o Console (3.5):
+tela com 313 linhas, gancho em `features/console`, aba Estabelecimentos em arquivo próprio.
 
 ### Fase 4, celular e computador compartilham a lógica
 

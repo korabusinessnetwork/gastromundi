@@ -1,3 +1,13 @@
+## Rodada 89, refatoração 3.5, o Console em gancho e aba própria, 2026-11-24
+- Spec: specs/refatoracao-3-5-console.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4358
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. `ConsolePage.jsx`: 1.551 para 313 linhas.
+- O que a rodada revelou: o gerador não escreveu o import da aba nova, e o lint não acusou
+  porque `react/jsx-no-undef` não estava ligada. Os testes (137 falhas) e as fotos (2
+  telas) pegaram. A regra foi ligada; no código todo, só esse caso aparecia.
+- O gancho `useConsole.js` ficou com 597 linhas, rente ao limite de 600. Se crescer, os
+  recortes da lista são o próximo corte.
 ## Rodada 88, refatoração 3, ganchos em Notas Fiscais, Produtos e Relatórios, 2026-11-23
 - Spec: specs/refatoracao-3-ganchos-notas-produtos-relatorios.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4358
