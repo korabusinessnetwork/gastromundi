@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
-import { baixarConta } from "./financeiro";
+import { baixarConta, contaEmAberto } from "./financeiro";
 import { apenasDigitos, validarDocumento } from "./documento";
 import { telefoneValido, apenasDigitosTelefone } from "./telefone";
 
@@ -312,7 +312,16 @@ export function sanitizarTermoBusca(termo) {
  * @returns {number}
  */
 export function calcularSaldoDevedor(lancamentosFiado) {
-  return (lancamentosFiado ?? [])
-    .filter((l) => l.status === "previsto" || l.status === "vencido")
+  return contasDeFiadoEmAberto(lancamentosFiado)
     .reduce((s, l) => s + (Number(l.valor) || 0), 0);
+}
+
+/**
+ * Contas de fiado que o cliente ainda deve, as que a tela lista com o botão de
+ * baixa. "Em aberto" é a regra do financeiro (`contaEmAberto`): previsto ou
+ * vencido. Refatoração 4.5: estava reescrita à mão aqui, no detalhe do cliente
+ * do computador e no do celular.
+ */
+export function contasDeFiadoEmAberto(lancamentosFiado) {
+  return (lancamentosFiado ?? []).filter(contaEmAberto);
 }

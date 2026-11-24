@@ -19,6 +19,7 @@ import {
   listarClientes,
   buscarHistoricoCliente,
   calcularSaldoDevedor,
+  contasDeFiadoEmAberto,
   sanitizarTermoBusca,
   registrarPagamentoFiado,
 } from "@/lib/clientes";
@@ -273,7 +274,7 @@ function DetalheCliente({ cliente, usuario, onVoltar, onPagamentoRegistrado }) {
   }, [cliente.id]);
 
   const saldoDevedor = calcularSaldoDevedor(lancamentosFiado);
-  const contasEmAberto = lancamentosFiado.filter((l) => l.status === "previsto" || l.status === "vencido");
+  const contasEmAberto = contasDeFiadoEmAberto(lancamentosFiado);
 
   const handleConfirmarPagamento = async (lancamentoId) => {
     if (baixando) return;

@@ -7,7 +7,7 @@ import {
   LuPhone, LuMapPin, LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil, LuTrash2
 } from "react-icons/lu";
 import {
-  buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor, anonimizarCliente, registrarAcessoDocumento
+  buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor, contasDeFiadoEmAberto, anonimizarCliente, registrarAcessoDocumento
 } from "@/lib/clientes";
 import { formatarTelefone } from "@/lib/telefone";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
@@ -37,7 +37,7 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
   useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [cliente.id]);
 
   const saldoDevedor = calcularSaldoDevedor(lancamentosFiado);
-  const contasEmAberto = lancamentosFiado.filter((l) => l.status === "previsto" || l.status === "vencido");
+  const contasEmAberto = contasDeFiadoEmAberto(lancamentosFiado);
 
   const handleConfirmarPagamento = async (lancamentoId) => {
     if (baixando) return;

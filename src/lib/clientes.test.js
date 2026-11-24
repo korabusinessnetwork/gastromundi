@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
 
 const { baixarConta } = vi.hoisted(() => ({ baixarConta: vi.fn() }));
-vi.mock("./financeiro", () => ({ baixarConta }));
+// Só a gravação é dublê; a regra de "conta em aberto" (contaEmAberto) é a real.
+vi.mock("./financeiro", async (importOriginal) => ({ ...(await importOriginal()), baixarConta }));
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
 vi.mock("./supabase", async () => {
@@ -20,6 +21,7 @@ import {
   buscarClientePorId,
   registrarPagamentoFiado,
   calcularSaldoDevedor,
+  contasDeFiadoEmAberto,
   sanitizarTermoBusca,
   anonimizarCliente,
 } from "./clientes";
@@ -237,5 +239,22 @@ describe("calcularSaldoDevedor", () => {
 
   it("retorna 0 quando todas as contas já foram quitadas", () => {
     expect(calcularSaldoDevedor([{ valor: 50, status: "recebido" }])).toBe(0);
+  });
+});
+
+// Refatoração 4.5: a lista de contas que o cliente ainda deve vem daqui para o
+// computador e o celular, com a regra de "em aberto" do financeiro.
+describe("contasDeFiadoEmAberto", () => {
+  it("lista previstas e vencidas, deixa de fora o que já foi recebido", () => {
+    const lancamentos = [
+      { id: 1, valor: 50, status: "previsto" },
+      { id: 2, valor: 30, status: "vencido" },
+      { id: 3, valor: 100, status: "recebido" },
+    ];
+    expect(contasDeFiadoEmAberto(lancamentos).map((l) => l.id)).toEqual([1, 2]);
+  });
+
+  it("lista vazia ou ausente volta vazia", () => {
+    expect(contasDeFiadoEmAberto(undefined)).toEqual([]);
   });
 });

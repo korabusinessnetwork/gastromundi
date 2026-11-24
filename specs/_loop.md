@@ -1,3 +1,12 @@
+## Rodada 100, refatoração 4.5, Clientes com a mesma regra de fiado, 2026-11-24
+- Spec: specs/refatoracao-4-5-clientes.md
+- Resultado: 4 de 4 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4402
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 0
+  diferença. Sem migration.
+- "Conta em aberto" (previsto ou vencido) estava reescrita à mão em três lugares além da
+  regra do financeiro. Agora `contasDeFiadoEmAberto` usa `contaEmAberto`, e o saldo devedor
+  e as duas telas usam ela. Provado por sabotagem: sem "vencido" na regra, o fiado falha.
+- Rodada pequena: o celular já reaproveitava `lib/clientes.js` em quase tudo.
 ## Rodada 99, refatoração 4.4, o Estoque do computador e do celular com as mesmas regras, 2026-11-24
 - Spec: specs/refatoracao-4-4-estoque.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 260 arquivos / 4400
