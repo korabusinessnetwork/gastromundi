@@ -294,7 +294,8 @@ de `src/features/` para `components/desktop/`, contados pelo lint e pela métric
 ### Fase 4, celular e computador compartilham a lógica
 
 **4.1** Mover `useFinalizarPagamento` e `useCancelarComanda` de
-`components/desktop/views/PDVView/` para `features/pdv/hooks/`.
+`components/desktop/views/PDVView/` para `features/pdv/hooks/`. **Feita em 2026-11-24**, com o
+`consolePagamentoGuard` reapontado para os ganchos onde a lógica do caixa mora desde a fase 3.
 
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do

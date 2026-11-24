@@ -25,7 +25,7 @@ import {
   LuWallet
 } from "react-icons/lu";
 import { useSessao, useOffline, useConfig, useCatalogo, useCaixa } from "@/context/AppContext";
-import { useFinalizarPagamento } from "@/components/desktop/views/PDVView/useFinalizarPagamento";
+import { useFinalizarPagamento } from "./useFinalizarPagamento";
 import { round2 } from "@/lib/vendas";
 import { metodoUsaTef } from "@/lib/tef";
 import { rotuloMetodo } from "@/utils/pagamentos";

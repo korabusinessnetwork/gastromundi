@@ -15,7 +15,7 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 const finalizarPagamento = vi.hoisted(() => vi.fn(() => Promise.resolve()));
-vi.mock("@/components/desktop/views/PDVView/useFinalizarPagamento", () => ({
+vi.mock("@/features/pdv/hooks/useFinalizarPagamento", () => ({
   useFinalizarPagamento: () => ({ finalizarPagamento }),
 }));
 vi.mock("@/lib/impressao/drivers", () => ({ imprimirDocumento: vi.fn(() => Promise.resolve({ ok: true })) }));

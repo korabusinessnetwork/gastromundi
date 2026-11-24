@@ -29,7 +29,13 @@ const RAIZ = join(__dirname, "..");
  *  guard num varredor de refactor, e ele existe para proteger o caixa. */
 const ARQUIVOS = [
   "components/desktop/views/PDVView/index.jsx",
-  "components/desktop/views/PDVView/useFinalizarPagamento.js",
+  // Desde a refatoração 3 a lógica do caixa mora nos ganchos da feature. A
+  // lista acompanha a lógica, não a tela: um guard que só cobra AUSÊNCIA passa
+  // sozinho quando o código sai do arquivo que ele lê.
+  "features/pdv/hooks/usePdv.js",
+  "features/pdv/hooks/useCheckout.js",
+  "features/pdv/hooks/usePdvCelular.js",
+  "features/pdv/hooks/useFinalizarPagamento.js",
 ];
 
 /** Nomes que, na prática, seguram o objeto de erro neste código. */

@@ -1,3 +1,15 @@
+## Rodada 96, refatoração 4.1, os ganchos do caixa na pasta da funcionalidade, 2026-11-24
+- Spec: specs/refatoracao-4-1-ganchos-do-caixa.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4376
+  testes, verde; `npm run build` limpo; lint 0 erros, 35 avisos). Roteiro de fotos: 0
+  diferença. Sem migration. Começa a fase 4.
+- `useFinalizarPagamento` e `useCancelarComanda` estão em `features/pdv/hooks/`; o gancho
+  da venda de balcão do celular deixou de depender da pasta do computador.
+- O que a rodada revelou: o `consolePagamentoGuard`, que protege o caminho do dinheiro de
+  log com dado financeiro, ainda lia `PDVView/index.jsx`. A lógica tinha saído de lá na
+  fase 3, e como o guard só cobra ausência, passava sem ver nada. Agora lê os ganchos onde
+  a lógica mora; provado por sabotagem no gancho do celular. Os demais guards que leem
+  arquivos pelo caminho foram conferidos e não tinham o mesmo problema.
 ## Rodada 95, refatoração 3, as bibliotecas de regras por assunto, 2026-11-24
 - Spec: specs/refatoracao-3-bibliotecas.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 258 arquivos / 4373
