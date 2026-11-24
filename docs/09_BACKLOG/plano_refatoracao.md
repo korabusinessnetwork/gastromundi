@@ -279,7 +279,8 @@ Relatórios, Notas Fiscais e Produtos, que ficaram menores mas ainda pedem ganch
 os ganchos: Notas Fiscais (3.8), Produtos e Relatórios (3.4) saíram do limite, com o estado em
 `features/estoque`, `features/cardapio` e `features/relatorios`. Em 2026-11-24, o Console (3.5):
 tela com 313 linhas, gancho em `features/console`, aba Estabelecimentos em arquivo próprio. E o
-Checkout (3.6): tela com 116 linhas, gancho em `features/pdv/hooks/useCheckout.js`.
+Checkout (3.6): tela com 116 linhas, gancho em `features/pdv/hooks/useCheckout.js`. Depois,
+Mesas e Estoque, com ganchos em `features/mesas` e `features/estoque`.
 
 ### Fase 4, celular e computador compartilham a lógica
 

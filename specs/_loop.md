@@ -1,3 +1,17 @@
+## Rodada 91, refatoração 3, Mesas e Estoque em ganchos, 2026-11-24
+- Spec: specs/refatoracao-3-mesas-estoque.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 256 arquivos / 4364
+  testes, verde; `npm run build` limpo; lint 0 erros e os mesmos 26 avisos). Roteiro de
+  fotos: 0 diferença. Sem migration. Mesas: 727 para 236 linhas; Estoque: 675 para 359.
+- Teste novo: Mesas não tinha teste nenhum. Agora abre o mapa, cria mesa pela janela,
+  recusa número repetido e exclui só depois da confirmação. Provado por sabotagem: sem a
+  recusa de repetido, o teste falha.
+- O que a rodada revelou, três ajustes do gerador, todos pegos antes de qualquer
+  publicação: funções declaradas como `function x()` não entravam no gancho (o lint
+  acusou cada uma); o passo prévio levava para o `apoio` o que a tela exportava, e o teste
+  do Estoque, que importa `lerQuantidade` da tela, falhou; e o carregando das Mesas, um
+  retorno antecipado com JSX, precisava ficar na tela e não no gancho.
+- TD023 aberto: os botões do cartão de mesa só aparecem com o mouse em cima.
 ## Rodada 90, refatoração 3.6, o Checkout em gancho e regiões próprias, 2026-11-24
 - Spec: specs/refatoracao-3-6-checkout.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 255 arquivos / 4360
