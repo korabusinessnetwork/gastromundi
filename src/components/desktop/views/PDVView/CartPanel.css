@@ -582,3 +582,366 @@
   line-height: var(--lh-2xl);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Fase 5 do plano de refatoração: o que era estilo inline no JSX ──────────
+   Os tamanhos que vêm de `sz` (largura da tela) chegam como variáveis no
+   `.cart-panel` (`--cart-largura`, `--cart-pad`, `--cart-pad-sm`), com os
+   mesmos pixels de antes. As transparências são o `color-mix` que o `alfa()`
+   gerava, com a mesma porcentagem. Estado por item vira modificador no item, e
+   a cor mora no descendente do modificador (memory/patterns.md). */
+
+.cart-panel {
+  width: var(--cart-largura);
+  background: var(--gm-card);
+  border-left: 1px solid var(--gm-border);
+}
+
+/* Celular e tablet: o carrinho ocupa a coluna inteira, com a borda em cima. */
+.cart-panel--mob {
+  flex: 1;
+  border-left: none;
+  border-top: 1px solid var(--gm-border);
+}
+
+.cart-panel__header {
+  padding: calc(var(--cart-pad-sm) + 4px) calc(var(--cart-pad) - 4px);
+}
+
+.cart-panel__header-titulo { font-weight: 800; }
+
+.cart-panel__garcom,
+.cart-panel__vazio,
+.cart-panel__secao-titulo { color: var(--gm-muted); }
+
+.cart-panel__garcom { margin-top: 4px; }
+
+.cart-panel__secao-titulo { background: var(--gm-bg); }
+
+.cart-panel__secao-cancelados {
+  color: var(--gm-red);
+  margin-left: 8px;
+}
+
+/* Item já lançado; o cancelado fica esmaecido e riscado. */
+.cart-panel__item--lancado { background: var(--gm-surface); }
+
+.cart-panel__item--cancelado {
+  background: color-mix(in srgb, var(--gm-red) 3%, transparent);
+  opacity: 0.7;
+}
+
+/* Item que está sendo adicionado (ainda não lançado). */
+.cart-panel__item--novo { gap: 10px; }
+
+.cart-panel__item-emoji { flex-shrink: 0; }
+.cart-panel__item--cancelado .cart-panel__item-emoji { filter: grayscale(1); }
+
+.cart-panel__item-corpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.cart-panel__item--lancado .cart-panel__item-nome-texto { color: var(--gm-text); }
+
+.cart-panel__item-qty-mult { font-weight: 500; }
+
+.cart-panel__combo-resumo { color: var(--gm-muted); }
+.cart-panel__item--lancado .cart-panel__combo-resumo { margin-top: 2px; }
+.cart-panel__item--novo .cart-panel__combo-resumo { margin-top: -4px; }
+
+.cart-panel__obs-lancado {
+  color: var(--gm-accent);
+  margin-top: 2px;
+}
+
+.cart-panel__motivo-cancelado {
+  color: var(--gm-red);
+  margin-top: 4px;
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border-radius: 6px;
+  padding: 3px 8px;
+  display: inline-block;
+  font-weight: 600;
+}
+
+.cart-panel__item-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cart-panel__item-preco-cancelado {
+  font-weight: 800;
+  color: var(--gm-green);
+}
+
+/* Tudo o que é texto do item cancelado fica riscado e apagado. */
+.cart-panel__item--cancelado .cart-panel__item-nome-texto,
+.cart-panel__item--cancelado .cart-panel__obs-lancado,
+.cart-panel__item--cancelado .cart-panel__item-preco-cancelado {
+  color: var(--gm-muted);
+  text-decoration: line-through;
+}
+
+.cart-panel__item--cancelado .cart-panel__combo-resumo { text-decoration: line-through; }
+
+.cart-panel__btn-remover {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+}
+
+.cart-panel__btn-remover:hover {
+  background: color-mix(in srgb, var(--gm-red) 13%, transparent);
+}
+
+.cart-panel__badge-cancelado {
+  font-weight: 800;
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  border-radius: 6px;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.cart-panel__btn-obs { color: var(--gm-muted); }
+.cart-panel__btn-obs--ativo { color: var(--gm-accent); }
+
+.cart-panel__preco-unitario {
+  color: var(--gm-muted);
+  flex: 1;
+}
+
+.cart-panel__subtotal-item {
+  font-weight: 800;
+  color: var(--gm-text);
+  flex-shrink: 0;
+}
+
+.cart-panel__obs-chip {
+  background: var(--gm-alow);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+
+.cart-panel__obs-chip-texto {
+  flex: 1;
+  color: var(--gm-accent);
+  font-weight: 600;
+}
+
+.cart-panel__obs-remover { color: var(--gm-muted); }
+
+/* No foco, a borda segue a regra global dos campos (src/styles/inputs.css),
+   como em todo o sistema; o inline de antes a escondia. */
+.cart-panel__obs-input {
+  border: 1px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+
+.cart-panel__obs-confirmar {
+  background: var(--gm-green);
+  color: #fff;
+}
+
+.cart-panel__rodape {
+  padding: calc(var(--cart-pad-sm) + 2px) calc(var(--cart-pad) - 4px);
+}
+
+.cart-panel__subtotal-label { color: var(--gm-muted); }
+.cart-panel__subtotal-valor { color: var(--gm-text); }
+
+.cart-panel__total-linha { margin-bottom: var(--cart-pad-sm); }
+.cart-panel__total-label { font-weight: 800; }
+
+.cart-panel__total-valor {
+  font-weight: 900;
+  color: var(--gm-green);
+}
+
+.cart-panel__icone-botao { margin-right: 6px; }
+
+/* O fundo segue "tem item novo"; o `disabled` também cobre "salvando", por
+   isso modificador e não `:disabled` (memory/patterns.md). */
+.cart-panel__btn-lancar {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.cart-panel__btn-lancar--pode {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+
+.cart-panel__btn-finalizar {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}
+
+.cart-panel__btn-finalizar--pode {
+  border-color: color-mix(in srgb, var(--gm-green) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  color: var(--gm-green);
+  cursor: pointer;
+}
+
+/* A janela de cancelar item abre por cima da de finalizar. */
+.cart-panel__overlay--acima { z-index: 9100; }
+
+.cart-panel__modal--finalizar { gap: 0; }
+
+.cart-panel__modal-icone {
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+
+.cart-panel__modal-titulo { font-weight: 900; }
+.cart-panel__modal--finalizar .cart-panel__modal-titulo { margin-bottom: 4px; }
+
+.cart-panel__modal-nome-item {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.cart-panel__stepper {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+
+.cart-panel__stepper-legenda {
+  color: var(--gm-muted);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+/* Aqui o `disabled` é exatamente a mesma condição do apagado de antes. */
+.cart-panel__stepper-btn {
+  border: 1px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  cursor: pointer;
+}
+
+.cart-panel__stepper-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.cart-panel__stepper-input {
+  color: var(--gm-text);
+  background: var(--gm-input-bg);
+  border: 1.5px solid var(--gm-input-border);
+}
+
+.cart-panel__stepper-aviso {
+  color: var(--gm-red);
+  text-align: center;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.cart-panel__label { color: var(--gm-muted); }
+.cart-panel__obrigatorio { color: var(--gm-red); }
+
+.cart-panel__textarea {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+
+/* Motivo já digitado: a borda fica na cor de destaque mesmo fora do foco. */
+.cart-panel__textarea--preenchido {
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+}
+
+.cart-panel__contador {
+  color: var(--gm-muted);
+  text-align: right;
+}
+
+.cart-panel__senha-input {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+
+.cart-panel__senha-input--ok { border-color: var(--gm-green); }
+.cart-panel__senha-input[aria-invalid="true"] { border-color: var(--gm-red); }
+
+.cart-panel__senha-olho { color: var(--gm-muted); }
+
+.cart-panel__senha-erro {
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.cart-panel__senha-ok {
+  color: var(--gm-green);
+  font-weight: 600;
+}
+
+/* Botão secundário (Cancelar) é a base; primário e destaque trocam o fundo. */
+.cart-panel__modal-botao {
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+
+.cart-panel__modal-botao--primario {
+  border: none;
+  background: var(--gm-red);
+  color: #fff;
+}
+
+.cart-panel__modal-botao--primario:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.cart-panel__modal-botao--destaque {
+  border: none;
+  background: var(--gm-green);
+  color: #fff;
+  font-weight: 800;
+}
+
+.cart-panel__modal-subtexto {
+  color: var(--gm-muted);
+  margin-bottom: 20px;
+}
+
+.cart-panel__resumo-finalizar {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  margin-bottom: 20px;
+}
+
+.cart-panel__resumo-linha-titulo {
+  font-weight: 700;
+  color: var(--gm-text);
+  margin-bottom: 4px;
+}
+
+.cart-panel__resumo-linha-sub { color: var(--gm-muted); }
+
+.cart-panel__resumo-total {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.cart-panel__resumo-total-label {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.cart-panel__resumo-total-valor {
+  font-weight: 900;
+  color: var(--gm-green);
+}

@@ -53,7 +53,6 @@
   "components/desktop/views/mesas/ModalMesa.jsx": 15,
   "components/desktop/views/notasFiscais/NotaAssistenteXml.jsx": 72,
   "components/desktop/views/notasFiscais/NotaManual.jsx": 57,
-  "components/desktop/views/PDVView/CartPanel.jsx": 76,
   "components/desktop/views/PDVView/checkout/PainelPagamento.jsx": 48,
   "components/desktop/views/PDVView/checkout/PopupAjuste.jsx": 35,
   "components/desktop/views/PDVView/checkout/PopupRemocao.jsx": 24,

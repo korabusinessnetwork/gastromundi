@@ -349,6 +349,9 @@ hooks e funções de dados das abas da fase 3.3.
 de arquivos permitidos só diminui. **Feita em 2026-11-24:** 96 arquivos, 1.516 atributos na
 linha de base.
 
+**5.2, primeiro arquivo, feito em 2026-11-24:** `CartPanel` (76 para 0), com o roteiro de fotos
+cobrindo o carrinho e suas janelas antes da conversão.
+
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
 `Sidebar` (105), `ConfiguracoesView` (101), `CartPanel` (76), `ProdutosView` (73), e depois

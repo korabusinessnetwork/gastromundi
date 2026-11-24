@@ -91,6 +91,21 @@ function roteiro(largura) {
     passo: async (page) => {
       await abrirComanda15(page);
       await page.getByRole("button", { name: /Brigadeiro/ }).first().click({ timeout: 3000 });
+      await page.getByTitle("Adicionar observação").first().click({ timeout: 3000 });
+    },
+  });
+  telas.push({
+    nome: "app-pdv-cancelar-item", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.locator(".cart-panel__item", { hasText: "Suco" }).getByTitle("Cancelar item").click({ timeout: 3000 });
+    },
+  });
+  telas.push({
+    nome: "app-pdv-confirmar-finalizar", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByRole("button", { name: /Finalizar Comanda/ }).first().click({ timeout: 3000 });
     },
   });
   telas.push({

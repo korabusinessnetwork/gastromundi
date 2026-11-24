@@ -1,3 +1,12 @@
+## Rodada 108, refatoração 5.2, o carrinho do PDV sem estilo inline, 2026-11-24
+- Spec: specs/refatoracao-5-2-cartpanel.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 48 telas, 0
+  diferença. Sem migration. Estilo inline: 1.516 para 1.440.
+- `CartPanel.jsx`: 76 atributos `style` para 1, o de variáveis. Tamanhos por variável e
+  `calc()`, estado por modificador, `:disabled` só onde a condição era idêntica, hover em CSS.
+- Antes de converter, o roteiro ganhou a janela de cancelar item, a confirmação de finalizar e
+  o campo de observação, e a linha de base foi refeita com o código sem conversão.
 ## Rodada 107, refatoração 5.2a, a prova visual cobre o carrinho e a finalização, 2026-11-24
 - Spec: specs/refatoracao-5-2a-prova-visual-do-caixa.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430
