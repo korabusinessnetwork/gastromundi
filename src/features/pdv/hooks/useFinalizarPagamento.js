@@ -12,6 +12,7 @@ import { round2 } from "@/lib/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";
 import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir
@@ -71,7 +72,7 @@ export function useFinalizarPagamento() {
     // P7 — arredonda o subtotal na ORIGEM (não só na gravação em vendas.js):
     // este `subtotal` vai para recibo, UI e sales.data; sem round2 o erro de
     // ponto flutuante (0.1+0.2) vazaria para essas superfícies.
-    const subtotal        = round2(todosItens.filter(i => !i.cancelado).reduce((s, i) => s + i.price * (i.qty ?? 1), 0));
+    const subtotal        = round2(itensNaoCancelados(todosItens).reduce((s, i) => s + i.price * (i.qty ?? 1), 0));
     // Mesmo motivo do subtotal acima: o total chega pronto do chamador e vai
     // direto para sales.data, para o recibo e para o log. Um chamador que
     // some centavos sem arredondar (divisão da conta, taxa, desconto) gravava

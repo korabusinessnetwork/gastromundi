@@ -4,7 +4,7 @@ vi.mock("./supabase", () => ({ supabase: {} }));
 vi.mock("./logger", () => ({ logAction: vi.fn() }));
 vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
 
-import { tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, SLA_MINUTOS_PADRAO } from "./cozinha";
+import { tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, SLA_MINUTOS_PADRAO, statusCozinha, referenciaDaEtapa } from "./cozinha";
 
 describe("tempoDecorridoMin", () => {
   it("calcula minutos decorridos entre duas datas", () => {
@@ -86,5 +86,20 @@ describe("estaAtrasado", () => {
   it("lida com pedido nulo/indefinido sem lançar exceção", () => {
     expect(estaAtrasado(null)).toBe(false);
     expect(estaAtrasado(undefined)).toBe(false);
+  });
+});
+
+// Refatoração 4.8: as duas telas da cozinha usam estas regras.
+describe("statusCozinha e referenciaDaEtapa", () => {
+  it("sem status gravado, o pedido está aguardando", () => {
+    expect(statusCozinha({ status_cozinha: null })).toBe("aguardando");
+    expect(statusCozinha({ status_cozinha: "pronto" })).toBe("pronto");
+  });
+
+  it("o tempo conta desde a chegada aguardando, e desde o início em preparo", () => {
+    const p = { created_at: "c", em_preparo_em: "e" };
+    expect(referenciaDaEtapa({ ...p, status_cozinha: "aguardando" })).toBe("c");
+    expect(referenciaDaEtapa({ ...p, status_cozinha: null })).toBe("c");
+    expect(referenciaDaEtapa({ ...p, status_cozinha: "em_preparo" })).toBe("e");
   });
 });

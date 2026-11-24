@@ -2,6 +2,7 @@ import { supabase } from "./supabase";
 import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 import { normalizarPontos } from "./impressao/pontos";
 import { layoutComandaDeConfig, normalizarLayoutComanda } from "./impressao/layoutComanda";
+import { itensNaoCancelados } from "./comandaItens";
 
 /**
  * Impressão — F015 (docs/09_BACKLOG/features.md).
@@ -282,8 +283,7 @@ export function resolverIdentidadeTenant(tenant, configImpressao) {
 // Normaliza os itens de uma venda para o formato de impressão —
 // exclui cancelados (nunca aparecem em comprovante/cupom).
 function normalizarItensVenda(itens) {
-  return (Array.isArray(itens) ? itens : [])
-    .filter((i) => !i?.cancelado)
+  return itensNaoCancelados(itens)
     .map((i) => ({
       nome: i.name ?? "",
       qty: Number(i.qty) || 1,

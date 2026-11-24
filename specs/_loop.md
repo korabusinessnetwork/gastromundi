@@ -1,3 +1,14 @@
+## Rodada 103, refatoração 4.8, a Cozinha do computador e do celular com as mesmas regras, 2026-11-24
+- Spec: specs/refatoracao-4-8-cozinha.md
+- Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 262 arquivos / 4415
+  testes, verde; `npm run build` limpo; lint 0 erros, 30 avisos). Roteiro de fotos: 1
+  diferença, esperada. Sem migration.
+- "Itens não cancelados" estava escrito 14 vezes; agora é `itensNaoCancelados`. O status de
+  cozinha e a referência de tempo da etapa viraram `statusCozinha` e `referenciaDaEtapa`.
+- Defeito corrigido: no computador, pedido sem status de cozinha aparecia em "Aguardando"
+  sem o botão "Iniciar Preparo". A foto da Cozinha do computador mudou só por isso (o
+  roteiro sempre teve esse pedido); a referência foi atualizada.
+- TD024 aberto: no computador, falha ao iniciar ou concluir o preparo não aparece na tela.
 ## Rodada 102, refatoração 4.7, Relatórios com o mesmo ticket médio, 2026-11-24
 - Spec: specs/refatoracao-4-7-relatorios.md
 - Resultado: 5 de 5 critérios em sim, aprovado sem ressalvas (suíte 262 arquivos / 4410

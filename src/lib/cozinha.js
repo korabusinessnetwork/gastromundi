@@ -112,7 +112,23 @@ export function formatarTempoDecorrido(minutos) {
  * @returns {boolean}
  */
 export function estaAtrasado(pedido, slaMinutos = SLA_MINUTOS_PADRAO, agora = new Date()) {
-  if (!pedido || pedido.status_cozinha === "pronto") return false;
-  const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
-  return tempoDecorridoMin(referencia, agora) >= slaMinutos;
+  if (!pedido || statusCozinha(pedido) === "pronto") return false;
+  return tempoDecorridoMin(referenciaDaEtapa(pedido), agora) >= slaMinutos;
+}
+
+/**
+ * Status de cozinha do pedido. Sem status gravado, o pedido está aguardando.
+ * Refatoração 4.8: o computador usava o status cru no cartão, e o pedido sem
+ * status aparecia na coluna "Aguardando" sem o botão de começar o preparo.
+ */
+export function statusCozinha(pedido) {
+  return pedido?.status_cozinha ?? "aguardando";
+}
+
+/**
+ * Desde quando conta o tempo da etapa atual: em preparo, desde o início do
+ * preparo; aguardando, desde que o pedido chegou.
+ */
+export function referenciaDaEtapa(pedido) {
+  return statusCozinha(pedido) === "em_preparo" ? pedido?.em_preparo_em : pedido?.created_at;
 }

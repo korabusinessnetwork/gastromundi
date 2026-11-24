@@ -1,6 +1,6 @@
 import { logAction } from "@/lib/logger";
 import { mesmoItemDeVenda } from "@/lib/combos";
-import { totalItensAtivos } from "@/lib/comandaItens";
+import { totalItensAtivos, itensNaoCancelados } from "@/lib/comandaItens";
 import { fmtComanda } from "@/lib/rotuloComanda";
 
 // Ações de transferir itens entre comandas: abrir a janela e executar a transferência.
@@ -177,7 +177,7 @@ export function acoesTransferencia({
       const qtdTransf = aTransferir.reduce((s, x) => s + x.qty, 0);
       logAction(currentUser?.username, "itens:transferir", { msg: `Transferência: ${qtdTransf} item(ns) de ${fmtComanda(selected.comanda)} → ${nomeDestino}`, name: currentUser?.name, role: currentUser?.role, de: selected.comanda, para: nomeDestino, qtd: qtdTransf });
 
-      const itensAtivosRestantes = novosOrigem.filter(i => !i.cancelado);
+      const itensAtivosRestantes = itensNaoCancelados(novosOrigem);
       if (itensAtivosRestantes.length === 0) {
         const { error } = await removePending(selected.id);
         if (error) notify?.("Itens transferidos, mas a comanda de origem vazia não pôde ser removida.", "err");

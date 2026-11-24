@@ -10,6 +10,7 @@ import { LuLock, LuX, LuChartBar, LuEye, LuEyeOff } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { listarCancelamentosDeComandaDesde } from "@/features/auditoria/dados/logsOperador";
 import { fmtComanda } from "@/lib/rotuloComanda";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
 export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, sales, pending, metodosCustom }) {
@@ -34,7 +35,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
 
   const abertas = (pending ?? []).filter(p => p.status !== "closed");
   const totalAberto = abertas.reduce((s, p) => {
-    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+    const ativos = itensNaoCancelados(p.items);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);
   }, 0);
 
@@ -299,7 +300,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                 </div>
                 <div className="pdv__saldo-comandas">
                   {abertas.map(p => {
-                    const ativos = (Array.isArray(p.items) ? p.items : []).filter(i => !i.cancelado);
+                    const ativos = itensNaoCancelados(p.items);
                     const subtotal = ativos.reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0);
                     return (
                       <div key={p.id} className="pdv__saldo-comanda">

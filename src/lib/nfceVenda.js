@@ -20,6 +20,7 @@
  */
 
 import { apenasDigitos } from "./documento";
+import { itensNaoCancelados } from "./comandaItens";
 
 // Método de pagamento do PDV → tPag da SEFAZ (NFC-e). O que não casar cai
 // em "99" (Outros) — nunca esconde nem perde um pagamento.
@@ -59,8 +60,7 @@ export function tPagDoMetodo(metodo) {
  */
 export function montarVendaFiscal(sale = {}) {
   const itensVenda = Array.isArray(sale.items) ? sale.items : [];
-  const itens = itensVenda
-    .filter((it) => !it.cancelado)
+  const itens = itensNaoCancelados(itensVenda)
     .map((it, i) => {
       const qCom = Number(it.qty ?? 1) || 1;
       const vUnCom = Number(it.price ?? 0) || 0;

@@ -12,6 +12,8 @@ import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha } from "@/utils/hooks";
 import {
   estaAtrasado,
+  statusCozinha,
+  referenciaDaEtapa,
   formatarTempoDecorrido,
   iniciarPreparo,
   marcarPronto,
@@ -19,6 +21,7 @@ import {
 } from "@/lib/cozinha";
 import "../modulos.css";
 import "./CozinhaModulo.css";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 /**
  * CozinhaModulo — tela mobile da Cozinha/KDS no Palm (tela 1i do redesign).
@@ -70,11 +73,7 @@ function rotuloComanda(comanda) {
 }
 
 function itensAtivos(pedido) {
-  return (Array.isArray(pedido?.items) ? pedido.items : []).filter((i) => !i?.cancelado);
-}
-
-function statusDe(pedido) {
-  return pedido?.status_cozinha ?? "aguardando";
+  return itensNaoCancelados(pedido?.items);
 }
 
 export default function CozinhaModulo({ onVoltar }) {
@@ -97,7 +96,7 @@ export default function CozinhaModulo({ onVoltar }) {
   const porStatus = useMemo(() => {
     const grupos = { aguardando: [], em_preparo: [], pronto: [] };
     for (const pedido of pedidos) {
-      const status = statusDe(pedido);
+      const status = statusCozinha(pedido);
       if (grupos[status]) grupos[status].push(pedido);
     }
     // Fila e preparo: o mais antigo primeiro (é o que atrasa). Prontos: o mais
@@ -218,9 +217,9 @@ function Vazio({ filtro }) {
 }
 
 function CartaoPedido({ pedido, processando, onComecar, onPronto }) {
-  const status = statusDe(pedido);
+  const status = statusCozinha(pedido);
   const itens = itensAtivos(pedido);
-  const atrasado = estaAtrasado({ ...pedido, status_cozinha: status });
+  const atrasado = estaAtrasado(pedido);
 
   if (status === "pronto") {
     const desdePronto = formatarTempoDecorrido(tempoDecorridoMin(pedido.pronto_em));
@@ -244,7 +243,7 @@ function CartaoPedido({ pedido, processando, onComecar, onPronto }) {
   }
 
   const emPreparo = status === "em_preparo";
-  const referencia = emPreparo ? pedido.em_preparo_em : pedido.created_at;
+  const referencia = referenciaDaEtapa(pedido);
   const tempo = formatarTempoDecorrido(tempoDecorridoMin(referencia));
 
   return (

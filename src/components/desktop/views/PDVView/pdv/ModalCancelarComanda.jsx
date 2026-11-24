@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { fmtComanda } from "@/lib/rotuloComanda";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 // Janela de cancelar a comanda inteira, com motivo e senha de gerente.
 export default function ModalCancelarComanda({ tela }) {
@@ -87,7 +88,7 @@ export default function ModalCancelarComanda({ tela }) {
                     className={`pdv__modal-input pdv__cancelar-motivo-input${cancelarMotivo.trim() ? " pdv__cancelar-motivo-input--preenchido" : ""}`}
                   />
                   <div className="pdv__modal-aviso pdv__cancelar-aviso">
-                    ⚠️ {(selected?.items ?? []).filter(i => !i.cancelado).length} item(ns) serão cancelados e enviados para o relatório.
+                    ⚠️ {itensNaoCancelados(selected?.items).length} item(ns) serão cancelados e enviados para o relatório.
                   </div>
                   <button
                     onClick={async () => {

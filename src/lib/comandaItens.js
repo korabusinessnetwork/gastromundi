@@ -110,6 +110,15 @@ export function comandaEsquecida(order, agora, limiteHoras = HORAS_COMANDA_ESQUE
 }
 
 /**
+ * Itens que ainda valem na comanda: os cancelados ficam na lista para a
+ * auditoria, mas não entram em conta, cupom, cozinha nem contagem. Refatoração
+ * 4.8: o filtro estava escrito 14 vezes pelo app.
+ */
+export function itensNaoCancelados(items) {
+  return (Array.isArray(items) ? items : []).filter((i) => !i?.cancelado);
+}
+
+/**
  * Total da conta: soma apenas itens não cancelados, arredondado.
  *
  * O round2 não é enfeite: o retorno daqui é gravado em `pending.total` e é
@@ -118,8 +127,7 @@ export function comandaEsquecida(order, agora, limiteHoras = HORAS_COMANDA_ESQUE
  */
 export function totalItensAtivos(items) {
   return round2(
-    (Array.isArray(items) ? items : [])
-      .filter((i) => !i?.cancelado)
+    itensNaoCancelados(items)
       .reduce((s, i) => s + (i.price ?? 0) * (i.qty ?? 1), 0),
   );
 }

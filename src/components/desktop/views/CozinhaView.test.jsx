@@ -172,3 +172,17 @@ describe("CozinhaView", () => {
     });
   });
 });
+
+// Refatoração 4.8: o cartão do computador usava o status cru, e o pedido sem
+// status de cozinha aparecia em "Aguardando" sem o botão de começar o preparo.
+describe("CozinhaView, pedido sem status de cozinha", () => {
+  it("entra em Aguardando com o botão de iniciar o preparo", async () => {
+    const semStatus = { ...pedidoAguardando, id: "pend-9", comanda: "9", status_cozinha: null };
+    mockSupabase.current.setTableResult("pending", { data: [semStatus], error: null });
+
+    renderWithProviders(<CozinhaView />);
+
+    await waitFor(() => expect(screen.getByText("Comanda 9")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /iniciar preparo/i })).toBeInTheDocument();
+  });
+});

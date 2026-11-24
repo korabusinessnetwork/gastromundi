@@ -10,6 +10,7 @@ import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {
@@ -18,7 +19,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
   const itensAcumulados = Array.isArray(comanda?.items) ? comanda.items : [];
   // para totais e contagens, exclui cancelados
-  const itensAtivos     = itensAcumulados.filter(i => !i.cancelado);
+  const itensAtivos     = itensNaoCancelados(itensAcumulados);
   const total           = items.reduce((s, i) => s + i.price * i.qty, 0);
   const totalAcumulado  = itensAtivos.reduce((s, i) => s + i.price * (i.qty ?? 1), 0);
   const totalGeral      = totalAcumulado + total;

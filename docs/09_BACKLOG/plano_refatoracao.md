@@ -319,6 +319,9 @@ sumiam do celular.
 **4.7 Relatórios feita em 2026-11-24:** o ticket médio, escrito oito vezes, é `ticketMedio` em
 `lib/vendas.js`.
 
+**4.8 Cozinha feita em 2026-11-24:** `itensNaoCancelados` (14 cópias), `statusCozinha` e
+`referenciaDaEtapa`. Corrigido: no computador, pedido sem status ficava sem o botão de iniciar.
+
 **4.2 a 4.9** Um módulo por rodada: PDV, Delivery, Estoque, Clientes, Financeiro,
 Relatórios, Cozinha e Cardápio. Em cada um, comparar a tela do computador com o módulo do
 celular, extrair a lógica repetida para um hook da feature e fazer as duas telas usarem o

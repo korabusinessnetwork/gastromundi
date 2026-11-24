@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos, cancelarItemComanda, comandaEsquecida, HORAS_COMANDA_ESQUECIDA } from "./comandaItens";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos, cancelarItemComanda, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "./comandaItens";
 
 describe("garantirUidItens", () => {
   it("adiciona uid a itens sem uid e preserva os existentes", () => {
@@ -207,5 +207,17 @@ describe("totalItensAtivos", () => {
     // O Palm somava com `qty || 0`: o mesmo item valia 0 no celular e 1 no
     // desktop, então a mesma comanda tinha dois totais diferentes.
     expect(totalItensAtivos([{ price: 12.5 }])).toBe(12.5);
+  });
+});
+
+// Refatoração 4.8: o filtro estava escrito 14 vezes pelo app.
+describe("itensNaoCancelados", () => {
+  it("deixa de fora os itens cancelados e mantém a ordem", () => {
+    const itens = [{ uid: "a" }, { uid: "b", cancelado: true }, { uid: "c" }];
+    expect(itensNaoCancelados(itens).map((i) => i.uid)).toEqual(["a", "c"]);
+  });
+
+  it("lista ausente volta vazia", () => {
+    expect(itensNaoCancelados(undefined)).toEqual([]);
   });
 });

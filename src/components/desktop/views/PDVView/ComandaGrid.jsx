@@ -5,7 +5,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock, LuTriangleAlert } from "react-icons/lu";
-import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA } from "@/lib/comandaItens";
+import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
 
@@ -130,7 +130,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
 
             {aberasFiltradas.map(order => {
               const items      = Array.isArray(order.items) ? order.items : [];
-              const ativos     = items.filter(i => !i.cancelado);
+              const ativos     = itensNaoCancelados(items);
               const qtdTotal   = ativos.reduce((s, i) => s + (i.qty || 1), 0);
               // Mesma conta do resto do sistema (itens ativos, arredondada).
               // A soma reescrita aqui não protegia `price` ausente: um item sem
@@ -311,7 +311,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
   }
 
   const items    = Array.isArray(order.items) ? order.items : [];
-  const ativos   = items.filter(i => !i.cancelado);
+  const ativos   = itensNaoCancelados(items);
   const qtdTotal = ativos.reduce((s, i) => s + (i.qty || 1), 0);
   // Mesma conta do resto do sistema (itens ativos, arredondada). A soma
   // reescrita aqui não protegia `price` ausente: item sem preço fazia o card

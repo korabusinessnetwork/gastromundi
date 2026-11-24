@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido } from "@/lib/cozinha";
+import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/lib/cozinha";
 import { enviarViaProducao } from "@/lib/impressao/despacho";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -10,6 +10,7 @@ import { alfa } from "@/constants/colorAlfa";
 import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 
 // AMBER ("em preparo") é o âmbar de ATENÇÃO do design system — token
@@ -103,7 +104,7 @@ export default function CozinhaView() {
       <div className="cozinha-view__colunas" style={{ gap: sz.gap, padding: sz.pad }}>
         {COLUNAS.map((coluna) => {
           const pedidosColuna = pedidos
-            .filter((p) => (p.status_cozinha ?? "aguardando") === coluna.status)
+            .filter((p) => statusCozinha(p) === coluna.status)
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
           return (
@@ -144,10 +145,11 @@ export default function CozinhaView() {
 }
 
 function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onImprimirVia }) {
-  const referencia = pedido.status_cozinha === "em_preparo" ? pedido.em_preparo_em : pedido.created_at;
+  const status = statusCozinha(pedido);
+  const referencia = referenciaDaEtapa(pedido);
   const minutos = tempoDecorridoMin(referencia);
   const atrasado = estaAtrasado(pedido);
-  const itensAtivos = (Array.isArray(pedido.items) ? pedido.items : []).filter((i) => !i.cancelado);
+  const itensAtivos = itensNaoCancelados(pedido.items);
 
   return (
     <div className="pedido-card" style={{
@@ -187,7 +189,7 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
       </div>
 
       {/* Ação */}
-      {pedido.status_cozinha === "aguardando" && (
+      {status === "aguardando" && (
         <button
           onClick={onIniciarPreparo}
           disabled={processando}
@@ -200,7 +202,7 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
           <LuPlay size={13} /> {processando ? "Iniciando..." : "Iniciar Preparo"}
         </button>
       )}
-      {pedido.status_cozinha === "em_preparo" && (
+      {status === "em_preparo" && (
         <button
           onClick={onMarcarPronto}
           disabled={processando}

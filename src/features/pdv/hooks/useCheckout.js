@@ -16,6 +16,7 @@ import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/featu
 import { METODOS_CATALOG } from "@/components/desktop/views/PDVView/checkout/apoio";
 import { useEstadoAjusteCheckout } from "./useEstadoAjusteCheckout";
 import { useEstadoRemocaoCheckout } from "./useEstadoRemocaoCheckout";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 // Estado e ações da finalização da comanda: pagamentos, divisão, taxa de serviço,
 // desconto e acréscimo, cliente, CPF na nota e remoção de item.
@@ -72,7 +73,7 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
   } = useEstadoRemocaoCheckout();
 
   // Agrupa itens ativos pelo mesmo produto (name + price), somando qty e unindo obs
-  const itensAgrupados = items.filter(i => !i.cancelado).reduce((acc, item) => {
+  const itensAgrupados = itensNaoCancelados(items).reduce((acc, item) => {
     const chave = `${item.name}||${item.price}`;
     const obs   = Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
     if (acc[chave]) {
