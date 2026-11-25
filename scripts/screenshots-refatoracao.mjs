@@ -280,6 +280,62 @@ function roteiro(largura) {
     : route.fallback()));
   telas.push({ nome: "app-pdv-finalizar-taxa", perfil: "dono", caminho: "/app/pdv",
     preparar: comTaxaDeServico, passo: (page) => irParaPagamento(page) });
+  // Fase 5: o fiado (meio personalizado ligado) e a busca de cliente no
+  // checkout. Clientes fictícios, só para a foto: a busca por "mar" acha dois.
+  const comFiado = async (contexto) => {
+    await contexto.route(/\/rest\/v1\/config\?.*caixa_aberto/, (route) => (route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([
+          { key: "caixa_aberto", value: true }, { key: "fundo_atual", value: 100 },
+          { key: "sessao_aberta_em", value: "2026-11-20T11:00:00.000Z" },
+          { key: "meios_pagamento", value: ["dinheiro", "credito", "debito", "pix", "fiado"] },
+          { key: "metodos_custom", value: [{ id: "fiado", label: "Fiado" }] },
+        ]) })
+      : route.fallback()));
+    await contexto.route(/\/rest\/v1\/clientes/, (route) => (route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify(/mar/i.test(decodeURIComponent(route.request().url()))
+          ? [{ id: "cli-1", nome: "Maria Exemplo", telefone: "11988887777" },
+             { id: "cli-2", nome: "Mariana Teste", telefone: null }]
+          : []) })
+      : route.fallback()));
+  };
+  const naBuscaDoFiado = (termo) => async (page) => {
+    await irParaPagamento(page);
+    await page.locator(".checkout-view__metodo-card", { hasText: "Fiado" }).click({ timeout: 3000 });
+    if (termo) {
+      await page.getByPlaceholder(/Fiado exige cliente/).fill(termo, { timeout: 3000 });
+      await page.waitForTimeout(500);
+    }
+  };
+  telas.push({ nome: "app-pdv-fiado", perfil: "dono", caminho: "/app/pdv", preparar: comFiado, passo: naBuscaDoFiado(null) });
+  telas.push({ nome: "app-pdv-fiado-busca", perfil: "dono", caminho: "/app/pdv", preparar: comFiado, passo: naBuscaDoFiado("Mar") });
+  telas.push({ nome: "app-pdv-fiado-novo", perfil: "dono", caminho: "/app/pdv", preparar: comFiado, passo: naBuscaDoFiado("Zeca") });
+  telas.push({ nome: "app-pdv-fiado-telefone", perfil: "dono", caminho: "/app/pdv", preparar: comFiado,
+    passo: async (page) => {
+      await naBuscaDoFiado("Zeca")(page);
+      await page.getByRole("button", { name: /Cadastrar "Zeca"/ }).click({ timeout: 3000 });
+      await page.getByPlaceholder("(00) 00000-0000").fill("1199", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-fiado-escolhido", perfil: "dono", caminho: "/app/pdv", preparar: comFiado,
+    passo: async (page) => {
+      await naBuscaDoFiado("Mar")(page);
+      await page.getByRole("button", { name: /Maria Exemplo/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-finalizar-voltar-hover", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await irParaPagamento(page);
+      await page.locator(".checkout-view__btn-voltar").hover({ timeout: 3000 });
+    } });
+  const abrirSaldo = (page) => page.getByRole("button", { name: /Saldo do Dia/ }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-pdv-saldo", perfil: "dono", caminho: "/app/pdv", passo: abrirSaldo });
+  telas.push({ nome: "app-pdv-saldo-aberto", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirSaldo(page);
+      await page.getByPlaceholder("Digite a senha de acesso").fill("1234", { timeout: 3000 });
+      await page.getByRole("button", { name: "Acessar" }).click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+    } });
   telas.push({ nome: "app-pdv-finalizar-sem-taxa", perfil: "dono", caminho: "/app/pdv",
     preparar: comTaxaDeServico,
     passo: async (page) => {
