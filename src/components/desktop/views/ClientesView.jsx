@@ -1,9 +1,6 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
@@ -111,27 +108,29 @@ export default function ClientesView() {
   };
 
   return (
-    <div className="clientes-view" style={{ background: varColor(C.bg) }}>
+    <div
+      className="clientes-view"
+      style={{ "--clientes-pad": `${sz.pad}px`, "--clientes-pad-sm": `${sz.padSm}px`, "--clientes-gap": `${sz.gap}px` }}
+    >
 
       {/* Header */}
-      <div className="clientes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+      <div className="clientes-view__header">
         <div>
-          <div className="clientes-view__titulo" style={{ fontWeight: 800 }}>Clientes</div>
-          <div className="clientes-view__subtitulo" style={{ color: varColor(C.muted) }}>Cadastro, histórico de compras e fiado</div>
+          <div className="clientes-view__titulo">Clientes</div>
+          <div className="clientes-view__subtitulo">Cadastro, histórico de compras e fiado</div>
         </div>
         <button
           onClick={abrirCadastro}
           className="clientes-view__btn-novo"
-          style={{ background: varColor(C.accent), boxShadow: `0 4px 16px ${alfa(C.accent, "44")}` }}
         >
           <LuPlus size={16} /> Novo Cliente
         </button>
       </div>
 
       {/* Busca */}
-      <div className="clientes-view__busca-wrap" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="clientes-view__busca-wrap">
         <div className="clientes-view__busca">
-          <LuSearch size={15} color={varColor(C.muted)} />
+          <LuSearch size={15} className="clientes-view__busca-icone" />
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -142,9 +141,9 @@ export default function ClientesView() {
       </div>
 
       {/* Lista */}
-      <div className="clientes-view__lista-area" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+      <div className="clientes-view__lista-area">
         {erro && (
-          <div className="clientes-view__alerta" style={{ background: alfa(C.red, "12") }}>
+          <div className="clientes-view__alerta" role="alert">
             <LuCircleAlert size={18} /> {erro}
           </div>
         )}
@@ -155,8 +154,8 @@ export default function ClientesView() {
           </div>
         ) : clientes.length === 0 ? (
           <div className="clientes-view__estado">
-            <LuUsers size={44} style={{ opacity: 0.3 }} />
-            <div className="clientes-view__titulo-estado" style={{ fontWeight: 600 }}>
+            <LuUsers size={44} className="clientes-view__icone-vazio" />
+            <div className="clientes-view__titulo-estado">
               {busca.trim() ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
             </div>
             {!busca.trim() && (
@@ -164,7 +163,7 @@ export default function ClientesView() {
             )}
           </div>
         ) : (
-          <div className="clientes-view__grid" style={{ gap: sz.gap }}>
+          <div className="clientes-view__grid">
             {clientes.map((c) => (
               <button
                 key={c.id}
@@ -248,7 +247,7 @@ export default function ClientesView() {
                 invalido={docInvalido}
               />
               <div>
-                <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
+                <label className="clientes-view__label">Endereço <span className="clientes-view__label-opcional">(para delivery, opcional)</span></label>
                 <input
                   value={novoEndereco}
                   onChange={(e) => setNovoEndereco(e.target.value)}
@@ -257,7 +256,7 @@ export default function ClientesView() {
                 />
               </div>
               <div>
-                <label className="clientes-view__label">Observações <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></label>
+                <label className="clientes-view__label">Observações <span className="clientes-view__label-opcional">(opcional)</span></label>
                 <input
                   value={novoObs}
                   onChange={(e) => setNovoObs(e.target.value)}
@@ -279,10 +278,6 @@ export default function ClientesView() {
                 onClick={handleCadastrar}
                 disabled={cadastroBloqueado}
                 className="clientes-view__btn-confirmar"
-                style={{
-                  background: cadastroBloqueado ? varColor(C.faint) : varColor(C.accent),
-                  cursor: cadastroBloqueado ? "not-allowed" : "pointer",
-                }}
               >
                 {salvando ? "Salvando..." : "Cadastrar"}
               </button>
@@ -302,7 +297,6 @@ export default function ClientesView() {
           // abrir o CPF por inteiro. Garçom e caixa continuam com o cliente
           // (precisam para delivery e fiado), mas veem o documento oculto.
           podeVerDocumento={ehGerencia(currentUser)}
-          sz={sz}
           onClose={() => setClienteAberto(null)}
           onEditar={() => setClienteEditando(clienteAberto)}
           onExcluido={(id) => {

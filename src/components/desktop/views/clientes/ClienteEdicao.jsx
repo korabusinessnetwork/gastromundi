@@ -1,8 +1,6 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import {
   LuX
 } from "react-icons/lu";
@@ -58,7 +56,7 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
   };
 
   return createPortal(
-    <div {...fecharAoClicarFora(onClose)} className="clientes-view__overlay" style={{ zIndex: 9300 }}>
+    <div {...fecharAoClicarFora(onClose)} className="clientes-view__overlay clientes-view__overlay--edicao">
       <div className="clientes-view__modal">
         <div className="clientes-view__modal-topo">
           <div className="clientes-view__modal-titulo">Editar cliente</div>
@@ -100,7 +98,7 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
             invalido={docInvalido}
           />
           <div>
-            <label className="clientes-view__label">Endereço <span style={{ fontWeight: 400, textTransform: "none" }}>(para delivery, opcional)</span></label>
+            <label className="clientes-view__label">Endereço <span className="clientes-view__label-opcional">(para delivery, opcional)</span></label>
             <input
               value={endereco}
               onChange={(e) => setEndereco(e.target.value)}
@@ -109,7 +107,7 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
             />
           </div>
           <div>
-            <label className="clientes-view__label">Observações <span style={{ fontWeight: 400, textTransform: "none" }}>(opcional)</span></label>
+            <label className="clientes-view__label">Observações <span className="clientes-view__label-opcional">(opcional)</span></label>
             <input
               value={obs}
               onChange={(e) => setObs(e.target.value)}
@@ -129,10 +127,6 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
             onClick={handleSalvar}
             disabled={bloqueado}
             className="clientes-view__btn-confirmar"
-            style={{
-              background: bloqueado ? varColor(C.faint) : varColor(C.accent),
-              cursor: bloqueado ? "not-allowed" : "pointer",
-            }}
           >
             {salvando ? "Salvando..." : "Salvar"}
           </button>

@@ -1,8 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useEffect, useState } from "react";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuPhone, LuMapPin, LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil, LuTrash2
 } from "react-icons/lu";
@@ -77,10 +74,10 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
           <button onClick={onClose} className="cliente-detalhe__btn-icone">
             <LuArrowLeft size={18} />
           </button>
-          <div style={{ flex: 1 }}>
+          <div className="cliente-detalhe__identificacao">
             <div className="cliente-detalhe__nome">{cliente.nome}</div>
             <div className="cliente-detalhe__contato">
-              {cliente.telefone && <span><LuPhone size={12} style={{ verticalAlign: -1 }} /> {formatarTelefone(cliente.telefone)}</span>}
+              {cliente.telefone && <span><LuPhone size={12} className="cliente-detalhe__icone-contato" /> {formatarTelefone(cliente.telefone)}</span>}
               {cliente.documento && (
                 <DocumentoProtegido
                   documento={cliente.documento}
@@ -90,7 +87,7 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
                   onRevelar={() => registrarAcessoDocumento(cliente.id, usuario)}
                 />
               )}
-              {cliente.endereco && <span><LuMapPin size={12} style={{ verticalAlign: -1 }} /> {cliente.endereco}</span>}
+              {cliente.endereco && <span><LuMapPin size={12} className="cliente-detalhe__icone-contato" /> {cliente.endereco}</span>}
             </div>
           </div>
           <button onClick={onEditar} className="cliente-detalhe__btn-editar">
@@ -140,7 +137,6 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
                     onClick={handleExcluir}
                     disabled={excluindo}
                     className="cliente-detalhe__btn-confirmar-exclusao"
-                    style={{ cursor: excluindo ? "not-allowed" : "pointer" }}
                   >
                     {excluindo ? "Excluindo..." : "Sim, excluir"}
                   </button>
@@ -150,61 +146,58 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
           )}
 
           {erro && (
-            <div className="clientes-view__alerta" style={{ padding: 14, borderRadius: 10, background: alfa(C.red, "12") }}>
+            <div className="clientes-view__alerta clientes-view__alerta--detalhe" role="alert">
               <LuCircleAlert size={16} /> {erro}
             </div>
           )}
           {erroBaixa && (
-            <div className="clientes-view__alerta" style={{ padding: 14, borderRadius: 10, background: alfa(C.red, "12") }}>
+            <div className="clientes-view__alerta clientes-view__alerta--detalhe" role="alert">
               <LuCircleAlert size={16} /> {erroBaixa}
             </div>
           )}
 
           {carregando ? (
-            <div className="cliente-detalhe__msg-carregando" style={{ color: varColor(C.muted), textAlign: "center", padding: 30 }}>Carregando histórico...</div>
+            <div className="cliente-detalhe__msg-carregando">Carregando histórico...</div>
           ) : (
             <>
               {/* Saldo devedor — destaque claro: quem deve, quanto */}
-              <div className="cliente-detalhe__saldo" style={{
-                background: saldoDevedor > 0 ? alfa(C.red, "12") : alfa(C.green, "12"),
-                border: `1.5px solid ${alfa(saldoDevedor > 0 ? varColor(C.red) : varColor(C.green), "44")}`,
-              }}>
+              <div className={`cliente-detalhe__saldo cliente-detalhe__saldo--${saldoDevedor > 0 ? "devendo" : "quitado"}`}>
                 <div>
                   <div className="cliente-detalhe__saldo-rotulo">Saldo de fiado</div>
-                  <div className="cliente-detalhe__saldo-valor" style={{ color: saldoDevedor > 0 ? varColor(C.red) : varColor(C.green) }}>
+                  <div className="cliente-detalhe__saldo-valor">
                     {saldoDevedor > 0 ? `${cliente.nome} deve R$ ${saldoDevedor.toFixed(2)}` : "Sem pendências"}
                   </div>
                 </div>
-                {saldoDevedor === 0 && <LuBadgeCheck size={26} color={varColor(C.green)} />}
+                {saldoDevedor === 0 && <LuBadgeCheck size={26} className="cliente-detalhe__saldo-icone" />}
               </div>
 
               {/* Contas de fiado em aberto */}
               {contasEmAberto.length > 0 && (
                 <div>
                   <div className="cliente-detalhe__secao-titulo">Contas em aberto</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div className="cliente-detalhe__contas">
                     {contasEmAberto.map((l) => (
                       <div key={l.id} className="cliente-detalhe__conta">
                         <div>
                           <div className="cliente-detalhe__conta-descricao">{l.descricao ?? "Fiado"}</div>
                           <div className="cliente-detalhe__conta-venc">
                             Venc. {l.vencimento ? new Date(l.vencimento).toLocaleDateString("pt-BR") : "—"}
-                            {l.status === "vencido" && <span style={{ color: varColor(C.red), fontWeight: 700 }}> · Vencido</span>}
+                            {l.status === "vencido" && <span className="cliente-detalhe__conta-vencida"> · Vencido</span>}
                           </div>
                         </div>
                         <div className="cliente-detalhe__conta-acoes">
                           <div className="cliente-detalhe__conta-valor">R$ {Number(l.valor).toFixed(2)}</div>
                           {confirmandoId === l.id ? (
-                            <div style={{ display: "flex", gap: 6 }}>
+                            <div className="cliente-detalhe__confirmar-pagamento">
                               <button onClick={() => setConfirmandoId(null)} className="cliente-detalhe__btn-pequeno">
                                 Cancelar
                               </button>
-                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} className="cliente-detalhe__btn-confirmar-pagamento" style={{ background: varColor(C.green), cursor: baixando ? "not-allowed" : "pointer" }}>
+                              <button onClick={() => handleConfirmarPagamento(l.id)} disabled={baixando} className="cliente-detalhe__btn-confirmar-pagamento">
                                 {baixando ? "..." : "Confirmar"}
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setConfirmandoId(l.id)} className="cliente-detalhe__btn-registrar" style={{ borderColor: alfa(C.green, "66"), background: alfa(C.green, "12"), color: varColor(C.green) }}>
+                            <button onClick={() => setConfirmandoId(l.id)} className="cliente-detalhe__btn-registrar">
                               Registrar pagamento
                             </button>
                           )}
@@ -219,15 +212,15 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
               <div>
                 <div className="cliente-detalhe__secao-titulo">Histórico de compras</div>
                 {vendas.length === 0 ? (
-                  <div className="cliente-detalhe__msg-vendas-vazio" style={{ color: varColor(C.muted), padding: "10px 0" }}>Nenhuma venda registrada para este cliente ainda.</div>
+                  <div className="cliente-detalhe__msg-vendas-vazio">Nenhuma venda registrada para este cliente ainda.</div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div className="cliente-detalhe__vendas">
                     {vendas.map((v) => (
                       <div key={v.id} className="cliente-detalhe__venda">
-                        <div className="cliente-detalhe__venda-data" style={{ color: varColor(C.muted) }}>
+                        <div className="cliente-detalhe__venda-data">
                           {v.comanda ? `Comanda ${v.comanda}` : "Venda"} · {new Date(v.at).toLocaleDateString("pt-BR")}
                         </div>
-                        <div className="cliente-detalhe__venda-valor" style={{ fontWeight: 700, color: varColor(C.text) }}>R$ {Number(v.total).toFixed(2)}</div>
+                        <div className="cliente-detalhe__venda-valor">R$ {Number(v.total).toFixed(2)}</div>
                       </div>
                     ))}
                   </div>

@@ -578,3 +578,135 @@
   line-height: var(--lh-base);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- Fase 5: o que saiu do JSX de Clientes ----
+   --clientes-pad, --clientes-pad-sm e --clientes-gap chegam por variável na
+   .clientes-view (vêm do `sz`). */
+.clientes-view {
+  background: var(--gm-bg);
+}
+.clientes-view__header {
+  padding: calc(var(--clientes-pad) - 4px) var(--clientes-pad);
+}
+.clientes-view__titulo {
+  font-weight: 800;
+}
+.clientes-view__subtitulo {
+  color: var(--gm-muted);
+}
+.clientes-view__btn-novo {
+  background: var(--gm-accent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.clientes-view__busca-wrap {
+  padding: var(--clientes-pad-sm) var(--clientes-pad);
+}
+.clientes-view__busca-icone {
+  color: var(--gm-muted);
+  flex-shrink: 0;
+}
+.clientes-view__lista-area {
+  padding: 0 var(--clientes-pad) var(--clientes-pad);
+}
+.clientes-view__alerta {
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+}
+.clientes-view__alerta--detalhe {
+  padding: 14px;
+  border-radius: 10px;
+}
+.clientes-view__icone-vazio {
+  opacity: 0.3;
+}
+.clientes-view__titulo-estado {
+  font-weight: 600;
+}
+.clientes-view__grid {
+  gap: var(--clientes-gap);
+}
+.clientes-view__label-opcional {
+  font-weight: 400;
+  text-transform: none;
+}
+.clientes-view__overlay--edicao {
+  z-index: 9300;
+}
+.clientes-view__btn-confirmar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.clientes-view__btn-confirmar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* Detalhe do cliente. */
+.cliente-detalhe__identificacao {
+  flex: 1;
+}
+.cliente-detalhe__icone-contato {
+  vertical-align: -1px;
+}
+.cliente-detalhe__btn-confirmar-exclusao {
+  cursor: pointer;
+}
+.cliente-detalhe__btn-confirmar-exclusao:disabled {
+  cursor: not-allowed;
+}
+.cliente-detalhe__msg-carregando {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 30px;
+}
+/* Saldo de fiado: vermelho quando o cliente deve, verde quando está quitado. */
+.cliente-detalhe__saldo--devendo  { --saldo-cor: var(--gm-red); }
+.cliente-detalhe__saldo--quitado  { --saldo-cor: var(--gm-green); }
+.cliente-detalhe__saldo {
+  background: color-mix(in srgb, var(--saldo-cor) 7%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--saldo-cor) 27%, transparent);
+}
+.cliente-detalhe__saldo-valor,
+.cliente-detalhe__saldo-icone {
+  color: var(--saldo-cor);
+}
+.cliente-detalhe__contas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cliente-detalhe__conta-vencida {
+  color: var(--gm-red);
+  font-weight: 700;
+}
+.cliente-detalhe__confirmar-pagamento {
+  display: flex;
+  gap: 6px;
+}
+.cliente-detalhe__btn-confirmar-pagamento {
+  background: var(--gm-green);
+  cursor: pointer;
+}
+.cliente-detalhe__btn-confirmar-pagamento:disabled {
+  cursor: not-allowed;
+}
+.cliente-detalhe__btn-registrar {
+  border-color: color-mix(in srgb, var(--gm-green) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 7%, transparent);
+  color: var(--gm-green);
+}
+.cliente-detalhe__msg-vendas-vazio {
+  color: var(--gm-muted);
+  padding: 10px 0;
+}
+.cliente-detalhe__vendas {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cliente-detalhe__venda-data {
+  color: var(--gm-muted);
+}
+.cliente-detalhe__venda-valor {
+  font-weight: 700;
+  color: var(--gm-text);
+}
