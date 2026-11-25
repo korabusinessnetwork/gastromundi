@@ -372,6 +372,7 @@ Depois, o resto da Frente de Caixa (seletor de fiado, cabeçalho, Saldo do Dia, 
 56 para 0), sem emoji: a pasta do PDV inteira fica sem estilo inline.
 Depois, a Área Admin (grade, Fornecedores, Compras e a janela padrão, 38 para 0).
 Depois, Clientes (lista, cadastro, detalhe com fiado e edição, 36 para 0).
+Depois, as janelas da barra lateral (senha do Relatório, cancelar venda e plano, 36 para 0).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

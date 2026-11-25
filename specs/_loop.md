@@ -1,3 +1,10 @@
+## Rodada 127, refatoração 5.21, janelas da barra lateral sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-21-janelas-da-barra-lateral.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 170 telas, 3
+  diferenças (título das janelas, agora legível) e 1 leve (ruído em Reservas). Sem migration.
+  Estilo inline: 221 para 185.
+- O título de "Acesso Restrito" e do convite de plano saía quase invisível; corrigido.
 ## Rodada 126, refatoração 5.20, Clientes sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-20-clientes.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
