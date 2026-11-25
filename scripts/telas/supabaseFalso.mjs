@@ -145,6 +145,27 @@ const tabelas = {
     { venda_id: "venda-2", product_id: 1, nome: "Café expresso", preco: 7, qtd: 1, cancelado: false },
     { venda_id: "venda-3", product_id: 4, nome: "Pão de queijo", preco: 5.5, qtd: 2, cancelado: false },
     { venda_id: "venda-3", product_id: 3, nome: "Água sem gás", preco: 7, qtd: 1, cancelado: false },
+    // Fase 5: um item cancelado dentro de uma venda fechada, para a aba Cancelamentos.
+    { venda_id: "venda-2", product_id: 8, nome: "Brigadeiro", preco: 4.5, qtd: 2, cancelado: true,
+      motivo_cancelamento: "saiu errado da cozinha", cancelado_por: "Carla Demo" },
+  ],
+  // Fase 5: fechamentos de caixa (conferido, com falta e com sobra) e o registro
+  // de ações dos operadores, para as abas Fechamentos e Logs do relatório.
+  fechamentos: [
+    { id: 1, created_at: "2026-11-19T23:00:00.000Z", data: { id: "f-1", at: "2026-11-19T23:00:00.000Z", user: "Ana Demo",
+      fundo: 100, totalVendas: 18, totalEsperado: 118, totalConferido: 118, observacao: null } },
+    { id: 2, created_at: "2026-11-18T23:00:00.000Z", data: { id: "f-2", at: "2026-11-18T23:00:00.000Z", user: "Carla Demo",
+      fundo: 100, totalVendas: 240, totalEsperado: 340, totalConferido: 330, observacao: "Faltou troco no fim da noite." } },
+    { id: 3, created_at: "2026-11-17T23:00:00.000Z", data: { id: "f-3", at: "2026-11-17T23:00:00.000Z", user: "Ana Demo",
+      fundo: 100, totalVendas: 150, totalEsperado: 250, totalConferido: 255, observacao: null } },
+  ],
+  operator_logs: [
+    { id: 1, operator_id: "ana", action_type: "auth:login", payload: { name: "Ana Demo", role: "admin", msg: "Entrou no sistema" }, created_at: "2026-11-20T11:00:00.000Z" },
+    { id: 2, operator_id: "ana", action_type: "caixa:abrir", payload: { name: "Ana Demo", role: "admin", msg: "Abriu o caixa com R$ 100,00" }, created_at: "2026-11-20T11:01:00.000Z" },
+    { id: 3, operator_id: "bruno", action_type: "comanda:abrir", payload: { name: "Bruno Demo", role: "garcom", msg: "Abriu a comanda 12" }, created_at: "2026-11-20T14:30:00.000Z" },
+    { id: 4, operator_id: "carla", action_type: "itens:cancelar", payload: { name: "Carla Demo", role: "caixa", msg: "Cancelou 2 Brigadeiro na comanda 9" }, created_at: "2026-11-20T15:20:00.000Z" },
+    { id: 5, operator_id: "ana", action_type: "produto:editar", payload: { name: "Ana Demo", msg: "Alterou o preço do Suco de laranja" }, created_at: "2026-11-20T16:00:00.000Z" },
+    { id: 6, operator_id: "ana", action_type: "estoque:ajustar", payload: { name: "Ana Demo", role: "admin", msg: "Ajustou o saldo da Água sem gás" }, created_at: "2026-11-20T16:30:00.000Z" },
   ],
   venda_pagamentos: [
     { venda_id: "venda-1", metodo: "pix", valor: 25 },

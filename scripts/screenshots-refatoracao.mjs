@@ -168,6 +168,29 @@ function roteiro(largura) {
       await page.getByRole("button", { name: /Lançar Pedido/ }).click({ timeout: 3000 });
     } });
   // Fase 5: relatório de Desempenho (com dados, comparação aberta, período).
+  // Fase 5: as outras abas do relatório (cancelamentos, fechamentos e o detalhe,
+  // logs e o filtro, credenciais, admin).
+  const abaRelatorio = (aba, depois) => async (page) => {
+    await page.getByRole("button", { name: aba, exact: true }).first().click({ timeout: 3000 });
+    if (depois) await depois(page);
+  };
+  const seteDias = (page) => page.getByRole("button", { name: "7 dias", exact: true }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-relatorio-cancelamentos", perfil: "dono", caminho: "/app/relatorio", passo: abaRelatorio("Cancelamentos") });
+  telas.push({ nome: "app-relatorio-fechamentos", perfil: "dono", caminho: "/app/relatorio",
+    passo: abaRelatorio("Fechamentos", async (page) => {
+      await seteDias(page);
+      await page.locator("tr", { hasText: "Carla Demo" }).first().hover({ timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-relatorio-fechamento-detalhe", perfil: "dono", caminho: "/app/relatorio",
+    passo: abaRelatorio("Fechamentos", async (page) => {
+      await seteDias(page);
+      await page.locator("tr", { hasText: "Carla Demo" }).first().click({ timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-relatorio-logs", perfil: "dono", caminho: "/app/relatorio", passo: abaRelatorio("Logs") });
+  telas.push({ nome: "app-relatorio-logs-caixa", perfil: "dono", caminho: "/app/relatorio",
+    passo: abaRelatorio("Logs", (page) => page.getByRole("button", { name: /Caixa/ }).last().click({ timeout: 3000 })) });
+  telas.push({ nome: "app-relatorio-credenciais", perfil: "dono", caminho: "/app/relatorio", passo: abaRelatorio("Credenciais") });
+  telas.push({ nome: "app-relatorio-admin", perfil: "dono", caminho: "/app/relatorio", passo: abaRelatorio("Admin", seteDias) });
   const abrirDesempenho = (page) => page.getByRole("button", { name: "Desempenho", exact: true }).click({ timeout: 3000 });
   telas.push({ nome: "app-relatorio-desempenho", perfil: "dono", caminho: "/app/relatorio", passo: abrirDesempenho });
   telas.push({ nome: "app-relatorio-desempenho-comparar", perfil: "dono", caminho: "/app/relatorio",
