@@ -42,8 +42,8 @@ Contra o código de antes da conversão, 142 telas: 0 com diferença e 3 leves, 
 A primeira referência derrubou a tela de editar com `form.numero.trim is not a function`. Não
 era defeito do sistema: `mesas.numero` é `text` no banco e chega sempre como texto, mas as
 mesas falsas da rodada 5.16 tinham número. O Supabase falso passou a mandar texto, igual ao
-banco, e a referência foi refeita. O roteiro também registra os erros de tela num log, e as
-duas capturas finais saíram sem nenhum.
+banco, e a referência foi refeita. A saída das duas capturas finais foi guardada e conferida:
+nenhum erro de tela.
 
 ## Critérios de aceite
 
