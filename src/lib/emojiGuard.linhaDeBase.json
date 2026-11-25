@@ -14,7 +14,7 @@
   "components/desktop/views/DeliveryView.jsx": 1,
   "components/desktop/views/EstoqueView.jsx": 3,
   "components/desktop/views/ImportarExportarTab.jsx": 1,
-  "components/desktop/views/ImpostosAdmin.jsx": 2,
+  "components/desktop/views/ImpostosAdmin.jsx": 1,
   "components/desktop/views/impressao/LayoutComanda.jsx": 2,
   "components/desktop/views/impressao/PerfilImpressora.jsx": 2,
   "components/desktop/views/notasFiscais/NotaAssistenteXml.jsx": 1,

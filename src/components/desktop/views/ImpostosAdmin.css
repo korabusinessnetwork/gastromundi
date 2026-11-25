@@ -527,3 +527,117 @@
   font-size: var(--fs-base);   /* role: corpo (era sz.fontSm + 1) */
   line-height: var(--lh-base);
 }
+
+/* ---- Fase 5: o que saiu do JSX de Impostos ---- */
+.impostos-admin {
+  display: flex;
+  flex-direction: column;
+}
+.impostos-admin__cabecalho {
+  margin-bottom: 20px;
+}
+.impostos-admin__carregando {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 60px;
+}
+.impostos-admin__falha-carga {
+  text-align: center;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.impostos-admin__erro {
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+.impostos-admin__erro-icone {
+  flex-shrink: 0;
+}
+/* Tom das contagens e do status de cada item. */
+.impostos-admin__tom--total       { --imposto-cor: var(--gm-text); }
+.impostos-admin__tom--configurado { --imposto-cor: var(--gm-green); }
+.impostos-admin__tom--pendente    { --imposto-cor: var(--gm-warn); }
+.impostos-admin__badge {
+  background: color-mix(in srgb, var(--imposto-cor) 9%, transparent);
+  color: var(--imposto-cor);
+  border: 1px solid color-mix(in srgb, var(--imposto-cor) 20%, transparent);
+}
+.impostos-admin__item-badge {
+  background: color-mix(in srgb, var(--imposto-cor) 8%, transparent);
+  color: var(--imposto-cor);
+  border: 1px solid color-mix(in srgb, var(--imposto-cor) 27%, transparent);
+}
+.impostos-admin__busca-input {
+  border-color: var(--gm-input-border);
+}
+.impostos-admin__busca-input--preenchida {
+  border-color: var(--gm-accent);
+}
+.impostos-admin__vazio-icone {
+  display: block;
+  margin: 0 auto 12px;
+  opacity: 0.3;
+}
+.impostos-admin__vazio-mensagem {
+  font-weight: 600;
+}
+.impostos-admin__item:not(:last-child) {
+  border-bottom: 1px solid var(--gm-border);
+}
+.impostos-admin__item-texto {
+  flex: 1;
+  min-width: 0;
+}
+/* Item pendente chama para configurar; o já configurado só oferece editar. */
+.impostos-admin__btn-configurar {
+  border: 1.5px solid var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  color: var(--gm-accent);
+}
+.impostos-admin__btn-configurar--editar {
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+}
+
+/* Janela fiscal. */
+.impostos-admin__aba {
+  color: var(--gm-muted);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+}
+.impostos-admin__aba--ativa {
+  color: var(--gm-accent);
+  font-weight: 700;
+  border-bottom-color: var(--gm-accent);
+}
+.impostos-admin__aviso--destaque {
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 13%, transparent);
+}
+.impostos-admin__aviso--info {
+  background: color-mix(in srgb, var(--gm-blue) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+.impostos-admin__aviso-icone {
+  color: var(--gm-blue);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.impostos-admin__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.impostos-admin__btn-salvar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+.impostos-admin__select {
+  color: var(--gm-text);
+}
+.impostos-admin__select--vazio {
+  color: var(--gm-muted);
+}

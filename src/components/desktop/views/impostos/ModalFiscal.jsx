@@ -2,9 +2,6 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { salvarConfigFiscalDoItem } from "@/features/fiscal/dados/itensFiscal";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { LuX, LuCheck, LuTriangleAlert, LuReceiptText } from "react-icons/lu";
 import FLabel from "./FLabel";
 import FInp from "./FInp";
@@ -110,12 +107,7 @@ export default function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
               <button
                 key={a.id}
                 onClick={() => setAba(a.id)}
-                className="impostos-admin__aba"
-                style={{
-                  color: aba === a.id ? varColor(C.accent) : varColor(C.muted),
-                  fontWeight: aba === a.id ? 700 : 500,
-                  borderBottom: aba === a.id ? `2px solid var(${C.accent})` : "2px solid transparent",
-                }}
+                className={`impostos-admin__aba${aba === a.id ? " impostos-admin__aba--ativa" : ""}`}
               >
                 {a.label}
               </button>
@@ -206,7 +198,7 @@ export default function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
                 </div>
               </Grid2>
 
-              <div className="impostos-admin__aviso" style={{ background: alfa(C.accent, "0d"), border: `1px solid ${alfa(C.accent, "22")}` }}>
+              <div className="impostos-admin__aviso impostos-admin__aviso--destaque">
                 {isSimples
                   ? "Empresas do Simples Nacional utilizam CSOSN. ICMS é recolhido pelo DAS, preencha a alíquota se houver ST."
                   : "Empresas de Lucro Presumido/Real utilizam CST. Preencha alíquota conforme tabela do estado."}
@@ -258,8 +250,8 @@ export default function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
           {/* ── Aba 4: Reforma 2026 ── */}
           {aba === "reforma" && (
             <>
-              <div className="impostos-admin__aviso impostos-admin__aviso--com-icone" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
-                <LuReceiptText size={15} color={varColor(C.blue)} style={{ flexShrink: 0, marginTop: 1 }} />
+              <div className="impostos-admin__aviso impostos-admin__aviso--com-icone impostos-admin__aviso--info">
+                <LuReceiptText size={15} className="impostos-admin__aviso-icone" />
                 Campos obrigatórios desde jan/2026 no layout NFC-e conforme Reforma Tributária. IBS substitui ICMS, CBS substitui PIS/COFINS.
               </div>
 
@@ -283,15 +275,15 @@ export default function ModalFiscal({ item, dadosSalvos, onClose, onSaved }) {
         {/* Footer */}
         <div className="impostos-admin__modal-footer">
           {erro && (
-            <div className="impostos-admin__erro" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}` }}>
-              <LuTriangleAlert size={14} style={{ flexShrink: 0 }} /> {erro}
+            <div className="impostos-admin__erro" role="alert">
+              <LuTriangleAlert size={14} className="impostos-admin__erro-icone" /> {erro}
             </div>
           )}
           <div className="impostos-admin__modal-botoes">
             <button onClick={onClose} disabled={salvando} className="impostos-admin__btn-cancelar">
               Cancelar
             </button>
-            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+            <button onClick={salvar} disabled={salvando} className="impostos-admin__btn-salvar">
               {salvando ? "Salvando..." : <><LuCheck size={15} /> Salvar configuração</>}
             </button>
           </div>

@@ -1,16 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { listarConfigFiscalDosItens } from "@/features/fiscal/dados/itensFiscal";
 import { useCatalogo } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
-import { LuSearch, LuX, LuTriangleAlert } from "react-icons/lu";
+import { LuSearch, LuX, LuTriangleAlert, LuClipboardList } from "react-icons/lu";
 import "./ImpostosAdmin.css";
 import ModalFiscal from "./impostos/ModalFiscal";
 import { CATS_EXCLUIDAS } from "./impostos/apoio";
 import { nomeBateComBusca } from "@/lib/busca";
 
-export default function ImpostosAdmin({ sz }) {
+export default function ImpostosAdmin() {
   const { products } = useCatalogo();
 
   const [fiscalMap,    setFiscalMap]    = useState({}); // { item_id: dados_fiscal }
@@ -82,16 +79,16 @@ export default function ImpostosAdmin({ sz }) {
   const totalPend    = itens.length - totalConf;
 
   if (loading) {
-    return <div className="impostos-admin__carregando" style={{ color: varColor(C.muted), textAlign: "center", padding: 60 }}>Carregando configurações fiscais...</div>;
+    return <div className="impostos-admin__carregando">Carregando configurações fiscais...</div>;
   }
 
   if (loadErro) {
     return (
-      <div style={{ textAlign: "center", padding: 60, display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-        <div className="impostos-admin__erro impostos-admin__erro--grande" style={{ background: alfa(C.red, "12"), border: `1px solid ${alfa(C.red, "33")}` }}>
-          <LuTriangleAlert size={16} style={{ flexShrink: 0 }} /> {loadErro}
+      <div className="impostos-admin__falha-carga">
+        <div className="impostos-admin__erro impostos-admin__erro--grande" role="alert">
+          <LuTriangleAlert size={16} className="impostos-admin__erro-icone" /> {loadErro}
         </div>
-        <button onClick={carregarFiscal} className="impostos-admin__btn-salvar" style={{ background: varColor(C.accent) }}>
+        <button onClick={carregarFiscal} className="impostos-admin__btn-salvar">
           Tentar de novo
         </button>
       </div>
@@ -99,9 +96,9 @@ export default function ImpostosAdmin({ sz }) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+    <div className="impostos-admin">
       {/* Cabeçalho */}
-      <div style={{ marginBottom: 20 }}>
+      <div className="impostos-admin__cabecalho">
         <div className="impostos-admin__cabecalho-titulo">Configuração Fiscal dos Itens</div>
         <div className="impostos-admin__cabecalho-sub">
           Sincronizado com Cadastros · Produção e Insumos excluídos automaticamente
@@ -111,12 +108,12 @@ export default function ImpostosAdmin({ sz }) {
       {/* Badges contador */}
       <div className="impostos-admin__badges">
         {[
-          { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, color: varColor(C.text) },
-          { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, color: varColor(C.green) },
-          { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, color: varColor(C.warn) },
+          { label: `${itens.length} ite${itens.length !== 1 ? "ns" : "m"}`, tom: "total" },
+          { label: `${totalConf} configurado${totalConf !== 1 ? "s" : ""}`, tom: "configurado" },
+          { label: `${totalPend} pendente${totalPend !== 1 ? "s" : ""}`, tom: "pendente" },
         ].map((b, i) => (
           // TD015: dois badges montados na própria expressão acima, quantidade fixa.
-          <span key={i} className="impostos-admin__badge" style={{ background: alfa(b.color, "18"), color: b.color, border: `1px solid ${alfa(b.color, "33")}` }}>
+          <span key={i} className={`impostos-admin__badge impostos-admin__tom--${b.tom}`}>
             {b.label}
           </span>
         ))}
@@ -131,8 +128,7 @@ export default function ImpostosAdmin({ sz }) {
             value={busca}
             onChange={e => setBusca(e.target.value)}
             placeholder="Buscar item..."
-            className="impostos-admin__busca-input"
-            style={{ borderColor: busca ? varColor(C.accent) : "var(--gm-input-border)" }}
+            className={`impostos-admin__busca-input${busca ? " impostos-admin__busca-input--preenchida" : ""}`}
           />
           {busca && (
             <button onClick={() => setBusca("")} className="impostos-admin__busca-limpar">
@@ -166,8 +162,8 @@ export default function ImpostosAdmin({ sz }) {
       {/* Lista agrupada */}
       {grupos.length === 0 ? (
         <div className="impostos-admin__vazio">
-          <div className="impostos-admin__vazio-icone" style={{ marginBottom: 12, opacity: 0.3 }}>📋</div>
-          <div className="impostos-admin__vazio-mensagem" style={{ fontWeight: 600 }}>
+          <LuClipboardList className="impostos-admin__vazio-icone" aria-hidden="true" />
+          <div className="impostos-admin__vazio-mensagem">
             {itens.length === 0 ? "Nenhum item cadastrado (excluindo Produção e Insumos)" : "Nenhum item encontrado para os filtros selecionados"}
           </div>
         </div>
@@ -186,14 +182,13 @@ export default function ImpostosAdmin({ sz }) {
 
               {/* Itens da categoria */}
               <div className="impostos-admin__grupo-lista">
-                {itensCat.map((item, i) => {
+                {itensCat.map((item) => {
                   const fiscal   = fiscalMap[item.id];
                   const conf     = !!fiscal;
                   return (
                     <div
                       key={item.id}
                       className="impostos-admin__item"
-                      style={{ borderBottom: i < itensCat.length - 1 ? `1px solid var(${C.border})` : "none" }}
                     >
                       {/* Emoji / ícone */}
                       <div className="impostos-admin__item-icone">
@@ -201,7 +196,7 @@ export default function ImpostosAdmin({ sz }) {
                       </div>
 
                       {/* Nome */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="impostos-admin__item-texto">
                         <div className="impostos-admin__item-nome">
                           {item.name}
                         </div>
@@ -211,23 +206,14 @@ export default function ImpostosAdmin({ sz }) {
                       </div>
 
                       {/* Badge status */}
-                      <span className="impostos-admin__item-badge" style={{
-                        background: conf ? alfa(C.green, "15") : alfa(C.warn, "15"),
-                        color: conf ? varColor(C.green) : varColor(C.warn),
-                        border: `1px solid ${alfa(conf ? varColor(C.green) : varColor(C.warn), "44")}`,
-                      }}>
+                      <span className={`impostos-admin__item-badge impostos-admin__tom--${conf ? "configurado" : "pendente"}`}>
                         {conf ? "✓ Configurado" : "Pendente"}
                       </span>
 
                       {/* Botão */}
                       <button
                         onClick={() => setModalItem(item)}
-                        className="impostos-admin__btn-configurar"
-                        style={{
-                          border: conf ? `1px solid var(${C.border})` : `1.5px solid var(${C.accent})`,
-                          background: conf ? "none" : alfa(C.accent, "12"),
-                          color: conf ? varColor(C.muted) : varColor(C.accent),
-                        }}
+                        className={`impostos-admin__btn-configurar${conf ? " impostos-admin__btn-configurar--editar" : ""}`}
                       >
                         {conf ? "Editar" : "Configurar"}
                       </button>
@@ -245,7 +231,6 @@ export default function ImpostosAdmin({ sz }) {
         <ModalFiscal
           item={modalItem}
           dadosSalvos={fiscalMap[modalItem.id] ?? {}}
-          sz={sz}
           onClose={() => setModalItem(null)}
           onSaved={onSaved}
         />
