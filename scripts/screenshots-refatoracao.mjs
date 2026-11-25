@@ -266,6 +266,26 @@ function roteiro(largura) {
       await page.locator(".checkout-view__remocao-senha").fill("1234", { timeout: 3000 });
       await page.locator(".checkout-view__remocao-stepper button").last().click({ timeout: 3000 });
     } });
+  // Fase 5: cadastro de produtos (hover, novo, insumo, erro, edição com compra e consumo).
+  telas.push({ nome: "app-produtos-hover", perfil: "dono", caminho: "/app/produtos",
+    passo: (page) => page.locator(".produtos-view__tr", { hasText: "Coxinha" }).hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-produtos-novo", perfil: "dono", caminho: "/app/produtos",
+    passo: (page) => page.getByRole("button", { name: "+ Novo Produto" }).click({ timeout: 3000 }) });
+  telas.push({ nome: "app-produtos-insumo", perfil: "dono", caminho: "/app/produtos",
+    passo: (page) => page.getByRole("button", { name: "+ Novo Insumo" }).click({ timeout: 3000 }) });
+  telas.push({ nome: "app-produtos-erro", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await page.getByRole("button", { name: "+ Novo Produto" }).click({ timeout: 3000 });
+      await page.getByPlaceholder("Ou digite uma nova categoria").fill("Insumo", { timeout: 3000 });
+      await page.getByRole("button", { name: "Cadastrar Produto" }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-produtos-editar", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await page.locator(".produtos-view__tr", { hasText: "Suco de laranja" }).getByRole("button", { name: "Editar" }).click({ timeout: 3000 });
+      await page.locator(".produtos-view__unidades-lista").last().getByRole("button", { name: /copo/ }).click({ timeout: 3000 });
+      await page.locator(".produtos-view__conversao-fator").last().fill("0.5", { timeout: 3000 });
+      await page.locator(".produtos-view__modal").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    } });
   // Fase 5: desconto e acréscimo no pagamento.
   const abrirAjuste = async (page) => {
     await irParaPagamento(page);

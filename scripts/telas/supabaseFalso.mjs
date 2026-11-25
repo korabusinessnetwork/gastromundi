@@ -169,9 +169,14 @@ const tabelas = {
   categoria_grupo: [
     { category: "Bebidas", grupo_id: 2 }, { category: "Lanches", grupo_id: 1 },
   ],
+  // Fase 5: com o tipo, para a janela de produto desenhar os três blocos
+  // (estoque, compra, consumo).
   unidades_medida: [
-    { id: 1, abreviacao: "un", nome: "Unidade" },
-    { id: 2, abreviacao: "kg", nome: "Quilo" },
+    { id: 1, abreviacao: "un", nome: "Unidade", tipo: "estoque" },
+    { id: 2, abreviacao: "kg", nome: "Quilo", tipo: "estoque" },
+    { id: 3, abreviacao: "CX", nome: "Caixa", tipo: "compra" },
+    { id: 4, abreviacao: "PCT", nome: "Pacote", tipo: "compra" },
+    { id: 5, abreviacao: "copo", nome: "Copo", tipo: "consumo" },
   ],
 };
 
