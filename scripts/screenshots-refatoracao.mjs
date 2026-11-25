@@ -175,6 +175,11 @@ function roteiro(largura) {
     if (depois) await depois(page);
   };
   const seteDias = (page) => page.getByRole("button", { name: "7 dias", exact: true }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-relatorio-periodo", perfil: "dono", caminho: "/app/relatorio",
+    passo: async (page) => {
+      await page.getByRole("button", { name: "Período", exact: true }).first().click({ timeout: 3000 });
+      await page.locator(".relatorio-date-input").first().fill("2026-11-15", { timeout: 3000 });
+    } });
   telas.push({ nome: "app-relatorio-cancelamentos", perfil: "dono", caminho: "/app/relatorio", passo: abaRelatorio("Cancelamentos") });
   telas.push({ nome: "app-relatorio-fechamentos", perfil: "dono", caminho: "/app/relatorio",
     passo: abaRelatorio("Fechamentos", async (page) => {
