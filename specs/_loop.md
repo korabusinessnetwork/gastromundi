@@ -1,3 +1,10 @@
+## Rodada 120, refatoração 5.14, Usuários, Meios de Pagamento e Geral sem estilo inline e sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-14-configuracoes-usuarios-meios-geral.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 121 telas, 2
+  diferenças e 2 leves, todas vistas (ícones no lugar de emoji, borda de foco). Sem migration.
+  Estilo inline: 595 para 535. Emoji: 118 para 112.
+- O comparador passa a listar mudanças abaixo de 0,1% como "leves": antes elas não apareciam.
 ## Rodada 119, refatoração 5.13, combos e janelas de produto sem estilo inline, e a regra sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-13-combos-e-janelas-de-produto.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435

@@ -686,6 +686,7 @@ function diferencaEmPixels(a, b) {
 function comparar(antes, depois) {
   const nomes = new Set([...readdirSync(antes), ...readdirSync(depois)].filter((f) => f.endsWith(".png")));
   let mudaram = 0;
+  let leves = 0;
   for (const nome of [...nomes].sort()) {
     const a = join(antes, nome);
     const b = join(depois, nome);
@@ -694,8 +695,11 @@ function comparar(antes, depois) {
     const r = diferencaEmPixels(a, b);
     if (r.tamanhoMudou) { console.log(`TAMANHO    ${nome} (${r.antes} para ${r.depois})`); mudaram++; }
     else if (r.percentual > 0.1) { console.log(`MUDOU      ${nome} (${r.percentual.toFixed(2)}% dos pixels)`); mudaram++; }
+    // Abaixo de 0,1% a mudança não conta como diferença, mas aparece: um ícone
+    // trocado ou uma borda de foco cabem aí, e a review precisa vê-los.
+    else if (r.percentual > 0) { console.log(`LEVE       ${nome} (${r.percentual.toFixed(3)}% dos pixels)`); leves++; }
   }
-  console.log(`\n${nomes.size} telas comparadas, ${mudaram} com diferença.`);
+  console.log(`\n${nomes.size} telas comparadas, ${mudaram} com diferença, ${leves} com mudança leve (abaixo de 0,1%).`);
   process.exitCode = mudaram ? 1 : 0;
 }
 

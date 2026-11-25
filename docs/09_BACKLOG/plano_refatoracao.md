@@ -362,6 +362,8 @@ Depois, o resumo do pedido (26 para 0) e a janela de remover item (24 para 0).
 Depois, a lista de produtos (21 para 0) e a janela de cadastro de produto (23 para 0).
 Depois, os combos (40 para 0) e as janelas de categoria e de exclusão (30 para 0): a área de
 Cadastro de Produtos inteira fica sem estilo inline.
+Depois, as abas Usuários (25), Meios de Pagamento (19) e Geral (16) de Configurações, já sem
+emoji: os ícones de cargo e o aviso viraram react-icons/lu.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
