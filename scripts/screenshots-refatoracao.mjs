@@ -237,6 +237,46 @@ function roteiro(largura) {
       await abrirFechadas(page);
       await page.getByRole("button", { name: /Comanda 9/ }).click({ timeout: 3000 });
     } });
+  // Fase 5: as janelas da barra lateral. Cancelar uma venda fechada, a senha
+  // que a caixa digita para abrir o Relatório e o convite de trocar de plano.
+  telas.push({ nome: "app-cancelar-venda", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirFechadas(page);
+      await page.getByRole("button", { name: /Comanda 9/ }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Cancelar venda/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-cancelar-venda-preenchida", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirFechadas(page);
+      await page.getByRole("button", { name: /Comanda 9/ }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Cancelar venda/ }).click({ timeout: 3000 });
+      await page.getByPlaceholder(/cobrança duplicada/).fill("Cobrança duplicada", { timeout: 3000 });
+      await page.getByPlaceholder("Senha", { exact: true }).fill("errada", { timeout: 3000 });
+      await page.getByRole("button", { name: "Cancelar venda", exact: true }).last().click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+    } });
+  const abrirSenhaRelatorio = (page) => page.locator(".sidebar__nav").getByRole("button", { name: /Relatório/ }).click({ timeout: 3000 });
+  telas.push({ nome: "app-senha-relatorio", perfil: "caixa", caminho: "/app/pdv", passo: abrirSenhaRelatorio });
+  telas.push({ nome: "app-senha-relatorio-erro", perfil: "caixa", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirSenhaRelatorio(page);
+      await page.getByPlaceholder("nome de usuário").fill("ana", { timeout: 3000 });
+      await page.getByPlaceholder("••••••••").fill("errada", { timeout: 3000 });
+      await page.getByRole("button", { name: "Acessar Relatório" }).click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+    } });
+  // Um plano sem o módulo Delivery: o item fica na barra com o convite.
+  const semDelivery = async (contexto) => {
+    const responder = (corpo) => (route) => (route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
+      : route.fallback());
+    await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema: {}, plano_codigo: "basico", created_at: "2026-01-01T00:00:00.000Z" }));
+    await contexto.route(/\/rest\/v1\/planos_modulos/, responder(
+      ["cardapio", "pdv", "caixa", "estoque", "pedidos", "mesas_comandas", "cozinha", "alertas", "financeiro", "clientes", "relatorios", "jarvas", "fiscal_integracoes"]
+        .map((modulo_codigo) => ({ modulo_codigo }))));
+  };
+  telas.push({ nome: "app-plano-bloqueado", perfil: "dono", caminho: "/app/pdv", preparar: semDelivery,
+    passo: (page) => page.locator(".sidebar__nav-item--bloqueado").first().click({ timeout: 3000 }) });
   // Fase 5: fechamento de caixa. O botão só libera sem comanda aberta, então
   // estas telas respondem `pending` vazio.
   const semComandasAbertas = (extra) => async (contexto) => {
@@ -803,7 +843,10 @@ async function capturar(pasta, ref) {
 
   try {
     for (const [largura, opcoes] of Object.entries(LARGURAS)) {
-      for (const tela of roteiro(largura)) {
+      // SO_TELAS=<expressão regular> fotografa só as telas cujo nome casa, para
+      // conferir telas novas do roteiro sem esperar a captura inteira.
+      const filtro = process.env.SO_TELAS ? new RegExp(process.env.SO_TELAS) : null;
+      for (const tela of roteiro(largura).filter((t) => !filtro || filtro.test(t.nome))) {
         const contexto = await navegador.newContext({
           ...opcoes, deviceScaleFactor: 1, locale: "pt-BR",
           timezoneId: "America/Sao_Paulo", reducedMotion: "reduce",

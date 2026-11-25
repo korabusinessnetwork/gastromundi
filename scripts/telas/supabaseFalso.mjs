@@ -293,7 +293,10 @@ function usuarioAuth(authId) {
 // Sessão que o supabase-js guarda no localStorage. A chave é derivada do
 // primeiro rótulo do host da URL (`sb-<rótulo>-auth-token`).
 export function sessaoNoNavegador(perfil) {
-  const authId = perfil === "plataforma" ? AUTH_PLATAFORMA : AUTH_DONO;
+  // "caixa" entra como a Carla, que pela regra de cargo não vê o Relatório.
+  const authId = perfil === "plataforma" ? AUTH_PLATAFORMA
+    : perfil === "caixa" ? usuarios.find((u) => u.username === "carla").auth_id
+    : AUTH_DONO;
   const chave = `sb-${HOST_FALSO.split(".")[0]}-auth-token`;
   const valor = {
     access_token: jwtFalso(authId), refresh_token: "refresh-falso",
