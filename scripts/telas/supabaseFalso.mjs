@@ -152,6 +152,17 @@ const tabelas = {
     { venda_id: "venda-2", metodo: "credito", valor: 22.5 },
     { venda_id: "venda-3", metodo: "debito", valor: 18 },
   ],
+  // Fase 5: subprodutos (o saldo vem embutido, como o PostgREST devolve o
+  // relacionamento), um deles usado num combo, para a exclusão travar.
+  subprodutos: [
+    { id: "sub-1", nome: "Batata frita", categoria: "Acompanhamentos", preco: 12, unidade_medida: "Porção",
+      controla_estoque: true, ativo: true, estoque_subprodutos: [{ quantidade: 30, minimo: 5 }] },
+    { id: "sub-2", nome: "Molho especial", categoria: "Molhos", preco: 3, unidade_medida: "Unidade",
+      controla_estoque: true, ativo: true, estoque_subprodutos: [{ quantidade: 2, minimo: 5 }] },
+    { id: "sub-3", nome: "Refrigerante lata", categoria: "Bebidas", preco: 6, unidade_medida: "Unidade",
+      controla_estoque: false, ativo: false, estoque_subprodutos: [] },
+  ],
+  combo_subprodutos: [{ subproduto_id: "sub-1" }],
   grupos_categoria: [
     { id: 1, nome: "comida" }, { id: 2, nome: "bebida" },
   ],

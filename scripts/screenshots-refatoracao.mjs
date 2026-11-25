@@ -316,6 +316,50 @@ function roteiro(largura) {
       : route.fallback())) });
   telas.push({ nome: "app-sidebar-hover", perfil: "dono", caminho: "/app/pdv",
     passo: (page) => page.getByRole("button", { name: /Comandas fechadas/ }).first().hover({ timeout: 3000 }) });
+  // Fase 5: subprodutos (lista, cadastro, edição com estoque, exclusão).
+  const abrirSubprodutos = (page) => page.getByRole("button", { name: "Subprodutos", exact: true }).click({ timeout: 3000 });
+  const linhaSub = (page, nome) => page.locator("tr", { hasText: nome });
+  telas.push({ nome: "app-subprodutos", perfil: "dono", caminho: "/app/produtos", passo: abrirSubprodutos });
+  telas.push({ nome: "app-subprodutos-novo", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirSubprodutos(page);
+      await page.getByRole("button", { name: /Novo Subproduto/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-subprodutos-editar", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirSubprodutos(page);
+      await linhaSub(page, "Molho especial").getByRole("button", { name: "Editar" }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-subprodutos-excluir-em-uso", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirSubprodutos(page);
+      await linhaSub(page, "Batata frita").getByTitle("Excluir subproduto").click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-subprodutos-excluir", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirSubprodutos(page);
+      await linhaSub(page, "Molho especial").getByTitle("Excluir subproduto").click({ timeout: 3000 });
+    } });
+  // Fase 5: retirar e colocar dinheiro do caixa.
+  const abrirMovimento = (page) => page.getByRole("button", { name: /Retirar \/ Colocar Dinheiro/ }).click({ timeout: 3000 });
+  telas.push({ nome: "app-movimento-caixa", perfil: "dono", caminho: "/app/pdv", passo: abrirMovimento });
+  telas.push({ nome: "app-movimento-retirar", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirMovimento(page);
+      await page.getByLabel("Valor do movimento").fill("50", { timeout: 3000 });
+      await page.getByLabel("Motivo do movimento").fill("Levado ao cofre", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-movimento-excede", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirMovimento(page);
+      await page.getByLabel("Valor do movimento").fill("5000", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-movimento-colocar", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirMovimento(page);
+      await page.getByRole("button", { name: /Colocar/ }).click({ timeout: 3000 });
+      await page.getByLabel("Valor do movimento").fill("30", { timeout: 3000 });
+    } });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
   const modoVendas = (rotulo) => async (page) => {
     await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });
