@@ -78,6 +78,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-25 | 5.17 cadastro de mesas (emoji: 100 para 99) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 351 | 15 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.373 kB |
 | 2026-11-25 | 5.18 resto do PDV (emoji: 99 para 98) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 295 | 11 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.370 kB |
 | 2026-11-25 | 5.19 área admin | 66 | 0 | 15 | 111 (0 / 0 / 111) | 257 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.368 kB |
+| 2026-11-25 | 5.20 clientes | 66 | 0 | 15 | 111 (0 / 0 / 111) | 221 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.367 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

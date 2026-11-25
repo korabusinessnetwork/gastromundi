@@ -1,3 +1,10 @@
+## Rodada 126, refatoração 5.20, Clientes sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-20-clientes.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 165 telas, 0
+  diferença e 1 leve (ruído de fonte em Reservas, fora da área). Sem migration. Estilo
+  inline: 257 para 221.
+- Defeitos antigos registrados: vencimento do fiado um dia antes; janelas do cliente com fonte serifada.
 ## Rodada 125, refatoração 5.19, Área Admin (grade, Fornecedores e Compras) sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-19-area-admin.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
