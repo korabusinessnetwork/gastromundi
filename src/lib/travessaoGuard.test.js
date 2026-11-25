@@ -77,19 +77,40 @@ function textoDeTela(no) {
 }
 
 function varrer(caminho) {
-  const fonte = readFileSync(caminho, "utf8");
+  return varrerFonte(readFileSync(caminho, "utf8"));
+}
+
+function varrerFonte(fonte) {
   if (!fonte.includes("—")) return [];
 
   const ast = parse(fonte, { sourceType: "module", plugins: ["jsx"] });
   const achados = [];
 
+  // `{n} — {f}` deixa um JSXText " — " entre duas expressões: com trim ele
+  // vira "—" e parecia marcador. Marcador é o travessão sem texto em volta;
+  // com texto ou valor como irmão, é separador de frase montada. Um ícone ao
+  // lado (`<LuClock /> —`, "sem horário") não faz frase, então não conta.
+  const separadores = new Set();
+  const marcarSeparadores = (no) => {
+    if (!Array.isArray(no.children)) return;
+    const comConteudo = no.children.filter((f) =>
+      f.type === "JSXText" ? f.value.trim() !== "" : f.type === "JSXExpressionContainer",
+    );
+    if (comConteudo.length < 2) return;
+    for (const f of comConteudo) {
+      if (f.type === "JSXText" && f.value.trim() === "—") separadores.add(f);
+    }
+  };
+
   const visitar = (no) => {
     if (!no || typeof no !== "object") return;
     if (Array.isArray(no)) return no.forEach(visitar);
     if (!no.type) return;
+    marcarSeparadores(no);
 
     const texto = textoDeTela(no);
-    if (texto?.includes("—") && !marcadorDeVazio(texto, no.type) && !citaOSimbolo(texto)) {
+    const marcador = marcadorDeVazio(texto, no.type) && !separadores.has(no);
+    if (texto?.includes("—") && !marcador && !citaOSimbolo(texto)) {
       achados.push({
         linha: no.loc.start.line,
         trecho: texto.replace(/\s+/g, " ").trim().slice(0, 90),
@@ -139,6 +160,17 @@ describe("regra absoluta: travessão não entra em texto de tela", () => {
     // O separador NÃO é marcador, e esta é a linha que separa os dois casos.
     expect(marcadorDeVazio(" — ", "StringLiteral")).toBe(false);
     expect(marcadorDeVazio("Centro — R$ 5,00", "StringLiteral")).toBe(false);
+  });
+
+  it("travessão entre duas expressões no JSX é separador, não marcador", () => {
+    // `Nota nº {numero} — {fornecedor}`: o JSXText ali é " — ", que com trim
+    // vira "—" e passava como marcador de vazio. Passou em três telas.
+    expect(varrerFonte("const a = <div>Nota {n} — {f}</div>;")).toHaveLength(1);
+    expect(varrerFonte("const a = <div>{x} — {y}</div>;")).toHaveLength(1);
+    // Sozinho na célula, com ou sem quebra de linha, continua marcador.
+    expect(varrerFonte("const a = <td>—</td>;")).toEqual([]);
+    expect(varrerFonte("const a = <td>\n  —\n</td>;")).toEqual([]);
+    expect(varrerFonte("const a = <span><Relogio /> —</span>;")).toEqual([]);
   });
 
   it("frase que cita o símbolo continua permitida", () => {

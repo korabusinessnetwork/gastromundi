@@ -351,6 +351,7 @@ linha de base.
 
 **5.2, primeiro arquivo, feito em 2026-11-24:** `CartPanel` (76 para 0), com o roteiro de fotos
 cobrindo o carrinho e suas janelas antes da conversão. Depois, `FichasTecnicasTab` (74 para 0).
+Depois, as Notas de Entrada: `NotaAssistenteXml` (72 para 0) e `NotaManual` (57 para 0).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

@@ -1,6 +1,5 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 // O dia UTC vira às 21h de Brasília: a nota lançada à noite nascia com a data
 // de emissão de amanhã e a entrada de estoque caía no dia seguinte.
 // A quantidade convertida vai direto para o saldo do estoque: sem arredondar,
@@ -22,34 +21,30 @@ export default function NotaAssistenteXml({ nf }) {
     const cab = parsed?.cabecalho;
 
     return (
-      <div style={{ maxWidth: 960, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+      <div className="nf-assist">
+        <div className="nf-tab__topo">
           <button
             onClick={() => setView("lista")}
             className="nf-tab__voltar-btn"
           >
             <LuArrowLeft size={14} /> Cancelar
           </button>
-          <div className="nf-tab__title" style={{ fontWeight: 800 }}>Importar XML NF-e</div>
+          <div className="nf-tab__title nf-tab__title--forte">Importar XML NF-e</div>
         </div>
 
         {step <= 4 && <Stepper step={step} />}
 
         {/* ── Step 1: Upload ── */}
         {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+          <div className="nf-assist__upload">
             <div
               onDrop={handleDrop}
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onClick={() => fileRef.current?.click()}
-              className="nf-tab__dropzone"
-              style={{
-                borderColor: dragOver ? varColor(C.accent) : xmlErro ? varColor(C.red) : varColor(C.border),
-                background: dragOver ? alfa(C.accent, "08") : xmlErro ? alfa(C.red, "08") : varColor(C.card),
-              }}
+              className={`nf-tab__dropzone${dragOver ? " nf-tab__dropzone--arrastando" : xmlErro ? " nf-tab__dropzone--erro" : ""}`}
             >
-              <div className="nf-tab__dropzone-icone" style={{ background: dragOver ? alfa(C.accent, "18") : varColor(C.surface) }}>
+              <div className="nf-tab__dropzone-icone">
                 <LuUpload size={28} color={dragOver ? varColor(C.accent) : varColor(C.muted)} />
               </div>
               <div>
@@ -59,11 +54,11 @@ export default function NotaAssistenteXml({ nf }) {
                 <div className="nf-tab__dropzone-ajuda">Apenas arquivos .xml de NF-e</div>
               </div>
             </div>
-            <input ref={fileRef} type="file" accept=".xml" style={{ display: "none" }} onChange={e => processFile(e.target.files[0])} />
+            <input ref={fileRef} type="file" accept=".xml" className="nf-tab__oculto" onChange={e => processFile(e.target.files[0])} />
             {xmlErro && (
-              <div className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, maxWidth: 560, width: "100%" }}>
+              <div className="nf-tab__erro-box nf-tab__erro-box--erro nf-assist__upload-erro">
                 <LuTriangleAlert size={18} color={varColor(C.red)} />
-                <span className="nf-tab__body" style={{ color: varColor(C.red), fontWeight: 600 }}>{xmlErro}</span>
+                <span className="nf-tab__body">{xmlErro}</span>
               </div>
             )}
           </div>
@@ -71,10 +66,10 @@ export default function NotaAssistenteXml({ nf }) {
 
         {/* ── Step 2: Cabeçalho ── */}
         {step === 2 && cab && (
-          <div style={{ maxWidth: 640 }}>
-            <div className="nf-tab__card" style={{ padding: 28, marginBottom: 20 }}>
-              <div className="nf-tab__title" style={{ fontWeight: 800, marginBottom: 20 }}>Informações da nota</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="nf-assist__estreito">
+            <div className="nf-tab__card nf-assist__card-info">
+              <div className="nf-tab__title nf-tab__title--forte nf-assist__titulo-info">Informações da nota</div>
+              <div className="nf-assist__info-grid">
                 {[
                   { label: "Fornecedor",    value: cab.fornecedorNome, icon: LuBuilding2 },
                   { label: "CNPJ",          value: fmtCnpj(cab.fornecedorCnpj), icon: LuHash },
@@ -83,46 +78,44 @@ export default function NotaAssistenteXml({ nf }) {
                   { label: "Data Emissão",  value: fmtDt(cab.dataEmissao), icon: LuCalendar },
                   { label: "Valor Total",   value: fmtR(cab.valorTotal), icon: LuPackage },
                 ].map(f => (
-                  <div key={f.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div key={f.label} className="nf-assist__info-campo">
                     <div className="nf-tab__label">{f.label}</div>
-                    <div className="nf-tab__body" style={{ fontWeight: 700 }}>{f.value}</div>
+                    <div className="nf-tab__body nf-assist__info-valor">{f.value}</div>
                   </div>
                 ))}
               </div>
               {cab.chaveAcesso && (
-                <div className="nf-tab__mono" style={{ marginTop: 16, padding: "10px 14px", background: varColor(C.surface), borderRadius: 10, color: varColor(C.muted), wordBreak: "break-all" }}>
+                <div className="nf-tab__mono nf-assist__chave">
                   Chave: {cab.chaveAcesso}
                 </div>
               )}
             </div>
 
             {showFornPopup && (
-              <div className="nf-tab__aviso" style={{ background: alfa(C.warn, "12"), border: `1.5px solid ${alfa(C.warn, "55")}` }}>
+              <div className="nf-tab__aviso nf-tab__aviso--fornecedor">
                 <div className="nf-tab__aviso-linha">
-                  <LuTriangleAlert size={20} color={varColor(C.warn)} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div style={{ flex: 1 }}>
+                  <LuTriangleAlert size={20} color={varColor(C.warn)} className="nf-assist__aviso-icone" />
+                  <div className="nf-assist__aviso-corpo">
                     <div className="nf-tab__aviso-titulo">
                       Fornecedor não cadastrado
                     </div>
                     <div className="nf-tab__aviso-desc">
                       "<strong>{cab.fornecedorNome}</strong>" não foi encontrado no cadastro de fornecedores. Deseja cadastrá-lo automaticamente?
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="nf-assist__aviso-acoes">
                       <button
                         disabled={fornSaving}
                         onClick={async () => {
                           await salvarNovoFornecedor(cab.fornecedorNome, cab.fornecedorCnpj);
                           setShowFornPopup(false);
                         }}
-                        className="nf-tab__sub"
-                        style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: varColor(C.warn), color: "#fff", cursor: fornSaving ? "not-allowed" : "pointer", fontWeight: 700, fontFamily: "inherit", opacity: fornSaving ? 0.6 : 1 }}
+                        className="nf-tab__sub nf-assist__btn-cadastrar"
                       >
                         {fornSaving ? "Cadastrando..." : `Sim, cadastrar "${cab.fornecedorNome}"`}
                       </button>
                       <button
                         onClick={() => setShowFornPopup(false)}
-                        className="nf-tab__sub"
-                        style={{ padding: "8px 14px", borderRadius: 8, border: `1.5px solid var(${C.border})`, background: "none", color: varColor(C.text), cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}
+                        className="nf-tab__sub nf-assist__btn-ignorar"
                       >
                         Ignorar
                       </button>
@@ -133,31 +126,30 @@ export default function NotaAssistenteXml({ nf }) {
             )}
 
             {duplicadaEm && (
-              <div className="nf-tab__aviso" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="nf-tab__aviso nf-tab__aviso--erro">
                 <LuTriangleAlert size={20} color={varColor(C.red)} />
                 <div>
-                  <div style={{ fontWeight: 700, color: varColor(C.red) }}>Nota já importada</div>
-                  <div className="nf-tab__sub" style={{ color: varColor(C.muted) }}>Esta nota foi importada em {duplicadaEm}. Não é possível importar novamente.</div>
+                  <div className="nf-assist__dup-titulo">Nota já importada</div>
+                  <div className="nf-tab__sub nf-tab__muted">Esta nota foi importada em {duplicadaEm}. Não é possível importar novamente.</div>
                 </div>
               </div>
             )}
 
             {dupErro && (
-              <div className="nf-tab__aviso" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}`, padding: "14px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="nf-tab__aviso nf-tab__aviso--erro">
                 <LuTriangleAlert size={20} color={varColor(C.red)} />
-                <div className="nf-tab__sub" style={{ color: varColor(C.red), fontWeight: 600 }}>{dupErro}</div>
+                <div className="nf-tab__sub nf-assist__dup-erro">{dupErro}</div>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="nf-tab__acoes">
               <button onClick={() => setStep(1)} className="nf-tab__btn-secundario">
                 ← Voltar
               </button>
               <button
                 onClick={avancarStep2}
                 disabled={!!duplicadaEm || checkingDup}
-                className="nf-tab__btn-primario"
-                style={{ flex: 1, background: duplicadaEm ? varColor(C.faint) : varColor(C.accent), cursor: duplicadaEm ? "not-allowed" : "pointer" }}
+                className={`nf-tab__btn-primario nf-tab__btn-primario--cheio ${duplicadaEm ? "nf-tab__btn-primario--bloqueado" : "nf-tab__btn-primario--accent"}`}
               >
                 {checkingDup ? "Verificando..." : "Continuar →"}
               </button>
@@ -168,24 +160,24 @@ export default function NotaAssistenteXml({ nf }) {
         {/* ── Step 3: Vínculos ── */}
         {step === 3 && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <div className="nf-assist__vinc-topo">
               <div>
-                <div className="nf-tab__title" style={{ fontWeight: 800 }}>Vincular itens a produtos</div>
-                <div className="nf-tab__sub" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                <div className="nf-tab__title nf-tab__title--forte">Vincular itens a produtos</div>
+                <div className="nf-tab__sub nf-tab__muted nf-assist__vinc-resumo">
                   {vinculados.length} de {itensVinc.length} itens vinculados
-                  {naoVinculados.length > 0 && <span style={{ color: varColor(C.warn), marginLeft: 8 }}>· {naoVinculados.length} sem vínculo serão ignorados</span>}
+                  {naoVinculados.length > 0 && <span className="nf-assist__vinc-ignorados">· {naoVinculados.length} sem vínculo serão ignorados</span>}
                 </div>
               </div>
             </div>
 
-            <div className="nf-tab__card" style={{ overflow: "hidden", marginBottom: 20 }}>
+            <div className="nf-tab__card nf-tab__card--tabela">
               <div className="nf-tab__tabela-scroll">
-                <table className="nf-tab__tabela" style={{ minWidth: 760 }}>
+                <table className="nf-tab__tabela nf-assist__tabela-vinc">
                   <thead>
-                    <tr style={{ borderBottom: `1px solid var(${C.border})`, background: varColor(C.surface) }}>
+                    <tr className="nf-tab__thead-tr">
                       {["#", "Descrição XML", "Qtd / Unid", "Preço Unit.", "Produto", "Unid. Estoque", "Fator", "Qtd Convertida"].map((h, i) => (
                         // TD015: cabeçalho literal da tela de vínculo, não vem de dado.
-                        <th key={i} className="nf-tab__th" style={{ textAlign: i >= 2 ? "center" : "left" }}>{h}</th>
+                        <th key={i} className={i >= 2 ? "nf-tab__th nf-tab__th--centro" : "nf-tab__th nf-tab__th--esquerda"}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -198,7 +190,7 @@ export default function NotaAssistenteXml({ nf }) {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="nf-tab__acoes">
               <button
                 onClick={() => fromManual ? setView("manual") : setStep(2)}
                 className="nf-tab__btn-secundario"
@@ -207,8 +199,7 @@ export default function NotaAssistenteXml({ nf }) {
               </button>
               <button
                 onClick={() => setStep(4)}
-                className="nf-tab__btn-primario"
-                style={{ flex: 1, background: varColor(C.accent) }}
+                className="nf-tab__btn-primario nf-tab__btn-primario--cheio nf-tab__btn-primario--accent"
               >
                 Ver Preview →
               </button>
@@ -218,23 +209,23 @@ export default function NotaAssistenteXml({ nf }) {
 
         {/* ── Step 4: Preview ── */}
         {step === 4 && cab && (
-          <div style={{ maxWidth: 640 }}>
-            <div className="nf-tab__card" style={{ padding: 24, marginBottom: 20 }}>
-              <div className="nf-tab__title" style={{ fontWeight: 800, marginBottom: 4 }}>
-                Nota nº {cab.numero} — {cab.fornecedorNome}
+          <div className="nf-assist__estreito">
+            <div className="nf-tab__card nf-assist__card-previa">
+              <div className="nf-tab__title nf-tab__title--forte nf-assist__previa-titulo">
+                Nota nº {cab.numero}, {cab.fornecedorNome}
               </div>
-              <div className="nf-tab__sub" style={{ color: varColor(C.muted), marginBottom: 20 }}>
+              <div className="nf-tab__sub nf-tab__muted nf-assist__previa-sub">
                 Emitida em {fmtDt(cab.dataEmissao)} · {fmtR(cab.valorTotal)}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <div className="nf-assist__kpis">
                 {[
-                  { label: "Total de itens", value: itensVinc.length, color: varColor(C.text) },
-                  { label: "Vinculados",     value: vinculados.length, color: varColor(C.green) },
-                  { label: "Ignorados",      value: naoVinculados.length, color: naoVinculados.length > 0 ? varColor(C.warn) : varColor(C.muted) },
+                  { label: "Total de itens", value: itensVinc.length, tom: "" },
+                  { label: "Vinculados",     value: vinculados.length, tom: "verde" },
+                  { label: "Ignorados",      value: naoVinculados.length, tom: naoVinculados.length > 0 ? "aviso" : "muted" },
                 ].map(k => (
                   <div key={k.label} className="nf-tab__kpi-card">
-                    <div className="nf-tab__kpi-valor" style={{ color: k.color }}>{k.value}</div>
+                    <div className={`nf-tab__kpi-valor${k.tom ? ` nf-tab__kpi-valor--${k.tom}` : ""}`}>{k.value}</div>
                     <div className="nf-tab__kpi-label">{k.label}</div>
                   </div>
                 ))}
@@ -242,20 +233,20 @@ export default function NotaAssistenteXml({ nf }) {
 
               {vinculados.length > 0 && (
                 <div>
-                  <div className="nf-tab__label" style={{ marginBottom: 10 }}>Entradas que serão criadas</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div className="nf-tab__label nf-assist__rotulo-entradas">Entradas que serão criadas</div>
+                  <div className="nf-assist__lista-entradas">
                     {vinculados.map(item => (
-                      <div key={item.uid} className="nf-tab__entrada-linha" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "22")}` }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div key={item.uid} className="nf-tab__entrada-linha nf-assist__entrada">
+                        <div className="nf-assist__entrada-produto">
                           <span className="nf-tab__emoji-lg">{item.produto.emoji || "📦"}</span>
                           <div>
-                            <div className="nf-tab__sub" style={{ fontWeight: 700 }}>{item.produto.name}</div>
-                            <div className="nf-tab__cap" style={{ color: varColor(C.muted) }}>{item.descricaoXml}</div>
+                            <div className="nf-tab__sub nf-assist__entrada-nome">{item.produto.name}</div>
+                            <div className="nf-tab__cap nf-tab__muted">{item.descricaoXml}</div>
                           </div>
                         </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div className="nf-tab__body-num" style={{ fontWeight: 800, color: varColor(C.green) }}>+{item.qtdEstoque.toFixed(3)}</div>
-                          <div className="nf-tab__cap" style={{ color: varColor(C.muted) }}>{item.produto.unidade_estoque}</div>
+                        <div className="nf-assist__entrada-qtd">
+                          <div className="nf-tab__body-num nf-assist__entrada-mais">+{item.qtdEstoque.toFixed(3)}</div>
+                          <div className="nf-tab__cap nf-tab__muted">{item.produto.unidade_estoque}</div>
                         </div>
                       </div>
                     ))}
@@ -264,11 +255,11 @@ export default function NotaAssistenteXml({ nf }) {
               )}
 
               {naoVinculados.length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                  <div className="nf-tab__label" style={{ marginBottom: 8 }}>Itens ignorados</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div className="nf-assist__ignorados">
+                  <div className="nf-tab__label nf-assist__rotulo-ignorados">Itens ignorados</div>
+                  <div className="nf-assist__lista-ignorados">
                     {naoVinculados.map(item => (
-                      <div key={item.uid} className="nf-tab__sub" style={{ color: varColor(C.muted), padding: "6px 0", borderBottom: `1px solid var(${C.border})` }}>
+                      <div key={item.uid} className="nf-tab__sub nf-tab__muted nf-assist__ignorado">
                         {item.descricaoXml} <span className="nf-tab__cap">({item.quantidade} {item.unidadeXml})</span>
                       </div>
                     ))}
@@ -278,28 +269,27 @@ export default function NotaAssistenteXml({ nf }) {
             </div>
 
             {saveErro && (
-              <div className="nf-tab__erro-box" style={{ background: alfa(C.red, "12"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
+              <div className="nf-tab__erro-box nf-tab__erro-box--erro">
                 {saveErro}
               </div>
             )}
 
             {semQuantidade.length > 0 && (
-              <div role="alert" className="nf-tab__erro-box" style={{ background: alfa(C.warn, "12"), border: `1.5px solid ${alfa(C.warn, "44")}` }}>
+              <div role="alert" className="nf-tab__erro-box nf-tab__erro-box--aviso">
                 {semQuantidade.map(i => i.produto.name).join(", ")}
                 {semQuantidade.length === 1 ? " ficou com quantidade 0" : " ficaram com quantidade 0"} para o estoque.
                 Volte e corrija o fator de conversão, ou desvincule o item para ignorá-lo.
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => setStep(3)} disabled={saving} className="nf-tab__btn-secundario" style={{ cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.5 : 1 }}>
+            <div className="nf-tab__acoes">
+              <button onClick={() => setStep(3)} disabled={saving} className="nf-tab__btn-secundario nf-assist__btn-voltar">
                 ← Voltar
               </button>
               <button
                 onClick={handleConfirmar}
                 disabled={saving || semQuantidade.length > 0}
-                className="nf-tab__btn-primario"
-                style={{ flex: 1, background: saving || semQuantidade.length > 0 ? varColor(C.faint) : varColor(C.green), cursor: saving || semQuantidade.length > 0 ? "not-allowed" : "pointer", boxShadow: saving || semQuantidade.length > 0 ? "none" : `0 4px 16px ${alfa(C.green, "44")}`, transition: "background 0.15s" }}
+                className="nf-tab__btn-primario nf-tab__btn-primario--cheio nf-assist__btn-confirmar"
               >
                 {saving ? "Salvando..." : "✓ Confirmar Importação"}
               </button>
@@ -309,29 +299,28 @@ export default function NotaAssistenteXml({ nf }) {
 
         {/* ── Step 5: Sucesso ── */}
         {step === 5 && importOk && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, paddingTop: 20 }}>
-            <div className="nf-tab__sucesso-icone" style={{ background: alfa(C.green, "18"), borderColor: alfa(C.green, "44") }}>
+          <div className="nf-assist__sucesso">
+            <div className="nf-tab__sucesso-icone nf-assist__sucesso-icone">
               <LuCheck size={32} color={varColor(C.green)} />
             </div>
-            <div style={{ textAlign: "center" }}>
-              <div className="nf-tab__title-hero" style={{ fontWeight: 800, marginBottom: 6 }}>Nota importada com sucesso!</div>
-              <div className="nf-tab__body" style={{ color: varColor(C.muted) }}>
+            <div className="nf-assist__sucesso-texto">
+              <div className="nf-tab__title-hero nf-assist__sucesso-titulo">Nota importada com sucesso!</div>
+              <div className="nf-tab__body nf-tab__muted">
                 Nota nº {importOk.numero} · {importOk.fornecedor}
               </div>
-              <div className="nf-tab__body" style={{ color: varColor(C.green), fontWeight: 700, marginTop: 4 }}>
+              <div className="nf-tab__body nf-assist__sucesso-qtd">
                 {importOk.count} {importOk.count === 1 ? "produto atualizado" : "produtos atualizados"} no estoque
               </div>
             </div>
-            <div style={{ display: "flex", gap: 12 }}>
+            <div className="nf-tab__acoes">
               <button onClick={() => setView("lista")} className="nf-tab__btn-secundario">
                 Ver notas importadas
               </button>
               <button
                 onClick={fromManual ? startManual : startWizard}
-                className="nf-tab__btn-primario"
-                style={{ background: varColor(C.accent) }}
+                className="nf-tab__btn-primario nf-tab__btn-primario--accent"
               >
-                <LuPlus size={14} style={{ marginRight: 6 }} />
+                <LuPlus size={14} className="nf-assist__icone-mais" />
                 {fromManual ? "Nova nota manual" : "Importar outra"}
               </button>
             </div>

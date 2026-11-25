@@ -26,7 +26,7 @@ export default function NotaDetalhe({ nf }) {
 
         <div className="nf-tab__card nf-tab__card--cabecalho">
           <div className="nf-tab__title nf-tab__cabecalho-titulo">
-            Nota nº {cab.numero} — {cab.fornecedor_nome}
+            Nota nº {cab.numero}, {cab.fornecedor_nome}
           </div>
           <div className="nf-tab__cabecalho-grid">
             {[

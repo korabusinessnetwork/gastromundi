@@ -1,3 +1,11 @@
+## Rodada 110, refatoração 5.4, Notas de Entrada sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-4-notas-de-entrada.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 55 telas, 2
+  diferenças, as duas são travessão virando vírgula. Sem migration. Estilo inline: 1.365 para 1.236.
+- Assistente do XML 72 para 0; nota manual 57 para 0.
+- Furo do `travessaoGuard` achado pela causa raiz: `{a} — {b}` passava como marcador de vazio
+  porque o texto era aparado antes de comparar. Corrigido com teste; seis telas trocadas por vírgula.
 ## Rodada 109, refatoração 5.3, Fichas Técnicas sem estilo inline, 2026-11-24
 - Spec: specs/refatoracao-5-3-fichas-tecnicas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4430

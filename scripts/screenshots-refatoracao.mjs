@@ -133,6 +133,46 @@ function roteiro(largura) {
       await page.locator(".fichas-tab__card").first().locator("button").nth(1).click({ timeout: 3000 });
     },
   });
+  // Fase 5: Notas Fiscais, o assistente do XML (passos 2 a 4) e a nota manual.
+  // O XML é mínimo: só o que o parseNFe lê. Um item tem nome de produto do
+  // cardápio e outro não, para aparecerem o vinculado e o sem vínculo.
+  const XML_NOTA = `<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe"><NFe><infNFe Id="NFe35261112345678000199550010000012341000012345" versao="4.00">
+<ide><serie>1</serie><nNF>1234</nNF><dhEmi>2026-11-18T10:00:00-03:00</dhEmi></ide>
+<emit><CNPJ>12345678000199</CNPJ><xNome>Atacadão Demo Ltda</xNome></emit>
+<det nItem="1"><prod><cProd>001</cProd><xProd>Suco de laranja</xProd><uCom>UN</uCom><qCom>12</qCom><vUnCom>4.50</vUnCom><vProd>54.00</vProd></prod></det>
+<det nItem="2"><prod><cProd>002</cProd><xProd>Guardanapo de papel</xProd><uCom>PCT</uCom><qCom>5</qCom><vUnCom>3.20</vUnCom><vProd>16.00</vProd></prod></det>
+<total><ICMSTot><vNF>70.00</vNF></ICMSTot></total>
+</infNFe></NFe></nfeProc>`;
+  const abrirNotasDeEntrada = (page) => page.getByText("Notas de Entrada", { exact: true }).first().click({ timeout: 3000 });
+  const enviarXml = async (page) => {
+    await abrirNotasDeEntrada(page);
+    await page.getByRole("button", { name: /Importar XML/ }).first().click({ timeout: 3000 });
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "nota-1234.xml", mimeType: "text/xml", buffer: Buffer.from(XML_NOTA),
+    });
+  };
+  const irParaVincular = async (page) => {
+    await enviarXml(page);
+    await page.getByRole("button", { name: "Ignorar" }).click({ timeout: 3000 });
+    await page.getByRole("button", { name: /Continuar/ }).click({ timeout: 3000 });
+  };
+  telas.push({ nome: "app-notas-xml-informacoes", perfil: "dono", caminho: "/app/admin", passo: enviarXml });
+  telas.push({ nome: "app-notas-xml-vincular", perfil: "dono", caminho: "/app/admin", passo: irParaVincular });
+  telas.push({
+    nome: "app-notas-xml-previa", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await irParaVincular(page);
+      await page.getByRole("button", { name: /Ver Preview/ }).click({ timeout: 3000 });
+    },
+  });
+  telas.push({
+    nome: "app-notas-manual", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirNotasDeEntrada(page);
+      await page.getByRole("button", { name: /Nova nota manual/ }).first().click({ timeout: 3000 });
+    },
+  });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,
