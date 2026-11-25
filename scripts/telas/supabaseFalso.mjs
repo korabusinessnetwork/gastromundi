@@ -124,6 +124,19 @@ const tabelas = {
         { produtoId: null, nome: "Presunto fatiado", emoji: "", qtd: "50", unidade: "g", custoUnit: "0.06" },
       ],
     }] },
+    // Fase 5: fornecedores e compras da Área Admin, uma compra em cada status.
+    { key: "fornecedores", value: [
+      { id: "forn-1", nome: "Padaria Modelo", cnpj: "", categoria: "Pães", contato: "Joana Exemplo", telefone: "(11) 3333-4444", email: "", observacoes: "" },
+      { id: "forn-2", nome: "Distribuidora Teste", cnpj: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "Entrega às terças." },
+    ] },
+    { key: "compras", value: [
+      { id: "compra-1", fornecedor: "Padaria Modelo", data: "2026-11-19", status: "pendente", observacoes: "", total: 36,
+        itens: [{ nome: "Pão francês", qtd: "60", unidade: "un", valorUnit: "0.6" }] },
+      { id: "compra-2", fornecedor: "Distribuidora Teste", data: "2026-11-15", status: "pago", observacoes: "", total: 129.5,
+        itens: [{ nome: "Suco de laranja", qtd: "2", unidade: "cx", valorUnit: "52" }, { nome: "Água", qtd: "25", unidade: "un", valorUnit: "1.02" }] },
+      { id: "compra-3", fornecedor: "Padaria Modelo", data: "2026-11-02", status: "cancelado", observacoes: "", total: 18,
+        itens: [{ nome: "Pão de queijo", qtd: "15", unidade: "un", valorUnit: "1.2" }] },
+    ] },
   ],
   // Fase 5: vendas fechadas para a aba Vendas do relatório desenhar os três
   // modos (resumido, detalhado, por dia), com um pagamento dividido e uma

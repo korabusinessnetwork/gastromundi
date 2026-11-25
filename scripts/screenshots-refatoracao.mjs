@@ -566,6 +566,44 @@ function roteiro(largura) {
   telas.push({ nome: "app-relatorio-resumido", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Resumido") });
   telas.push({ nome: "app-relatorio-detalhado", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Detalhado") });
   telas.push({ nome: "app-relatorio-por-dia", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Por dia") });
+  // Fase 5: grade da Área Admin, Fornecedores e Compras.
+  const abrirSecaoAdmin = (rotulo) => (page) => page.locator(".grade-inicial__card", { hasText: rotulo }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-admin-hover", perfil: "dono", caminho: "/app/admin",
+    passo: (page) => page.locator(".grade-inicial__card", { hasText: "Fornecedores" }).first().hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-admin-fornecedores", perfil: "dono", caminho: "/app/admin", passo: abrirSecaoAdmin("Fornecedores") });
+  telas.push({ nome: "app-admin-fornecedores-hover", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirSecaoAdmin("Fornecedores")(page);
+      await page.locator(".admin__tr", { hasText: "Padaria Modelo" }).hover({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-admin-fornecedor-novo", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirSecaoAdmin("Fornecedores")(page);
+      await page.getByRole("button", { name: /Novo Fornecedor/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-admin-compras", perfil: "dono", caminho: "/app/admin", passo: abrirSecaoAdmin("Compras") });
+  telas.push({ nome: "app-admin-compra-nova", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirSecaoAdmin("Compras")(page);
+      await page.getByRole("button", { name: /Registrar Compra/ }).click({ timeout: 3000 });
+      await page.locator(".compras-tab__select-fornecedor").selectOption("Padaria Modelo", { timeout: 3000 });
+      await page.getByRole("button", { name: /Adicionar item/ }).click({ timeout: 3000 });
+      await page.getByPlaceholder("Produto / insumo").fill("Pão francês", { timeout: 3000 });
+      await page.getByPlaceholder("Qtd").fill("30", { timeout: 3000 });
+      await page.getByPlaceholder("R$/un").fill("0.6", { timeout: 3000 });
+      await page.getByRole("button", { name: "Pago", exact: true }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-admin-compra-outro", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirSecaoAdmin("Compras")(page);
+      await page.getByRole("button", { name: /Registrar Compra/ }).click({ timeout: 3000 });
+      await page.locator(".compras-tab__select-fornecedor").selectOption("__outro", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-admin-compra-excluir", perfil: "dono", caminho: "/app/admin",
+    passo: async (page) => {
+      await abrirSecaoAdmin("Compras")(page);
+      await page.locator(".admin__tr").first().locator("button").nth(1).click({ timeout: 3000 });
+    } });
   // Fase 5: Fichas Técnicas (lista, editor e confirmação de excluir).
   const abrirFichas = (page) => page.getByText("Ficha Técnica", { exact: true }).first().click({ timeout: 3000 });
   telas.push({ nome: "app-admin-fichas", perfil: "dono", caminho: "/app/admin", passo: abrirFichas });
