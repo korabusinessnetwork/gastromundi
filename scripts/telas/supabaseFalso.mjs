@@ -198,6 +198,16 @@ const tabelas = {
       controla_estoque: true, ativo: true } }],
   combo_produtos: [{ id: "cp-1", combo_id: "combo-1", product_id: 2, quantidade: 1, preco_customizado: 8,
     products: { id: 2, name: "Suco de laranja", price: 9.5, emoji: "🍊", category: "Bebidas" } }],
+  // Fase 5: mesas, uma em cada situação do mapa. A 4 fica "aberta" porque a
+  // comanda 15 está nela; sem posição, o mapa as desenha em grade.
+  mesas: [
+    { numero: 1, capacidade: 4, posicao_x: null, posicao_y: null, status_manual: null },
+    { numero: 2, capacidade: 2, posicao_x: null, posicao_y: null, status_manual: null },
+    { numero: 3, capacidade: 4, posicao_x: null, posicao_y: null, status_manual: "reservada" },
+    { numero: 4, capacidade: 6, posicao_x: null, posicao_y: null, status_manual: null },
+    { numero: 5, capacidade: 4, posicao_x: null, posicao_y: null, status_manual: "manutencao" },
+    { numero: 6, capacidade: 8, posicao_x: null, posicao_y: null, status_manual: null },
+  ],
   grupos_categoria: [
     { id: 1, nome: "comida" }, { id: 2, nome: "bebida" },
   ],

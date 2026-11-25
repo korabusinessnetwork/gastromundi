@@ -147,6 +147,20 @@ function roteiro(largura) {
       await itens.nth(1).locator(".checkout-view__split-input").fill("10", { timeout: 3000 });
       await page.locator(".checkout-view__pagamento-titulo").click({ timeout: 3000 });
     } });
+  // Fase 5: mapa de mesas e reservas do PDV (cada situação, hover, busca).
+  const abaPdv = (rotulo) => (page) => page.getByRole("button", { name: rotulo, exact: true }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-pdv-mapa", perfil: "dono", caminho: "/app/pdv", passo: abaPdv("Mapa") });
+  telas.push({ nome: "app-pdv-mapa-hover", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abaPdv("Mapa")(page);
+      await page.locator(".card-mesa", { hasText: "Livre" }).first().hover({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-reservas", perfil: "dono", caminho: "/app/pdv", passo: abaPdv("Reservas") });
+  telas.push({ nome: "app-pdv-reservas-busca", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abaPdv("Reservas")(page);
+      await page.getByPlaceholder("Buscar mesa...").fill("99", { timeout: 3000 });
+    } });
   // Fase 5: grade de comandas (hover, abertas, busca, comanda lançada).
   telas.push({ nome: "app-pdv-hover-livre", perfil: "dono", caminho: "/app/pdv",
     passo: (page) => page.locator("button.comanda-card", { hasText: "Disponível" }).first().hover({ timeout: 3000 }) });
