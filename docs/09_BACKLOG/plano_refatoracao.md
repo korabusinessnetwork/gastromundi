@@ -357,6 +357,7 @@ Depois, o relatório de Desempenho (47 para 0) e a grade de comandas do PDV (46 
 Depois, o fechamento de caixa (41 para 0) e as comandas fechadas (38 para 0).
 Depois, o Estoque (36 para 0) e a janela de desconto e acréscimo (35 para 0).
 Depois, o painel do Jarvas (35 para 0) e a barra lateral (32 para 0).
+Depois, os Subprodutos (31 para 0) e a janela de dinheiro do caixa (28 para 0).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

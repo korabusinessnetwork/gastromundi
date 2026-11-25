@@ -1,3 +1,10 @@
+## Rodada 116, refatoração 5.10, Subprodutos e janela de dinheiro sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-10-subprodutos-e-caixa.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 96 telas, 0
+  diferença. Sem migration. Estilo inline: 819 para 760.
+- Subprodutos 31 para 0; janela de dinheiro 28 para 0.
+- Roteiro ganhou subprodutos no Supabase falso e nove telas.
 ## Rodada 115, refatoração 5.9, Jarvas e barra lateral sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-9-jarvas-e-sidebar.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
