@@ -602,14 +602,14 @@ function roteiro(largura) {
   const comMesasPosicionadas = (semPosicaoNa6) => (contexto) => contexto.route(/\/rest\/v1\/mesas/, (route) => (route.request().method() === "GET"
     ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
       body: JSON.stringify([
-        { numero: 1, capacidade: 4, posicao_x: 1, posicao_y: 1, status_manual: null },
-        { numero: 2, capacidade: 2, posicao_x: 2, posicao_y: 1, status_manual: null },
-        { numero: 3, capacidade: 4, posicao_x: 3, posicao_y: 1, status_manual: "reservada" },
-        { numero: 4, capacidade: 6, posicao_x: 1, posicao_y: 2, status_manual: null },
-        { numero: 5, capacidade: 4, posicao_x: 2, posicao_y: 2, status_manual: "manutencao" },
+        { numero: "1", capacidade: 4, posicao_x: 1, posicao_y: 1, status_manual: null },
+        { numero: "2", capacidade: 2, posicao_x: 2, posicao_y: 1, status_manual: null },
+        { numero: "3", capacidade: 4, posicao_x: 3, posicao_y: 1, status_manual: "reservada" },
+        { numero: "4", capacidade: 6, posicao_x: 1, posicao_y: 2, status_manual: null },
+        { numero: "5", capacidade: 4, posicao_x: 2, posicao_y: 2, status_manual: "manutencao" },
         semPosicaoNa6
-          ? { numero: 6, capacidade: 8, posicao_x: null, posicao_y: null, status_manual: null }
-          : { numero: 6, capacidade: 8, posicao_x: 4, posicao_y: 2, status_manual: null },
+          ? { numero: "6", capacidade: 8, posicao_x: null, posicao_y: null, status_manual: null }
+          : { numero: "6", capacidade: 8, posicao_x: 4, posicao_y: 2, status_manual: null },
       ]) })
     : route.fallback()));
   telas.push({ nome: "app-pdv-mapa-posicionado", perfil: "dono", caminho: "/app/pdv",

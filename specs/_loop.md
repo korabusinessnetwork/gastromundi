@@ -1,3 +1,9 @@
+## Rodada 123, refatoração 5.17, cadastro de mesas sem estilo inline e sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-17-cadastro-de-mesas.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 142 telas,
+  RESULTADO_CURTO. Sem migration. Estilo inline: 400 para 351. Emoji: 100 para 99.
+- A área de mesas inteira, PDV e cadastro, fica sem estilo inline.
 ## Rodada 122, refatoração 5.16, mapa de mesas e Reservas do PDV sem estilo inline e sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-16-mesas-pdv.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435

@@ -366,6 +366,8 @@ Depois, as abas Usuários (25), Meios de Pagamento (19) e Geral (16) de Configur
 emoji: os ícones de cargo e o aviso viraram react-icons/lu.
 Depois, a área de Relatórios inteira (casca e cinco abas, 97 para 0), sem emoji (10 a menos).
 Depois, o mapa de mesas (20 para 0) e a aba de Reservas do PDV (18 para 0), sem emoji.
+Depois, o cadastro de mesas e suas janelas (49 para 0), sem emoji: a área de mesas inteira fica
+sem estilo inline.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
