@@ -58,6 +58,15 @@ const abaDoPalm = (rotulo) => (page) =>
 function roteiro(largura) {
   const telas = [
     { nome: "login", perfil: null, caminho: "/login" },
+    // Fase 5: login com senha errada e com endereço de estabelecimento que não existe.
+    { nome: "login-erro", perfil: null, caminho: "/login",
+      passo: async (page) => {
+        await page.getByPlaceholder("Digite seu usuário").fill("ana", { timeout: 3000 });
+        await page.getByPlaceholder("Digite sua senha").fill("errada", { timeout: 3000 });
+        await page.getByRole("button", { name: "Entrar" }).click({ timeout: 3000 });
+        await page.waitForTimeout(800);
+      } },
+    { nome: "login-endereco-invalido", perfil: null, caminho: "/login", host: "nada.loja.localhost" },
     { nome: "cardapio-publico", perfil: null, caminho: "/cardapio?loja=demo" },
     { nome: "console", perfil: "plataforma", caminho: "/console" },
   ];
@@ -277,6 +286,18 @@ function roteiro(largura) {
   };
   telas.push({ nome: "app-plano-bloqueado", perfil: "dono", caminho: "/app/pdv", preparar: semDelivery,
     passo: (page) => page.locator(".sidebar__nav-item--bloqueado").first().click({ timeout: 3000 }) });
+  // Fase 5: abertura de caixa, com o caixa fechado.
+  const comCaixaFechado = (contexto) => contexto.route(/\/rest\/v1\/config\?.*caixa_aberto/, (route) => (route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([{ key: "caixa_aberto", value: false }, { key: "meios_pagamento", value: ["dinheiro", "credito", "debito", "pix"] }]) })
+    : route.fallback()));
+  const abrirAbertura = (page) => page.getByRole("button", { name: /Abrir Caixa/ }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-abertura-caixa", perfil: "dono", caminho: "/app/pdv", preparar: comCaixaFechado, passo: abrirAbertura });
+  telas.push({ nome: "app-abertura-caixa-valor", perfil: "dono", caminho: "/app/pdv", preparar: comCaixaFechado,
+    passo: async (page) => {
+      await abrirAbertura(page);
+      await page.getByPlaceholder("0,00").fill("150", { timeout: 3000 });
+    } });
   // Fase 5: fechamento de caixa. O botão só libera sem comanda aberta, então
   // estas telas respondem `pending` vazio.
   const semComandasAbertas = (extra) => async (contexto) => {
@@ -841,7 +862,9 @@ async function subirApp(raizApp) {
   const { createServer } = await import(join(RAIZ, "node_modules/vite/dist/node/index.js"));
   const servidor = await createServer({
     root: raizApp, configFile: join(raizApp, "vite.config.js"),
-    server: { port: 0, host: "127.0.0.1" }, logLevel: "error", clearScreen: false,
+    // allowedHosts: telas com `host` próprio (subdomínio em *.localhost) chegam
+    // ao mesmo servidor com outro nome.
+    server: { port: 0, host: "127.0.0.1", allowedHosts: true }, logLevel: "error", clearScreen: false,
   });
   await servidor.listen();
   const endereco = servidor.httpServer.address();
@@ -862,7 +885,9 @@ async function capturar(pasta, ref) {
   // se acha um Playwright instalado fora do projeto.
   const { chromium } = createRequire(import.meta.url)("playwright");
   const { servidor, origem } = await subirApp(raizApp);
-  const navegador = await chromium.launch();
+  // *.localhost sempre na própria máquina: as telas com `host` (subdomínio de
+  // estabelecimento) chegam ao mesmo servidor de desenvolvimento.
+  const navegador = await chromium.launch({ args: ["--host-resolver-rules=MAP *.localhost 127.0.0.1"] });
   mkdirSync(pasta, { recursive: true });
   const falhas = [];
 
@@ -887,7 +912,9 @@ async function capturar(pasta, ref) {
         const page = await contexto.newPage();
         const arquivo = join(pasta, `${largura}--${tela.nome}.png`);
         try {
-          await page.goto(origem + tela.caminho, { waitUntil: "networkidle", timeout: 30000 });
+          // `host`: a tela abre por outro nome (ex.: subdomínio de estabelecimento).
+          const base = tela.host ? origem.replace("127.0.0.1", tela.host) : origem;
+          await page.goto(base + tela.caminho, { waitUntil: "networkidle", timeout: 30000 });
           await page.waitForTimeout(600);
           if (tela.passo) {
             await tela.passo(page);

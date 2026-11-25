@@ -417,6 +417,9 @@ export async function instalarSupabaseFalso(contexto, origemApp) {
     const url = route.request().url();
     if (url.startsWith(URL_FALSA)) return responder(route);
     if (url.startsWith(origemApp) || url.startsWith("data:") || url.startsWith("blob:")) return route.continue();
+    // Subdomínio de estabelecimento simulado (*.localhost) na mesma porta do app.
+    const alvo = new URL(url);
+    if (alvo.hostname.endsWith(".localhost") && alvo.port === new URL(origemApp).port) return route.continue();
     return route.abort();
   });
   // Realtime: o canal abre e fica mudo, como um estabelecimento sem movimento.
