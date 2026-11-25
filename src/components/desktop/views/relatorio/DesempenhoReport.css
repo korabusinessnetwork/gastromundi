@@ -342,3 +342,159 @@
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
+
+/* ── Estilo que saiu do JSX (fase 5, 5.6) ──
+   Valores de dado chegam por variável: --kpi-cor (cor do indicador),
+   --barra-altura (gráfico por dia), --barra-largura e --barra-cor (barra
+   horizontal). alfa(cor, hex) virou color-mix na mesma proporção
+   (hex/255): 12→7%, 18→9%, 44→27%. */
+
+.kpi-card {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+.kpi-card__label {
+  color: var(--gm-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.kpi-card__value {
+  color: var(--kpi-cor);
+}
+.kpi-card__variacao {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.kpi-card__variacao--sobe {
+  color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+}
+.kpi-card__variacao--desce {
+  color: var(--gm-red);
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+}
+
+.grafico-dias__barra {
+  height: var(--barra-altura);
+  background: var(--gm-accent);
+}
+.grafico-dias__label {
+  color: var(--gm-muted);
+}
+.barra-horizontal-linha__label,
+.barra-horizontal-linha__valor {
+  color: var(--gm-text);
+}
+.barra-horizontal-linha__trilho {
+  background: var(--gm-surface);
+}
+.barra-horizontal-linha__preenchido {
+  width: var(--barra-largura);
+  background: var(--barra-cor);
+}
+.desempenho__estado-msg {
+  color: var(--gm-muted);
+}
+
+.desempenho__chip {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.desempenho__chip--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+/* Com a borda na classe, o foco segue a regra global de src/styles/inputs.css. */
+.desempenho__date-input {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+.desempenho__date-input--preenchida {
+  border-color: var(--gm-accent);
+}
+.desempenho__datas-ate {
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.desempenho__comparar {
+  color: var(--gm-muted);
+}
+.desempenho__comp-btn {
+  border: 1.5px solid var(--gm-accent);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+.desempenho__comp-seta {
+  transition: transform 0.15s;
+}
+.desempenho__comp-seta--aberta {
+  transform: rotate(180deg);
+}
+.desempenho__comp-popover {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+.desempenho__comp-popover-titulo {
+  color: var(--gm-muted);
+}
+
+.desempenho__erro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  color: var(--gm-red);
+}
+
+.desempenho__secao {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+.desempenho__secao-titulo,
+.desempenho__vazio-texto {
+  color: var(--gm-muted);
+}
+.desempenho__colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+.desempenho__colunas--uma {   /* menos de 900px de largura */
+  grid-template-columns: 1fr;
+}
+.desempenho__rolagem {
+  overflow-x: auto;
+}
+
+.tabela-produtos th {
+  color: var(--gm-muted);
+}
+.tabela-produtos__linha {
+  border-bottom: 1px solid var(--gm-border);
+}
+.tabela-produtos__nome {
+  color: var(--gm-text);
+  font-weight: 600;
+}
+.tabela-produtos__apagado {
+  color: var(--gm-muted);
+}
+.tabela-produtos__receita {
+  color: var(--gm-text);
+  font-weight: 700;
+}
+.tabela-produtos__margem {
+  font-weight: 800;
+}
+.tabela-produtos__margem--positiva { color: var(--gm-green); }
+.tabela-produtos__margem--negativa { color: var(--gm-red); }
+.badge-sem-custo {
+  color: var(--gm-muted);
+  background: var(--gm-surface);
+}

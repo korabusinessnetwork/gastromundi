@@ -147,6 +147,42 @@ function roteiro(largura) {
       await itens.nth(1).locator(".checkout-view__split-input").fill("10", { timeout: 3000 });
       await page.locator(".checkout-view__pagamento-titulo").click({ timeout: 3000 });
     } });
+  // Fase 5: grade de comandas (hover, abertas, busca, comanda lançada).
+  telas.push({ nome: "app-pdv-hover-livre", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => page.locator("button.comanda-card", { hasText: "Disponível" }).first().hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-pdv-hover-comanda", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => page.locator("button.comanda-card", { hasText: "R$ 28.50" }).first().hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-pdv-abertas", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await page.getByRole("button", { name: "Comandas abertas", exact: true }).click({ timeout: 3000 });
+      await page.locator(".comanda-grid__item-busca", { hasText: "R$ 28.50" }).hover({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-busca-livre", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => page.getByPlaceholder("Buscar comanda...").fill("30", { timeout: 3000 }) });
+  telas.push({ nome: "app-pdv-busca-nada", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => page.getByPlaceholder("Buscar comanda...").fill("00", { timeout: 3000 }) });
+  telas.push({ nome: "app-pdv-lancada", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByRole("button", { name: /Brigadeiro/ }).first().click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Lançar Pedido/ }).click({ timeout: 3000 });
+    } });
+  // Fase 5: relatório de Desempenho (com dados, comparação aberta, período).
+  const abrirDesempenho = (page) => page.getByRole("button", { name: "Desempenho", exact: true }).click({ timeout: 3000 });
+  telas.push({ nome: "app-relatorio-desempenho", perfil: "dono", caminho: "/app/relatorio", passo: abrirDesempenho });
+  telas.push({ nome: "app-relatorio-desempenho-comparar", perfil: "dono", caminho: "/app/relatorio",
+    passo: async (page) => {
+      await abrirDesempenho(page);
+      await page.locator(".desempenho__comp-btn").click({ timeout: 3000 });
+      await page.locator(".desempenho__comp-popover").getByRole("menuitemradio", { name: "Período" }).click({ timeout: 3000 });
+      await page.locator(".desempenho__comp-datas .desempenho__date-input").first().fill("2026-11-01", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-relatorio-desempenho-periodo", perfil: "dono", caminho: "/app/relatorio",
+    passo: async (page) => {
+      await abrirDesempenho(page);
+      await page.locator(".desempenho__periodos").getByRole("button", { name: "Período" }).click({ timeout: 3000 });
+      await page.locator(".desempenho__datas .desempenho__date-input").first().fill("2026-11-10", { timeout: 3000 });
+    } });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
   const modoVendas = (rotulo) => async (page) => {
     await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });

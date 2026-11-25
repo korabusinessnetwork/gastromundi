@@ -306,3 +306,308 @@
   line-height: var(--lh-lg);
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Cores e estados por classe (fase 5, 5.6) ──
+   A "explosão de seletores" que o cabeçalho temia ficou pequena: o estado de
+   destaque é um só (selecionada > lançada > com itens > vazia, calculado por
+   estadoDaComanda no JSX), o hover é um modificador, e o tempo decorrido é um
+   tom. Espaçamento de `sz` chega por variável no contêiner.
+   Transparências de alfa(cor, hex), na mesma proporção (hex/255): 08→3%,
+   0a→4%, 0d→5%, 10→6%, 12→7%, 14→8%, 18→9%, 20→13%, 22→13%, 28→16%,
+   33→20%, 44→27%, 55→33%, 66→40%, 88→53%. */
+
+.comanda-grid {
+  height: 100%;
+  overflow-y: auto;
+}
+.comanda-grid--lista {
+  padding: var(--grade-pad);
+}
+.comanda-grid__grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  gap: var(--grade-gap);
+  padding: var(--grade-pad);
+  align-content: start;
+}
+.comanda-grid__paginacao {
+  padding: 4px 0 var(--grade-pad-base);
+}
+
+/* Tom do tempo decorrido: etiqueta do cartão e linha da lista. */
+.comanda-tempo--agora { color: var(--gm-green); }
+.comanda-tempo--normal { color: var(--gm-muted); }
+.comanda-tempo--alerta { color: var(--gm-warn); }
+.comanda-tempo--atraso { color: var(--gm-red); }
+
+/* ── Lista (busca e "Comandas abertas") ── */
+
+.comanda-grid__vazio {
+  color: var(--gm-muted);
+}
+.comanda-grid__vazio-titulo {
+  font-weight: 600;
+}
+.comanda-grid__lista-busca {
+  max-width: var(--lista-max);
+}
+.comanda-grid__aviso-esquecidas {
+  background: color-mix(in srgb, var(--gm-warn) 7%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-warn) 27%, transparent);
+  color: var(--gm-text);
+}
+.comanda-grid__aviso-esquecidas-icone {
+  flex-shrink: 0;
+  color: var(--gm-warn);
+}
+.comanda-grid__aviso-esquecidas-texto {
+  color: var(--gm-muted);
+}
+.comanda-grid__slot-disponivel {
+  border: 1.5px dashed color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 3%, transparent);
+}
+.comanda-grid__slot-disponivel:hover {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  border-color: var(--gm-accent);
+}
+.comanda-grid__slot-icone {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  color: var(--gm-accent);
+}
+.comanda-grid__slot-titulo {
+  font-weight: 800;
+  color: var(--gm-accent);
+}
+.comanda-grid__slot-subtexto {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.comanda-grid__item-busca {
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  box-shadow: none;
+}
+.comanda-grid__item-busca--com-itens {
+  border-color: color-mix(in srgb, var(--gm-blue) 33%, transparent);
+}
+.comanda-grid__item-busca--lancada {
+  border-color: var(--gm-warn);
+  background: color-mix(in srgb, var(--gm-warn) 6%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--gm-warn) 9%, transparent);
+}
+.comanda-grid__item-busca--selecionada {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-accent) 13%, transparent);
+}
+/* O hover era onMouseEnter/onMouseLeave; vale para todos os estados. */
+.comanda-grid__item-busca:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+}
+.comanda-grid__item-busca--selecionada:hover {
+  border-color: var(--gm-accent);
+}
+
+.comanda-grid__badge {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-muted);
+}
+.comanda-grid__item-busca--com-itens .comanda-grid__badge {
+  background: color-mix(in srgb, var(--gm-blue) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-blue) 27%, transparent);
+  color: var(--gm-blue);
+}
+.comanda-grid__item-busca--lancada .comanda-grid__badge {
+  background: var(--gm-warn);
+  border-color: var(--gm-warn);
+  color: #fff;
+}
+.comanda-grid__item-busca--selecionada .comanda-grid__badge {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
+.comanda-grid__item-corpo {
+  flex: 1;
+  min-width: 0;
+}
+.comanda-grid__item-nome {
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.comanda-grid__item-meta {
+  color: var(--gm-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.comanda-grid__item-emuso {
+  font-weight: 700;
+  color: var(--gm-warn);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.comanda-grid__tag-mesa {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+}
+.comanda-grid__tag-esquecida {
+  background: color-mix(in srgb, var(--gm-warn) 9%, transparent);
+  color: var(--gm-warn);
+}
+.comanda-grid__item-lado {
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+.comanda-grid__item-valor {
+  font-weight: 800;
+  color: var(--gm-green);
+}
+.comanda-grid__item-valor--vazio {
+  color: var(--gm-muted);
+}
+.comanda-grid__item-tempo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Cartão da grade ── */
+
+.comanda-card {
+  padding: var(--card-pad);
+  gap: var(--card-gap);
+}
+.comanda-card__mensagem {
+  color: var(--gm-faint);
+  min-height: var(--card-msg-min);
+}
+.comanda-card__rodape {
+  padding-top: var(--card-rodape-pt);
+}
+
+/* Número livre: tracejado e apagado; acende com o mouse. */
+.comanda-card--livre {
+  background: var(--gm-card);
+  border: 1.5px dashed var(--gm-border);
+  color: var(--gm-muted);
+  opacity: 0.45;
+}
+.comanda-card--livre.comanda-card--hover {
+  background: color-mix(in srgb, var(--gm-accent) 4%, transparent);
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+  color: var(--gm-text);
+  opacity: 1;
+}
+.comanda-card--livre .comanda-card__numero {
+  color: var(--gm-muted);
+}
+.comanda-card--livre.comanda-card--hover .comanda-card__numero {
+  color: var(--gm-accent);
+}
+.comanda-card__tempo--oculto {   /* guarda o espaço da etiqueta de tempo */
+  color: var(--gm-faint);
+  background: var(--gm-chip);
+  border: 1px solid var(--gm-border);
+  opacity: 0;
+}
+
+/* Comanda aberta. */
+.comanda-card--ocupada {
+  background: var(--gm-card);
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+  box-shadow: none;
+}
+.comanda-card--com-itens {
+  border-color: color-mix(in srgb, var(--gm-blue) 33%, transparent);
+}
+.comanda-card--lancada {
+  border-color: var(--gm-warn);
+  background: color-mix(in srgb, var(--gm-warn) 6%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--gm-warn) 13%, transparent);
+}
+.comanda-card--selecionada {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--gm-accent) 16%, transparent);
+}
+.comanda-card--ocupada.comanda-card--hover:not(.comanda-card--selecionada) {
+  border-color: color-mix(in srgb, var(--gm-accent) 33%, transparent);
+}
+.comanda-card--ocupada.comanda-card--hover:not(.comanda-card--selecionada):not(.comanda-card--lancada) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+.comanda-card--ocupada .comanda-card__numero {
+  color: var(--gm-text);
+}
+.comanda-card--selecionada .comanda-card__numero {
+  color: var(--gm-accent);
+}
+
+.comanda-card__tempo {
+  background: var(--gm-chip);
+  border: 1px solid var(--gm-border);
+}
+.comanda-card__tempo.comanda-tempo--alerta {
+  background: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+  border-color: color-mix(in srgb, var(--gm-warn) 20%, transparent);
+}
+.comanda-card__tempo.comanda-tempo--atraso {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border-color: color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+
+.comanda-card__nome {
+  font-weight: 700;
+  color: var(--gm-text);
+  margin-top: -4px;
+}
+.comanda-card__emuso,
+.comanda-card__esquecida {
+  font-weight: 700;
+  color: var(--gm-warn);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.comanda-card__tag-mesa {
+  font-weight: 700;
+  color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  padding: 2px 7px;
+}
+.comanda-card__garcom {
+  color: var(--gm-muted);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.comanda-card__rodape-tag {
+  color: var(--gm-muted);
+  background: var(--gm-chip);
+  padding: 2px 7px;
+}
+.comanda-card__rodape-tag--vazio {
+  color: var(--gm-faint);
+  background: transparent;
+  padding: 0;
+}
+.comanda-card__rodape-total {
+  color: var(--gm-green);
+}
+.comanda-card__rodape-total--vazio {
+  color: var(--gm-faint);
+}

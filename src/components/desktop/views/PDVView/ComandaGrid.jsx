@@ -1,7 +1,4 @@
 import { useState } from "react";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock, LuTriangleAlert } from "react-icons/lu";
@@ -11,29 +8,24 @@ import { fmtComanda } from "@/lib/rotuloComanda";
 
 const TOTAL = 1000;
 const PAGE  = 50;
-// Âmbar de ATENÇÃO (comanda em uso por outro garçom, comanda esquecida). É o
-// token --gm-warn do design system, que o tenant pode sobrescrever — o hex
-// cravado aqui deixava esta cor de fora do white-label (decisão 017, TD018).
-const AMBER = varColor(C.warn);
-
-
-// Nota (F018, leva 1 fechamento): os blends com transparência abaixo
-// usam `alfa(cor, "HH")` (src/constants/colorAlfa.js) — color-mix()
-// sobre `var(--gm-*)` quando `cor` é um token de marca (segue o tema
-// do tenant, decisão 017), preservando a opacidade do antigo sufixo
-// hex (ADR-007). `AMBER` já é `var(--gm-warn)` (TD018): `alfa()` monta o
-// color-mix por cima do próprio `var()`, então o blend segue o tema do
-// tenant igual aos demais.
+// Há quanto tempo a comanda está aberta, e o tom da etiqueta: "agora" (verde),
+// "normal" (apagado), "alerta" (âmbar, de 30 a 59 min) e "atraso" (vermelho,
+// uma hora ou mais). As cores moram em ComandaGrid.css, por modificador.
 function getElapsed(dateStr) {
-  if (!dateStr) return { label: "", color: varColor(C.muted), warn: false };
+  if (!dateStr) return { label: "", tom: "normal" };
   const diff = Date.now() - new Date(dateStr).getTime();
   const m    = Math.floor(diff / 60000);
-  if (m < 1)  return { label: "agora",             color: varColor(C.green), warn: false };
-  if (m < 30) return { label: `${m}min`,            color: varColor(C.muted), warn: false };
-  if (m < 60) return { label: `${m}min`,            color: AMBER,   warn: true  };
+  if (m < 1)  return { label: "agora",  tom: "agora"  };
+  if (m < 30) return { label: `${m}min`, tom: "normal" };
+  if (m < 60) return { label: `${m}min`, tom: "alerta" };
   const h = Math.floor(m / 60);
   const r = m % 60;
-  return { label: `${h}h${r > 0 ? `${r}min` : ""}`, color: varColor(C.red), warn: true };
+  return { label: `${h}h${r > 0 ? `${r}min` : ""}`, tom: "atraso" };
+}
+
+// Estado de destaque da comanda, na ordem em que um vence o outro.
+function estadoDaComanda({ isSelected, isVisitada, hasItems }) {
+  return isSelected ? "selecionada" : isVisitada ? "lancada" : hasItems ? "com-itens" : "vazia";
 }
 
 export default function ComandaGrid({ abertas, visitadas = new Set(), selected, onSelect, onOpenEmpty, busca = "", somenteAbertas = false, emUsoPor = () => null }) {
@@ -48,6 +40,9 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   // a mesma referência (senão dois cards abertos no mesmo minuto podem cair
   // em faixas diferentes) e não recalculamos Date.now() 50 vezes.
   const agora = Date.now();
+
+  // Espaçamento por largura de tela (sz), passado como variável para o CSS.
+  const gradePad = `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px`;
 
   // ── Modo busca / somente abertas ──────────────────────────────
   // `somenteAbertas` (aba "Comandas abertas"): mesma lista compacta da
@@ -71,11 +66,11 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
     const esquecidas     = aberasFiltradas.filter(o => comandaEsquecida(o, agora).esquecida);
 
     return (
-      <div style={{ height: "100%", overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px` }}>
+      <div className="comanda-grid comanda-grid--lista" style={{ "--grade-pad": gradePad }}>
         {vazio ? (
-          <div className="comanda-grid__vazio" style={{ color: varColor(C.muted) }}>
+          <div className="comanda-grid__vazio">
             <div className="comanda-grid__vazio-icone">{somenteAbertas && !q ? "✅" : "🔍"}</div>
-            <div className="comanda-grid__vazio-titulo" style={{ fontWeight: 600 }}>
+            <div className="comanda-grid__vazio-titulo">
               {somenteAbertas && !q ? "Nenhuma comanda em aberto" : "Nenhuma comanda encontrada"}
             </div>
             <div className="comanda-grid__vazio-texto">
@@ -85,25 +80,22 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
             </div>
           </div>
         ) : (
-          <div className="comanda-grid__lista-busca" style={{ maxWidth: Math.min(580, width - sz.pad * 2) }}>
+          <div className="comanda-grid__lista-busca" style={{ "--lista-max": `${Math.min(580, width - sz.pad * 2)}px` }}>
             {/* Comanda aberta há horas e sem nenhum consumo não aparece como
                 problema em lugar nenhum: some no meio da lista mostrando
                 "Vazio". O aviso junta as duas informações e diz o que fazer —
                 a lista já está ordenada da mais antiga pra mais nova, então
                 elas estão logo abaixo. */}
             {esquecidas.length > 0 && (
-              <div
-                className="comanda-grid__aviso-esquecidas"
-                style={{ background: alfa(AMBER, "12"), border: `1.5px solid ${alfa(AMBER, "44")}`, color: varColor(C.text) }}
-              >
-                <LuTriangleAlert size={16} color={AMBER} style={{ flexShrink: 0 }} />
+              <div className="comanda-grid__aviso-esquecidas">
+                <LuTriangleAlert size={16} className="comanda-grid__aviso-esquecidas-icone" />
                 <div>
                   <strong>
                     {esquecidas.length === 1
                       ? "1 comanda aberta sem nenhum consumo"
                       : `${esquecidas.length} comandas abertas sem nenhum consumo`}
                   </strong>
-                  <div className="comanda-grid__aviso-esquecidas-texto" style={{ color: varColor(C.muted) }}>
+                  <div className="comanda-grid__aviso-esquecidas-texto">
                     Aberta{esquecidas.length === 1 ? "" : "s"} há mais de {HORAS_COMANDA_ESQUECIDA}h e sem itens ativos,
                     ocupa{esquecidas.length === 1 ? "" : "m"} a mesa e distorce{esquecidas.length === 1 ? "" : "m"} o
                     salão. Abra e cancele para liberar.
@@ -116,14 +108,11 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               <button
                 onClick={() => onOpenEmpty(String(slotDisponivel))}
                 className="comanda-grid__slot-disponivel"
-                style={{ border: `1.5px dashed ${alfa(C.accent, "66")}`, background: alfa(C.accent, "08"), color: varColor(C.text) }}
-                onMouseEnter={e => { e.currentTarget.style.background = alfa(C.accent, "14"); e.currentTarget.style.borderColor = varColor(C.accent); }}
-                onMouseLeave={e => { e.currentTarget.style.background = alfa(C.accent, "08"); e.currentTarget.style.borderColor = alfa(C.accent, "66"); }}
               >
-                <div className="comanda-grid__slot-icone" style={{ background: alfa(C.accent, "18"), border: `1.5px solid ${alfa(C.accent, "44")}`, color: varColor(C.accent) }}>+</div>
+                <div className="comanda-grid__slot-icone">+</div>
                 <div>
-                  <div className="comanda-grid__slot-titulo" style={{ fontWeight: 800, color: varColor(C.accent) }}>Abrir Comanda {slotDisponivel}</div>
-                  <div className="comanda-grid__slot-subtexto" style={{ color: varColor(C.muted), marginTop: 2 }}>Disponível · clique para abrir</div>
+                  <div className="comanda-grid__slot-titulo">Abrir Comanda {slotDisponivel}</div>
+                  <div className="comanda-grid__slot-subtexto">Disponível · clique para abrir</div>
                 </div>
               </button>
             )}
@@ -142,50 +131,36 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               const elapsed    = getElapsed(order.created_at);
               const emUso      = emUsoPor(order);
               const esquecida  = comandaEsquecida(order, agora);
-
-              const borderColor = isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "55") : varColor(C.border);
-              const bgColor     = isSelected ? alfa(C.accent, "0d") : isVisitada ? alfa(AMBER, "10") : varColor(C.card);
+              const estado     = estadoDaComanda({ isSelected, isVisitada, hasItems });
 
               return (
                 <button
                   key={order.id}
                   onClick={() => onSelect(order)}
-                  className="comanda-grid__item-busca"
-                  style={{
-                    border: `1.5px solid ${borderColor}`,
-                    background: bgColor,
-                    color: varColor(C.text),
-                    boxShadow: isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none",
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 4px 16px rgba(0,0,0,0.15)`; e.currentTarget.style.borderColor = isSelected ? varColor(C.accent) : alfa(C.accent, "66"); }}
-                  onMouseLeave={e => { e.currentTarget.style.boxShadow = isSelected ? `0 4px 20px ${alfa(C.accent, "22")}` : isVisitada ? `0 2px 12px ${alfa(AMBER, "18")}` : "none"; e.currentTarget.style.borderColor = borderColor; }}
+                  className={`comanda-grid__item-busca comanda-grid__item-busca--${estado}`}
                 >
                   {/* Badge número */}
-                  <div className="comanda-grid__badge" style={{
-                    background: isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "18") : varColor(C.surface),
-                    border: `1.5px solid ${isSelected ? varColor(C.accent) : isVisitada ? AMBER : hasItems ? alfa(C.blue, "44") : varColor(C.border)}`,
-                    color: isSelected ? "#fff" : isVisitada ? "#fff" : hasItems ? varColor(C.blue) : varColor(C.muted),
-                  }}>
+                  <div className="comanda-grid__badge">
                     {/^\d+$/.test(String(order.comanda ?? "").trim()) ? order.comanda : "C"}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="comanda-grid__item-nome" style={{ fontWeight: 800, marginBottom: 2 }}>
+                  <div className="comanda-grid__item-corpo">
+                    <div className="comanda-grid__item-nome">
                       {fmtComanda(order.comanda) || `#${String(order.id).slice(-4).toUpperCase()}`}
                     </div>
-                    <div className="comanda-grid__item-meta" style={{ color: varColor(C.muted), display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                    <div className="comanda-grid__item-meta">
                       {emUso && (
-                        <span className="comanda-grid__item-emuso" style={{ fontWeight: 700, color: AMBER, display: "flex", alignItems: "center", gap: 3 }}>
+                        <span className="comanda-grid__item-emuso">
                           <LuLock size={10} /> Em uso · {emUso}
                         </span>
                       )}
                       {order.mesa && (
-                        <span className="comanda-grid__tag-mesa" style={{ background: alfa(C.accent, "14"), color: varColor(C.accent) }}>
+                        <span className="comanda-grid__tag-mesa">
                           🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
                         </span>
                       )}
                       {!order.mesa && order.apelido && (
-                        <span className="comanda-grid__tag-mesa" style={{ background: alfa(C.accent, "14"), color: varColor(C.accent) }}>
+                        <span className="comanda-grid__tag-mesa">
                           {order.apelido}
                         </span>
                       )}
@@ -195,18 +170,18 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                         </span>
                       )}
                       {esquecida.esquecida && (
-                        <span className="comanda-grid__tag-esquecida" style={{ background: alfa(AMBER, "18"), color: AMBER }}>
+                        <span className="comanda-grid__tag-esquecida">
                           Sem consumo há {esquecida.horas}h
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div style={{ textAlign: "right", flexShrink: 0, display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                    <div className="comanda-grid__item-valor" style={{ fontWeight: 800, color: hasItems ? varColor(C.green) : varColor(C.muted) }}>
+                  <div className="comanda-grid__item-lado">
+                    <div className={`comanda-grid__item-valor${hasItems ? "" : " comanda-grid__item-valor--vazio"}`}>
                       {hasItems ? `R$ ${total.toFixed(2)}` : "Vazio"}
                     </div>
-                    <div className="comanda-grid__item-tempo" style={{ display: "flex", alignItems: "center", gap: 4, color: elapsed.color }}>
+                    <div className={`comanda-grid__item-tempo comanda-tempo--${elapsed.tom}`}>
                       <LuClock size={10} /> {elapsed.label}
                     </div>
                   </div>
@@ -221,14 +196,17 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
 
   // ── Modo normal: grid numerado ────────────────────────────────
   return (
-    <div style={{ height: "100%", overflowY: "auto" }}>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: `repeat(auto-fill, minmax(${sz.comandaCardMin}px, 1fr))`,
-        gap: sz.gap,
-        padding: `${sz.pad}px ${sz.pad + 4}px ${sz.pad}px ${sz.pad + 20}px`,
-        alignContent: "start",
-      }}>
+    <div className="comanda-grid" style={{
+      "--grade-pad": gradePad,
+      "--grade-pad-base": `${sz.pad}px`,
+      "--card-min": `${sz.comandaCardMin}px`,
+      "--grade-gap": `${sz.gap}px`,
+      "--card-pad": `${sz.padSm + 2}px`,
+      "--card-gap": `${Math.max(4, sz.gap - 5)}px`,
+      "--card-msg-min": `${sz.fontSm + 4}px`,
+      "--card-rodape-pt": `${sz.padSm - 2}px`,
+    }}>
+      <div className="comanda-grid__grade">
         {Array.from({ length: limite }, (_, i) => i + 1).map(num => {
           const order = mapa[String(num)];
           return (
@@ -241,19 +219,16 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
               emUso={order ? emUsoPor(order) : null}
               esquecida={order ? comandaEsquecida(order, agora) : null}
               onClick={() => order ? onSelect(order) : onOpenEmpty(String(num))}
-              sz={sz}
             />
           );
         })}
       </div>
 
       {limite < TOTAL && (
-        <div className="comanda-grid__paginacao" style={{ padding: `4px 0 ${sz.pad}px` }}>
+        <div className="comanda-grid__paginacao">
           <button
             onClick={() => setLimite(l => Math.min(l + PAGE, TOTAL))}
             className="comanda-grid__ver-mais"
-            onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-            onMouseLeave={e => e.currentTarget.style.background = varColor(C.card)}
           >
             Ver mais · {limite}/{TOTAL}
           </button>
@@ -263,7 +238,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
   );
 }
 
-function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esquecida = null, onClick, sz }) {
+function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esquecida = null, onClick }) {
   const [hovered, setHovered] = useState(false);
 
   if (!order) {
@@ -272,39 +247,27 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
         onClick={onClick}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="comanda-card"
-        style={{
-          background: hovered ? alfa(C.accent, "0a") : varColor(C.card),
-          border: `1.5px ${hovered ? "solid" : "dashed"} ${hovered ? alfa(C.accent, "88") : varColor(C.border)}`,
-          padding: sz.padSm + 2,
-          color: hovered ? varColor(C.text) : varColor(C.muted),
-          gap: Math.max(4, sz.gap - 5),
-          opacity: hovered ? 1 : 0.45,
-        }}
+        className={`comanda-card comanda-card--livre${hovered ? " comanda-card--hover" : ""}`}
       >
         {/* Header: número + tempo placeholder */}
         <div className="comanda-card__topo">
-          <div className="comanda-card__numero" style={{ color: hovered ? varColor(C.accent) : varColor(C.muted) }}>
+          <div className="comanda-card__numero">
             {num}
           </div>
-          <span className="comanda-card__tempo" style={{
-            color: varColor(C.faint),
-            background: varColor(C.chip), border: `1px solid var(${C.border})`,
-            opacity: 0,
-          }}>
+          <span className="comanda-card__tempo comanda-card__tempo--oculto">
             <LuClock size={10} /> —
           </span>
         </div>
 
         {/* Mesa/garçom placeholder — ocupa mesmo espaço */}
-        <div className="comanda-card__mensagem" style={{ color: varColor(C.faint), minHeight: sz.fontSm + 4 }}>
+        <div className="comanda-card__mensagem">
           {hovered ? "Clique para abrir" : "Disponível"}
         </div>
 
         {/* Rodapé placeholder */}
-        <div className="comanda-card__rodape" style={{ paddingTop: sz.padSm - 2 }}>
-          <span className="comanda-card__rodape-tag" style={{ color: varColor(C.faint) }}>—</span>
-          <span className="comanda-card__rodape-total" style={{ color: varColor(C.faint) }}>—</span>
+        <div className="comanda-card__rodape">
+          <span className="comanda-card__rodape-tag comanda-card__rodape-tag--vazio">—</span>
+          <span className="comanda-card__rodape-total comanda-card__rodape-total--vazio">—</span>
         </div>
       </button>
     );
@@ -320,60 +283,35 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
   const hasItems = qtdTotal > 0;
   const elapsed  = getElapsed(order.created_at);
 
-  const borderColor = isSelected ? varColor(C.accent)
-                    : isVisitada ? AMBER
-                    : hasItems   ? alfa(C.blue, "55")
-                    : varColor(C.border);
-  const bgColor     = isSelected ? alfa(C.accent, "0d")
-                    : isVisitada ? alfa(AMBER, "10")
-                    : varColor(C.card);
-  const shadow      = isSelected ? `0 4px 24px ${alfa(C.accent, "28")}`
-                    : isVisitada ? `0 2px 12px ${alfa(AMBER, "20")}`
-                    : hovered    ? "0 4px 16px rgba(0,0,0,0.14)"
-                    : "none";
+  const estado   = estadoDaComanda({ isSelected, isVisitada, hasItems });
 
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="comanda-card"
-      style={{
-        background: bgColor,
-        border: `1.5px solid ${hovered && !isSelected ? alfa(C.accent, "55") : borderColor}`,
-        padding: sz.padSm + 2,
-        color: varColor(C.text),
-        gap: Math.max(4, sz.gap - 5),
-        boxShadow: shadow,
-      }}
+      className={`comanda-card comanda-card--ocupada comanda-card--${estado}${hovered ? " comanda-card--hover" : ""}`}
     >
       {/* Header: número + tempo */}
       <div className="comanda-card__topo">
-        <div className="comanda-card__numero" style={{ color: isSelected ? varColor(C.accent) : varColor(C.text) }}>
+        <div className="comanda-card__numero">
           {num}
         </div>
-        <span className="comanda-card__tempo" style={{
-          color: elapsed.color,
-          background: elapsed.warn ? alfa(elapsed.color, "14") : varColor(C.chip),
-          border: elapsed.warn ? `1px solid ${alfa(elapsed.color, "33")}` : `1px solid var(${C.border})`,
-        }}>
+        <span className={`comanda-card__tempo comanda-tempo--${elapsed.tom}`}>
           <LuClock size={10} /> {elapsed.label}
         </span>
       </div>
 
       {/* Nome da comanda (se diferente do número) */}
       {!/^\d+$/.test(String(order.comanda ?? "").trim()) && (
-        <div className="comanda-card__nome" style={{ fontWeight: 700, color: varColor(C.text), marginTop: -4 }}>
+        <div className="comanda-card__nome">
           {order.comanda}
         </div>
       )}
 
       {/* Em uso por outra pessoa (trava de edição) */}
       {emUso && (
-        <div className="comanda-card__emuso" style={{
-          fontWeight: 700, color: AMBER,
-          display: "flex", alignItems: "center", gap: 4,
-        }}>
+        <div className="comanda-card__emuso">
           <LuLock size={10} /> Em uso · {emUso}
         </div>
       )}
@@ -381,35 +319,26 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
       {/* Aberta há horas e sem nada lançado — o card mostrava só "Vazio" e o
           tempo em cantos opostos, e ninguém somava as duas coisas. */}
       {esquecida?.esquecida && (
-        <div className="comanda-card__esquecida" style={{
-          fontWeight: 700, color: AMBER,
-          display: "flex", alignItems: "center", gap: 4,
-        }}>
+        <div className="comanda-card__esquecida">
           <LuTriangleAlert size={10} /> Sem consumo há {esquecida.horas}h
         </div>
       )}
 
       {/* Mesa + apelido + garçom */}
       {(order.mesa || order.apelido || order.garcom) && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+        <div className="comanda-card__meta">
           {order.mesa && (
-            <span className="comanda-card__tag-mesa" style={{
-              fontWeight: 700, color: varColor(C.accent),
-              background: alfa(C.accent, "14"), borderRadius: 6, padding: "2px 7px",
-            }}>
+            <span className="comanda-card__tag-mesa">
               🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
             </span>
           )}
           {!order.mesa && order.apelido && (
-            <span className="comanda-card__tag-mesa" style={{
-              fontWeight: 700, color: varColor(C.accent),
-              background: alfa(C.accent, "14"), borderRadius: 6, padding: "2px 7px",
-            }}>
+            <span className="comanda-card__tag-mesa">
               {order.apelido}
             </span>
           )}
           {order.garcom && (
-            <span className="comanda-card__garcom" style={{ color: varColor(C.muted), display: "flex", alignItems: "center", gap: 3 }}>
+            <span className="comanda-card__garcom">
               <LuUser size={10} /> {order.garcom}
             </span>
           )}
@@ -417,17 +346,11 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
       )}
 
       {/* Rodapé: itens + total */}
-      <div className="comanda-card__rodape" style={{ paddingTop: sz.padSm - 2 }}>
-        <span className="comanda-card__rodape-tag" style={{
-          color: hasItems ? varColor(C.muted) : varColor(C.faint),
-          background: hasItems ? varColor(C.chip) : "transparent",
-          padding: hasItems ? "2px 7px" : "0",
-        }}>
+      <div className="comanda-card__rodape">
+        <span className={`comanda-card__rodape-tag${hasItems ? "" : " comanda-card__rodape-tag--vazio"}`}>
           {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : "Vazio"}
         </span>
-        <span className="comanda-card__rodape-total" style={{
-          color: hasItems ? varColor(C.green) : varColor(C.faint),
-        }}>
+        <span className={`comanda-card__rodape-total${hasItems ? "" : " comanda-card__rodape-total--vazio"}`}>
           {hasItems ? `R$ ${total.toFixed(2)}` : "—"}
         </span>
       </div>

@@ -1,3 +1,11 @@
+## Rodada 112, refatoração 5.6, Desempenho e grade de comandas sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-6-desempenho-e-grade-de-comandas.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 71 telas, 0
+  diferença. Sem migration. Estilo inline: 1.129 para 1.036.
+- Desempenho 47 para 0; grade de comandas 46 para 0, com o destaque reduzido a um estado só e
+  o tempo decorrido a um tom.
+- Roteiro ganhou quatro comandas, a RPC do relatório no Supabase falso e nove telas.
 ## Rodada 111, refatoração 5.5, aba Vendas e painel de pagamento sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-5-vendas-e-pagamento.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431

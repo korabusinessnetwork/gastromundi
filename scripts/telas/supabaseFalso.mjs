@@ -74,6 +74,35 @@ const tabelas = {
       total: 32, garcom: "Bruno Demo", created_by: "Bruno Demo",
       created_at: CRIADO_EM, updated_at: CRIADO_EM, mesa: "4", apelido: null,
     },
+    // Fase 5, grade de comandas: os estados que o cartão desenha. O relógio do
+    // roteiro está em 2026-11-20T18:00Z (15h em Brasília).
+    // Esquecida: aberta há 10h e sem nenhum item.
+    {
+      id: "demo-comanda-3", comanda: "3", status: "open", note: null, items: [],
+      total: 0, garcom: "Bruno Demo", created_by: "Bruno Demo",
+      created_at: "2026-11-20T08:00:00.000Z", updated_at: "2026-11-20T08:00:00.000Z", mesa: null, apelido: null,
+    },
+    // Em uso por outra pessoa, aberta há 45 minutos (tempo em alerta).
+    {
+      id: "demo-comanda-7", comanda: "7", status: "open", note: null,
+      items: [{ id: 1, name: "Café expresso", price: 6, qty: 1, category: "Bebidas" }],
+      total: 6, garcom: "Carla Demo", created_by: "Carla Demo",
+      created_at: "2026-11-20T17:15:00.000Z", updated_at: "2026-11-20T17:15:00.000Z", mesa: null, apelido: null,
+      editando_por: "carla", editando_nome: "Carla Demo", editando_desde: "2026-11-20T17:59:00.000Z",
+    },
+    // Só apelido, aberta há 10 minutos.
+    {
+      id: "demo-comanda-20", comanda: "20", status: "open", note: null,
+      items: [{ id: 8, name: "Brigadeiro", price: 4.5, qty: 4, category: "Sobremesas" }],
+      total: 18, garcom: "Bruno Demo", created_by: "Bruno Demo",
+      created_at: "2026-11-20T17:50:00.000Z", updated_at: "2026-11-20T17:50:00.000Z", mesa: null, apelido: "Aniversário",
+    },
+    // Aberta agora, sem garçom nem itens.
+    {
+      id: "demo-comanda-21", comanda: "21", status: "open", note: null, items: [],
+      total: 0, garcom: null, created_by: "Ana Demo",
+      created_at: "2026-11-20T17:59:40.000Z", updated_at: "2026-11-20T17:59:40.000Z", mesa: null, apelido: null,
+    },
   ],
   config: [
     { key: "caixa_aberto", value: true },
@@ -129,6 +158,27 @@ const tabelas = {
     { id: 2, abreviacao: "kg", nome: "Quilo" },
   ],
 };
+
+// Fase 5: resposta da RPC relatorio_vendas para o relatório de Desempenho.
+const RELATORIO_ATUAL = {
+  faturamento: 485.5, numero_vendas: 24,
+  por_dia: [
+    { dia: "2026-11-14", total: 52 }, { dia: "2026-11-15", total: 88.5 },
+    { dia: "2026-11-16", total: 31 }, { dia: "2026-11-17", total: 74 },
+    { dia: "2026-11-18", total: 96 }, { dia: "2026-11-19", total: 76.5 },
+    { dia: "2026-11-20", total: 67.5 },
+  ],
+  por_metodo: [
+    { metodo: "pix", total: 210 }, { metodo: "credito", total: 145.5 },
+    { metodo: "dinheiro", total: 80 }, { metodo: "debito", total: 50 },
+  ],
+  top_produtos: [
+    { produto_id: 5, nome: "Misto quente", unidades: 14, receita: 196 },
+    { produto_id: 2, nome: "Suco de laranja", unidades: 12, receita: 114 },
+    { produto_id: 1, nome: "Café expresso", unidades: 18, receita: 108 },
+  ],
+};
+const RELATORIO_ANTERIOR = { ...RELATORIO_ATUAL, faturamento: 400, numero_vendas: 30 };
 
 // JWT só no formato: o supabase-js lê, mas ninguém confere a assinatura.
 function jwtFalso(authId, extra = {}) {
@@ -209,6 +259,14 @@ async function responder(route) {
   if (url.pathname.startsWith("/storage/v1/")) return json(route, 404, { message: "não existe no roteiro" });
 
   if (url.pathname.startsWith("/rest/v1/rpc/")) {
+    const funcao = url.pathname.slice("/rest/v1/rpc/".length);
+    if (funcao === "relatorio_vendas") {
+      // Período que termina a partir de 20/11 é o "atual"; o resto é a janela
+      // de comparação, com faturamento menor e mais vendas, para o Desempenho
+      // desenhar uma variação positiva e uma negativa.
+      const { p_fim: fim } = JSON.parse(req.postData() || "{}");
+      return json(route, 200, fim >= "2026-11-20" ? RELATORIO_ATUAL : RELATORIO_ANTERIOR);
+    }
     return json(route, 200, null);
   }
 
