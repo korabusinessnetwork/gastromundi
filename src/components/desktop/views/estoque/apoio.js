@@ -1,6 +1,4 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { MINIMO_PADRAO, situacaoDoSaldo } from "@/lib/estoqueSituacao";
+import { MINIMO_PADRAO } from "@/lib/estoqueSituacao";
 
 // Cores, colunas e leitura de número da tela de Estoque, usadas pela tela e pelo gancho.
 // A regra de "sem estoque"/"estoque baixo" mora em src/lib/estoqueSituacao.js —
@@ -16,11 +14,7 @@ export const COLUNAS = [
   { key: "entrada",  label: "Entrada",   align: "center", sortable: false },
 ];
 
-const COR_DA_SITUACAO = { nao_controlado: C.muted, sem_estoque: C.red, baixo: C.warn, ok: C.green };
-
-export function estoqueColor(qty, minimo, controlado = true) {
-  return varColor(COR_DA_SITUACAO[situacaoDoSaldo(qty, minimo, controlado)]);
-}
+// A cor de cada situação mora em EstoqueView.css (estoque-tom--<situação>).
 
 // Reexportado para não quebrar quem já importava daqui; a definição é uma só.
 

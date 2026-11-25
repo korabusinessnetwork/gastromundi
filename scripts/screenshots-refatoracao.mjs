@@ -225,6 +225,48 @@ function roteiro(largura) {
       await campos.nth(3).fill("30", { timeout: 3000 });
       await page.locator(".fechamento-modal__obs-textarea").fill("Faltou troco no fim da tarde.", { timeout: 3000 });
     } });
+  // Fase 5: desconto e acréscimo no pagamento.
+  const abrirAjuste = async (page) => {
+    await irParaPagamento(page);
+    await page.getByRole("button", { name: /Desconto \/ Acréscimo/ }).first().click({ timeout: 3000 });
+  };
+  telas.push({ nome: "app-pdv-desconto", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirAjuste(page);
+      await page.locator(".checkout-view__modal-input").fill("10", { timeout: 3000 });
+      await page.locator(".checkout-view__ajuste-senha").fill("12", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-acrescimo", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirAjuste(page);
+      await page.getByRole("button", { name: /Acréscimo/ }).last().click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Valor Fixo/ }).click({ timeout: 3000 });
+      await page.locator(".checkout-view__modal-input").fill("5", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-desconto-invalido", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirAjuste(page);
+      await page.locator(".checkout-view__modal-input").fill("150", { timeout: 3000 });
+    } });
+  // Fase 5: Estoque com a entrada liberada pela senha de gerente.
+  const liberarEntrada = async (page) => {
+    await page.getByRole("button", { name: /Liberar Entrada/ }).click({ timeout: 3000 });
+    await page.locator('input[type="password"]').fill("1234", { timeout: 3000 });
+    await page.keyboard.press("Enter");
+  };
+  telas.push({ nome: "app-estoque-hover", perfil: "dono", caminho: "/app/estoque",
+    passo: (page) => page.locator(".estoque-view__tr", { hasText: "Coxinha" }).hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-estoque-liberado", perfil: "dono", caminho: "/app/estoque",
+    passo: async (page) => {
+      await liberarEntrada(page);
+      await page.getByRole("columnheader", { name: /Saldo/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-estoque-compra", perfil: "dono", caminho: "/app/estoque",
+    passo: async (page) => {
+      await liberarEntrada(page);
+      await page.getByPlaceholder("Buscar produto...").fill("Suco", { timeout: 3000 });
+      await page.getByLabel("Entrada de Suco de laranja").fill("2", { timeout: 3000 });
+    } });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
   const modoVendas = (rotulo) => async (page) => {
     await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });

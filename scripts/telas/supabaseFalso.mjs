@@ -36,7 +36,8 @@ function produto(id, name, price, category, emoji) {
 
 const produtos = [
   produto(1, "Café expresso", 6, "Bebidas", "☕"),
-  produto(2, "Suco de laranja", 9.5, "Bebidas", "🍊"),
+  // Fase 5: compra em caixa com 12 unidades, para a entrada do Estoque converter.
+  { ...produto(2, "Suco de laranja", 9.5, "Bebidas", "🍊"), unidades_compra: [{ unidade: "CX", fator: 12, detalhamento: "" }] },
   produto(3, "Água sem gás", 4, "Bebidas", "💧"),
   produto(4, "Pão de queijo", 5.5, "Lanches", "🧀"),
   produto(5, "Misto quente", 14, "Lanches", "🥪"),
@@ -50,7 +51,11 @@ const CRIADO_EM = "2026-11-20T14:30:00.000Z";
 const tabelas = {
   users: usuarios,
   products: produtos,
-  estoque: produtos.map((p) => ({ produto_id: p.id, quantidade: 20 + p.id, minimo: 5 })),
+  // Fase 5: saldos que desenham as quatro situações do Estoque. Água zerada,
+  // Coxinha abaixo do mínimo, Brigadeiro sem linha (não controla), o resto OK.
+  estoque: produtos.filter((p) => p.id !== 8).map((p) => ({
+    produto_id: p.id, quantidade: p.id === 3 ? 0 : p.id === 6 ? 3 : 20 + p.id, minimo: 5,
+  })),
   pending: [
     {
       id: "demo-comanda-12", comanda: "12", status: "open", note: null,
@@ -266,6 +271,11 @@ async function responder(route) {
       // desenhar uma variação positiva e uma negativa.
       const { p_fim: fim } = JSON.parse(req.postData() || "{}");
       return json(route, 200, fim >= "2026-11-20" ? RELATORIO_ATUAL : RELATORIO_ANTERIOR);
+    }
+    // Senha de gerente da demonstração: "1234".
+    if (funcao === "verificar_senha_admin") {
+      const { p_password: senha } = JSON.parse(req.postData() || "{}");
+      return json(route, 200, senha === "1234");
     }
     return json(route, 200, null);
   }

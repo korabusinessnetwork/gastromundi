@@ -369,8 +369,10 @@ describe("EstoqueView, produto que não controla estoque", () => {
 
     expect(saldoDe("Feijoada")).toHaveTextContent("—");
     expect(statusDe("Feijoada")).toHaveTextContent("Não controla");
-    // Cinza, não vermelho — a cor é o que o operador vê primeiro.
-    expect(statusDe("Feijoada").style.color).toBe("var(--gm-muted)");
+    // Cinza, não vermelho — a cor é o que o operador vê primeiro. Desde a
+    // fase 5 a cor mora no CSS (estoque-tom--<situação> pinta com
+    // --gm-muted, --gm-red...); o teste confere o tom que a linha recebe.
+    expect(statusDe("Feijoada").closest("tr")).toHaveClass("estoque-tom--nao_controlado");
   });
 
   it("insumo zerado continua vermelho e escrito 'Sem estoque'", async () => {
@@ -378,7 +380,7 @@ describe("EstoqueView, produto que não controla estoque", () => {
 
     expect(saldoDe("Café")).toHaveTextContent("0");
     expect(statusDe("Café")).toHaveTextContent("Sem estoque");
-    expect(statusDe("Café").style.color).toBe("var(--gm-red)");
+    expect(statusDe("Café").closest("tr")).toHaveClass("estoque-tom--sem_estoque");
   });
 
   it('KPI "Total em estoque" não mostra dízima na tela (leva 9)', () => {

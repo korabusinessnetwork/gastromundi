@@ -1187,3 +1187,171 @@
   cursor: pointer;
   box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-green) 27%, transparent);
 }
+
+/* ── Janela de desconto e acréscimo sem estilo inline (fase 5, 5.8) ──
+   As classes checkout-view__modal-* também servem à janela de remover item,
+   então o que é só desta janela tem prefixo `ajuste`. Espaçamento de `sz`
+   chega por variável no modal; o tom (vermelho no desconto, verde no
+   acréscimo) é --ajuste-tom, definido por ajuste--desconto/ajuste--acrescimo.
+   Transparências (hex/255): 0c→5%, 18→9%, 22→13%, 44→27%, 55→33%, bb→73%. */
+
+.ajuste {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+.ajuste--desconto { --ajuste-tom: var(--gm-red); }
+.ajuste--acrescimo { --ajuste-tom: var(--gm-green); }
+
+.ajuste__topo {
+  padding: var(--ajuste-pad-sm) var(--ajuste-pad);
+}
+.ajuste__titulo {
+  font-weight: 800;
+  color: #fff;
+}
+.ajuste__subtitulo {
+  font-weight: 700;
+  color: var(--gm-muted);
+  margin-top: 4px;
+}
+.ajuste__fechar,
+.ajuste__apagado {
+  color: var(--gm-muted);
+}
+.ajuste__corpo {
+  padding: var(--ajuste-pad-sm) var(--ajuste-pad) var(--ajuste-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ajuste-pad-sm);
+}
+
+.ajuste__tipos {
+  gap: var(--ajuste-gap);
+}
+.ajuste__tipo {
+  padding: var(--ajuste-pad-sm) 12px;
+  border: 2px solid var(--gm-border);
+  background: var(--gm-surface);
+}
+.ajuste__tipo--ativo {
+  border-color: var(--ajuste-tom);
+  background: color-mix(in srgb, var(--ajuste-tom) 9%, transparent);
+}
+.ajuste__tipo-nome {
+  font-weight: 800;
+  color: var(--gm-text);
+}
+.ajuste__tipo-sub {
+  color: var(--gm-muted);
+  margin-top: 4px;
+}
+.ajuste__tipo--ativo .ajuste__tipo-nome { color: var(--ajuste-tom); }
+.ajuste__tipo--ativo .ajuste__tipo-sub {
+  color: color-mix(in srgb, var(--ajuste-tom) 73%, transparent);
+}
+
+.ajuste__modos {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+.ajuste__modo {
+  padding: var(--ajuste-gap) 8px;
+  background: transparent;
+  color: var(--gm-muted);
+  font-weight: 500;
+  box-shadow: none;
+}
+.ajuste__modo--ativo {
+  background: var(--gm-card);
+  color: var(--gm-text);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ajuste__rotulo {
+  font-weight: 600;
+  color: var(--gm-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.ajuste__rotulo--icone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ajuste__prefixo { color: var(--gm-muted); }
+/* Borda na classe: o foco segue src/styles/inputs.css, como nos outros campos. */
+.ajuste__valor {
+  padding: var(--ajuste-pad-sm) var(--ajuste-pad-sm) var(--ajuste-pad-sm) 52px;
+  border: 2px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+.ajuste__erro {
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.ajuste__previa {
+  border: 1.5px solid color-mix(in srgb, var(--ajuste-tom) 33%, transparent);
+  background: color-mix(in srgb, var(--ajuste-tom) 5%, transparent);
+}
+.ajuste__previa-linha {
+  padding: var(--ajuste-gap) var(--ajuste-pad-sm);
+  border-bottom: 1px solid color-mix(in srgb, var(--ajuste-tom) 13%, transparent);
+}
+.ajuste__previa-valor { font-weight: 700; }
+.ajuste__previa-ajuste {
+  color: var(--ajuste-tom);
+  font-weight: 600;
+}
+.ajuste__tom { color: var(--ajuste-tom); }
+.ajuste__previa-total {
+  align-items: center;
+  padding: var(--ajuste-pad-sm) var(--ajuste-pad-sm);
+}
+.ajuste__previa-total-rotulo {
+  font-weight: 700;
+  color: var(--gm-text);
+}
+.ajuste__previa-total-valor {
+  font-weight: 900;
+  color: var(--ajuste-tom);
+}
+
+.ajuste__senha-campo { position: relative; }
+.ajuste__senha {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+.ajuste__senha[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+.ajuste__senha-nota { margin-top: 6px; }
+
+.ajuste__acoes {
+  gap: var(--ajuste-gap);
+  padding-top: 2px;
+}
+.ajuste__remover {
+  flex: 1;
+  padding: var(--ajuste-gap);
+  border: 1.5px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+}
+.ajuste__remover:disabled { cursor: not-allowed; }
+.ajuste__aplicar {
+  flex: 2;
+  padding: var(--ajuste-gap);
+  background: var(--gm-accent);
+  cursor: pointer;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.ajuste__aplicar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}

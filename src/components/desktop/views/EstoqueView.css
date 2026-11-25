@@ -607,3 +607,176 @@
   font-size: var(--fs-base);   /* role: corpo (era 16px literal) */
   line-height: var(--lh-base);
 }
+
+/* ── Estilo que saiu do JSX (fase 5, 5.8) ──
+   A cor de cada saldo vinha de estoqueColor(); agora a linha (e o indicador)
+   recebe estoque-tom--<situação>, a mesma situação de src/lib/estoqueSituacao.js,
+   e tudo dentro dela lê --estoque-tom. Espaçamento de `sz` chega por variável
+   na raiz da tela. Transparências (hex/255): 0c→5%, 10→6%, 12→7%, 18→9%,
+   55→33%, 66→40%, 88→53%. */
+
+.estoque-view { background: var(--gm-bg); }
+
+.estoque-tom--ok { --estoque-tom: var(--gm-green); }
+.estoque-tom--sem_estoque { --estoque-tom: var(--gm-red); }
+.estoque-tom--baixo { --estoque-tom: var(--gm-warn); }
+.estoque-tom--nao_controlado { --estoque-tom: var(--gm-muted); }
+
+.estoque-view__header {
+  padding: calc(var(--estoque-pad) - 4px) var(--estoque-pad);
+}
+.estoque-view__titulo { font-weight: 800; }
+.estoque-view__subtitulo { color: var(--gm-muted); }
+
+.estoque-view__btn-liberar--liberado {
+  border-color: color-mix(in srgb, var(--gm-green) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  color: var(--gm-green);
+}
+.estoque-view__btn-liberar--bloqueado {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.estoque-view__btn-liberar--bloqueado:hover {
+  border-color: color-mix(in srgb, var(--gm-accent) 53%, transparent);
+  color: var(--gm-text);
+}
+
+.estoque-view__kpis {
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--estoque-gap);
+  padding: var(--estoque-pad) var(--estoque-pad) var(--estoque-pad-sm);
+}
+.estoque-view__kpis--uma { grid-template-columns: 1fr; }   /* menos de 600px */
+.estoque-view__kpi {
+  padding: calc(var(--estoque-pad-sm) + 2px) calc(var(--estoque-pad) - 4px);
+}
+.estoque-view__kpi-icone,
+.estoque-view__kpi-valor {
+  color: var(--estoque-tom);
+}
+
+.estoque-view__filtros {
+  padding: 0 var(--estoque-pad) var(--estoque-pad-sm);
+  gap: var(--estoque-gap);
+}
+.estoque-view__busca {
+  padding: 9px 14px;
+  width: var(--estoque-busca);
+  min-width: 120px;
+}
+.estoque-view__categoria {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.estoque-view__categoria--ativa {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.estoque-view__tabela-area {
+  padding: 0 var(--estoque-pad) var(--estoque-pad);
+}
+.estoque-view__vazio-emoji { opacity: 0.3; }
+.estoque-view__vazio-texto { font-weight: 600; }
+
+.estoque-view__thead-tr {
+  border-bottom: 1px solid var(--gm-border);
+}
+.estoque-view__th {
+  color: var(--gm-muted);
+  cursor: default;
+}
+.estoque-view__th--left { text-align: left; }
+.estoque-view__th--center { text-align: center; }
+.estoque-view__th--ordenavel { cursor: pointer; }
+/* O hover do cabeçalho era onMouseEnter/onMouseLeave, e não mexia na coluna ativa. */
+.estoque-view__th--ordenavel:not(.estoque-view__th--ativo):hover { color: var(--gm-text); }
+.estoque-view__th--ativo { color: var(--gm-accent); }
+.estoque-view__th-seta { opacity: 0.35; }
+
+.estoque-view__tr {
+  border-bottom: 1px solid var(--gm-border);
+  border-left: 3px solid transparent;
+  background: transparent;
+}
+.estoque-view__tr--abaixo {   /* zerado ou abaixo do mínimo */
+  border-left-color: var(--estoque-tom);
+  background: color-mix(in srgb, var(--estoque-tom) 5%, transparent);
+}
+.estoque-view__tr:hover { background: var(--gm-surface); }
+
+.estoque-view__categoria-tag {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  color: var(--gm-accent);
+}
+.estoque-view__preco-cel {
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+.estoque-view__td--centro { text-align: center; }
+.estoque-view__saldo-valor,
+.estoque-view__saldo-unidade,
+.estoque-view__saldo-status {
+  color: var(--estoque-tom);
+}
+
+.estoque-view__cadeado-celula {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.estoque-view__btn-cadeado:hover {
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 5%, transparent);
+}
+
+.estoque-view__entrada {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.estoque-view__entrada-tab {
+  background: none;
+  color: var(--gm-muted);
+}
+.estoque-view__entrada-tab--compra {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.estoque-view__entrada-tab--estoque {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+.estoque-view__entrada-tab--ultima { border-right: none; }
+.estoque-view__btn-adicionar {
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}
+.estoque-view__btn-adicionar--pode {
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+}
+
+.estoque-view__direto-btn { cursor: pointer; }
+.estoque-view__direto-btn--zerado {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.estoque-view__direto-saldo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.estoque-view__direto-input {
+  border: 1.5px solid color-mix(in srgb, var(--estoque-tom) 40%, transparent);
+  background: color-mix(in srgb, var(--estoque-tom) 7%, transparent);
+  color: var(--estoque-tom);
+}

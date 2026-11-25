@@ -1,3 +1,10 @@
+## Rodada 114, refatoração 5.8, Estoque e desconto sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-8-estoque-e-desconto.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 81 telas, 2
+  diferenças explicadas (borda de campo focado). Sem migration. Estilo inline: 957 para 886.
+- Estoque 36 para 0, com a cor do saldo virando tom por situação; desconto 35 para 0.
+- Achado: TD026, fonte serifada nas janelas do pagamento abertas por portal.
 ## Rodada 113, refatoração 5.7, fechamento de caixa e comandas fechadas sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-7-fechamento-e-comandas-fechadas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
