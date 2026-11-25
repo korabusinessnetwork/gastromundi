@@ -1,28 +1,84 @@
 /**
  * F018 — Migração de tipografia (MesaMapView). Decisão 018 (CSS separado do JSX) +
  * tokens --fs-* / --lh-* (ADR-007). Tamanho de fonte agora usa escala do design system
- * (src/styles/tipografia.css), não mais inline via `sz.*` do JSX. Layout (padding/gap)
- * permanece em estilo inline. `.num` = tabular-nums em dinheiro.
+ * (src/styles/tipografia.css), não mais inline via `sz.*` do JSX. Fase 5 da refatoração:
+ * layout e cor também saíram do JSX; o que depende de medida (padding do `sz`, tamanho
+ * do card, posição no mapa) chega por variável CSS na raiz e em cada mesa.
  */
 
+/* Tom de cada status da mesa, usado pelo mapa e pela aba de Reservas. Três saem
+   de tokens --gm-* e seguem o tema do tenant (decisão 017). "Aberta" fica no
+   amarelo literal porque precisa ser distinguível de "Reservada" (--gm-warn)
+   lado a lado no mapa, e o design system ainda não tem um segundo tom de
+   atenção, resíduo registrado no TD018. */
+.mesa-tom--livre {
+  --mesa-cor: var(--gm-green);
+  --mesa-bg: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  --mesa-borda: color-mix(in srgb, var(--gm-green) 27%, transparent);
+}
+.mesa-tom--aberta {
+  --mesa-cor: #eab308;
+  --mesa-bg: color-mix(in srgb, #eab308 8%, transparent);
+  --mesa-borda: color-mix(in srgb, #eab308 33%, transparent);
+}
+.mesa-tom--reservada {
+  --mesa-cor: var(--gm-warn);
+  --mesa-bg: color-mix(in srgb, var(--gm-warn) 8%, transparent);
+  --mesa-borda: color-mix(in srgb, var(--gm-warn) 33%, transparent);
+}
+.mesa-tom--manutencao {
+  --mesa-cor: var(--gm-red);
+  --mesa-bg: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  --mesa-borda: color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+
+.mesa-map {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--mesa-pad) calc(var(--mesa-pad) + 4px);
+}
 .mesa-map__loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-muted);
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
 
-.mesa-map__vazio-emoji {
+.mesa-map__vazio {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: var(--gm-muted);
+  padding: 40px;
+  text-align: center;
+}
+.mesa-map__vazio-icone {
   font-size: var(--fs-5xl);
-  line-height: 1;
 }
 
 .mesa-map__vazio-titulo {
   font-size: var(--fs-lg);
   line-height: var(--lh-lg);
+  font-weight: 800;
+  color: var(--gm-text);
 }
 
 .mesa-map__vazio-texto {
   font-size: var(--fs-base);
   line-height: 1.6;
+  max-width: 340px;
+}
+.mesa-map__legendas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .mesa-map__legenda {
@@ -30,10 +86,46 @@
   line-height: var(--lh-xs);
   font-weight: 700;
   letter-spacing: var(--tracking-label);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: var(--mesa-bg);
+  border: 1px solid var(--mesa-borda);
+  color: var(--mesa-cor);
+}
+.mesa-map__legenda-ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mesa-cor);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.mesa-map__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--mesa-cols), var(--mesa-w));
+  gap: 12px;
+}
+.mesa-map__area {
+  position: relative;
+  width: var(--mesa-area-w);
+  height: var(--mesa-area-h);
+  margin: 0 auto;
+}
+.mesa-map__posicao {
+  position: absolute;
+  left: var(--mesa-x);
+  top: var(--mesa-y);
+}
+.mesa-map__sem-posicao {
+  margin-top: 24px;
 }
 
 /* Faixa das mesas sem coordenada no mapa (não entram no layout posicionado). */
 .mesa-map__sem-posicao-titulo {
+  color: var(--gm-muted);
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
   font-weight: 700;
@@ -77,6 +169,10 @@
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
   opacity: 0.7;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(var(--mesa-w) - 12px);
 }
 
 .card-mesa__capacidade {

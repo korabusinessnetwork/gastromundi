@@ -1,11 +1,23 @@
 /* Aba "Reservas" do PDV — controle de mesa reservada / manutenção.
    Estilos separados do JSX (decisão 018). Cores estruturais via tokens
-   --gm-* (decisão 017 — white-label). As cores de STATUS (livre/reservada/
-   manutencao/aberta) vêm inline do JSX, fonte única em MesaMapView. */
+   --gm-* (decisão 017 — white-label). As cores de status (livre/reservada/
+   manutencao/aberta) vêm das classes `mesa-tom--*` de MesaMapView.css, fonte
+   única com o mapa; aqui cada peça só lê --mesa-cor, --mesa-bg e --mesa-borda. */
 
 .reservas-view {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--reservas-pad) calc(var(--reservas-pad) + 4px);
+}
+
+.reservas-view__loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-muted);
 }
 
 /* ---- Cabeçalho + resumo ---- */
@@ -22,6 +34,7 @@
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.01em;
+  color: var(--gm-text);
 }
 
 .reservas-view__subtitulo {
@@ -29,6 +42,7 @@
   margin-top: 3px;
   max-width: 460px;
   line-height: 1.35;
+  color: var(--gm-muted);
 }
 
 .reservas-view__resumo {
@@ -46,6 +60,9 @@
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+  background: var(--mesa-bg);
+  border: 1px solid var(--mesa-borda);
+  color: var(--mesa-cor);
 }
 
 /* ---- Busca ---- */
@@ -71,6 +88,7 @@
   background: var(--gm-surface, transparent);
   font-size: 14px;
   outline: none;
+  color: var(--gm-text);
   transition: border-color 0.15s;
 }
 .reservas-view__busca-input:focus {
@@ -91,6 +109,7 @@
   background: transparent;
   cursor: pointer;
   border-radius: 6px;
+  color: var(--gm-muted);
 }
 .reservas-view__busca-limpar:hover {
   background: color-mix(in srgb, var(--gm-muted) 16%, transparent);
@@ -104,6 +123,7 @@
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 12px;
+  color: var(--gm-red);
 }
 
 /* ---- Lista de mesas ---- */
@@ -142,6 +162,9 @@
   font-size: 19px;
   font-weight: 800;
   flex-shrink: 0;
+  background: var(--mesa-bg);
+  border: 1.5px solid var(--mesa-borda);
+  color: var(--mesa-cor);
 }
 
 .reservas-view__mesa-detalhe {
@@ -153,10 +176,12 @@
 .reservas-view__mesa-badge {
   font-size: 13.5px;
   font-weight: 700;
+  color: var(--mesa-cor);
 }
 
 .reservas-view__mesa-cap {
   font-size: 12px;
+  color: var(--gm-muted);
 }
 
 /* ---- Controle segmentado ---- */
@@ -179,6 +204,7 @@
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
   min-height: 40px; /* alvo de toque (PDV) */
+  color: var(--gm-muted);
 }
 .reservas-view__seg-btn:hover:not(.is-ativo):not(.is-off):not(:disabled) {
   border-color: var(--gm-accent);
@@ -189,6 +215,9 @@
 .reservas-view__seg-btn.is-ativo {
   border-width: 1.5px;
   border-style: solid;
+  background: var(--mesa-bg);
+  border-color: var(--mesa-borda);
+  color: var(--mesa-cor);
 }
 .reservas-view__seg-btn.is-off,
 .reservas-view__seg-btn:disabled {
@@ -202,6 +231,7 @@
   font-weight: 700;
   width: 100%;
   padding-left: 2px;
+  color: var(--mesa-cor);
 }
 
 /* ---- Vazio / sem resultado ---- */
@@ -215,15 +245,17 @@
   padding: 40px;
   text-align: center;
 }
-.reservas-view__vazio-emoji {
+.reservas-view__vazio-icone {
   font-size: 46px;
 }
 .reservas-view__vazio-titulo {
   font-size: 16px;
   font-weight: 800;
+  color: var(--gm-text);
 }
 .reservas-view__vazio-texto {
   font-size: 13px;
+  color: var(--gm-muted);
   max-width: 340px;
   line-height: 1.4;
 }
@@ -232,6 +264,7 @@
   padding: 24px;
   text-align: center;
   font-size: 13px;
+  color: var(--gm-muted);
 }
 
 /* Empilha o controle abaixo da info em telas estreitas (tablet PDV) */

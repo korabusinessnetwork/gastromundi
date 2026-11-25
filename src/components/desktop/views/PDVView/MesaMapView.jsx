@@ -1,6 +1,4 @@
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
+import { LuArmchair } from "react-icons/lu";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { totalItensAtivos } from "@/lib/comandaItens";
@@ -38,15 +36,14 @@ export function statusMesa(mesa, abertas) {
   return "livre";
 }
 
-// Cores dos quatro status da mesa. Três saem de tokens --gm-* e seguem o tema
-// do tenant (decisão 017). "Aberta" fica no amarelo literal porque precisa ser
-// distinguível de "Reservada" (--gm-warn) lado a lado no mapa, e o design
-// system ainda não tem um segundo tom de atenção — resíduo registrado no TD018.
+// Os quatro status da mesa. As cores ficam no CSS, na classe `mesa-tom--<status>`
+// (MesaMapView.css), que define --mesa-cor, --mesa-bg e --mesa-borda; a aba de
+// Reservas usa as mesmas classes.
 export const STATUS = {
-  livre:      { label: "Livre",      bg: `${alfa(C.green, "14")}`,  border: `${alfa(C.green, "44")}`,  cor: varColor(C.green)   },
-  aberta:     { label: "Aberta",     bg: "#eab30814",     border: "#eab30855",     cor: "#eab308" },
-  reservada:  { label: "Reservada",  bg: alfa(C.warn, "14"), border: alfa(C.warn, "55"), cor: varColor(C.warn) },
-  manutencao: { label: "Manutenção", bg: `${alfa(C.red, "10")}`,    border: `${alfa(C.red, "44")}`,    cor: varColor(C.red)     },
+  livre:      { label: "Livre" },
+  aberta:     { label: "Aberta" },
+  reservada:  { label: "Reservada" },
+  manutencao: { label: "Manutenção" },
 };
 
 export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, onOpenEmpty }) {
@@ -54,25 +51,15 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
   const sz = getSizes(width);
 
   if (loading) {
-    return (
-      <div className="mesa-map__loading" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted) }}>
-        Carregando mesas...
-      </div>
-    );
+    return <div className="mesa-map__loading">Carregando mesas...</div>;
   }
 
   if (mesas.length === 0) {
     return (
-      <div style={{
-        flex: 1, display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        gap: 14, color: varColor(C.muted), padding: 40, textAlign: "center",
-      }}>
-        <div className="mesa-map__vazio-emoji">🪑</div>
-        <div className="mesa-map__vazio-titulo" style={{ fontWeight: 800, color: varColor(C.text) }}>
-          Nenhuma mesa cadastrada
-        </div>
-        <div className="mesa-map__vazio-texto" style={{ maxWidth: 340 }}>
+      <div className="mesa-map__vazio">
+        <LuArmchair className="mesa-map__vazio-icone" aria-hidden="true" />
+        <div className="mesa-map__vazio-titulo">Nenhuma mesa cadastrada</div>
+        <div className="mesa-map__vazio-texto">
           Cadastre mesas em Configurações para visualizá-las no mapa.
           As vendas funcionam normalmente pelo modo Lista.
         </div>
@@ -96,17 +83,15 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
   const temPosicao = mesas.some((m) => m.posicao_x != null && m.posicao_y != null);
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px` }}>
+    <div
+      className="mesa-map"
+      style={{ "--mesa-pad": `${sz.pad}px`, "--mesa-w": `${cardW}px`, "--mesa-h": `${cardH}px` }}
+    >
       {/* Legenda de status */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="mesa-map__legendas">
         {Object.entries(STATUS).map(([key, s]) => (
-          <span key={key} className="mesa-map__legenda" style={{
-            display: "inline-flex", alignItems: "center", gap: 5,
-            padding: "3px 10px", borderRadius: 20,
-            background: s.bg, border: `1px solid ${s.border}`,
-            color: s.cor,
-          }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.cor, display: "inline-block", flexShrink: 0 }} />
+          <span key={key} className={`mesa-map__legenda mesa-tom--${key}`}>
+            <span className="mesa-map__legenda-ponto" />
             {s.label}
           </span>
         ))}
@@ -116,36 +101,32 @@ export default function MesaMapView({ mesas, loading, abertas, onSelectComanda, 
         <LayoutAbsoluto
           mesas={mesas} abertas={abertas}
           cardW={cardW} cardH={cardH} gap={gap}
-          onClickMesa={handleClick} sz={sz}
+          onClickMesa={handleClick}
         />
       ) : (
         <LayoutGrid
           mesas={mesas} abertas={abertas}
-          cardW={cardW} cardH={cardH} gap={gap}
+          cardW={cardW} gap={gap}
           totalWidth={width - (sz.pad + 4) * 2}
-          onClickMesa={handleClick} sz={sz}
+          onClickMesa={handleClick}
         />
       )}
     </div>
   );
 }
 
-function LayoutGrid({ mesas, abertas, cardW, cardH, gap, totalWidth, onClickMesa, sz }) {
+function LayoutGrid({ mesas, abertas, cardW, gap, totalWidth, onClickMesa }) {
   const cols = Math.max(2, Math.min(10, Math.floor((totalWidth + gap) / (cardW + gap))));
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: `repeat(${cols}, ${cardW}px)`,
-      gap,
-    }}>
+    <div className="mesa-map__grid" style={{ "--mesa-cols": cols }}>
       {mesas.map((m) => (
-        <CardMesa key={m.numero} mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+        <CardMesa key={m.numero} mesa={m} abertas={abertas} onClick={onClickMesa} />
       ))}
     </div>
   );
 }
 
-function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) {
+function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa }) {
   // Mesa sem as duas coordenadas não entra no mapa posicionado: o fallback
   // `?? 1` jogava todas elas em (1,1), empilhadas uma sobre a outra — mesa com
   // conta aberta desaparecia atrás de outra e ficava sem como ser cobrada.
@@ -159,25 +140,28 @@ function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) 
   const containerH = maxY * (cardH + gap) - gap;
   return (
     <>
-      <div style={{ position: "relative", width: containerW, height: containerH, margin: "0 auto" }}>
+      <div
+        className="mesa-map__area"
+        style={{ "--mesa-area-w": `${containerW}px`, "--mesa-area-h": `${containerH}px` }}
+      >
         {posicionadas.map((m) => {
           const x = (m.posicao_x - 1) * (cardW + gap);
           const y = (m.posicao_y - 1) * (cardH + gap);
           return (
-            <div key={m.numero} style={{ position: "absolute", left: x, top: y }}>
-              <CardMesa mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+            <div key={m.numero} className="mesa-map__posicao" style={{ "--mesa-x": `${x}px`, "--mesa-y": `${y}px` }}>
+              <CardMesa mesa={m} abertas={abertas} onClick={onClickMesa} />
             </div>
           );
         })}
       </div>
       {semPosicao.length > 0 && (
-        <div className="mesa-map__sem-posicao" style={{ marginTop: gap * 2 }}>
-          <div className="mesa-map__sem-posicao-titulo" style={{ color: varColor(C.muted) }}>
+        <div className="mesa-map__sem-posicao">
+          <div className="mesa-map__sem-posicao-titulo">
             Sem posição no mapa, defina a posição destas mesas em Configurações
           </div>
-          <div className="mesa-map__sem-posicao-grid" style={{ gap }}>
+          <div className="mesa-map__sem-posicao-grid">
             {semPosicao.map((m) => (
-              <CardMesa key={m.numero} mesa={m} abertas={abertas} w={cardW} h={cardH} sz={sz} onClick={onClickMesa} />
+              <CardMesa key={m.numero} mesa={m} abertas={abertas} onClick={onClickMesa} />
             ))}
           </div>
         </div>
@@ -186,7 +170,7 @@ function LayoutAbsoluto({ mesas, abertas, cardW, cardH, gap, onClickMesa, sz }) 
   );
 }
 
-function CardMesa({ mesa, abertas, w, h, onClick }) {
+function CardMesa({ mesa, abertas, onClick }) {
   const st     = statusMesa(mesa, abertas);
   const s      = STATUS[st];
   const pedido = comandaAbertaDaMesa(mesa, abertas);
@@ -196,51 +180,20 @@ function CardMesa({ mesa, abertas, w, h, onClick }) {
 
   return (
     <div
-      className="card-mesa"
+      className={`card-mesa mesa-tom--${st}`}
       onClick={() => onClick(mesa)}
       title={`Mesa ${mesa.numero}, ${s.label}${pedido?.garcom ? ` · ${pedido.garcom}` : ""}`}
-      style={{
-        width: w, height: h, borderRadius: 14, boxSizing: "border-box",
-        background: s.bg, border: `2px solid ${s.border}`,
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        gap: 2, padding: "6px 4px", userSelect: "none",
-        cursor: st === "manutencao" ? "not-allowed" : "pointer",
-        transition: "transform 0.1s, box-shadow 0.1s",
-      }}
-      onMouseEnter={(e) => {
-        if (st === "manutencao") return;
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = `0 6px 18px ${s.border}`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "";
-        e.currentTarget.style.boxShadow = "";
-      }}
     >
-      <div className="card-mesa__numero" style={{ color: s.cor }}>
-        {mesa.numero}
-      </div>
-      <div className="card-mesa__status" style={{ color: s.cor }}>
-        {s.label}
-      </div>
+      <div className="card-mesa__numero">{mesa.numero}</div>
+      <div className="card-mesa__status">{s.label}</div>
       {total > 0 && (
-        <div className="card-mesa__valor" style={{ color: s.cor }}>
-          R$ {total.toFixed(2)}
-        </div>
+        <div className="card-mesa__valor">R$ {total.toFixed(2)}</div>
       )}
       {pedido?.garcom && (
-        <div className="card-mesa__garcom" style={{
-          color: s.cor,
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          maxWidth: w - 12,
-        }}>
-          {pedido.garcom}
-        </div>
+        <div className="card-mesa__garcom">{pedido.garcom}</div>
       )}
       {st === "livre" && mesa.capacidade != null && (
-        <div className="card-mesa__capacidade" style={{ color: s.cor }}>
-          {mesa.capacidade}p
-        </div>
+        <div className="card-mesa__capacidade">{mesa.capacidade}p</div>
       )}
     </div>
   );

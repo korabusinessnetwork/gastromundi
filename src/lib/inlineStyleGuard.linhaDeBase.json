@@ -44,8 +44,6 @@
   "components/desktop/views/PDVView/CheckoutView.jsx": 7,
   "components/desktop/views/PDVView/ClienteFiadoSelector.jsx": 23,
   "components/desktop/views/PDVView/index.jsx": 1,
-  "components/desktop/views/PDVView/MesaMapView.jsx": 20,
-  "components/desktop/views/PDVView/MesaReservasView.jsx": 18,
   "components/desktop/views/PDVView/pdv/CabecalhoPdv.jsx": 11,
   "components/desktop/views/PDVView/pdv/SaldoModal.jsx": 9,
   "components/desktop/views/PDVView/ProductGrid.jsx": 5,

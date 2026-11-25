@@ -23,8 +23,6 @@
   "components/desktop/views/notasFiscais/VinculaRow.jsx": 2,
   "components/desktop/views/PDVView/checkout/ResumoPedido.jsx": 1,
   "components/desktop/views/PDVView/ComandaGrid.jsx": 4,
-  "components/desktop/views/PDVView/MesaMapView.jsx": 1,
-  "components/desktop/views/PDVView/MesaReservasView.jsx": 1,
   "components/desktop/views/PDVView/pdv/CabecalhoPdv.jsx": 1,
   "components/desktop/views/PDVView/pdv/ConfirmarCancelarPedido.jsx": 1,
   "components/desktop/views/PDVView/pdv/ModalCancelarComanda.jsx": 1,

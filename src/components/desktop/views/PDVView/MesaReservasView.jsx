@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LuCalendarCheck, LuWrench, LuCircleCheck, LuSearch, LuX, LuTriangleAlert } from "react-icons/lu";
+import { LuArmchair, LuCalendarCheck, LuWrench, LuCircleCheck, LuSearch, LuX, LuTriangleAlert } from "react-icons/lu";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
@@ -36,20 +36,18 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
 
   if (loading) {
     return (
-      <div className="reservas-view__loading" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: varColor(C.muted) }}>
-        Carregando mesas...
-      </div>
+      <div className="reservas-view__loading">Carregando mesas...</div>
     );
   }
 
   if (!mesas.length) {
     return (
       <div className="reservas-view__vazio">
-        <div className="reservas-view__vazio-emoji">🪑</div>
-        <div className="reservas-view__vazio-titulo" style={{ color: varColor(C.text) }}>
+        <LuArmchair className="reservas-view__vazio-icone" aria-hidden="true" />
+        <div className="reservas-view__vazio-titulo">
           Nenhuma mesa cadastrada
         </div>
-        <div className="reservas-view__vazio-texto" style={{ color: varColor(C.muted) }}>
+        <div className="reservas-view__vazio-texto">
           Cadastre mesas em Configurações para reservar ou marcar manutenção.
         </div>
       </div>
@@ -75,20 +73,20 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
   }
 
   return (
-    <div className="reservas-view" style={{ flex: 1, overflowY: "auto", padding: `${sz.pad}px ${sz.pad + 4}px` }}>
+    <div className="reservas-view" style={{ "--reservas-pad": `${sz.pad}px` }}>
       {/* Cabeçalho + resumo */}
       <div className="reservas-view__header">
         <div>
-          <div className="reservas-view__titulo" style={{ color: varColor(C.text) }}>Reservas e manutenção</div>
-          <div className="reservas-view__subtitulo" style={{ color: varColor(C.muted) }}>
+          <div className="reservas-view__titulo">Reservas e manutenção</div>
+          <div className="reservas-view__subtitulo">
             Marque cada mesa como reservada ou em manutenção, o mapa reflete na hora.
           </div>
         </div>
         <div className="reservas-view__resumo">
-          <span className="reservas-view__resumo-badge" style={{ background: STATUS.reservada.bg, border: `1px solid ${STATUS.reservada.border}`, color: STATUS.reservada.cor }}>
+          <span className="reservas-view__resumo-badge mesa-tom--reservada">
             <LuCalendarCheck size={13} /> {nReservadas} reservada{nReservadas !== 1 ? "s" : ""}
           </span>
-          <span className="reservas-view__resumo-badge" style={{ background: STATUS.manutencao.bg, border: `1px solid ${STATUS.manutencao.border}`, color: STATUS.manutencao.cor }}>
+          <span className="reservas-view__resumo-badge mesa-tom--manutencao">
             <LuWrench size={13} /> {nManutencao} em manutenção
           </span>
         </div>
@@ -102,17 +100,16 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar mesa..."
           className="reservas-view__busca-input"
-          style={{ color: varColor(C.text) }}
         />
         {busca && (
-          <button type="button" onClick={() => setBusca("")} className="reservas-view__busca-limpar" style={{ color: varColor(C.muted) }}>
+          <button type="button" onClick={() => setBusca("")} className="reservas-view__busca-limpar" aria-label="Limpar busca">
             <LuX size={15} />
           </button>
         )}
       </div>
 
       {erro && (
-        <div className="reservas-view__erro" style={{ color: varColor(C.red) }}>
+        <div className="reservas-view__erro" role="alert">
           <LuTriangleAlert size={15} /> {erro}
         </div>
       )}
@@ -123,17 +120,14 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
           const efetivo    = statusMesa(mesa, abertas);
           const manual     = mesa.status_manual ?? "livre";
           const ocupada    = efetivo === "aberta";
-          const meta       = STATUS[efetivo];
           return (
-            <div key={mesa.numero} className="reservas-view__mesa" style={{ borderColor: varColor(C.border) }}>
-              <div className="reservas-view__mesa-info">
-                <span className="reservas-view__mesa-numero" style={{ background: meta.bg, border: `1.5px solid ${meta.border}`, color: meta.cor }}>
-                  {mesa.numero}
-                </span>
+            <div key={mesa.numero} className="reservas-view__mesa">
+              <div className={`reservas-view__mesa-info mesa-tom--${efetivo}`}>
+                <span className="reservas-view__mesa-numero">{mesa.numero}</span>
                 <div className="reservas-view__mesa-detalhe">
-                  <span className="reservas-view__mesa-badge" style={{ color: meta.cor }}>{meta.label}</span>
+                  <span className="reservas-view__mesa-badge">{STATUS[efetivo].label}</span>
                   {mesa.capacidade != null && (
-                    <span className="reservas-view__mesa-cap" style={{ color: varColor(C.muted) }}>{mesa.capacidade} lugares</span>
+                    <span className="reservas-view__mesa-cap">{mesa.capacidade} lugares</span>
                   )}
                 </div>
               </div>
@@ -142,7 +136,6 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
                 {OPCOES.map(({ valor, label, Icon }) => {
                   const ativo        = manual === valor;
                   const desabilitado = valor === "manutencao" && ocupada;
-                  const meta         = STATUS[valor];
                   return (
                     <button
                       key={valor}
@@ -150,8 +143,7 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
                       disabled={desabilitado || salvando === mesa.numero}
                       onClick={() => definir(mesa, valor)}
                       title={desabilitado ? "Libere a comanda aberta antes de colocar em manutenção" : label}
-                      className={`reservas-view__seg-btn${ativo ? " is-ativo" : ""}${desabilitado ? " is-off" : ""}`}
-                      style={ativo ? { background: meta.bg, borderColor: meta.border, color: meta.cor } : { color: varColor(C.muted) }}
+                      className={`reservas-view__seg-btn${ativo ? ` is-ativo mesa-tom--${valor}` : ""}${desabilitado ? " is-off" : ""}`}
                     >
                       <Icon size={14} /> {label}
                     </button>
@@ -160,7 +152,7 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
               </div>
 
               {ocupada && (
-                <div className="reservas-view__nota" style={{ color: STATUS.aberta.cor }}>
+                <div className="reservas-view__nota mesa-tom--aberta">
                   Comanda aberta agora
                 </div>
               )}
@@ -168,7 +160,7 @@ export default function MesaReservasView({ mesas, loading, abertas, atualizarSta
           );
         })}
         {filtradas.length === 0 && (
-          <div className="reservas-view__semresultado" style={{ color: varColor(C.muted) }}>
+          <div className="reservas-view__semresultado">
             Nenhuma mesa encontrada para "{busca}".
           </div>
         )}
