@@ -1,3 +1,10 @@
+## Rodada 125, refatoração 5.19, Área Admin (grade, Fornecedores e Compras) sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-19-area-admin.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 158 telas, 0
+  diferença e 1 leve (ruído de fonte em Reservas, fora da área). Sem migration. Estilo
+  inline: 295 para 257.
+- Defeito antigo registrado: a data da compra aparece um dia antes (`fmtDt` lê a data como UTC).
 ## Rodada 124, refatoração 5.18, o resto da Frente de Caixa sem estilo inline e sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-18-resto-do-pdv.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
