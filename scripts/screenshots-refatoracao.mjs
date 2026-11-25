@@ -868,6 +868,38 @@ function roteiro(largura) {
       await cardAdmin(page, 2).hover({ timeout: 3000 });
       await page.getByTitle("Remover").click({ timeout: 3000 });
     }) });
+  // Fase 5: Unidades de Medida (hover, adicionar, excluir), Radar com uma
+  // categoria num grupo, Delivery com o horário automático e Usuários com a
+  // força da senha e o erro de formulário.
+  const naUnidades = (passo) => naAba("Unidades de Medida", passo);
+  telas.push({ nome: "app-configuracoes-unidades-hover", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naUnidades((page) => page.locator(".unidades-medida-tab__btn-remover").first().hover({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-unidades-adicionar", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naUnidades(async (page) => {
+      await page.getByPlaceholder("abrev.").first().fill("pct", { timeout: 3000 });
+      await page.getByPlaceholder("Nome completo").first().fill("Pacote", { timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-configuracoes-unidades-excluir", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naUnidades(async (page) => {
+      await page.locator(".unidades-medida-tab__btn-remover").first().click({ timeout: 3000 });
+      await page.waitForTimeout(400);
+    }) });
+  telas.push({ nome: "app-configuracoes-radar-grupo", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Radar de Oportunidades", (page) => page.locator(".categorias-grupo-tab__select-grupo").first().selectOption({ index: 1 }, { timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-delivery-automatico", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Delivery", (page) => page.getByLabel("Abrir e fechar o delivery automaticamente").click({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-usuarios-senha", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", async (page) => {
+      await page.getByRole("button", { name: "+ Novo Usuário" }).click({ timeout: 3000 });
+      await page.getByPlaceholder("••••••••").first().fill("abc123", { timeout: 3000 });
+      await page.locator(".usuarios-tab__modal").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    }) });
+  telas.push({ nome: "app-configuracoes-usuarios-erro", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", async (page) => {
+      await page.getByRole("button", { name: "+ Novo Usuário" }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: "Criar Usuário" }).click({ timeout: 3000 });
+      await page.locator(".usuarios-tab__modal").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    }) });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,
