@@ -91,6 +91,33 @@ const tabelas = {
       ],
     }] },
   ],
+  // Fase 5: vendas fechadas para a aba Vendas do relatório desenhar os três
+  // modos (resumido, detalhado, por dia), com um pagamento dividido e uma
+  // venda de ontem. O relógio do roteiro está em 20/11/2026 às 15h.
+  vendas: [
+    { id: "venda-1", comanda: "8", mesa: null, subtotal: 25, taxa_servico: false, valor_taxa: 0,
+      valor_ajuste: 0, total: 25, cashier: "Ana Demo", at: "2026-11-20T13:10:00.000Z", cancelada: false },
+    { id: "venda-2", comanda: "9", mesa: "2", subtotal: 42.5, taxa_servico: false, valor_taxa: 0,
+      valor_ajuste: 0, total: 42.5, cashier: "Carla Demo", at: "2026-11-20T15:40:00.000Z", cancelada: false },
+    { id: "venda-3", comanda: "5", mesa: null, subtotal: 18, taxa_servico: false, valor_taxa: 0,
+      valor_ajuste: 0, total: 18, cashier: "Ana Demo", at: "2026-11-19T19:20:00.000Z", cancelada: false },
+  ],
+  venda_itens: [
+    { venda_id: "venda-1", product_id: 5, nome: "Misto quente", preco: 14, qtd: 1, cancelado: false },
+    { venda_id: "venda-1", product_id: 1, nome: "Café expresso", preco: 5.5, qtd: 2, cancelado: false },
+    { venda_id: "venda-2", product_id: 7, nome: "Bolo de cenoura", preco: 9, qtd: 2, cancelado: false },
+    { venda_id: "venda-2", product_id: 2, nome: "Suco de laranja", preco: 9.5, qtd: 1, cancelado: false },
+    { venda_id: "venda-2", product_id: 6, nome: "Coxinha", preco: 8, qtd: 1, cancelado: false },
+    { venda_id: "venda-2", product_id: 1, nome: "Café expresso", preco: 7, qtd: 1, cancelado: false },
+    { venda_id: "venda-3", product_id: 4, nome: "Pão de queijo", preco: 5.5, qtd: 2, cancelado: false },
+    { venda_id: "venda-3", product_id: 3, nome: "Água sem gás", preco: 7, qtd: 1, cancelado: false },
+  ],
+  venda_pagamentos: [
+    { venda_id: "venda-1", metodo: "pix", valor: 25 },
+    { venda_id: "venda-2", metodo: "dinheiro", valor: 20 },
+    { venda_id: "venda-2", metodo: "credito", valor: 22.5 },
+    { venda_id: "venda-3", metodo: "debito", valor: 18 },
+  ],
   grupos_categoria: [
     { id: 1, nome: "comida" }, { id: 2, nome: "bebida" },
   ],

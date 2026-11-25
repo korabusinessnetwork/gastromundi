@@ -930,3 +930,260 @@
   display: flex;
   align-items: center;
 }
+
+/* ── Painel de pagamento sem estilo inline (fase 5, 5.5) ──
+   Transparências: alfa(cor, hex) virou color-mix na mesma proporção
+   (hex/255): 14→8%, 18→9%, 22→13%, 44→27%, 55→33%, 66→40%.
+   Os campos de valor pintavam a borda no foco por onFocus/onBlur com o accent
+   a 53%; agora quem pinta é a regra global de src/styles/inputs.css (accent
+   cheio e anel), igual ao resto do sistema. */
+
+.checkout-view__pagamento {
+  background: var(--gm-card);
+}
+.checkout-view__pagamento-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.checkout-view__pagamento-subtitulo {
+  color: var(--gm-muted);
+}
+.checkout-view__btn-pagamento-unico {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-family: inherit;
+}
+.checkout-view__btn-divisor {
+  background: none;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-muted);
+}
+.checkout-view__btn-divisor--ativo {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  color: var(--gm-accent);
+}
+.checkout-view__stepper {
+  background: var(--gm-surface);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.checkout-view__stepper-label {
+  font-weight: 600;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+.checkout-view__stepper-controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* A janela de remover item também usa .checkout-view__stepper-btn, com fundo
+   de superfície e o estilo ainda inline; o fundo de cartão é só do divisor. */
+.checkout-view__stepper-btn--divisor {
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-text);
+  cursor: pointer;
+}
+.checkout-view__stepper-btn--limite {   /* 2 ou 10 pessoas: o clique não muda nada */
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.checkout-view__stepper-valor {
+  font-weight: 900;
+  color: var(--gm-text);
+  min-width: 32px;
+  text-align: center;
+}
+.checkout-view__stepper-unidade {
+  color: var(--gm-muted);
+}
+.checkout-view__stepper-estimativa {
+  color: var(--gm-muted);
+  flex: 1;
+}
+.checkout-view__btn-dividir {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.checkout-view__split-item {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+}
+.checkout-view__split-item--escolhido {
+  border-color: color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.checkout-view__split-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.checkout-view__chip-metodo {
+  border: 1.5px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+}
+.checkout-view__chip-metodo--ativo {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+.checkout-view__chip-metodo:disabled {   /* maquininha sem internet */
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.checkout-view__input-prefixo {
+  color: var(--gm-muted);
+}
+.checkout-view__split-input,
+.checkout-view__recebido-input,
+.checkout-view__troco-input {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+.checkout-view__btn-remover-split {
+  color: var(--gm-muted);
+}
+.checkout-view__btn-remover-split:hover {
+  color: var(--gm-red);
+}
+.checkout-view__recebido-label {
+  color: var(--gm-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.checkout-view__recebido-campo {
+  position: relative;
+  flex: 1;
+}
+.checkout-view__split-troco {
+  font-weight: 700;
+  min-width: 90px;
+  text-align: right;
+  white-space: nowrap;
+}
+.checkout-view__split-troco--troco { color: var(--gm-green); }
+.checkout-view__split-troco--falta { color: var(--gm-accent); }
+.checkout-view__falta-alocar--falta {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 33%, transparent);
+  color: var(--gm-accent);
+}
+.checkout-view__falta-alocar--excede {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+  color: var(--gm-red);
+}
+.checkout-view__falta-label {
+  font-weight: 700;
+}
+.checkout-view__falta-valor {
+  font-weight: 900;
+}
+.checkout-view__btn-adicionar-outro {
+  border: 1.5px dashed var(--gm-border);
+  color: var(--gm-muted);
+}
+.checkout-view__btn-adicionar-outro:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+.checkout-view__metodos-grid {
+  grid-template-columns: var(--metodos-colunas, 1fr 1fr);
+  grid-template-rows: repeat(var(--metodos-linhas, 2), 1fr);
+}
+.checkout-view__metodo-card {
+  border: 2px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  box-shadow: none;
+}
+.checkout-view__metodo-card--ativo {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gm-accent) 13%, transparent);
+}
+.checkout-view__metodo-card:disabled {   /* maquininha sem internet */
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.checkout-view__metodo-icone {
+  background: var(--gm-card);
+  border: 1.5px solid var(--gm-border);
+}
+.checkout-view__metodo-card--ativo .checkout-view__metodo-icone {
+  background: color-mix(in srgb, var(--gm-accent) 13%, transparent);
+  border-color: color-mix(in srgb, var(--gm-accent) 33%, transparent);
+}
+.checkout-view__metodo-offline-nota {
+  display: block;
+  font-weight: 600;
+}
+.checkout-view__troco-label {
+  color: var(--gm-muted);
+}
+.checkout-view__troco-opcional {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.checkout-view__troco-prefixo {
+  color: var(--gm-muted);
+}
+.checkout-view__troco-resultado--troco {
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 33%, transparent);
+}
+.checkout-view__troco-resultado--falta {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 33%, transparent);
+}
+.checkout-view__troco-resultado-label {
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+.checkout-view__troco-resultado-valor {
+  font-weight: 900;
+}
+.checkout-view__troco-resultado--troco .checkout-view__troco-resultado-valor { color: var(--gm-green); }
+.checkout-view__troco-resultado--falta .checkout-view__troco-resultado-valor { color: var(--gm-accent); }
+.checkout-view__fiado {
+  margin-bottom: 4px;
+}
+.checkout-view__label-fiado {
+  font-weight: 700;
+  color: var(--gm-muted);
+  margin-bottom: 6px;
+}
+.checkout-view__aviso-confirmar {
+  color: var(--gm-muted);
+}
+.checkout-view__aviso-confirmar--erro {
+  color: var(--gm-red);
+  font-weight: 700;
+}
+.checkout-view__btn-confirmar {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.checkout-view__btn-confirmar--pode {
+  background: var(--gm-green);
+  cursor: pointer;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-green) 27%, transparent);
+}

@@ -2,7 +2,6 @@ import { Fragment } from "react";
 import { normalizarPagamentos, rotuloMetodo } from "@/utils/pagamentos";
 import { rotuloDiaBR } from "@/utils/datas";
 import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
 import { varColor } from "@/lib/tema";
 import {
   LuBanknote, LuReceipt, LuChartBar, LuCreditCard
@@ -14,6 +13,7 @@ import Empty from "./Empty";
 import ChipBtn from "./ChipBtn";
 import ExportBar from "./ExportBar";
 import { METODOS_ICON, fmtData, fmtR } from "./apoio";
+import "./AbaVendas.css";
 
 // Aba Vendas: indicadores, vendas por dia e a lista do período.
 export default function AbaVendas({ tela }) {
@@ -21,14 +21,10 @@ export default function AbaVendas({ tela }) {
     periodo, setPeriodo, metodoFilt, setMetodoFilt, buscaComanda, setBuscaComanda, subVendas, setSubVendas, width, customLabels, sz, vendasFiltradas, kpis, vendasPorDia, exportVendas,
   } = tela;
   return (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div className="aba-vendas" style={{ "--vendas-gap": `${sz.gap}px`, "--vendas-pad": `${sz.pad}px`, "--vendas-pad-sm": `${sz.padSm}px` }}>
 
             {/* KPIs */}
-            <div style={{
-              display: "grid", gridTemplateColumns: width < 700 ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
-              gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
-              flexShrink: 0,
-            }}>
+            <div className={`aba-vendas__kpis${width < 700 ? " aba-vendas__kpis--duas" : ""}`}>
               <KpiCard label="Total Arrecadado"  value={fmtR(kpis.total)}  color={varColor(C.green)}  Icon={LuBanknote}  sz={sz} />
               <KpiCard label="Vendas Realizadas" value={kpis.count}         color={varColor(C.blue)}   Icon={LuReceipt}   sz={sz} />
               <KpiCard label="Ticket Médio"      value={fmtR(kpis.ticket)} color={varColor(C.accent)} Icon={LuChartBar}  sz={sz} />
@@ -40,15 +36,9 @@ export default function AbaVendas({ tela }) {
             </div>
 
             {/* Toolbar: sub-toggle + filtro método + exportar */}
-            <div style={{
-              display: "flex", alignItems: "center",
-              padding: `0 ${sz.pad}px ${sz.padSm}px`, flexShrink: 0, gap: 12, flexWrap: "wrap",
-            }}>
+            <div className="aba-vendas__barra">
               {/* Toggle Resumido / Detalhado */}
-              <div style={{
-                display: "flex", background: varColor(C.surface),
-                borderRadius: 10, padding: 3, gap: 2, flexShrink: 0,
-              }}>
+              <div className="aba-vendas__modos">
                 {[["resumido","Resumido"],["detalhado","Detalhado"],["por-dia","Por dia"]].map(([id, label]) => (
                   <button
                     key={id}
@@ -58,14 +48,7 @@ export default function AbaVendas({ tela }) {
                       // em "Hoje", muda para os últimos 7 dias (default do B2).
                       if (id === "por-dia" && periodo === "hoje") setPeriodo("semana");
                     }}
-                    className="relatorio-view__toggle-btn"
-                    style={{
-                      padding: "6px 18px", borderRadius: 8, border: "none",
-                      background: subVendas === id ? varColor(C.accent) : "transparent",
-                      color: subVendas === id ? "#fff" : varColor(C.muted),
-                      cursor: "pointer", fontWeight: 600,
-                      transition: "background 0.15s, color 0.15s",
-                    }}
+                    className={`relatorio-view__toggle-btn aba-vendas__modo${subVendas === id ? " aba-vendas__modo--ativo" : ""}`}
                   >
                     {label}
                   </button>
@@ -73,10 +56,10 @@ export default function AbaVendas({ tela }) {
               </div>
 
               {/* Filtro método */}
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: 1 }}>
+              <div className="aba-vendas__metodos">
                 {["todos", "dinheiro", "credito", "debito", "pix"].map(m => (
                   <ChipBtn key={m} active={metodoFilt === m} onClick={() => setMetodoFilt(m)} sz={sz}>
-                    {m === "todos" ? "Todos" : (() => { const MI = METODOS_ICON[m]; return <>{MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}{rotuloMetodo(m)}</>; })()}
+                    {m === "todos" ? "Todos" : (() => { const MI = METODOS_ICON[m]; return <>{MI && <MI size={13} className="aba-vendas__metodo-icone" />}{rotuloMetodo(m)}</>; })()}
                   </ChipBtn>
                 ))}
               </div>
@@ -88,13 +71,7 @@ export default function AbaVendas({ tela }) {
                 onChange={e => setBuscaComanda(e.target.value)}
                 placeholder="Buscar comanda..."
                 aria-label="Buscar por número da comanda"
-                className="relatorio-view__busca"
-                style={{
-                  width: 170, boxSizing: "border-box",
-                  background: varColor(C.surface), border: `1px solid var(${C.border})`,
-                  borderRadius: 8, padding: "7px 12px", color: varColor(C.text),
-                  outline: "none",
-                }}
+                className="relatorio-view__busca aba-vendas__busca"
               />
 
               <ExportBar onPDF={() => exportVendas("pdf")} onXLSX={() => exportVendas("xlsx")} sz={sz} />
@@ -102,14 +79,14 @@ export default function AbaVendas({ tela }) {
 
             {/* ── RESUMIDO ── */}
             {subVendas === "resumido" && (
-              <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+              <div className="aba-vendas__conteudo">
                 {vendasFiltradas.length === 0 ? (
                   <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
-                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 480 }}>
+                  <div className="aba-vendas__rolagem">
+                  <table className="aba-vendas__tabela aba-vendas__tabela--resumo">
                     <thead>
-                      <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                      <tr className="aba-vendas__linha">
                         <Th>Comanda</Th>
                         <Th>Caixa</Th>
                         <Th right>Itens</Th>
@@ -122,27 +99,21 @@ export default function AbaVendas({ tela }) {
                       {vendasFiltradas.map((v, i) => (
                         <tr
                           key={v.id ?? i}
-                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                          className="aba-vendas__linha aba-vendas__linha--destaque"
                         >
-                          <Td sz={sz}><span style={{ fontWeight: 700 }}>{v.comanda ?? "—"}</span></Td>
+                          <Td sz={sz}><span className="aba-vendas__forte">{v.comanda ?? "—"}</span></Td>
                           <Td sz={sz}>{v.cashier ?? "—"}</Td>
                           <Td sz={sz} right>
                             {Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : "—"}
                           </Td>
                           <Td sz={sz} right>
-                            <span className="relatorio-view__metodo-badge" style={{
-                              fontWeight: 600,
-                              background: varColor(C.surface), padding: "3px 10px",
-                              borderRadius: 20, color: varColor(C.muted), whiteSpace: "nowrap",
-                            }}>
+                            <span className="relatorio-view__metodo-badge aba-vendas__metodo-badge">
                               {normalizarPagamentos(v).map((p, pi) => {
                                 const MI = METODOS_ICON[p.metodo];
                                 return (
                                   <Fragment key={pi}>
-                                    {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
-                                    {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
+                                    {pi > 0 && <span className="aba-vendas__mais">+</span>}
+                                    {MI && <MI size={13} className="aba-vendas__metodo-icone" />}
                                     {rotuloMetodo(p.metodo, customLabels)}
                                   </Fragment>
                                 );
@@ -150,7 +121,7 @@ export default function AbaVendas({ tela }) {
                             </span>
                           </Td>
                           <Td sz={sz} right color={varColor(C.green)}>
-                            <span style={{ fontWeight: 800 }}>{fmtR(v.total)}</span>
+                            <span className="aba-vendas__mais-forte">{fmtR(v.total)}</span>
                           </Td>
                           <Td sz={sz} right muted nowrap>{fmtData(v.at)}</Td>
                         </tr>
@@ -164,68 +135,52 @@ export default function AbaVendas({ tela }) {
 
             {/* ── DETALHADO ── */}
             {subVendas === "detalhado" && (
-              <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+              <div className="aba-vendas__conteudo">
                 {vendasFiltradas.length === 0 ? (
                   <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div className="aba-vendas__cartoes">
                     {vendasFiltradas.map((v, i) => {
                       const itens = Array.isArray(v.items) ? v.items : [];
                       const qtdTotal = itens.reduce((s, it) => s + (it.qty ?? 1), 0);
                       return (
                         <div
                           key={v.id ?? i}
-                          style={{
-                            background: varColor(C.card), border: `1px solid var(${C.border})`,
-                            borderRadius: 16, overflow: "hidden",
-                          }}
+                          className="aba-vendas__cartao"
                         >
                           {/* Cabeçalho da comanda */}
-                          <div style={{
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                            padding: "16px 20px", borderBottom: `1px solid var(${C.border})`,
-                            gap: 12, flexWrap: "wrap",
-                          }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                              <div className="relatorio-view__comanda-icon" style={{
-                                width: 44, height: 44, borderRadius: 12,
-                                background: varColor(C.alow), border: `1.5px solid ${alfa(C.accent, "44")}`,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                flexShrink: 0,
-                              }}>
+                          <div className="aba-vendas__cartao-topo">
+                            <div className="aba-vendas__cartao-grupo">
+                              <div className="relatorio-view__comanda-icon aba-vendas__comanda-icone">
                                 🧾
                               </div>
                               <div>
-                                <div className="relatorio-view__comanda-num" style={{ fontWeight: 800 }}>
+                                <div className="relatorio-view__comanda-num aba-vendas__mais-forte">
                                   {v.comanda ?? "—"}
                                 </div>
-                                <div className="relatorio-view__comanda-meta" style={{ color: varColor(C.muted), marginTop: 2 }}>
+                                <div className="relatorio-view__comanda-meta aba-vendas__comanda-meta">
                                   {fmtData(v.at)} · {v.cashier ?? "—"}
                                 </div>
                               </div>
                             </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                              <span className="relatorio-view__metodo-badge" style={{
-                                fontWeight: 600,
-                                background: varColor(C.surface), padding: "5px 14px",
-                                borderRadius: 20, color: varColor(C.muted),
-                              }}>
+                            <div className="aba-vendas__cartao-grupo">
+                              <span className="relatorio-view__metodo-badge aba-vendas__metodo-badge aba-vendas__metodo-badge--largo">
                                 {normalizarPagamentos(v).map((p, pi) => {
                                 const MI = METODOS_ICON[p.metodo];
                                 return (
                                   <Fragment key={pi}>
-                                    {pi > 0 && <span style={{ color: varColor(C.muted), margin: "0 4px" }}>+</span>}
-                                    {MI && <MI size={13} style={{ marginRight: 4, verticalAlign: "middle" }} />}
+                                    {pi > 0 && <span className="aba-vendas__mais">+</span>}
+                                    {MI && <MI size={13} className="aba-vendas__metodo-icone" />}
                                     {rotuloMetodo(p.metodo, customLabels)}
                                   </Fragment>
                                 );
                               })}
                               </span>
-                              <div style={{ textAlign: "right" }}>
-                                <div className="relatorio-view__comanda-total" style={{ fontWeight: 900, color: varColor(C.green) }}>
+                              <div className="aba-vendas__direita">
+                                <div className="relatorio-view__comanda-total aba-vendas__total">
                                   {fmtR(v.total)}
                                 </div>
-                                <div className="relatorio-view__comanda-itens" style={{ color: varColor(C.muted) }}>
+                                <div className="relatorio-view__comanda-itens aba-vendas__apagado">
                                   {qtdTotal} {qtdTotal === 1 ? "item" : "itens"}
                                 </div>
                               </div>
@@ -234,53 +189,47 @@ export default function AbaVendas({ tela }) {
 
                           {/* Itens da comanda */}
                           {itens.length === 0 ? (
-                            <div className="relatorio-view__sem-itens" style={{ padding: "14px 20px", color: varColor(C.muted) }}>
+                            <div className="relatorio-view__sem-itens aba-vendas__sem-itens">
                               Sem itens registrados
                             </div>
                           ) : (
-                            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <table className="aba-vendas__tabela">
                               <thead>
-                                <tr style={{ background: varColor(C.surface) }}>
-                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "left", textTransform: "uppercase", letterSpacing: 1 }}>
+                                <tr className="aba-vendas__subcabecalho">
+                                  <th className="relatorio-view__subtable-th aba-vendas__subth aba-vendas__subth--esquerda">
                                     Produto
                                   </th>
-                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "center", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th aba-vendas__subth aba-vendas__subth--centro">
                                     Qtd
                                   </th>
-                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th aba-vendas__subth aba-vendas__subth--direita">
                                     Unit.
                                   </th>
-                                  <th className="relatorio-view__subtable-th" style={{ padding: "8px 20px", fontWeight: 700, color: varColor(C.muted), textAlign: "right", textTransform: "uppercase", letterSpacing: 1 }}>
+                                  <th className="relatorio-view__subtable-th aba-vendas__subth aba-vendas__subth--direita">
                                     Subtotal
                                   </th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {itens.map((it, j) => (
-                                  <tr
-                                    key={j}
-                                    style={{ borderTop: `1px solid var(${C.border})` }}
-                                  >
-                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", color: varColor(C.text) }}>
-                                      <div style={{ fontWeight: 600 }}>
+                                  <tr key={j} className="aba-vendas__item">
+                                    <td className="relatorio-view__item-cell aba-vendas__celula">
+                                      <div className="aba-vendas__item-nome">
                                         {it.emoji ? `${it.emoji} ` : ""}{it.name ?? "—"}
                                       </div>
                                       {it.obs && (
-                                        <div className="relatorio-view__item-obs" style={{
-                                          marginTop: 4,
-                                          color: varColor(C.accent), fontStyle: "italic",
-                                        }}>
+                                        <div className="relatorio-view__item-obs aba-vendas__item-obs">
                                           📝 {it.obs}
                                         </div>
                                       )}
                                     </td>
-                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "center", fontWeight: 700, color: varColor(C.text) }}>
+                                    <td className="relatorio-view__item-cell aba-vendas__celula aba-vendas__celula--qtd">
                                       {it.qty ?? 1}
                                     </td>
-                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "right", color: varColor(C.muted) }}>
+                                    <td className="relatorio-view__item-cell aba-vendas__celula aba-vendas__celula--unit">
                                       {fmtR(it.price)}
                                     </td>
-                                    <td className="relatorio-view__item-cell" style={{ padding: "12px 20px", textAlign: "right", fontWeight: 800, color: varColor(C.text) }}>
+                                    <td className="relatorio-view__item-cell aba-vendas__celula aba-vendas__celula--subtotal">
                                       {fmtR((it.price ?? 0) * (it.qty ?? 1))}
                                     </td>
                                   </tr>
@@ -298,14 +247,14 @@ export default function AbaVendas({ tela }) {
 
             {/* ── POR DIA (B2) ── */}
             {subVendas === "por-dia" && (
-              <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+              <div className="aba-vendas__conteudo">
                 {vendasPorDia.length === 0 ? (
                   <Empty icon="📅" msg="Nenhuma venda no período selecionado" sz={sz} />
                 ) : (
-                  <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
+                  <div className="aba-vendas__rolagem">
+                  <table className="aba-vendas__tabela aba-vendas__tabela--dias">
                     <thead>
-                      <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                      <tr className="aba-vendas__linha">
                         <Th>Dia</Th>
                         <Th right>Comandas</Th>
                         <Th right>Dinheiro</Th>
@@ -320,31 +269,29 @@ export default function AbaVendas({ tela }) {
                       {vendasPorDia.map((d) => (
                         <tr
                           key={d.dia}
-                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                          className="aba-vendas__linha aba-vendas__linha--destaque"
                         >
-                          <Td sz={sz} nowrap><span style={{ fontWeight: 700 }}>{rotuloDiaBR(d.dia)}</span></Td>
+                          <Td sz={sz} nowrap><span className="aba-vendas__forte">{rotuloDiaBR(d.dia)}</span></Td>
                           <Td sz={sz} right>{d.comandas}</Td>
                           <Td sz={sz} right muted>{fmtR(d.metodos.dinheiro ?? 0)}</Td>
                           <Td sz={sz} right muted>{fmtR(d.metodos.credito ?? 0)}</Td>
                           <Td sz={sz} right muted>{fmtR(d.metodos.debito ?? 0)}</Td>
                           <Td sz={sz} right muted>{fmtR(d.metodos.pix ?? 0)}</Td>
-                          <Td sz={sz} right color={varColor(C.green)}><span style={{ fontWeight: 800 }}>{fmtR(d.total)}</span></Td>
-                          <Td sz={sz} right color={varColor(C.accent)}><span style={{ fontWeight: 700 }}>{fmtR(d.ticket)}</span></Td>
+                          <Td sz={sz} right color={varColor(C.green)}><span className="aba-vendas__mais-forte">{fmtR(d.total)}</span></Td>
+                          <Td sz={sz} right color={varColor(C.accent)}><span className="aba-vendas__forte">{fmtR(d.ticket)}</span></Td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr style={{ borderTop: `2px solid var(${C.border})` }}>
-                        <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", fontWeight: 800 }}>
+                      <tr className="aba-vendas__rodape">
+                        <td className="relatorio-view__tfoot-cell aba-vendas__rodape-celula">
                           {vendasPorDia.length} dia(s)
                         </td>
-                        <td className="relatorio-view__tfoot-cell" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 800 }}>
+                        <td className="relatorio-view__tfoot-cell aba-vendas__rodape-celula aba-vendas__rodape-celula--direita">
                           {vendasPorDia.reduce((s, d) => s + d.comandas, 0)}
                         </td>
                         <td colSpan={4} />
-                        <td className="relatorio-view__tfoot-total" style={{ padding: "12px 16px", textAlign: "right", fontWeight: 900, color: varColor(C.green) }}>
+                        <td className="relatorio-view__tfoot-total aba-vendas__rodape-total">
                           {fmtR(vendasPorDia.reduce((s, d) => s + d.total, 0))}
                         </td>
                         <td />

@@ -116,6 +116,45 @@ function roteiro(largura) {
       await page.getByRole("button", { name: "Sim, finalizar" }).click({ timeout: 3000 });
     },
   });
+  // Fase 5: estados do painel de pagamento (troco, falta, divisor, divisão).
+  const irParaPagamento = async (page) => {
+    await abrirComanda15(page);
+    await page.getByRole("button", { name: /Finalizar Comanda/ }).first().click({ timeout: 3000 });
+    await page.getByRole("button", { name: "Sim, finalizar" }).click({ timeout: 3000 });
+  };
+  const escolherDinheiro = async (page, recebido) => {
+    await irParaPagamento(page);
+    await page.locator(".checkout-view__metodo-card", { hasText: "Dinheiro" }).click({ timeout: 3000 });
+    await page.locator(".checkout-view__troco-input").fill(recebido, { timeout: 3000 });
+  };
+  telas.push({ nome: "app-pdv-pagar-troco", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => escolherDinheiro(page, "50") });
+  telas.push({ nome: "app-pdv-pagar-falta", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => escolherDinheiro(page, "20") });
+  telas.push({ nome: "app-pdv-pagar-divisor", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await irParaPagamento(page);
+      await page.getByRole("button", { name: /Dividir pagamento/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-pagar-dividido", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await irParaPagamento(page);
+      await page.getByRole("button", { name: /Dividir pagamento/ }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: "Dividir", exact: true }).click({ timeout: 3000 });
+      const itens = page.locator(".checkout-view__split-item");
+      await itens.nth(0).getByRole("button", { name: "Dinheiro" }).click({ timeout: 3000 });
+      await itens.nth(0).locator(".checkout-view__recebido-input").fill("20", { timeout: 3000 });
+      await itens.nth(1).locator(".checkout-view__split-input").fill("10", { timeout: 3000 });
+      await page.locator(".checkout-view__pagamento-titulo").click({ timeout: 3000 });
+    } });
+  // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
+  const modoVendas = (rotulo) => async (page) => {
+    await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });
+    await page.getByRole("button", { name: rotulo, exact: true }).click({ timeout: 3000 });
+  };
+  telas.push({ nome: "app-relatorio-resumido", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Resumido") });
+  telas.push({ nome: "app-relatorio-detalhado", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Detalhado") });
+  telas.push({ nome: "app-relatorio-por-dia", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Por dia") });
   // Fase 5: Fichas Técnicas (lista, editor e confirmação de excluir).
   const abrirFichas = (page) => page.getByText("Ficha Técnica", { exact: true }).first().click({ timeout: 3000 });
   telas.push({ nome: "app-admin-fichas", perfil: "dono", caminho: "/app/admin", passo: abrirFichas });

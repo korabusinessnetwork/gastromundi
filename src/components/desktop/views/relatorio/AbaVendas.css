@@ -1,0 +1,267 @@
+/*
+ * Aba Vendas do relatório (fase 5, 5.5): o estilo saiu do JSX.
+ * Espaçamento que vem de `sz` chega como variável no topo da aba
+ * (--vendas-gap, --vendas-pad, --vendas-pad-sm). Tamanho de fonte continua
+ * nas classes relatorio-view__* de RelatorioView.css.
+ * alfa(C.accent, "44") virou color-mix a 27% (0x44/255).
+ */
+
+.aba-vendas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.aba-vendas__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--vendas-gap);
+  padding: var(--vendas-pad) var(--vendas-pad) var(--vendas-pad-sm);
+  flex-shrink: 0;
+}
+
+.aba-vendas__kpis--duas {   /* menos de 700px de largura */
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.aba-vendas__barra {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--vendas-pad) var(--vendas-pad-sm);
+  flex-shrink: 0;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.aba-vendas__modos {
+  display: flex;
+  background: var(--gm-surface);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.aba-vendas__modo {
+  padding: 6px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.aba-vendas__modo--ativo {
+  background: var(--gm-accent);
+  color: #fff;
+}
+
+.aba-vendas__metodos {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.aba-vendas__metodo-icone {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* Com a borda na classe, o foco segue a regra global de src/styles/inputs.css. */
+.aba-vendas__busca {
+  width: 170px;
+  box-sizing: border-box;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--gm-text);
+  outline: none;
+}
+
+.aba-vendas__conteudo {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 var(--vendas-pad) var(--vendas-pad);
+}
+
+.aba-vendas__rolagem {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.aba-vendas__tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.aba-vendas__tabela--resumo { min-width: 480px; }
+.aba-vendas__tabela--dias { min-width: 640px; }
+
+.aba-vendas__linha {
+  border-bottom: 1px solid var(--gm-border);
+}
+
+/* O hover era onMouseEnter/onMouseLeave em cada linha. */
+.aba-vendas__linha--destaque {
+  transition: background 0.1s;
+}
+
+.aba-vendas__linha--destaque:hover {
+  background: var(--gm-surface);
+}
+
+.aba-vendas__forte { font-weight: 700; }
+.aba-vendas__mais-forte { font-weight: 800; }
+.aba-vendas__apagado { color: var(--gm-muted); }
+
+.aba-vendas__metodo-badge {
+  font-weight: 600;
+  background: var(--gm-surface);
+  padding: 3px 10px;
+  border-radius: 20px;
+  color: var(--gm-muted);
+  white-space: nowrap;
+}
+
+.aba-vendas__metodo-badge--largo {   /* no cartão do modo detalhado, quebra se precisar */
+  padding: 5px 14px;
+  white-space: normal;
+}
+
+.aba-vendas__mais {
+  color: var(--gm-muted);
+  margin: 0 4px;
+}
+
+/* ── Detalhado ── */
+
+.aba-vendas__cartoes {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.aba-vendas__cartao {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.aba-vendas__cartao-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gm-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.aba-vendas__cartao-grupo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.aba-vendas__comanda-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--gm-alow);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.aba-vendas__comanda-meta {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.aba-vendas__direita { text-align: right; }
+
+.aba-vendas__total {
+  font-weight: 900;
+  color: var(--gm-green);
+}
+
+.aba-vendas__sem-itens {
+  padding: 14px 20px;
+  color: var(--gm-muted);
+}
+
+.aba-vendas__subcabecalho {
+  background: var(--gm-surface);
+}
+
+.aba-vendas__subth {
+  padding: 8px 20px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.aba-vendas__subth--esquerda { text-align: left; }
+.aba-vendas__subth--centro { text-align: center; }
+.aba-vendas__subth--direita { text-align: right; }
+
+.aba-vendas__item {
+  border-top: 1px solid var(--gm-border);
+}
+
+.aba-vendas__celula {
+  padding: 12px 20px;
+  color: var(--gm-text);
+}
+
+.aba-vendas__celula--qtd {
+  text-align: center;
+  font-weight: 700;
+}
+
+.aba-vendas__celula--unit {
+  text-align: right;
+  color: var(--gm-muted);
+}
+
+.aba-vendas__celula--subtotal {
+  text-align: right;
+  font-weight: 800;
+}
+
+.aba-vendas__item-nome { font-weight: 600; }
+
+.aba-vendas__item-obs {
+  margin-top: 4px;
+  color: var(--gm-accent);
+  font-style: italic;
+}
+
+/* ── Por dia ── */
+
+.aba-vendas__rodape {
+  border-top: 2px solid var(--gm-border);
+}
+
+.aba-vendas__rodape-celula {
+  padding: 12px 16px;
+  font-weight: 800;
+}
+
+.aba-vendas__rodape-celula--direita { text-align: right; }
+
+.aba-vendas__rodape-total {
+  padding: 12px 16px;
+  text-align: right;
+  font-weight: 900;
+  color: var(--gm-green);
+}

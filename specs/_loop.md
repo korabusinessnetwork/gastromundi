@@ -1,3 +1,10 @@
+## Rodada 111, refatoração 5.5, aba Vendas e painel de pagamento sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-5-vendas-e-pagamento.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 62 telas, 0
+  diferença. Sem migration. Estilo inline: 1.236 para 1.129.
+- Aba Vendas 59 para 0 (fora a variável de espaçamento); pagamento 48 para 0 (fora a da grade).
+- Roteiro ganhou vendas no Supabase falso e sete telas (três modos de Vendas, quatro estados do pagamento).
 ## Rodada 110, refatoração 5.4, Notas de Entrada sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-4-notas-de-entrada.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
