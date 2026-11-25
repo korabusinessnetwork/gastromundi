@@ -991,7 +991,7 @@
   color: var(--gm-text);
   cursor: pointer;
 }
-.checkout-view__stepper-btn--limite {   /* 2 ou 10 pessoas: o clique não muda nada */
+.checkout-view__stepper-btn--limite {   /* no limite (2 ou 10 pessoas, 1 ou o máximo a remover): o clique não muda nada */
   cursor: not-allowed;
   opacity: 0.4;
 }
@@ -1189,47 +1189,48 @@
 }
 
 /* ── Janela de desconto e acréscimo sem estilo inline (fase 5, 5.8) ──
-   As classes checkout-view__modal-* também servem à janela de remover item,
-   então o que é só desta janela tem prefixo `ajuste`. Espaçamento de `sz`
-   chega por variável no modal; o tom (vermelho no desconto, verde no
-   acréscimo) é --ajuste-tom, definido por ajuste--desconto/ajuste--acrescimo.
+   As peças comuns às janelas do pagamento (moldura, cabeçalho, rótulo, senha,
+   botões) têm prefixo `pag-janela` e servem também à de remover item (5.11);
+   o que é só do desconto tem prefixo `ajuste`. Espaçamento de `sz` chega por
+   variável no modal (--pag-pad, --pag-pad-sm, --pag-gap); o tom (vermelho no
+   desconto, verde no acréscimo) é --ajuste-tom, de ajuste--desconto/--acrescimo.
    Transparências (hex/255): 0c→5%, 18→9%, 22→13%, 44→27%, 55→33%, bb→73%. */
 
-.ajuste {
+.pag-janela {
   background: var(--gm-card);
   border: 1px solid var(--gm-border);
 }
 .ajuste--desconto { --ajuste-tom: var(--gm-red); }
 .ajuste--acrescimo { --ajuste-tom: var(--gm-green); }
 
-.ajuste__topo {
-  padding: var(--ajuste-pad-sm) var(--ajuste-pad);
+.pag-janela__topo {
+  padding: var(--pag-pad-sm) var(--pag-pad);
 }
 .ajuste__titulo {
   font-weight: 800;
   color: #fff;
 }
-.ajuste__subtitulo {
+.pag-janela__subtitulo {
   font-weight: 700;
   color: var(--gm-muted);
   margin-top: 4px;
 }
-.ajuste__fechar,
-.ajuste__apagado {
+.pag-janela__fechar,
+.pag-janela__apagado {
   color: var(--gm-muted);
 }
-.ajuste__corpo {
-  padding: var(--ajuste-pad-sm) var(--ajuste-pad) var(--ajuste-pad);
+.pag-janela__corpo {
+  padding: var(--pag-pad-sm) var(--pag-pad) var(--pag-pad);
   display: flex;
   flex-direction: column;
-  gap: var(--ajuste-pad-sm);
+  gap: var(--pag-pad-sm);
 }
 
 .ajuste__tipos {
-  gap: var(--ajuste-gap);
+  gap: var(--pag-gap);
 }
 .ajuste__tipo {
-  padding: var(--ajuste-pad-sm) 12px;
+  padding: var(--pag-pad-sm) 12px;
   border: 2px solid var(--gm-border);
   background: var(--gm-surface);
 }
@@ -1255,7 +1256,7 @@
   border: 1px solid var(--gm-border);
 }
 .ajuste__modo {
-  padding: var(--ajuste-gap) 8px;
+  padding: var(--pag-gap) 8px;
   background: transparent;
   color: var(--gm-muted);
   font-weight: 500;
@@ -1268,14 +1269,14 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-.ajuste__rotulo {
+.pag-janela__rotulo {
   font-weight: 600;
   color: var(--gm-muted);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
-.ajuste__rotulo--icone {
+.pag-janela__rotulo--icone {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1283,12 +1284,12 @@
 .ajuste__prefixo { color: var(--gm-muted); }
 /* Borda na classe: o foco segue src/styles/inputs.css, como nos outros campos. */
 .ajuste__valor {
-  padding: var(--ajuste-pad-sm) var(--ajuste-pad-sm) var(--ajuste-pad-sm) 52px;
+  padding: var(--pag-pad-sm) var(--pag-pad-sm) var(--pag-pad-sm) 52px;
   border: 2px solid var(--gm-input-border);
   background: var(--gm-input-bg);
   color: var(--gm-text);
 }
-.ajuste__erro {
+.pag-janela__erro {
   color: var(--gm-red);
   font-weight: 600;
 }
@@ -1298,7 +1299,7 @@
   background: color-mix(in srgb, var(--ajuste-tom) 5%, transparent);
 }
 .ajuste__previa-linha {
-  padding: var(--ajuste-gap) var(--ajuste-pad-sm);
+  padding: var(--pag-gap) var(--pag-pad-sm);
   border-bottom: 1px solid color-mix(in srgb, var(--ajuste-tom) 13%, transparent);
 }
 .ajuste__previa-valor { font-weight: 700; }
@@ -1309,7 +1310,7 @@
 .ajuste__tom { color: var(--ajuste-tom); }
 .ajuste__previa-total {
   align-items: center;
-  padding: var(--ajuste-pad-sm) var(--ajuste-pad-sm);
+  padding: var(--pag-pad-sm) var(--pag-pad-sm);
 }
 .ajuste__previa-total-rotulo {
   font-weight: 700;
@@ -1320,32 +1321,32 @@
   color: var(--ajuste-tom);
 }
 
-.ajuste__senha-campo { position: relative; }
-.ajuste__senha {
+.pag-janela__senha-campo { position: relative; }
+.pag-janela__senha {
   border: 1.5px solid var(--gm-input-border);
   background: var(--gm-input-bg);
   color: var(--gm-text);
 }
-.ajuste__senha[aria-invalid="true"] {
+.pag-janela__senha[aria-invalid="true"] {
   border-color: var(--gm-red);
 }
-.ajuste__senha-nota { margin-top: 6px; }
+.pag-janela__senha-nota { margin-top: 6px; }
 
-.ajuste__acoes {
-  gap: var(--ajuste-gap);
+.pag-janela__acoes {
+  gap: var(--pag-gap);
   padding-top: 2px;
 }
-.ajuste__remover {
+.pag-janela__remover {
   flex: 1;
-  padding: var(--ajuste-gap);
+  padding: var(--pag-gap);
   border: 1.5px solid var(--gm-border);
   background: none;
   color: var(--gm-muted);
 }
-.ajuste__remover:disabled { cursor: not-allowed; }
+.pag-janela__remover:disabled { cursor: not-allowed; }
 .ajuste__aplicar {
   flex: 2;
-  padding: var(--ajuste-gap);
+  padding: var(--pag-gap);
   background: var(--gm-accent);
   cursor: pointer;
   box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-accent) 27%, transparent);
@@ -1354,4 +1355,166 @@
   background: var(--gm-faint);
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* ── Resumo do pedido sem estilo inline (fase 5, 5.11) ──
+   A largura de `sz` chega por variável (--resumo-largura); no celular
+   (--mob) o resumo ocupa a largura toda e a divisória vai para baixo.
+   Transparências (hex/255): 14→8%, 15→8%, 18→9%, 44→27%, 55→33%,
+   66→40%, 88→53%. */
+
+.checkout-view__resumo {
+  width: var(--resumo-largura);
+  border-right: 1px solid var(--gm-border);
+  border-bottom: none;
+}
+.checkout-view__resumo--mob {
+  width: 100%;
+  max-height: 38%;
+  border-right: none;
+  border-bottom: 1px solid var(--gm-border);
+}
+.checkout-view__resumo-lista { padding: 28px 32px; }
+.checkout-view__resumo--mob .checkout-view__resumo-lista { padding: 16px 20px; }
+.checkout-view__resumo-rodape { padding: 16px 32px 24px; }
+.checkout-view__resumo--mob .checkout-view__resumo-rodape { padding: 12px 20px 16px; }
+
+.checkout-view__item-icone {
+  background: var(--gm-alow);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.checkout-view__item-qtd { color: var(--gm-accent); }
+.checkout-view__item-corpo {
+  flex: 1;
+  min-width: 0;
+}
+.checkout-view__item-preco-unit {
+  color: var(--gm-muted);
+  margin-top: 4px;
+}
+.checkout-view__item-obs {
+  color: var(--gm-accent);
+  background: var(--gm-alow);
+}
+.checkout-view__item-total { color: var(--gm-text); }
+.checkout-view__item-remover {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+  color: var(--gm-red);
+}
+.checkout-view__lista-vazia,
+.checkout-view__remover-dica {
+  color: var(--gm-muted);
+}
+.checkout-view__btn-remover-lista {
+  background: transparent;
+  border: 1.5px dashed var(--gm-border);
+  color: var(--gm-muted);
+}
+.checkout-view__btn-remover-lista--ativo {   /* modo de remoção ligado */
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+}
+
+.checkout-view__linha-ajuste-grupo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.checkout-view__taxa-label {
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.checkout-view__btn-toggle-taxa {
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.checkout-view__btn-toggle-taxa--remover {   /* taxa aplicada: o botão tira */
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 53%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  color: var(--gm-red);
+}
+.checkout-view__btn-toggle-taxa--aplicar {
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 53%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  color: var(--gm-green);
+}
+.checkout-view__taxa-valor {
+  font-weight: 700;
+  color: var(--gm-text);
+}
+.checkout-view__taxa-valor--fora {   /* taxa retirada: valor riscado */
+  color: var(--gm-muted);
+  text-decoration: line-through;
+}
+.checkout-view__ajuste-aplicado-valor { font-weight: 700; }
+.checkout-view__ajuste-tom--desconto { color: var(--gm-red); }
+.checkout-view__ajuste-tom--acrescimo { color: var(--gm-green); }
+.checkout-view__btn-remover-ajuste {
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--gm-border);
+  background: transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.checkout-view__total-label {
+  font-weight: 800;
+  color: var(--gm-muted);
+}
+.checkout-view__total-valor {
+  font-weight: 900;
+  color: var(--gm-green);
+}
+
+/* ── Janela de remover item (fase 5, 5.11) ──
+   Usa as peças pag-janela da janela de desconto; aqui só o que é dela. */
+
+.remocao__titulo {
+  font-weight: 800;
+  color: var(--gm-red);
+}
+.remocao__passo {
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+}
+/* Campos com a borda na classe: o foco segue src/styles/inputs.css. */
+.remocao__campo {
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+.remocao__contador {
+  color: var(--gm-muted);
+  text-align: right;
+  margin-top: 2px;
+}
+.remocao__erro-geral {
+  color: var(--gm-red);
+  font-weight: 700;
+}
+.remocao__confirmar {
+  flex: 2;
+  padding: var(--pag-gap);
+  background: var(--gm-red);
+  cursor: pointer;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+.remocao__confirmar:disabled {   /* sem motivo, sem senha ou removendo */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+/* `--limite` fica antes no arquivo; repetida aqui para vencer o cursor acima. */
+.remocao__passo.checkout-view__stepper-btn--limite {
+  cursor: not-allowed;
+  opacity: 0.4;
 }

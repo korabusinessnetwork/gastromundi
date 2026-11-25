@@ -1,6 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { LuTrash2 } from "react-icons/lu";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
 // lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
@@ -15,15 +12,10 @@ export default function ResumoPedido({ tela }) {
     aplicarTaxa, setAplicarTaxa, taxaServico, ajusteAplicado, setAjusteAplicado, modoRemocao, setModoRemocao, sz, itensVisiveis, subtotal, valorAjuste, total, abrirRemocao, isMob, comanda, onRemoverItem,
   } = tela;
   return (
-    <div className="checkout-view__resumo" style={{
-      width: isMob ? "100%" : sz.checkoutResumo,
-      maxHeight: isMob ? "38%" : undefined,
-      borderRight: isMob ? "none" : `1px solid var(${C.border})`,
-      borderBottom: isMob ? `1px solid var(${C.border})` : "none",
-    }}>
+    <div className={`checkout-view__resumo${isMob ? " checkout-view__resumo--mob" : ""}`} style={{ "--resumo-largura": `${sz.checkoutResumo}px` }}>
       {/* Área scrollável — itens */}
-      <div className="checkout-view__resumo-lista" style={{ padding: isMob ? "16px 20px" : "28px 32px" }}>
-      <div className="checkout-view__resumo-titulo" style={{ color: varColor(C.muted) }}>
+      <div className="checkout-view__resumo-lista">
+      <div className="checkout-view__resumo-titulo">
         Resumo · {fmtComanda(comanda?.comanda)}
       </div>
 
@@ -31,33 +23,29 @@ export default function ResumoPedido({ tela }) {
         const obsArr = Array.isArray(item.obs) ? item.obs : [];
         const qty = item.qty;
         return (
-          <div key={item.uid ?? i} className="checkout-view__item" style={{ borderBottom: `1px solid var(${C.border})` }}>
-            <div className="checkout-view__item-icone" style={{
-              background: "var(--gm-alow)", border: `1.5px solid ${alfa(C.accent, "44")}`,
-            }}>
+          <div key={item.uid ?? i} className="checkout-view__item">
+            <div className="checkout-view__item-icone">
               {item.emoji
                 ? <span className="checkout-view__item-emoji">{item.emoji}</span>
                 : null}
-              <span className={`checkout-view__item-qtd${item.emoji ? " checkout-view__item-qtd--compacta" : ""}`} style={{ color: varColor(C.accent) }}>×{qty}</span>
+              <span className={`checkout-view__item-qtd${item.emoji ? " checkout-view__item-qtd--compacta" : ""}`}>×{qty}</span>
             </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="checkout-view__item-corpo">
               <div className="checkout-view__item-nome">
                 {item.name}
               </div>
-              <div className="checkout-view__item-preco-unit" style={{ color: varColor(C.muted), marginTop: 4 }}>
+              <div className="checkout-view__item-preco-unit">
                 {qty}× R$ {Number(item.price).toFixed(2)}
               </div>
               {obsArr.map((obs, j) => (
-                <div key={j} className="checkout-view__item-obs" style={{
-                  color: varColor(C.accent), background: "var(--gm-alow)",
-                }}>
+                <div key={j} className="checkout-view__item-obs">
                   📝 {obs}
                 </div>
               ))}
             </div>
 
-            <div className="checkout-view__item-total" style={{ color: varColor(C.text) }}>
+            <div className="checkout-view__item-total">
               R$ {(item.price * qty).toFixed(2)}
             </div>
 
@@ -65,11 +53,6 @@ export default function ResumoPedido({ tela }) {
               <button
                 onClick={() => abrirRemocao(item)}
                 className="checkout-view__item-remover"
-                style={{
-                  background: alfa(varColor(C.red), "14"),
-                  border: `1.5px solid ${alfa(varColor(C.red), "55")}`,
-                  color: varColor(C.red),
-                }}
                 aria-label={`Remover ${item.name}`}
               >
                 <LuTrash2 size={18} />
@@ -80,7 +63,7 @@ export default function ResumoPedido({ tela }) {
       })}
 
       {itensVisiveis.length === 0 && (
-        <div className="checkout-view__lista-vazia" style={{ color: varColor(C.muted) }}>
+        <div className="checkout-view__lista-vazia">
           Todos os itens foram removidos. Volte para a comanda para lançar novos itens.
         </div>
       )}
@@ -89,18 +72,13 @@ export default function ResumoPedido({ tela }) {
       {onRemoverItem && itensVisiveis.length > 0 && (
         <div className="checkout-view__remover-rodape">
           {modoRemocao && (
-            <div className="checkout-view__remover-dica" style={{ color: varColor(C.muted) }}>
+            <div className="checkout-view__remover-dica">
               Toque na lixeira do item que deseja remover
             </div>
           )}
           <button
             onClick={() => setModoRemocao(v => !v)}
-            className="checkout-view__btn-remover-lista"
-            style={{
-              background: modoRemocao ? alfa(varColor(C.red), "18") : "transparent",
-              border: `1.5px dashed ${modoRemocao ? alfa(varColor(C.red), "66") : varColor(C.border)}`,
-              color: modoRemocao ? varColor(C.red) : varColor(C.muted),
-            }}
+            className={`checkout-view__btn-remover-lista${modoRemocao ? " checkout-view__btn-remover-lista--ativo" : ""}`}
           >
             <LuTrash2 size={15} /> {modoRemocao ? "Concluir remoção" : "Remover produto"}
           </button>
@@ -109,28 +87,21 @@ export default function ResumoPedido({ tela }) {
       </div>{/* fim área scrollável */}
 
       {/* Rodapé fixo — taxa, desconto, total */}
-      <div className="checkout-view__resumo-rodape" style={{ padding: isMob ? "12px 20px 16px" : "16px 32px 24px", borderTop: `1px solid var(${C.border})` }}>
+      <div className="checkout-view__resumo-rodape">
 
       {/* Taxa de Serviço */}
       {taxaServico && (
         <div className="checkout-view__linha-ajuste">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span className="checkout-view__taxa-label" style={{ color: varColor(C.muted), fontWeight: 600 }}>Taxa de Serviço (10%)</span>
+          <div className="checkout-view__linha-ajuste-grupo">
+            <span className="checkout-view__taxa-label">Taxa de Serviço (10%)</span>
             <button
               onClick={() => setAplicarTaxa(v => !v)}
-              className="checkout-view__btn-toggle-taxa"
-              style={{
-                fontWeight: 700, padding: "3px 10px",
-                borderRadius: 8, border: `1.5px solid ${aplicarTaxa ? alfa(C.red, "88") : alfa(C.green, "88")}`,
-                background: aplicarTaxa ? alfa(C.red, "15") : alfa(C.green, "15"),
-                color: aplicarTaxa ? varColor(C.red) : varColor(C.green),
-                cursor: "pointer", fontFamily: "inherit",
-              }}
+              className={`checkout-view__btn-toggle-taxa checkout-view__btn-toggle-taxa--${aplicarTaxa ? "remover" : "aplicar"}`}
             >
               {aplicarTaxa ? "Remover" : "Aplicar"}
             </button>
           </div>
-          <span className="checkout-view__taxa-valor" style={{ fontWeight: 700, color: aplicarTaxa ? varColor(C.text) : varColor(C.muted), textDecoration: aplicarTaxa ? "none" : "line-through" }}>
+          <span className={`checkout-view__taxa-valor${aplicarTaxa ? "" : " checkout-view__taxa-valor--fora"}`}>
             R$ {(subtotal * 0.10).toFixed(2)}
           </span>
         </div>
@@ -139,34 +110,28 @@ export default function ResumoPedido({ tela }) {
       {/* Desconto / Acréscimo aplicado */}
       {ajusteAplicado && valorAjuste !== 0 && (
         <div className="checkout-view__linha-ajuste">
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span className="checkout-view__ajuste-aplicado-label" style={{ color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
+          <div className="checkout-view__linha-ajuste-grupo">
+            <span className={`checkout-view__ajuste-aplicado-label checkout-view__ajuste-tom--${ajusteAplicado.tipo === "desconto" ? "desconto" : "acrescimo"}`}>
               {ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo"}
               {" "}({ajusteAplicado.mode === "percentual" ? `${ajusteAplicado.valor}%` : `R$ ${parseFloat(ajusteAplicado.valor).toFixed(2)}`})
             </span>
             <button
               onClick={() => setAjusteAplicado(null)}
               className="checkout-view__btn-remover-ajuste"
-              style={{
-                fontWeight: 700, padding: "2px 8px",
-                borderRadius: 6, border: `1px solid var(${C.border})`,
-                background: "transparent", color: varColor(C.muted),
-                cursor: "pointer", fontFamily: "inherit",
-              }}
             >
               Remover
             </button>
           </div>
-          <span className="checkout-view__ajuste-aplicado-valor" style={{ fontWeight: 700, color: ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green) }}>
+          <span className={`checkout-view__ajuste-aplicado-valor checkout-view__ajuste-tom--${ajusteAplicado.tipo === "desconto" ? "desconto" : "acrescimo"}`}>
             {valorAjuste < 0 ? "-" : "+"}R$ {Math.abs(valorAjuste).toFixed(2)}
           </span>
         </div>
       )}
 
       {/* Total */}
-      <div className="checkout-view__total-linha" style={{ borderTop: `2px solid var(${C.border})` }}>
-        <span className="checkout-view__total-label" style={{ fontWeight: 800, color: varColor(C.muted) }}>Total</span>
-        <span className="checkout-view__total-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>
+      <div className="checkout-view__total-linha">
+        <span className="checkout-view__total-label">Total</span>
+        <span className="checkout-view__total-valor">
           R$ {total.toFixed(2)}
         </span>
       </div>

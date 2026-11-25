@@ -1,7 +1,4 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { LuX, LuMinus, LuPlus, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import { createPortal } from "react-dom";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
@@ -21,39 +18,33 @@ export default function PopupRemocao({ tela }) {
           {...fecharAoClicarFora(() => setRemocao(null), !removendo)}
           className="checkout-view__overlay"
         >
-          <div className="checkout-view__modal" style={{
-            background: varColor(C.card), border: `1px solid var(${C.border})`,
+          <div className="checkout-view__modal pag-janela" style={{
+            "--pag-pad": `${sz.pad}px`, "--pag-pad-sm": `${sz.padSm}px`, "--pag-gap": `${sz.gap}px`,
           }}>
-            <div className="checkout-view__modal-header" style={{ padding: `${sz.padSm}px ${sz.pad}px`, borderBottom: `1px solid var(${C.border})` }}>
+            <div className="checkout-view__modal-header pag-janela__topo">
               <div>
-                <div className="checkout-view__modal-titulo" style={{ fontWeight: 800, color: varColor(C.red) }}>Remover produto</div>
-                <div className="checkout-view__modal-subtitulo" style={{ fontWeight: 700, color: varColor(C.muted), marginTop: 4 }}>
+                <div className="checkout-view__modal-titulo remocao__titulo">Remover produto</div>
+                <div className="checkout-view__modal-subtitulo pag-janela__subtitulo">
                   {remocao.item.name} · R$ {Number(remocao.item.price).toFixed(2)}
                 </div>
               </div>
-              <button onClick={() => { if (!removendo) setRemocao(null); }} className="checkout-view__modal-fechar" style={{ color: varColor(C.muted) }}>
+              <button onClick={() => { if (!removendo) setRemocao(null); }} className="checkout-view__modal-fechar pag-janela__fechar">
                 <LuX size={sz.fontLg} />
               </button>
             </div>
 
-            <div style={{ padding: `${sz.padSm}px ${sz.pad}px ${sz.pad}px`, display: "flex", flexDirection: "column", gap: sz.padSm }}>
+            <div className="pag-janela__corpo">
 
               {/* Quantidade (só quando há mais de 1) */}
               {remocao.qtyMax > 1 && (
                 <div>
-                  <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  <div className="checkout-view__modal-input-label pag-janela__rotulo">
                     Quantidade a remover
                   </div>
                   <div className="checkout-view__remocao-stepper">
                     <button
                       onClick={() => setRemocao(r => ({ ...r, qtySel: Math.max(1, r.qtySel - 1) }))}
-                      className="checkout-view__stepper-btn"
-                      style={{
-                        border: `1.5px solid var(${C.border})`,
-                        background: varColor(C.surface), color: varColor(C.text),
-                        cursor: remocao.qtySel <= 1 ? "not-allowed" : "pointer",
-                        opacity: remocao.qtySel <= 1 ? 0.4 : 1,
-                      }}
+                      className={`checkout-view__stepper-btn remocao__passo${remocao.qtySel <= 1 ? " checkout-view__stepper-btn--limite" : ""}`}
                     ><LuMinus size={16} /></button>
                     <input
                       type="number" min="1" max={remocao.qtyMax}
@@ -62,23 +53,16 @@ export default function PopupRemocao({ tela }) {
                         const v = parseInt(e.target.value, 10);
                         setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, Math.max(1, isNaN(v) ? 1 : v)) }));
                       }}
-                      className="checkout-view__remocao-qty-input"
-                      style={{ border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
+                      className="checkout-view__remocao-qty-input remocao__campo"
                     />
                     <button
                       onClick={() => setRemocao(r => ({ ...r, qtySel: Math.min(r.qtyMax, r.qtySel + 1) }))}
-                      className="checkout-view__stepper-btn"
-                      style={{
-                        border: `1.5px solid var(${C.border})`,
-                        background: varColor(C.surface), color: varColor(C.text),
-                        cursor: remocao.qtySel >= remocao.qtyMax ? "not-allowed" : "pointer",
-                        opacity: remocao.qtySel >= remocao.qtyMax ? 0.4 : 1,
-                      }}
+                      className={`checkout-view__stepper-btn remocao__passo${remocao.qtySel >= remocao.qtyMax ? " checkout-view__stepper-btn--limite" : ""}`}
                     ><LuPlus size={16} /></button>
-                    <span className="checkout-view__remocao-qty-de" style={{ color: varColor(C.muted) }}>de {remocao.qtyMax}</span>
+                    <span className="checkout-view__remocao-qty-de pag-janela__apagado">de {remocao.qtyMax}</span>
                   </div>
                   {remocao.qtySel >= remocao.qtyMax && (
-                    <div className="checkout-view__remocao-aviso" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                    <div className="checkout-view__remocao-aviso pag-janela__erro pag-janela__senha-nota">
                       Todos os itens serão removidos
                     </div>
                   )}
@@ -87,7 +71,7 @@ export default function PopupRemocao({ tela }) {
 
               {/* Motivo (obrigatório) */}
               <div>
-                <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8 }}>
+                <div className="checkout-view__modal-input-label pag-janela__rotulo">
                   Motivo (obrigatório)
                 </div>
                 <textarea
@@ -96,20 +80,19 @@ export default function PopupRemocao({ tela }) {
                   placeholder="Ex: cliente desistiu, pedido errado..."
                   maxLength={200}
                   rows={2}
-                  className="checkout-view__remocao-motivo"
-                  style={{ border: `1.5px solid var(--gm-input-border)`, background: "var(--gm-input-bg)", color: varColor(C.text) }}
+                  className="checkout-view__remocao-motivo remocao__campo"
                 />
-                <div className="checkout-view__remocao-contador" style={{ color: varColor(C.muted), textAlign: "right", marginTop: 2 }}>
+                <div className="checkout-view__remocao-contador remocao__contador">
                   {remocao.motivo.length}/200
                 </div>
               </div>
 
               {/* Senha de gerente/admin */}
               <div>
-                <div className="checkout-view__modal-input-label" style={{ fontWeight: 600, color: varColor(C.muted), marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.8, display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="checkout-view__modal-input-label pag-janela__rotulo pag-janela__rotulo--icone">
                   <LuLock size={13} /> Senha de gerente ou admin
                 </div>
-                <div style={{ position: "relative" }}>
+                <div className="pag-janela__senha-campo">
                   <input
                     type={remSenhaVis ? "text" : "password"}
                     value={remSenha}
@@ -122,59 +105,43 @@ export default function PopupRemocao({ tela }) {
                     autoComplete="new-password"
                     data-1p-ignore
                     data-lpignore="true"
-                    className="checkout-view__remocao-senha"
-                    style={{
-                      border: `1.5px solid ${remSenhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                      background: "var(--gm-input-bg)", color: varColor(C.text),
-                    }}
+                    aria-invalid={remSenhaErro ? true : undefined}
+                    className="checkout-view__remocao-senha pag-janela__senha"
                   />
                   <button
                     onClick={() => setRemSenhaVis(v => !v)}
-                    className="checkout-view__remocao-senha-olho"
-                    style={{ color: varColor(C.muted) }}
+                    className="checkout-view__remocao-senha-olho pag-janela__apagado"
                     aria-label={remSenhaVis ? "Ocultar senha" : "Mostrar senha"}
                   >
                     {remSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                   </button>
                 </div>
                 {remSenhaErro && (
-                  <div role="alert" className="checkout-view__remocao-senha-erro" style={{ color: varColor(C.red), fontWeight: 600, marginTop: 6 }}>
+                  <div role="alert" className="checkout-view__remocao-senha-erro pag-janela__erro pag-janela__senha-nota">
                     {remSenhaErro}
                   </div>
                 )}
               </div>
 
               {remErro && (
-                <div role="alert" className="checkout-view__remocao-erro-geral" style={{ color: varColor(C.red), fontWeight: 700 }}>
+                <div role="alert" className="checkout-view__remocao-erro-geral remocao__erro-geral">
                   {remErro}
                 </div>
               )}
 
               {/* Ações */}
-              <div className="checkout-view__modal-acoes" style={{ gap: sz.gap, paddingTop: 2 }}>
+              <div className="checkout-view__modal-acoes pag-janela__acoes">
                 <button
                   onClick={() => setRemocao(null)}
                   disabled={removendo}
-                  className="checkout-view__modal-btn-remover"
-                  style={{
-                    flex: 1, padding: `${sz.gap}px`,
-                    border: `1.5px solid var(${C.border})`, background: "none",
-                    color: varColor(C.muted),
-                    cursor: removendo ? "not-allowed" : "pointer",
-                  }}
+                  className="checkout-view__modal-btn-remover pag-janela__remover"
                 >
                   Voltar
                 </button>
                 <button
                   onClick={confirmarRemocao}
                   disabled={!remocao.motivo.trim() || !remSenha.trim() || removendo}
-                  className="checkout-view__modal-btn-aplicar"
-                  style={{
-                    flex: 2, padding: `${sz.gap}px`,
-                    background: remocao.motivo.trim() && remSenha.trim() && !removendo ? varColor(C.red) : varColor(C.faint),
-                    cursor: remocao.motivo.trim() && remSenha.trim() && !removendo ? "pointer" : "not-allowed",
-                    boxShadow: remocao.motivo.trim() && remSenha.trim() && !removendo ? `0 4px 20px ${alfa(varColor(C.red), "44")}` : "none",
-                  }}
+                  className="checkout-view__modal-btn-aplicar remocao__confirmar"
                 >
                   {removendo
                     ? "Removendo..."

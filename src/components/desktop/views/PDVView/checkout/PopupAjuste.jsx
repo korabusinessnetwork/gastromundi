@@ -18,21 +18,21 @@ export default function PopupAjuste({ tela }) {
           {...fecharAoClicarFora(fecharAjuste, !aplicandoAjuste)}
           className="checkout-view__overlay"
         >
-          <div className="checkout-view__modal ajuste" style={{
-            "--ajuste-pad": `${sz.pad}px`, "--ajuste-pad-sm": `${sz.padSm}px`, "--ajuste-gap": `${sz.gap}px`,
+          <div className="checkout-view__modal pag-janela" style={{
+            "--pag-pad": `${sz.pad}px`, "--pag-pad-sm": `${sz.padSm}px`, "--pag-gap": `${sz.gap}px`,
           }}>
             {/* Header */}
-            <div className="checkout-view__modal-header ajuste__topo">
+            <div className="checkout-view__modal-header pag-janela__topo">
               <div>
                 <div className="checkout-view__modal-titulo ajuste__titulo">Desconto / Acréscimo</div>
-                <div className="checkout-view__modal-subtitulo ajuste__subtitulo">Total atual: R$ {baseComTaxa.toFixed(2)}</div>
+                <div className="checkout-view__modal-subtitulo pag-janela__subtitulo">Total atual: R$ {baseComTaxa.toFixed(2)}</div>
               </div>
-              <button onClick={() => { if (!aplicandoAjuste) fecharAjuste(); }} className="checkout-view__modal-fechar ajuste__fechar">
+              <button onClick={() => { if (!aplicandoAjuste) fecharAjuste(); }} className="checkout-view__modal-fechar pag-janela__fechar">
                 <LuX size={sz.fontLg} />
               </button>
             </div>
 
-            <div className="ajuste__corpo">
+            <div className="pag-janela__corpo">
 
               {/* Tipo */}
               <div className="checkout-view__modal-tipo-grid ajuste__tipos">
@@ -58,7 +58,7 @@ export default function PopupAjuste({ tela }) {
 
               {/* Input */}
               <div>
-                <div className="checkout-view__modal-input-label ajuste__rotulo">
+                <div className="checkout-view__modal-input-label pag-janela__rotulo">
                   {ajusteMode === "percentual" ? "Percentual de " : "Valor de "}{ajusteTipo === "desconto" ? "desconto" : "acréscimo"}
                 </div>
                 <div className="checkout-view__modal-input-wrap">
@@ -82,7 +82,7 @@ export default function PopupAjuste({ tela }) {
 
               {/* Motivo de não dar para aplicar — some sozinho ao corrigir */}
               {ajusteErroVisivel && (
-                <div className="checkout-view__ajuste-erro ajuste__erro">
+                <div className="checkout-view__ajuste-erro pag-janela__erro">
                   {ajusteErroVisivel}
                 </div>
               )}
@@ -95,8 +95,8 @@ export default function PopupAjuste({ tela }) {
                 return (
                   <div className={`checkout-view__preview ajuste__previa ajuste--${ajusteTipo}`}>
                     <div className="checkout-view__preview-linha ajuste__previa-linha">
-                      <span className="checkout-view__preview-label ajuste__apagado">Total atual</span>
-                      <span className="checkout-view__preview-valor ajuste__previa-valor ajuste__apagado">R$ {baseComTaxa.toFixed(2)}</span>
+                      <span className="checkout-view__preview-label pag-janela__apagado">Total atual</span>
+                      <span className="checkout-view__preview-valor ajuste__previa-valor pag-janela__apagado">R$ {baseComTaxa.toFixed(2)}</span>
                     </div>
                     <div className="checkout-view__preview-linha ajuste__previa-linha">
                       <span className="checkout-view__preview-label ajuste__previa-ajuste">{ajusteTipo === "desconto" ? "− Desconto" : "+ Acréscimo"}</span>
@@ -114,10 +114,10 @@ export default function PopupAjuste({ tela }) {
                   pela mesma autorização que remover um item já exigia aqui. */}
               {ajusteExigeAutorizacao && (
                 <div>
-                  <div className="checkout-view__modal-input-label ajuste__rotulo ajuste__rotulo--icone">
+                  <div className="checkout-view__modal-input-label pag-janela__rotulo pag-janela__rotulo--icone">
                     <LuLock size={13} /> Senha de gerente ou admin
                   </div>
-                  <div className="ajuste__senha-campo">
+                  <div className="pag-janela__senha-campo">
                     <input
                       type={ajusteSenhaVis ? "text" : "password"}
                       value={ajusteSenha}
@@ -135,22 +135,22 @@ export default function PopupAjuste({ tela }) {
                       data-1p-ignore
                       data-lpignore="true"
                       aria-invalid={ajusteSenhaErro ? true : undefined}
-                      className="checkout-view__ajuste-senha ajuste__senha"
+                      className="checkout-view__ajuste-senha pag-janela__senha"
                     />
                     <button
                       onClick={() => setAjusteSenhaVis(v => !v)}
-                      className="checkout-view__ajuste-senha-olho ajuste__apagado"
+                      className="checkout-view__ajuste-senha-olho pag-janela__apagado"
                       aria-label={ajusteSenhaVis ? "Ocultar senha" : "Mostrar senha"}
                     >
                       {ajusteSenhaVis ? <LuEyeOff size={16} /> : <LuEye size={16} />}
                     </button>
                   </div>
                   {ajusteSenhaErro ? (
-                    <div role="alert" className="checkout-view__ajuste-senha-erro ajuste__erro ajuste__senha-nota">
+                    <div role="alert" className="checkout-view__ajuste-senha-erro pag-janela__erro pag-janela__senha-nota">
                       {ajusteSenhaErro}
                     </div>
                   ) : (
-                    <div className="checkout-view__ajuste-senha-dica ajuste__apagado ajuste__senha-nota">
+                    <div className="checkout-view__ajuste-senha-dica pag-janela__apagado pag-janela__senha-nota">
                       Todo desconto precisa da autorização de um gerente.
                     </div>
                   )}
@@ -158,12 +158,12 @@ export default function PopupAjuste({ tela }) {
               )}
 
               {/* Ações */}
-              <div className="checkout-view__modal-acoes ajuste__acoes">
+              <div className="checkout-view__modal-acoes pag-janela__acoes">
                 {ajusteAplicado && (
                   <button
                     onClick={() => { setAjusteAplicado(null); fecharAjuste(); }}
                     disabled={aplicandoAjuste}
-                    className="checkout-view__modal-btn-remover ajuste__remover"
+                    className="checkout-view__modal-btn-remover pag-janela__remover"
                   >
                     Remover
                   </button>

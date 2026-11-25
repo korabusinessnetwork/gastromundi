@@ -197,9 +197,28 @@ describe("AnalyticsDashboard, os números", () => {
   });
 
   it("conta o tempo desde a última venda em vez de mostrar uma data para o dono converter", async () => {
-    montar();
-    expect(within(await linhaDe("Bar do Zé")).getByText("Hoje")).toBeInTheDocument();
-    expect(within(await linhaDe("Café Central")).getByText("Ontem")).toBeInTheDocument();
+    // "Hoje" e "Ontem" são dia de calendário, e "2 horas atrás" só cai hoje
+    // depois das 2h: rodada de madrugada, a venda de duas horas atrás era de
+    // ontem e o teste falhava. O relógio para ao meio-dia da data de hoje, que
+    // continua relativa (data fixa aqui viraria bomba de tempo).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const meioDia = new Date();
+      meioDia.setHours(12, 0, 0, 0);
+      vi.setSystemTime(meioDia);
+      mockListar.mockResolvedValue({
+        data: [
+          { ...USO[0], ultima_venda: horasAtras(2) },
+          { ...USO[1], ultima_venda: horasAtras(26) },
+        ],
+        error: null,
+      });
+      montar();
+      expect(within(await linhaDe("Bar do Zé")).getByText("Hoje")).toBeInTheDocument();
+      expect(within(await linhaDe("Café Central")).getByText("Ontem")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
