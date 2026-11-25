@@ -525,6 +525,36 @@ function roteiro(largura) {
       await page.getByRole("button", { name: /Nova nota manual/ }).first().click({ timeout: 3000 });
     },
   });
+  // Fase 5: estados das abas Usuários, Meios de Pagamento e Geral.
+  const abrirAba = (aba) => (page) => page.getByRole("button", { name: aba, exact: true }).first().click({ timeout: 3000 });
+  const naAba = (aba, passo) => async (page) => { await abrirAba(aba)(page); await passo(page); };
+  telas.push({ nome: "app-configuracoes-usuarios-hover", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", (page) => page.locator(".usuarios-tab__tr", { hasText: "Bruno Demo" }).hover({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-usuarios-novo", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", (page) => page.getByRole("button", { name: "+ Novo Usuário" }).click({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-usuarios-editar", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", async (page) => {
+      await page.locator(".usuarios-tab__tr", { hasText: "Bruno Demo" }).getByRole("button", { name: "Editar" }).click({ timeout: 3000 });
+      await page.locator(".usuarios-tab__modal").evaluate((el) => { el.scrollTop = el.scrollHeight; });
+    }) });
+  telas.push({ nome: "app-configuracoes-usuarios-excluir", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Usuários", (page) => page.locator(".usuarios-tab__tr", { hasText: "Bruno Demo" }).getByRole("button", { name: "Excluir" }).click({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-meios-novo", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Meios de Pagamento", async (page) => {
+      await page.getByRole("button", { name: /Adicionar/ }).first().click({ timeout: 3000 });
+      await page.getByPlaceholder("Nome da forma de pagamento...").fill("Vale refeição", { timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-configuracoes-meios-nenhum", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Meios de Pagamento", async (page) => {
+      for (const nome of ["Dinheiro", "Crédito", "Débito", "Pix"]) {
+        await page.locator(".meios-pagamento-tab__metodo-card", { hasText: nome }).first().click({ timeout: 3000 });
+      }
+    }) });
+  telas.push({ nome: "app-configuracoes-geral-alterado", perfil: "dono", caminho: "/app/configuracoes",
+    passo: naAba("Geral", async (page) => {
+      await page.locator(".geral-tab__input-dias").fill("0", { timeout: 3000 });
+      await page.getByLabel("Limite de retirada sem autorização").fill("150", { timeout: 3000 });
+    }) });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,
