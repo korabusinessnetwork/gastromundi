@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import { useCatalogo } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 
 // ── Aba Grupos de Categoria (C3) ──────────────────────────────────
 // Mapeia cada categoria de produto (texto livre) a um grupo (comida/bebida/
@@ -30,8 +28,8 @@ export default function CategoriasGrupoTab({ sz }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
-      <div className="geral-tab__card" style={{ padding: sz.pad, flexDirection: "column", alignItems: "stretch", gap: 4 }}>
+    <div className="categorias-grupo-tab" style={{ "--geral-pad": `${sz.pad}px`, "--geral-pad-sm": `${sz.padSm}px` }}>
+      <div className="geral-tab__card categorias-grupo-tab__intro">
         <div className="geral-tab__titulo">Radar de Oportunidades</div>
         <div className="geral-tab__ajuda">
           Defina o que é comida, bebida e sobremesa: associe cada categoria a um grupo.
@@ -42,25 +40,19 @@ export default function CategoriasGrupoTab({ sz }) {
       </div>
 
       {categorias.length === 0 ? (
-        <div className="categorias-grupo-tab__vazio" style={{ padding: sz.pad, color: varColor(C.muted) }}>
+        <div className="categorias-grupo-tab__vazio">
           Nenhuma categoria de produto cadastrada ainda.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="categorias-grupo-tab__lista">
           {categorias.map(cat => (
-            <div key={cat} className="geral-tab__card" style={{ padding: sz.padSm + 4, gap: sz.padSm }}>
-              <div className="categorias-grupo-tab__cat-nome" style={{ flex: 1, fontWeight: 700 }}>{cat}</div>
+            <div key={cat} className="geral-tab__card categorias-grupo-tab__cat">
+              <div className="categorias-grupo-tab__cat-nome">{cat}</div>
               <select
                 value={grupoPorCategoria[cat] ?? ""}
                 onChange={e => handleChange(cat, e.target.value)}
                 disabled={salvandoCat === cat}
-                className="categorias-grupo-tab__select-grupo"
-                style={{
-                  padding: "9px 12px", borderRadius: 10,
-                  border: `1.5px solid ${grupoPorCategoria[cat] ? varColor(C.accent) : "var(--gm-input-border)"}`,
-                  background: "var(--gm-input-bg)", color: varColor(C.text),
-                  fontFamily: "inherit", outline: "none", cursor: "pointer",
-                }}
+                className={`categorias-grupo-tab__select-grupo${grupoPorCategoria[cat] ? " categorias-grupo-tab__select-grupo--com-grupo" : ""}`}
               >
                 <option value="">, sem grupo, </option>
                 {gruposCategoria.map(g => (

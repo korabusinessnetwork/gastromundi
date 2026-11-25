@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { logAction } from "@/lib/logger";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
 import {
@@ -103,14 +101,14 @@ export default function DeliveryTab({ sz }) {
   };
 
   if (carregando || !horario) {
-    return <div className="delivery-tab__estado" style={{ padding: sz.pad }}>Carregando…</div>;
+    return <div className="delivery-tab__estado delivery-tab__estado--carregando" style={{ "--geral-pad": `${sz.pad}px` }}>Carregando…</div>;
   }
 
   return (
-    <div className="geral-tab">
+    <div className="geral-tab" style={{ "--geral-pad": `${sz.pad}px` }}>
       {/* Liga/desliga o agendamento */}
-      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
-        <div style={{ flex: 1 }}>
+      <div className="geral-tab__card">
+        <div className="geral-tab__texto">
           <div className="geral-tab__titulo">Abrir e fechar automaticamente</div>
           <div className="geral-tab__ajuda">
             O delivery abre e fecha sozinho nos dias e horários escolhidos.
@@ -120,17 +118,16 @@ export default function DeliveryTab({ sz }) {
         <button
           type="button"
           onClick={alternarAuto}
-          className="geral-tab__toggle"
-          style={{ background: horario.auto ? varColor(C.green) : varColor(C.faint), cursor: "pointer" }}
+          className={`geral-tab__toggle${horario.auto ? " geral-tab__toggle--ligada" : ""}`}
           aria-pressed={horario.auto}
           aria-label="Abrir e fechar o delivery automaticamente"
         >
-          <span className="geral-tab__toggle-bolinha" style={{ left: horario.auto ? 29 : 3 }} />
+          <span className="geral-tab__toggle-bolinha" />
         </button>
       </div>
 
       {horario.auto && (
-        <div className="geral-tab__card delivery-tab__detalhes" style={{ padding: sz.pad }}>
+        <div className="geral-tab__card delivery-tab__detalhes">
           {/* Dias de atendimento */}
           <div className="delivery-tab__bloco">
             <div className="delivery-tab__rotulo">Dias de atendimento</div>
@@ -222,11 +219,6 @@ export default function DeliveryTab({ sz }) {
           onClick={salvar}
           disabled={!podeSalvar}
           className="delivery-tab__salvar"
-          style={{
-            background: podeSalvar ? varColor(C.accent) : varColor(C.faint),
-            color: podeSalvar ? "#fff" : varColor(C.muted),
-            cursor: podeSalvar ? "pointer" : "not-allowed",
-          }}
         >
           {salvando ? "Salvando…" : "Salvar"}
         </button>

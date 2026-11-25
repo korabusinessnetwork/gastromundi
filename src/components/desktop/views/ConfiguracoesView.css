@@ -1682,3 +1682,215 @@
   color: var(--gm-muted);
   cursor: not-allowed;
 }
+
+/* ══ Fase 5 (refatoração 5.25): o que saiu do JSX das configurações ══
+   --cfg-pad e --cfg-pad-sm chegam na raiz; as abas que usam o cartão do
+   Geral (`geral-tab__card`) definem --geral-pad na própria raiz. */
+.configuracoes-view {
+  background: var(--gm-bg);
+}
+.configuracoes-view__header {
+  padding: calc(var(--cfg-pad) - 4px) var(--cfg-pad);
+}
+.configuracoes-view__titulo {
+  font-weight: 800;
+}
+.configuracoes-view__abas {
+  margin-top: var(--cfg-pad-sm);
+}
+.configuracoes-view__aba {
+  background: transparent;
+  color: var(--gm-muted);
+}
+.configuracoes-view__aba--ativa {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.configuracoes-view__conteudo {
+  padding: var(--cfg-pad);
+}
+
+/* Componentes pequenos: a cor vem do dado por variável. */
+.cfg__avatar {
+  width: var(--avatar-tam);
+  height: var(--avatar-tam);
+  border-radius: calc(var(--avatar-tam) / 2);
+  font-size: calc(var(--avatar-tam) * 0.4);
+}
+.cfg__badge-role {
+  background: color-mix(in srgb, var(--cargo-cor) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cargo-cor) 27%, transparent);
+  color: var(--cargo-cor);
+}
+.cfg__erro-box {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+.cfg__erro-box-icone {
+  vertical-align: -2px;
+}
+.perm-check--on:not(.perm-check--locked) {
+  border-color: var(--perm-cor);
+  background: color-mix(in srgb, var(--perm-cor) 12%, transparent);
+  color: var(--perm-cor);
+}
+.usuarios-tab__strength {
+  margin-top: 8px;
+}
+.usuarios-tab__strength-barra {
+  background: var(--gm-border);
+}
+.usuarios-tab__strength-barra--cheia {
+  background: var(--forca-cor);
+}
+.usuarios-tab__strength-label {
+  color: var(--forca-cor);
+  font-weight: 600;
+}
+.meios-pagamento-tab__toggle-chip {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.meios-pagamento-tab__toggle-chip--ativo {
+  border-color: var(--chip-cor);
+  background: color-mix(in srgb, var(--chip-cor) 9%, transparent);
+  color: var(--chip-cor);
+}
+
+/* Unidades de Medida: cada tipo tem um tom. */
+.unidades-medida-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--unidades-pad);
+}
+.unidades-medida-tab__carregando {
+  color: var(--gm-muted);
+  padding: var(--unidades-pad);
+}
+.unidades-medida-tab__grupo--estoque { --unidade-cor: var(--gm-blue); }
+.unidades-medida-tab__grupo--compra  { --unidade-cor: var(--gm-green); }
+.unidades-medida-tab__grupo--consumo { --unidade-cor: var(--gm-warn); }
+.unidades-medida-tab__grupo-header,
+.unidades-medida-tab__lista {
+  padding: var(--unidades-pad-sm) var(--unidades-pad);
+}
+.unidades-medida-tab__form-add {
+  padding: 0 var(--unidades-pad) var(--unidades-pad-sm);
+}
+.unidades-medida-tab__bolinha {
+  background: var(--unidade-cor);
+}
+.unidades-medida-tab__item-abbr {
+  color: var(--unidade-cor);
+}
+.unidades-medida-tab__btn-remover:hover {
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+}
+.unidades-medida-tab__input-abbr,
+.unidades-medida-tab__input-nome {
+  border-color: var(--gm-input-border);
+}
+.unidades-medida-tab__input--preenchido {
+  border-color: color-mix(in srgb, var(--unidade-cor) 53%, transparent);
+}
+.unidades-medida-tab__btn-add {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+.unidades-medida-tab__btn-add--pronto {
+  background: var(--unidade-cor);
+  cursor: pointer;
+}
+.unidades-medida-tab__delete-icone {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  color: var(--gm-red);
+}
+.unidades-medida-tab__delete-aviso-icone {
+  vertical-align: -2px;
+}
+.unidades-medida-tab__delete-cancelar {
+  border-color: var(--gm-border);
+  cursor: pointer;
+}
+.unidades-medida-tab__delete-cancelar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.unidades-medida-tab__delete-confirmar {
+  background: var(--gm-red);
+  cursor: pointer;
+}
+.unidades-medida-tab__delete-confirmar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* Radar de Oportunidades (categorias por grupo). */
+.categorias-grupo-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--geral-pad-sm);
+}
+.geral-tab__card.categorias-grupo-tab__intro {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.categorias-grupo-tab__vazio {
+  padding: var(--geral-pad);
+  color: var(--gm-muted);
+}
+.categorias-grupo-tab__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.geral-tab__card.categorias-grupo-tab__cat {
+  padding: calc(var(--geral-pad-sm) + 4px);
+  gap: var(--geral-pad-sm);
+}
+.categorias-grupo-tab__cat-nome {
+  flex: 1;
+  font-weight: 700;
+}
+.categorias-grupo-tab__select-grupo {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.categorias-grupo-tab__select-grupo--com-grupo {
+  border-color: var(--gm-accent);
+}
+
+/* Delivery. Os detalhes do horário voltam ao espaço de 18px entre blocos: a
+   regra `.geral-tab__card { gap }` acima, da refatoração 5.14, anulava o gap
+   do `.delivery-tab__detalhes` (mesma especificidade, veio depois) e, sem
+   --geral-pad definido nesta aba, os blocos ficavam colados. */
+.geral-tab__card.delivery-tab__detalhes {
+  gap: 18px;
+}
+.delivery-tab__estado--carregando {
+  padding: var(--geral-pad);
+}
+.delivery-tab__salvar {
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+}
+.delivery-tab__salvar:disabled {
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}

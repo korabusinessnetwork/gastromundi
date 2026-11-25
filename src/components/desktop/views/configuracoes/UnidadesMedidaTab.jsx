@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
 import { excluirUnidadeMedida, listarUnidadesMedida, adicionarUnidadeMedida, contarUsoDaUnidade } from "@/features/estoque/dados/unidadesMedida";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { createPortal } from "react-dom";
 import { LuPlus, LuX, LuTriangleAlert } from "react-icons/lu";
 import { TIPOS_UNIDADE, EMPTY_ADD } from "./apoio";
@@ -96,12 +93,12 @@ export default function UnidadesMedidaTab({ sz }) {
   };
 
   if (loading) {
-    return <div className="unidades-medida-tab__carregando" style={{ color: varColor(C.muted), padding: sz.pad }}>Carregando...</div>;
+    return <div className="unidades-medida-tab__carregando" style={{ "--unidades-pad": `${sz.pad}px` }}>Carregando...</div>;
   }
 
   return (
     <>
-    <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+    <div className="unidades-medida-tab" style={{ "--unidades-pad": `${sz.pad}px`, "--unidades-pad-sm": `${sz.padSm}px` }}>
       {!isAdmin && (
         <div className="unidades-medida-tab__leitura">
           Só o administrador pode adicionar ou remover unidades de medida. Aqui você confere as que estão cadastradas.
@@ -111,21 +108,21 @@ export default function UnidadesMedidaTab({ sz }) {
       {erro && !deleteInfo && (
         <div className="unidades-medida-tab__erro" role="alert">{erro}</div>
       )}
-      {TIPOS_UNIDADE.map(({ tipo, label, color }) => {
+      {TIPOS_UNIDADE.map(({ tipo, label }) => {
         const lista   = unidades.filter(u => u.tipo === tipo);
         const form    = addForms[tipo];
         const salvandoEste = salvando[tipo];
         return (
-          <div key={tipo} className="unidades-medida-tab__grupo">
+          <div key={tipo} className={`unidades-medida-tab__grupo unidades-medida-tab__grupo--${tipo}`}>
             {/* Cabeçalho */}
-            <div className="unidades-medida-tab__grupo-header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
-              <div className="unidades-medida-tab__bolinha" style={{ background: color }} />
+            <div className="unidades-medida-tab__grupo-header">
+              <div className="unidades-medida-tab__bolinha" />
               <span className="unidades-medida-tab__grupo-titulo">{label}</span>
               <span className="unidades-medida-tab__grupo-contagem">{lista.length} cadastrada{lista.length !== 1 ? "s" : ""}</span>
             </div>
 
             {/* Lista */}
-            <div className="unidades-medida-tab__lista" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+            <div className="unidades-medida-tab__lista">
               {lista.length === 0 && (
                 <div className="unidades-medida-tab__vazio">
                   Nenhuma unidade cadastrada.
@@ -133,7 +130,7 @@ export default function UnidadesMedidaTab({ sz }) {
               )}
               {lista.map(u => (
                 <div key={u.id} className="unidades-medida-tab__item">
-                  <span className="unidades-medida-tab__item-abbr" style={{ color }}>
+                  <span className="unidades-medida-tab__item-abbr">
                     {u.abreviacao}
                   </span>
                   <span className="unidades-medida-tab__item-nome">{u.nome}</span>
@@ -141,9 +138,8 @@ export default function UnidadesMedidaTab({ sz }) {
                     <button
                       onClick={() => iniciarRemover(u)}
                       title="Remover"
+                      aria-label={`Remover ${u.nome}`}
                       className="unidades-medida-tab__btn-remover"
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = alfa(C.red, "66"); e.currentTarget.style.color = varColor(C.red); }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.color = varColor(C.muted); }}
                     >
                       <LuX size={13} />
                     </button>
@@ -154,15 +150,14 @@ export default function UnidadesMedidaTab({ sz }) {
 
             {/* Formulário inline de adição */}
             {isAdmin && (
-              <div className="unidades-medida-tab__form-add" style={{ padding: `0 ${sz.pad}px ${sz.padSm}px` }}>
+              <div className="unidades-medida-tab__form-add">
                 <input
                   value={form.abbr}
                   onChange={e => setAddField(tipo, "abbr", e.target.value)}
                   onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
                   placeholder="abrev."
                   maxLength={10}
-                  className="unidades-medida-tab__input-abbr"
-                  style={{ borderColor: form.abbr ? alfa(color, "88") : "var(--gm-input-border)" }}
+                  className={`unidades-medida-tab__input-abbr${form.abbr ? " unidades-medida-tab__input--preenchido" : ""}`}
                 />
                 <input
                   value={form.nome}
@@ -170,14 +165,12 @@ export default function UnidadesMedidaTab({ sz }) {
                   onKeyDown={e => e.key === "Enter" && adicionar(tipo)}
                   placeholder="Nome completo"
                   maxLength={40}
-                  className="unidades-medida-tab__input-nome"
-                  style={{ borderColor: form.nome ? alfa(color, "88") : "var(--gm-input-border)" }}
+                  className={`unidades-medida-tab__input-nome${form.nome ? " unidades-medida-tab__input--preenchido" : ""}`}
                 />
                 <button
                   onClick={() => adicionar(tipo)}
                   disabled={!form.abbr.trim() || !form.nome.trim() || salvandoEste}
-                  className="unidades-medida-tab__btn-add"
-                  style={{ background: form.abbr.trim() && form.nome.trim() ? color : varColor(C.faint), cursor: form.abbr.trim() && form.nome.trim() ? "pointer" : "not-allowed" }}
+                  className={`unidades-medida-tab__btn-add${form.abbr.trim() && form.nome.trim() ? " unidades-medida-tab__btn-add--pronto" : ""}`}
                 >
                   <LuPlus size={14} />
                   {salvandoEste ? "..." : "Adicionar"}
@@ -193,8 +186,8 @@ export default function UnidadesMedidaTab({ sz }) {
       <div className="unidades-medida-tab__delete-overlay">
         <div className="unidades-medida-tab__delete-modal">
           <div className="unidades-medida-tab__delete-topo">
-            <div className="unidades-medida-tab__delete-icone" style={{ background: alfa(C.red, "15") }}>
-              <LuTriangleAlert size={22} color={varColor(C.red)} />
+            <div className="unidades-medida-tab__delete-icone">
+              <LuTriangleAlert size={22} />
             </div>
             <div>
               <div className="unidades-medida-tab__delete-titulo">Excluir unidade</div>
@@ -208,7 +201,7 @@ export default function UnidadesMedidaTab({ sz }) {
             </div>
             {deleteInfo.afetados > 0 ? (
               <div className="unidades-medida-tab__delete-aviso">
-                ⚠ {deleteInfo.afetados} {deleteInfo.afetados === 1 ? "produto ficará" : "produtos ficarão"} sem essa unidade configurada após a exclusão.
+                <LuTriangleAlert size={13} className="unidades-medida-tab__delete-aviso-icone" aria-hidden="true" /> {deleteInfo.afetados} {deleteInfo.afetados === 1 ? "produto ficará" : "produtos ficarão"} sem essa unidade configurada após a exclusão.
               </div>
             ) : (
               <div className="unidades-medida-tab__delete-sem-uso">
@@ -226,7 +219,6 @@ export default function UnidadesMedidaTab({ sz }) {
               onClick={() => setDeleteInfo(null)}
               disabled={deletando}
               className="unidades-medida-tab__delete-cancelar"
-              style={{ borderColor: varColor(C.border), cursor: deletando ? "not-allowed" : "pointer", opacity: deletando ? 0.5 : 1 }}
             >
               Cancelar
             </button>
@@ -234,7 +226,6 @@ export default function UnidadesMedidaTab({ sz }) {
               onClick={confirmarRemover}
               disabled={deletando}
               className="unidades-medida-tab__delete-confirmar"
-              style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}
             >
               {deletando ? "Excluindo..." : "Sim, excluir"}
             </button>

@@ -39,9 +39,10 @@ export function traduzirErro(error) {
 // ── Aba Meios de Pagamento ────────────────────────────────────────
 
 export const TIPOS_UNIDADE = [
-  { tipo: "estoque", label: "Unidade de estoque", color: varColor(C.blue)   },
-  { tipo: "compra",  label: "Unidade de compra",  color: varColor(C.green)  },
-  { tipo: "consumo", label: "Unidade de consumo", color: varColor(C.warn)   },
+  // A cor de cada tipo fica no CSS: `unidades-medida-tab__grupo--<tipo>`.
+  { tipo: "estoque", label: "Unidade de estoque" },
+  { tipo: "compra",  label: "Unidade de compra" },
+  { tipo: "consumo", label: "Unidade de consumo" },
 ];
 
 export const EMPTY_ADD = { abbr: "", nome: "" };

@@ -1,11 +1,10 @@
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
+import { LuTriangleAlert } from "react-icons/lu";
 
 export default function ErrBox({ msg }) {
   if (!msg) return null;
   return (
-    <div className="cfg__erro-box" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
-      ⚠️ {msg}
+    <div className="cfg__erro-box">
+      <LuTriangleAlert size={15} className="cfg__erro-box-icone" aria-hidden="true" /> {msg}
     </div>
   );
 }

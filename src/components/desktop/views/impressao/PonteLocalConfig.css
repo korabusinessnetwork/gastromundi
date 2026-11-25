@@ -226,3 +226,15 @@
 .ponte-config__baixar:hover {
   background: color-mix(in srgb, var(--gm-accent) 12%, transparent);
 }
+
+/* Fase 5: layout das colunas do modo local, que estava no JSX. */
+.ponte-config__coluna {
+  flex: 1;
+  min-width: 260px;
+}
+.ponte-config__paragrafo-topo {
+  margin-top: 0;
+}
+.ponte-config__muted--junto {
+  margin-bottom: 6px;
+}

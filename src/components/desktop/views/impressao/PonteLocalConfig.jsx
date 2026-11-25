@@ -238,8 +238,8 @@ export default function PonteLocalConfig() {
           {qrDataUrl
             ? <img className="ponte-config__qr" src={qrDataUrl} alt="QR code do modo local" />
             : <div className="ponte-config__qr" />}
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <p style={{ marginTop: 0 }}><strong>Prepare os celulares da equipe (uma vez só):</strong></p>
+          <div className="ponte-config__coluna">
+            <p className="ponte-config__paragrafo-topo"><strong>Prepare os celulares da equipe (uma vez só):</strong></p>
             <ol className="ponte-config__passos">
               <li>Conecte o celular no <strong>Wi-Fi do estabelecimento</strong> (o mesmo do caixa).</li>
               <li>Escaneie o QR ao lado com a câmera.</li>
@@ -247,7 +247,7 @@ export default function PonteLocalConfig() {
             </ol>
             {endereco && (
               <>
-                <p className="ponte-config__muted" style={{ marginBottom: 6 }}>Ou digite o endereço no celular:</p>
+                <p className="ponte-config__muted ponte-config__muted--junto">Ou digite o endereço no celular:</p>
                 <div className="ponte-config__endereco">{endereco}</div>
               </>
             )}
@@ -257,8 +257,8 @@ export default function PonteLocalConfig() {
 
       {status === "ausente" && (
         <div className="ponte-config__card">
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <p style={{ marginTop: 0 }}>
+          <div className="ponte-config__coluna">
+            <p className="ponte-config__paragrafo-topo">
               A ponte é um programinha <strong>gratuito</strong> que roda neste computador e faz o pedido do
               celular chegar no caixa e na impressora <strong>mesmo sem internet</strong>.
             </p>

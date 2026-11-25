@@ -478,7 +478,7 @@ export default function ImportarExportarTab() {
           </div>
           <div className="imex__progresso-trilha">
             <div className="imex__progresso-barra"
-              style={{ width: progressoIA.total ? `${Math.round((progressoIA.feito / progressoIA.total) * 100)}%` : "0%" }} />
+              style={{ "--progresso": progressoIA.total ? `${Math.round((progressoIA.feito / progressoIA.total) * 100)}%` : "0%" }} />
           </div>
           <div className="imex__ajuda">{FASE_IA[progressoIA.fase] || "Preparando…"}</div>
         </div>
@@ -551,7 +551,7 @@ export default function ImportarExportarTab() {
           <div className="imex__titulo">{cfg.tituloGravando}</div>
           <div className="imex__progresso-trilha">
             <div className="imex__progresso-barra"
-              style={{ width: progresso.total ? `${Math.round((progresso.feitos / progresso.total) * 100)}%` : "0%" }} />
+              style={{ "--progresso": progresso.total ? `${Math.round((progresso.feitos / progresso.total) * 100)}%` : "0%" }} />
           </div>
           <div className="imex__ajuda">{progresso.feitos} de {progresso.total}</div>
         </div>

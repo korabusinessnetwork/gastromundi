@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { LuPrinter, LuBike, LuReceipt, LuPalette } from "react-icons/lu";
 import ConfiguracaoImpressao from "./impressao/ConfiguracaoImpressao";
 import MesasAdmin from "./mesas/MesasAdmin";
@@ -32,26 +30,22 @@ export default function ConfiguracoesView() {
   const abasVisiveis = ABAS_CONFIG.filter(a => (!a.adminOnly || isAdmin) && (!a.gerenteOnly || isGerente));
 
   return (
-    <div className="configuracoes-view" style={{ background: varColor(C.bg) }}>
+    <div className="configuracoes-view" style={{ "--cfg-pad": `${sz.pad}px`, "--cfg-pad-sm": `${sz.padSm}px` }}>
 
       {/* Header */}
-      <div className="configuracoes-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
-        <div className="configuracoes-view__titulo" style={{ fontWeight: 800 }}>Configurações</div>
+      <div className="configuracoes-view__header">
+        <div className="configuracoes-view__titulo">Configurações</div>
         <div className="configuracoes-view__subtitulo">
           Gerencie os usuários e configurações do sistema
         </div>
 
         {/* Tabs */}
-        <div className="configuracoes-view__abas" style={{ marginTop: sz.padSm }}>
+        <div className="configuracoes-view__abas">
           {abasVisiveis.map(a => (
             <button
               key={a.id}
               onClick={() => setAba(a.id)}
-              className="configuracoes-view__aba"
-              style={{
-                background: aba === a.id ? varColor(C.accent) : "transparent",
-                color: aba === a.id ? "#fff" : varColor(C.muted),
-              }}
+              className={`configuracoes-view__aba${aba === a.id ? " configuracoes-view__aba--ativa" : ""}`}
             >
               {a.id === "identidade" && <LuPalette size={13} />}
               {a.id === "impressao" && <LuPrinter size={13} />}
@@ -64,7 +58,7 @@ export default function ConfiguracoesView() {
       </div>
 
       {/* Conteúdo */}
-      <div className="configuracoes-view__conteudo" style={{ padding: sz.pad }}>
+      <div className="configuracoes-view__conteudo">
         {aba === "geral"           && <GeralTab sz={sz} />}
         {aba === "identidade" && isAdmin && <IdentidadeTab />}
         {aba === "usuarios"        && <UsuariosTab sz={sz} />}
