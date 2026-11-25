@@ -4,9 +4,6 @@ import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { round2 } from "@/lib/vendas";
 import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
 import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/lib/caixaMovimentos";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { LuLock, LuBanknote, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useConfig, useCaixa } from "@/context/AppContext";
 import "./FechamentoModal.css";
@@ -108,7 +105,6 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   const totalConferido = round2(meios.reduce((s, k) => s + parsVal(confDe(k)), 0));
   const diferencaTotal = round2(totalConferido - totalSistema);
   const situacao       = situacaoCaixa(diferencaTotal);
-  const corDiferenca   = situacao === "falta" ? C.red : C.green;
   const totalNaoMapeado = round2(Object.values(naoMapeados).reduce((s, v) => s + v, 0));
 
   const handleConfirm = async () => {
@@ -135,50 +131,30 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
   return (
     <div
       {...fecharAoClicarFora(onClose)}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 400, fontFamily: "'Inter',system-ui,sans-serif", padding: 16,
-      }}
+      className="fechamento-modal"
     >
-      <div style={{
-        background: varColor(C.card), borderRadius: 20, padding: 28,
-        width: "100%", maxWidth: 520, boxSizing: "border-box",
-        border: `1px solid var(${C.border})`,
-        display: "flex", flexDirection: "column", gap: 22,
-        maxHeight: "92vh", overflowY: "auto",
-      }}>
+      <div className="fechamento-modal__caixa">
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-            background: `${alfa(C.accent, "18")}`, border: `1.5px solid ${alfa(C.accent, "44")}`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <LuLock size={22} color={varColor(C.accent)} />
+        <div className="fechamento-modal__topo">
+          <div className="fechamento-modal__icone">
+            <LuLock size={22} />
           </div>
           <div>
-            <div className="fechamento-modal__titulo" style={{ fontWeight: 800 }}>Fechar Caixa</div>
-            <div className="fechamento-modal__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+            <div className="fechamento-modal__titulo">Fechar Caixa</div>
+            <div className="fechamento-modal__subtitulo">
               {hoje.length} venda{hoje.length !== 1 ? "s" : ""} hoje · confira e ajuste os valores se necessário
             </div>
           </div>
         </div>
 
         {/* Tabela de conferência */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div className="fechamento-modal__tabela">
           {/* Cabeçalho da tabela */}
-          <div className="fechamento-modal__tabela-cabecalho" style={{
-            display: "grid", gridTemplateColumns: "1fr 90px 106px",
-            gap: 8, paddingBottom: 8, marginBottom: 2,
-            borderBottom: `1px solid var(${C.border})`,
-            fontWeight: 700, color: varColor(C.muted),
-            textTransform: "uppercase", letterSpacing: 1,
-          }}>
+          <div className="fechamento-modal__tabela-cabecalho">
             <span>Método</span>
-            <span style={{ textAlign: "right" }}>Sistema</span>
-            <span style={{ textAlign: "right", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+            <span className="fechamento-modal__col-direita">Sistema</span>
+            <span className="fechamento-modal__col-direita fechamento-modal__col-conferido">
               <LuPencil size={10} /> Conferido
             </span>
           </div>
@@ -190,21 +166,19 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             const diff       = round2(confVal - sistemaVal);
             const hasDiff    = Math.abs(diff) > TOLERANCIA_CENTAVO;
             const isPositive = diff >= 0;
+            const sinal      = isPositive ? "sobra" : "falta";
 
             return (
-              <div key={metodo} style={{ borderBottom: `1px solid var(${C.border})` }}>
-                <div style={{
-                  display: "grid", gridTemplateColumns: "1fr 90px 106px",
-                  gap: 8, alignItems: "center", padding: "11px 0",
-                }}>
+              <div key={metodo} className="fechamento-modal__linha">
+                <div className="fechamento-modal__linha-grade">
                   {/* Nome do método */}
                   <div>
-                    <div className="fechamento-modal__metodo-nome" style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600 }}>
-                      <Icon size={15} color={varColor(C.muted)} />
+                    <div className="fechamento-modal__metodo-nome">
+                      <Icon size={15} className="fechamento-modal__metodo-icone" />
                       {label}
                     </div>
                     {metodo === "dinheiro" && (
-                      <div className="fechamento-modal__fundo-nota" style={{ color: varColor(C.muted), marginTop: 3, paddingLeft: 23 }}>
+                      <div className="fechamento-modal__fundo-nota">
                         inclui fundo {fmtR(fundoAtual)}
                         {/* Sem dizer aqui de onde veio o desconto, o operador
                             só via um esperado menor e não sabia por quê. */}
@@ -215,7 +189,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                   </div>
 
                   {/* Valor sistema (read-only) */}
-                  <div className="fechamento-modal__valor-sistema" style={{ textAlign: "right", color: varColor(C.muted), fontWeight: 600 }}>
+                  <div className="fechamento-modal__valor-sistema">
                     {fmtR(sistemaVal)}
                   </div>
 
@@ -226,24 +200,13 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
                     step="0.01"
                     value={confDe(metodo)}
                     onChange={e => setMetodo(metodo, e.target.value)}
-                    className="fechamento-modal__input-conferido"
-                    style={{
-                      width: "100%", padding: "8px 10px",
-                      borderRadius: 8, textAlign: "right",
-                      border: `1.5px solid ${hasDiff ? alfa(isPositive ? C.green : C.red, "99") : "var(--gm-input-border)"}`,
-                      background: hasDiff ? (isPositive ? `${alfa(C.green, "10")}` : `${alfa(C.red, "10")}`) : "var(--gm-input-bg)",
-                      color: varColor(C.text), fontWeight: 700,
-                      boxSizing: "border-box", fontFamily: "inherit", outline: "none",
-                    }}
+                    className={`fechamento-modal__input-conferido${hasDiff ? ` fechamento-modal__input-conferido--${sinal}` : ""}`}
                   />
                 </div>
 
                 {/* Diferença por linha */}
                 {hasDiff && (
-                  <div className="fechamento-modal__diferenca-linha" style={{
-                    textAlign: "right", fontWeight: 700, paddingBottom: 6,
-                    color: isPositive ? varColor(C.green) : varColor(C.red),
-                  }}>
+                  <div className={`fechamento-modal__diferenca-linha fechamento-modal__diferenca-linha--${sinal}`}>
                     {isPositive ? "+" : ""}{fmtR(diff)} {isPositive ? "sobra" : "falta"}
                   </div>
                 )}
@@ -254,13 +217,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
         {/* Banner de métodos não mapeados */}
         {Object.keys(naoMapeados).length > 0 && (
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 10,
-            padding: "12px 14px", borderRadius: 12,
-            background: `${alfa(C.warn, "14")}`, border: `1.5px solid ${alfa(C.warn, "55")}`,
-          }}>
-            <LuTriangleAlert size={16} color={varColor(C.warn)} style={{ flexShrink: 0, marginTop: 1 }} />
-            <div className="fechamento-modal__banner-texto" style={{ color: varColor(C.warn) }}>
+          <div className="fechamento-modal__banner">
+            <LuTriangleAlert size={16} className="fechamento-modal__banner-icone" />
+            <div className="fechamento-modal__banner-texto">
               <strong>
                 R$ {totalNaoMapeado.toFixed(2)} em métodos não configurados:
               </strong>{" "}
@@ -270,7 +229,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
               {/* Sem esta frase o operador via o aviso e não entendia por que a
                   diferença não fechava — agora fica claro que o valor está
                   fora da conferência, e o que fazer para trazê-lo para dentro. */}
-              <div style={{ marginTop: 4 }}>
+              <div className="fechamento-modal__banner-ajuda">
                 Fica fora da conferência do caixa. Ative o método em Configurações para conferi-lo aqui.
               </div>
             </div>
@@ -278,11 +237,7 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
         )}
 
         {/* Resumo */}
-        <div style={{
-          background: varColor(C.surface), borderRadius: 14,
-          border: `1px solid var(${C.border})`, padding: 16,
-          display: "flex", flexDirection: "column", gap: 9,
-        }}>
+        <div className="fechamento-modal__resumo">
           <Row label="Total de Vendas (sistema)" value={fmtR(totalVendas)} muted />
           <Row label={`Fundo de Caixa`} value={fmtR(fundoAtual)} muted />
           {/* F005 — as duas parcelas do meio da fórmula do CAIXA.md só
@@ -290,37 +245,29 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
               movimentou nada. */}
           {suprimentos > 0 && <Row label="Reforços de troco (entrou)" value={`+ ${fmtR(suprimentos)}`} muted />}
           {sangrias    > 0 && <Row label="Retiradas do caixa (saiu)"  value={`− ${fmtR(sangrias)}`}    muted />}
-          <div style={{ borderTop: `1px solid var(${C.border})`, paddingTop: 9, marginTop: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="fechamento-modal__total-esperado-label" style={{ fontWeight: 700 }}>Total Esperado em Caixa</span>
-            <span className="fechamento-modal__total-esperado-valor" style={{ fontWeight: 800, color: varColor(C.muted) }}>{fmtR(totalSistema)}</span>
+          <div className="fechamento-modal__linha-resumo fechamento-modal__linha-resumo--esperado">
+            <span className="fechamento-modal__total-esperado-label">Total Esperado em Caixa</span>
+            <span className="fechamento-modal__total-esperado-valor">{fmtR(totalSistema)}</span>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span className="fechamento-modal__total-conferido-label" style={{ fontWeight: 800 }}>Total Conferido</span>
-            <span className="fechamento-modal__total-conferido-valor" style={{ fontWeight: 900, color: varColor(C.green) }}>{fmtR(totalConferido)}</span>
+          <div className="fechamento-modal__linha-resumo">
+            <span className="fechamento-modal__total-conferido-label">Total Conferido</span>
+            <span className="fechamento-modal__total-conferido-valor">{fmtR(totalConferido)}</span>
           </div>
 
           {/* Diferença total */}
-          <div style={{
-            padding: "12px 16px", borderRadius: 10, marginTop: 4,
-            background: `${alfa(corDiferenca, "14")}`,
-            border: `1.5px solid ${alfa(corDiferenca, "55")}`,
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}>
-            <span className="fechamento-modal__diferenca-label" style={{ fontWeight: 600, color: varColor(C.muted) }}>
+          <div className={`fechamento-modal__diferenca fechamento-modal__diferenca--${situacao === "falta" ? "falta" : "ok"}`}>
+            <span className="fechamento-modal__diferenca-label">
               {ROTULO_SITUACAO[situacao]}
             </span>
-            <span className="fechamento-modal__diferenca-valor" style={{ fontWeight: 900, color: varColor(corDiferenca) }}>
+            <span className="fechamento-modal__diferenca-valor">
               {situacao === "sobra" ? "+" : ""}{fmtR(diferencaTotal)}
             </span>
           </div>
         </div>
 
         {/* Observação */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div className="fechamento-modal__obs-label" style={{
-            fontWeight: 700, color: varColor(C.muted),
-            textTransform: "uppercase", letterSpacing: 1,
-          }}>
+        <div className="fechamento-modal__obs">
+          <div className="fechamento-modal__obs-label">
             Observação (opcional)
           </div>
           <textarea
@@ -329,35 +276,20 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             placeholder="Ex: sobra de R$ 10 devolvida ao caixa, cliente X pagou amanhã..."
             maxLength={400}
             rows={3}
-            className="fechamento-modal__obs-textarea"
-            style={{
-              width: "100%", padding: "10px 12px",
-              borderRadius: 10, border: `1.5px solid ${observacao ? alfa(C.accent, "66") : "var(--gm-input-border)"}`,
-              background: "var(--gm-input-bg)", color: varColor(C.text),
-              fontFamily: "inherit", outline: "none",
-              resize: "none",
-              boxSizing: "border-box",
-              transition: "border-color 0.15s",
-            }}
+            className={`fechamento-modal__obs-textarea${observacao ? " fechamento-modal__obs-textarea--preenchida" : ""}`}
           />
           {observacao && (
-            <div className="fechamento-modal__obs-contador" style={{ color: varColor(C.muted), textAlign: "right" }}>
+            <div className="fechamento-modal__obs-contador">
               {observacao.length}/400
             </div>
           )}
         </div>
 
         {/* Botões */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="fechamento-modal__botoes">
           <button
             onClick={onClose}
             className="fechamento-modal__btn-cancelar"
-            style={{
-              flex: 1, padding: 13, borderRadius: 10,
-              border: `1px solid var(${C.border})`, background: "none",
-              color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-              fontFamily: "inherit",
-            }}
           >
             Cancelar
           </button>
@@ -365,14 +297,6 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             onClick={handleConfirm}
             disabled={salvando}
             className="fechamento-modal__btn-confirmar"
-            style={{
-              flex: 2, padding: 13, borderRadius: 10, border: "none",
-              background: salvando ? varColor(C.faint) : varColor(C.accent),
-              color: "#fff", cursor: salvando ? "not-allowed" : "pointer",
-              fontWeight: 700, fontFamily: "inherit",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
-              transition: "background 0.2s",
-            }}
           >
             {salvando ? "Fechando..." : <><LuLock size={14} />Confirmar Fechamento</>}
           </button>
@@ -384,9 +308,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
 function Row({ label, value, muted }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <span className="fechamento-modal__row-label" style={{ color: varColor(C.muted) }}>{label}</span>
-      <span className="fechamento-modal__row-valor" style={{ fontWeight: 600, color: muted ? varColor(C.muted) : varColor(C.text) }}>{value}</span>
+    <div className="fechamento-modal__linha-resumo">
+      <span className="fechamento-modal__row-label">{label}</span>
+      <span className={`fechamento-modal__row-valor${muted ? " fechamento-modal__row-valor--apagado" : ""}`}>{value}</span>
     </div>
   );
 }

@@ -1,0 +1,257 @@
+/*
+ * Janela das comandas fechadas (fase 5, 5.7): o estilo saiu do JSX.
+ * As classes sidebar__modal-* continuam dando o tamanho de fonte e são
+ * compartilhadas com outras janelas da barra lateral, por isso as regras
+ * daqui têm prefixo próprio. alfa(cor, hex) virou color-mix na mesma
+ * proporção (hex/255): 10→6%, 33→20%, 55→33%, 66→40%.
+ */
+
+.fechadas-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.fechadas-modal__caixa {
+  background: var(--gm-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  color: var(--gm-text);
+  overflow: hidden;
+}
+
+.fechadas-modal__caixa--detalhe {
+  max-width: 480px;
+}
+
+.fechadas-modal__topo {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.fechadas-modal__voltar {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 6px 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fechadas-modal__cabecalho { flex: 1; }
+.fechadas-modal__titulo { font-weight: 900; }
+
+.fechadas-modal__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.fechadas-modal__fechar {
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.fechadas-modal__corpo {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ── Detalhe de uma venda ── */
+
+.fechadas-modal__detalhe {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fechadas-modal__resumo {
+  background: var(--gm-surface);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fechadas-modal__info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gm-muted);
+}
+
+.fechadas-modal__info-texto { color: var(--gm-muted); }
+.fechadas-modal__destaque { color: var(--gm-text); }
+
+.fechadas-modal__itens {
+  background: var(--gm-surface);
+  border-radius: 12px;
+  border: 1px solid var(--gm-border);
+  overflow: hidden;
+}
+
+.fechadas-modal__itens-titulo {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--gm-border);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fechadas-modal__vazio {
+  padding: 16px;
+  color: var(--gm-muted);
+}
+
+/* Divisória entre itens, sem a da última linha. */
+.fechadas-modal__item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.fechadas-modal__item:last-child { border-bottom: none; }
+
+.fechadas-modal__item-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fechadas-modal__item-nome { font-weight: 600; }
+.fechadas-modal__item-emoji { margin-right: 6px; }
+
+.fechadas-modal__item-qtd {
+  color: var(--gm-muted);
+  font-weight: 500;
+}
+
+.fechadas-modal__item-preco {
+  font-weight: 700;
+  color: var(--gm-green);
+}
+
+.fechadas-modal__item-obs {
+  color: var(--gm-accent);
+  margin-top: 3px;
+}
+
+.fechadas-modal__total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 20%, transparent);
+}
+
+.fechadas-modal__total-rotulo { font-weight: 700; }
+
+.fechadas-modal__total-valor {
+  font-weight: 900;
+  color: var(--gm-green);
+}
+
+.fechadas-modal__cancelar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+  color: var(--gm-red);
+  font-weight: 700;
+}
+
+/* ── Lista ── */
+
+.fechadas-modal__lista {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* O hover era onMouseEnter/onMouseLeave em cada venda. */
+.fechadas-modal__venda {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--gm-text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.fechadas-modal__venda:hover {
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+  background: var(--gm-alow);
+}
+
+.fechadas-modal__venda-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gm-muted);
+}
+
+.fechadas-modal__venda-corpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.fechadas-modal__venda-nome { font-weight: 700; }
+
+.fechadas-modal__venda-meta {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+
+.fechadas-modal__venda-usuario { margin-right: 3px; }
+
+.fechadas-modal__venda-valor {
+  font-weight: 800;
+  color: var(--gm-green);
+  flex-shrink: 0;
+}

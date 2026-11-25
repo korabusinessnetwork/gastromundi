@@ -65,6 +65,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-25 | 5.4 notas de entrada | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.236 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.431 testes | 2.418 kB |
 | 2026-11-25 | 5.5 vendas e pagamento | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.129 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.431 testes | 2.412 kB |
 | 2026-11-25 | 5.6 desempenho e grade de comandas | 66 | 0 | 15 | 111 (0 / 0 / 111) | 1.036 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.431 testes | 2.408 kB |
+| 2026-11-25 | 5.7 fechamento e comandas fechadas | 66 | 0 | 15 | 111 (0 / 0 / 111) | 957 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.431 testes | 2.403 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

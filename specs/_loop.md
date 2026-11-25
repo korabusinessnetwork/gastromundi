@@ -1,3 +1,11 @@
+## Rodada 113, refatoração 5.7, fechamento de caixa e comandas fechadas sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-7-fechamento-e-comandas-fechadas.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 75 telas, 1
+  diferença explicada (o foco da observação segue a regra global). Sem migration. Estilo
+  inline: 1.036 para 957.
+- Fechamento 41 para 0; comandas fechadas 38 para 0.
+- Roteiro ganhou o gancho `preparar(contexto)` e quatro telas.
 ## Rodada 112, refatoração 5.6, Desempenho e grade de comandas sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-6-desempenho-e-grade-de-comandas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431

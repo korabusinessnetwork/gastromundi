@@ -354,6 +354,7 @@ cobrindo o carrinho e suas janelas antes da conversão. Depois, `FichasTecnicasT
 Depois, as Notas de Entrada: `NotaAssistenteXml` (72 para 0) e `NotaManual` (57 para 0).
 Depois, a aba Vendas do relatório (59 para 0) e o painel de pagamento do PDV (48 para 0).
 Depois, o relatório de Desempenho (47 para 0) e a grade de comandas do PDV (46 para 0).
+Depois, o fechamento de caixa (41 para 0) e as comandas fechadas (38 para 0).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

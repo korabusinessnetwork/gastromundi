@@ -183,6 +183,48 @@ function roteiro(largura) {
       await page.locator(".desempenho__periodos").getByRole("button", { name: "Período" }).click({ timeout: 3000 });
       await page.locator(".desempenho__datas .desempenho__date-input").first().fill("2026-11-10", { timeout: 3000 });
     } });
+  // Fase 5: comandas fechadas (lista, hover e detalhe de uma venda dividida).
+  const abrirFechadas = (page) => page.getByRole("button", { name: /Comandas fechadas/ }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-comandas-fechadas", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirFechadas(page);
+      await page.getByRole("button", { name: /Comanda 8/ }).hover({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-comandas-fechadas-detalhe", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirFechadas(page);
+      await page.getByRole("button", { name: /Comanda 9/ }).click({ timeout: 3000 });
+    } });
+  // Fase 5: fechamento de caixa. O botão só libera sem comanda aberta, então
+  // estas telas respondem `pending` vazio.
+  const semComandasAbertas = (extra) => async (contexto) => {
+    await contexto.route(/\/rest\/v1\/pending/, (route) => (route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json",
+        headers: { "access-control-allow-origin": "*", "content-range": "*/0" }, body: "[]" })
+      : route.fallback()));
+    if (extra) await extra(contexto);
+  };
+  const abrirFechamento = (page) => page.getByRole("button", { name: /Fechar Caixa/ }).first().click({ timeout: 3000 });
+  telas.push({ nome: "app-fechamento", perfil: "dono", caminho: "/app/pdv",
+    preparar: semComandasAbertas(), passo: abrirFechamento });
+  telas.push({ nome: "app-fechamento-diferenca", perfil: "dono", caminho: "/app/pdv",
+    // Um pagamento num método que o estabelecimento não ativou acende o aviso.
+    preparar: semComandasAbertas((contexto) => contexto.route(/\/rest\/v1\/venda_pagamentos/, (route) =>
+      route.fulfill({ status: 200, contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([
+          { venda_id: "venda-1", metodo: "vale_refeicao", valor: 25 },
+          { venda_id: "venda-2", metodo: "dinheiro", valor: 20 },
+          { venda_id: "venda-2", metodo: "credito", valor: 22.5 },
+          { venda_id: "venda-3", metodo: "debito", valor: 18 },
+        ]) }))),
+    passo: async (page) => {
+      await abrirFechamento(page);
+      const campos = page.locator(".fechamento-modal__input-conferido");
+      await campos.nth(0).fill("80", { timeout: 3000 });
+      await campos.nth(3).fill("30", { timeout: 3000 });
+      await page.locator(".fechamento-modal__obs-textarea").fill("Faltou troco no fim da tarde.", { timeout: 3000 });
+    } });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
   const modoVendas = (rotulo) => async (page) => {
     await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });
@@ -298,6 +340,8 @@ async function capturar(pasta, ref) {
         });
         await contexto.clock.setFixedTime(AGORA);
         await instalarSupabaseFalso(contexto, origem);
+        // Rota própria da tela, registrada depois do falso para ter precedência.
+        if (tela.preparar) await tela.preparar(contexto);
         if (tela.perfil) {
           const { chave, valor } = sessaoNoNavegador(tela.perfil);
           await contexto.addInitScript(([k, v]) => { globalThis.localStorage.setItem(k, v); }, [chave, valor]);
