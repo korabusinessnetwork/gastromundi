@@ -286,6 +286,45 @@ function roteiro(largura) {
       await page.locator(".produtos-view__conversao-fator").last().fill("0.5", { timeout: 3000 });
       await page.locator(".produtos-view__modal").evaluate((el) => { el.scrollTop = el.scrollHeight; });
     } });
+  // Fase 5: janelas de categoria e de exclusão do cadastro de produtos.
+  const abrirCategorias = (page) => page.getByRole("button", { name: /Categorias/ }).click({ timeout: 3000 });
+  telas.push({ nome: "app-produtos-categorias", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCategorias(page);
+      await page.getByPlaceholder("Ex: Bebidas, Lanches...").fill("Lanches", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-produtos-categoria-editar", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCategorias(page);
+      await page.locator(".produtos-view__cat-item", { hasText: "Sobremesas" }).locator(".produtos-view__cat-btn-editar").click({ timeout: 3000 });
+      await page.getByPlaceholder("Ex: Bebidas, Lanches...").fill("Pratos", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-produtos-categoria-excluir", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCategorias(page);
+      await page.locator(".produtos-view__cat-item", { hasText: "Sobremesas" }).locator(".produtos-view__cat-btn-excluir").click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-produtos-excluir", perfil: "dono", caminho: "/app/produtos",
+    passo: (page) => page.locator(".produtos-view__tr", { hasText: "Coxinha" }).getByRole("button", { name: "Excluir" }).click({ timeout: 3000 }) });
+  // Fase 5: combos (lista, criar, editar com composição, excluir).
+  const abrirCombos = (page) => page.getByRole("button", { name: "Combos", exact: true }).click({ timeout: 3000 });
+  telas.push({ nome: "app-combos", perfil: "dono", caminho: "/app/produtos", passo: abrirCombos });
+  telas.push({ nome: "app-combos-novo", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCombos(page);
+      await page.getByRole("button", { name: /Criar Combo/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-combos-editar", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCombos(page);
+      await page.locator(".combos-view__card", { hasText: "Combo Lanche" }).getByTitle("Editar combo").click({ timeout: 3000 });
+      await page.getByText("Batata frita").last().waitFor({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-combos-excluir", perfil: "dono", caminho: "/app/produtos",
+    passo: async (page) => {
+      await abrirCombos(page);
+      await page.locator(".combos-view__card", { hasText: "Combo Lanche" }).getByTitle("Excluir combo").click({ timeout: 3000 });
+    } });
   // Fase 5: desconto e acréscimo no pagamento.
   const abrirAjuste = async (page) => {
     await irParaPagamento(page);

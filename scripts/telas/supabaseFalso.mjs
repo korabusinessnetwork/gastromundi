@@ -162,7 +162,21 @@ const tabelas = {
     { id: "sub-3", nome: "Refrigerante lata", categoria: "Bebidas", preco: 6, unidade_medida: "Unidade",
       controla_estoque: false, ativo: false, estoque_subprodutos: [] },
   ],
-  combo_subprodutos: [{ subproduto_id: "sub-1" }],
+  // Fase 5: combos. A lista lê a composição resumida embutida; a janela de
+  // edição lê as tabelas de composição filtradas por combo_id.
+  combos: [
+    { id: "combo-1", nome: "Combo Lanche", item_principal_id: 5, modo: "combo", preco_total: 28, ativo: true,
+      created_at: "2026-11-19T12:00:00.000Z",
+      combo_subprodutos: [{ quantidade: 1, subprodutos: { nome: "Batata frita", preco: 12 } }],
+      combo_produtos: [{ quantidade: 1, products: { name: "Suco de laranja" } }] },
+    { id: "combo-2", nome: "Café com pão de queijo", item_principal_id: 1, modo: "substituir", preco_total: 10, ativo: false,
+      created_at: "2026-11-18T12:00:00.000Z", combo_subprodutos: [], combo_produtos: [] },
+  ],
+  combo_subprodutos: [{ id: "cs-1", combo_id: "combo-1", subproduto_id: "sub-1", quantidade: 1, preco_customizado: null,
+    subprodutos: { id: "sub-1", nome: "Batata frita", categoria: "Acompanhamentos", preco: 12, unidade_medida: "Porção",
+      controla_estoque: true, ativo: true } }],
+  combo_produtos: [{ id: "cp-1", combo_id: "combo-1", product_id: 2, quantidade: 1, preco_customizado: 8,
+    products: { id: 2, name: "Suco de laranja", price: 9.5, emoji: "🍊", category: "Bebidas" } }],
   grupos_categoria: [
     { id: 1, nome: "comida" }, { id: 2, nome: "bebida" },
   ],
