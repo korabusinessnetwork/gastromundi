@@ -597,6 +597,52 @@ function roteiro(largura) {
       await page.locator(".geral-tab__input-dias").fill("0", { timeout: 3000 });
       await page.getByLabel("Limite de retirada sem autorização").fill("150", { timeout: 3000 });
     }) });
+  // Fase 5: cadastro de mesas. As mesas falsas não têm posição (o mapa do PDV
+  // as desenha em grade); estas telas as posicionam, como no salão de verdade.
+  const comMesasPosicionadas = (semPosicaoNa6) => (contexto) => contexto.route(/\/rest\/v1\/mesas/, (route) => (route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([
+        { numero: 1, capacidade: 4, posicao_x: 1, posicao_y: 1, status_manual: null },
+        { numero: 2, capacidade: 2, posicao_x: 2, posicao_y: 1, status_manual: null },
+        { numero: 3, capacidade: 4, posicao_x: 3, posicao_y: 1, status_manual: "reservada" },
+        { numero: 4, capacidade: 6, posicao_x: 1, posicao_y: 2, status_manual: null },
+        { numero: 5, capacidade: 4, posicao_x: 2, posicao_y: 2, status_manual: "manutencao" },
+        semPosicaoNa6
+          ? { numero: 6, capacidade: 8, posicao_x: null, posicao_y: null, status_manual: null }
+          : { numero: 6, capacidade: 8, posicao_x: 4, posicao_y: 2, status_manual: null },
+      ]) })
+    : route.fallback()));
+  telas.push({ nome: "app-pdv-mapa-posicionado", perfil: "dono", caminho: "/app/pdv",
+    preparar: comMesasPosicionadas(true), passo: abaPdv("Mapa") });
+  const naMesas = (passo) => naAba("Mesas", passo);
+  const cardAdmin = (page, numero) => page.locator("[draggable]", { hasText: new RegExp(`^${numero}`) }).first();
+  telas.push({ nome: "app-configuracoes-mesas-mapa", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas(() => {}) });
+  telas.push({ nome: "app-configuracoes-mesas-hover", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas((page) => cardAdmin(page, 2).hover({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-mesas-planejar", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas((page) => page.locator("#mesas-preview-total").fill("9", { timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-mesas-arrastada", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false),
+    passo: naMesas((page) => cardAdmin(page, 6).dragTo(page.getByLabel("Criar mesa na posição 3, 2"), { timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-mesas-nova", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas((page) => page.getByRole("button", { name: "Nova Mesa" }).click({ timeout: 3000 })) });
+  telas.push({ nome: "app-configuracoes-mesas-repetida", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas(async (page) => {
+      await page.getByRole("button", { name: "Nova Mesa" }).click({ timeout: 3000 });
+      await page.getByPlaceholder("Ex: 1, 2, Varanda A…").fill("1", { timeout: 3000 });
+      await page.getByRole("button", { name: "Criar mesa" }).click({ timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-configuracoes-mesas-editar", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas(async (page) => {
+      await cardAdmin(page, 2).hover({ timeout: 3000 });
+      await page.getByTitle("Editar").click({ timeout: 3000 });
+    }) });
+  telas.push({ nome: "app-configuracoes-mesas-remover", perfil: "dono", caminho: "/app/configuracoes",
+    preparar: comMesasPosicionadas(false), passo: naMesas(async (page) => {
+      await cardAdmin(page, 2).hover({ timeout: 3000 });
+      await page.getByTitle("Remover").click({ timeout: 3000 });
+    }) });
   for (const aba of ABAS_CONFIGURACOES) {
     telas.push({
       nome: `app-configuracoes-${paraArquivo(aba)}`,
