@@ -667,6 +667,31 @@ function roteiro(largura) {
       await abrirSecaoAdmin("Compras")(page);
       await page.locator(".admin__tr").first().locator("button").nth(1).click({ timeout: 3000 });
     } });
+  // Fase 5: Impostos (lista, busca, vazio, erro de carga e as quatro abas da janela).
+  const naImpostos = (passo) => async (page) => {
+    await abrirSecaoAdmin("Impostos")(page);
+    if (passo) await passo(page);
+  };
+  const configurarPrimeiroPendente = (page) => page.getByRole("button", { name: "Configurar", exact: true }).first().click({ timeout: 3000 });
+  const abaFiscal = (rotulo) => async (page) => {
+    await configurarPrimeiroPendente(page);
+    await page.getByRole("button", { name: rotulo, exact: true }).click({ timeout: 3000 });
+  };
+  telas.push({ nome: "app-admin-impostos", perfil: "dono", caminho: "/app/admin", passo: naImpostos() });
+  telas.push({ nome: "app-admin-impostos-busca", perfil: "dono", caminho: "/app/admin",
+    passo: naImpostos((page) => page.getByPlaceholder("Buscar item...").fill("Suco", { timeout: 3000 })) });
+  telas.push({ nome: "app-admin-impostos-vazio", perfil: "dono", caminho: "/app/admin",
+    passo: naImpostos((page) => page.getByPlaceholder("Buscar item...").fill("zzz", { timeout: 3000 })) });
+  telas.push({ nome: "app-admin-impostos-erro", perfil: "dono", caminho: "/app/admin",
+    preparar: (contexto) => contexto.route(/\/rest\/v1\/itens_fiscal/, (route) => route.fulfill({ status: 500, contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ message: "falha simulada" }) })),
+    passo: naImpostos() });
+  telas.push({ nome: "app-admin-impostos-configurar", perfil: "dono", caminho: "/app/admin", passo: naImpostos(configurarPrimeiroPendente) });
+  telas.push({ nome: "app-admin-impostos-icms", perfil: "dono", caminho: "/app/admin", passo: naImpostos(abaFiscal("ICMS")) });
+  telas.push({ nome: "app-admin-impostos-pis", perfil: "dono", caminho: "/app/admin", passo: naImpostos(abaFiscal("PIS / COFINS / IPI")) });
+  telas.push({ nome: "app-admin-impostos-reforma", perfil: "dono", caminho: "/app/admin", passo: naImpostos(abaFiscal("Reforma 2026")) });
+  telas.push({ nome: "app-admin-impostos-editar", perfil: "dono", caminho: "/app/admin",
+    passo: naImpostos((page) => page.getByRole("button", { name: "Editar", exact: true }).first().click({ timeout: 3000 })) });
   // Fase 5: Fichas Técnicas (lista, editor e confirmação de excluir).
   const abrirFichas = (page) => page.getByText("Ficha Técnica", { exact: true }).first().click({ timeout: 3000 });
   telas.push({ nome: "app-admin-fichas", perfil: "dono", caminho: "/app/admin", passo: abrirFichas });

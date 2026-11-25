@@ -141,6 +141,14 @@ const tabelas = {
   // Fase 5: vendas fechadas para a aba Vendas do relatório desenhar os três
   // modos (resumido, detalhado, por dia), com um pagamento dividido e uma
   // venda de ontem. O relógio do roteiro está em 20/11/2026 às 15h.
+  // Fase 5: um item com a configuração fiscal feita, para a lista de Impostos
+  // mostrar os dois estados (configurado e pendente).
+  itens_fiscal: [
+    { item_id: 1, ncm: "21069090", cest: null, cfop: "5102", origem_mercadoria: "0", csosn: "102",
+      cst_icms: null, aliquota_icms: null, reducao_base_icms: null, cst_ipi: null, aliquota_ipi: null,
+      cst_pis: "49", aliquota_pis: null, cst_cofins: "49", aliquota_cofins: null, aliquota_ibs: null,
+      aliquota_cbs: null, aliquota_is: null, regime_tributario: "simples", observacao_fiscal: null },
+  ],
   // Fase 5: clientes fictícios. A Maria tem fiado em aberto (uma conta prevista
   // e uma vencida) e uma venda; o Carlos não deve nada.
   clientes: [
