@@ -11,7 +11,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 
 | # | Tarefa | Critério de pronto | trilha | depende |
 |---|--------|--------------------|--------|---------|
-| [ ] T01 | 5.22 Impostos: `ImpostosAdmin` (15, 2 emoji), `impostos/ModalFiscal` (7), `impostos/FSel` (1) | os três fora da linha de base de estilo e de emoji, telas iguais ou diferença explicada, suíte e build verdes | ui | , |
+| [x] T01 | 5.22 Impostos: `ImpostosAdmin` (15, 2 emoji), `impostos/ModalFiscal` (7), `impostos/FSel` (1) | os três fora da linha de base de estilo e de emoji, telas iguais ou diferença explicada, suíte e build verdes | ui | , |
 | [ ] T02 | 5.23 Abertura de caixa e login: `AberturaCaixaModal` (14, 1 emoji), `LoginPage` (14) | idem | ui | , |
 | [ ] T03 | 5.24 Casca e telas de acesso: `DesktopLayout` (13), `AssinaturaBloqueada` (8), `SemAcesso` (4), `UpgradeNecessario` (4), `AssinaturaBanner` (3), `main.jsx` (4) | idem | ui | , |
 | [ ] T04 | 5.25 Configurações restantes: `UnidadesMedidaTab`, `CategoriasGrupoTab`, `DeliveryTab`, `ConfiguracoesView`, `PonteLocalConfig`, `ImportarExportarTab` e os componentes pequenos (`StrengthBar`, `Avatar`, `ErrBox`, `PermCheck`, `RoleBadge`, `ToggleChip`) | idem | ui | , |

@@ -1,3 +1,10 @@
+## Rodada 128, refatoração 5.22, Impostos sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-22-impostos.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 179 telas, 1
+  diferença (emoji do estado vazio virou ícone) e 1 leve (ruído em Reservas). Sem migration.
+  Estilo inline: 185 para 162. Emoji: 98 para 97.
+- Primeira rodada da execução Full Automático (tarefa T01).
 ## Rodada 127, refatoração 5.21, janelas da barra lateral sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-21-janelas-da-barra-lateral.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
