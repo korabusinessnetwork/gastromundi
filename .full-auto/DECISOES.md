@@ -145,3 +145,13 @@ são uma chave e um object store, e dependência em runtime é peso no bundle do
 
 O que a decisão não fecha: a janela entre enfileirar e o banco confirmar. Fechar a aba
 dentro dela ainda perde a última op. Está registrado como pendência residual no ADR-013.
+
+---
+
+## Execução 2, plano de refatoração, a partir de 2026-11-25
+
+- **D2-01. Branch.** A skill pede `full-auto/<slug>`, mas o ambiente desta sessão exige trabalhar na `ccr-d707a34f-yu3pv6`. Fica a do ambiente. Cada rodada fechada é mesclada na main, como o CLAUDE.md autoriza de forma permanente (rodada fechada = review sem ressalva, suíte verde, build limpo); rodada com migration não é mesclada sem o dono.
+- **D2-02. `/ciclo`.** A skill `/ciclo` não está entre as skills disponíveis nesta sessão. Cada tarefa roda o ciclo manualmente, no padrão que o plano já usa: critério de pronto, fotos de referência antes, construção, suíte, lint, build, comparação de telas, revisão em duas etapas (spec e qualidade) a partir do diff, correção até aprovar. Pendência P2-01.
+- **D2-03. Uma rodada por tarefa, sem frentes paralelas na fase 5.** As rodadas mexem em CSS compartilhado, no roteiro de fotos e no Supabase falso, que são arquivos únicos; frentes paralelas se sobrescreveriam. Paralelismo fica para quando houver trilhas de fato independentes.
+- **D2-04. Emoji do produto (T10) sem migration.** Tirar o campo de emoji da tela e da exibição não exige apagar a coluna `emoji` do banco; ela fica sem uso. Apagar a coluna seria migration em produção, decisão do dono, fica registrada como pendência.
+- **D2-05. Defeito antigo achado durante uma rodada de estilo** é registrado na spec e no backlog, não corrigido na mesma rodada, a não ser que esteja nas linhas que a rodada reescreve e a correção seja de uma linha (como o título invisível da 5.21).

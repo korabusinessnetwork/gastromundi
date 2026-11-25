@@ -184,3 +184,16 @@ há quanto tempo está parado.
 botões de 7, 30 e 90 dias valem só para as falhas contadas, as recusas e os erros de impressão. Se
 o período valesse também para a pendência, a nota parada há 60 dias sumiria de uma janela de 30 e a
 tela diria que está tudo bem justamente no caso mais grave.
+
+---
+
+## Execução 2, plano de refatoração (a partir de 2026-11-25)
+
+### P2-01. Instalar ou liberar a skill `/ciclo`
+- **O que:** a skill Full Automático pede que cada tarefa rode pelo `/ciclo`, que não está disponível nesta sessão. As tarefas estão rodando o ciclo manual equivalente (spec, fotos, build, revisão em duas etapas).
+- **Como:** instalar a skill `ciclo` nas skills da conta, ou ignorar se o ciclo manual servir.
+- **Confirmar:** em uma sessão nova, `/ciclo` aparece na lista de skills.
+
+### P2-02. Datas exibidas um dia antes (defeito antigo, achado nas fotos)
+- **O que:** a data da compra (Área Admin) e o vencimento do fiado (detalhe do cliente) aparecem um dia antes, porque `new Date("AAAA-MM-DD")` é lido como UTC. Registrado nas specs 5.19 e 5.20.
+- **Como:** iniciar a tarefa sugerida "Corrigir data da compra um dia antes" e pedir para incluir o vencimento em `ClienteDetalhe.jsx`, ou pedir a correção numa rodada da fase F.
