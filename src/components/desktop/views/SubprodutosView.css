@@ -523,3 +523,100 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* ── Cores, espaçamento e estados que saíram do JSX (fase 5, 5.10) ──
+   Espaçamento de `sz` chega por variável na raiz (--sub-pad, --sub-pad-sm).
+   A confirmação de exclusão tem dois tons: azul quando está bloqueada (em
+   uso num combo) e vermelho quando é para valer; é --sub-tom.
+   Transparências (hex/255): 0c→5%, 0d→5%, 15→8%, 18→9%, 33→20%, 44→27%. */
+
+.subprodutos-view__toggle { background: var(--gm-faint); }
+.subprodutos-view__toggle--ligado { background: var(--gm-green); }
+.subprodutos-view__toggle-bolinha { left: 2px; }
+.subprodutos-view__toggle--ligado .subprodutos-view__toggle-bolinha { left: 22px; }
+
+.subprodutos-view__modal-titulo { font-weight: 800; }
+.subprodutos-view__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.subprodutos-view__btn-salvar:disabled {   /* salvando */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.subprodutos-view__header { padding: var(--sub-pad-sm) var(--sub-pad); }
+.subprodutos-view__filtros { padding: 10px var(--sub-pad); }
+.subprodutos-view__categoria-btn {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.subprodutos-view__categoria-btn--ativa {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.subprodutos-view__tabela-area { padding: var(--sub-pad-sm) var(--sub-pad); }
+.subprodutos-view__vazio-icone { opacity: 0.2; }
+.subprodutos-view__vazio-texto { font-weight: 600; }
+
+.subprodutos-view__thead-tr { border-bottom: 1px solid var(--gm-border); }
+.subprodutos-view__th--esquerda { text-align: left; }
+.subprodutos-view__th--centro { text-align: center; }
+/* O hover era onMouseEnter/onMouseLeave na linha. */
+.subprodutos-view__tr:hover { background: var(--gm-surface); }
+.subprodutos-view__tr--inativo { opacity: 0.5; }
+.subprodutos-view__td--centro { text-align: center; }
+.subprodutos-view__td--direita { text-align: right; }
+.subprodutos-view__tag-categoria {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  color: var(--gm-accent);
+}
+.subprodutos-view__estoque-qtd {
+  font-weight: 700;
+  color: var(--gm-green);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.subprodutos-view__estoque-qtd--baixo { color: var(--gm-red); }
+.subprodutos-view__estoque-vazio {
+  font-weight: 600;
+  color: var(--gm-muted);
+}
+.subprodutos-view__badge-status { padding: 3px 10px; }
+.subprodutos-view__badge-status--ativo {
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+}
+.subprodutos-view__badge-status--inativo {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.subprodutos-view__btn-excluir {
+  border-color: color-mix(in srgb, var(--gm-red) 20%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+  color: var(--gm-red);
+}
+
+.subprodutos-view__confirm-modal--bloqueado { --sub-tom: var(--gm-blue); }
+.subprodutos-view__confirm-modal--perigo { --sub-tom: var(--gm-red); }
+.subprodutos-view__confirm-icone {
+  background: color-mix(in srgb, var(--sub-tom) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--sub-tom) 27%, transparent);
+  color: var(--sub-tom);
+}
+.subprodutos-view__confirm-aviso {
+  background: color-mix(in srgb, var(--sub-tom) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sub-tom) 20%, transparent);
+}
+.subprodutos-view__destaque { color: var(--gm-text); }
+.subprodutos-view__perigo { color: var(--gm-red); }
+.subprodutos-view__erro--confirmar { margin-bottom: 12px; }
+.subprodutos-view__confirm-btn-excluir {
+  background: var(--gm-red);
+  cursor: pointer;
+}
+.subprodutos-view__confirm-btn-excluir:disabled {   /* excluindo */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

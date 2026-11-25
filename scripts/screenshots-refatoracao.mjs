@@ -357,7 +357,7 @@ function roteiro(largura) {
   telas.push({ nome: "app-movimento-colocar", perfil: "dono", caminho: "/app/pdv",
     passo: async (page) => {
       await abrirMovimento(page);
-      await page.getByRole("button", { name: /Colocar/ }).click({ timeout: 3000 });
+      await page.getByRole("dialog").getByRole("button", { name: /Colocar/ }).click({ timeout: 3000 });
       await page.getByLabel("Valor do movimento").fill("30", { timeout: 3000 });
     } });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.

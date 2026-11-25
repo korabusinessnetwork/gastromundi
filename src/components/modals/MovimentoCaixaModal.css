@@ -92,3 +92,180 @@
   line-height: var(--lh-base);
   color: #fff;
 }
+
+/* ── Cores, layout e estados que saíram do JSX (fase 5, 5.10) ──
+   O tom da janela (vermelho para retirar, verde para colocar) é --mov-tom,
+   definido por movimento-caixa--sangria e movimento-caixa--suprimento; cada
+   botão de tipo carrega o seu próprio, para o não escolhido ter a cor certa
+   quando for escolhido. Transparências (hex/255): 12→7%, 18→9%, 44→27%. */
+
+.movimento-caixa--sangria { --mov-tom: var(--gm-red); }
+.movimento-caixa--suprimento { --mov-tom: var(--gm-green); }
+
+.movimento-caixa {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 16px;
+}
+.movimento-caixa__caixa {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  box-sizing: border-box;
+  border: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.movimento-caixa__topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.movimento-caixa__icone-header {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--mov-tom) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--mov-tom) 27%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.movimento-caixa__titulo { font-weight: 800; }
+.movimento-caixa__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+.movimento-caixa__tipos {
+  display: flex;
+  gap: 10px;
+}
+.movimento-caixa__tipo {
+  flex: 1;
+  padding: 14px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  background: none;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-muted);
+  font-family: inherit;
+}
+.movimento-caixa__tipo--ativo {
+  background: color-mix(in srgb, var(--mov-tom) 9%, transparent);
+  border-color: var(--mov-tom);
+  color: var(--mov-tom);
+}
+.movimento-caixa__tipo-titulo { font-weight: 800; }
+.movimento-caixa__tipo-ajuda { margin-top: 2px; }
+.movimento-caixa__disponivel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+}
+.movimento-caixa__apagado { color: var(--gm-muted); }
+.movimento-caixa__label {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 8px;
+}
+.movimento-caixa__campo { position: relative; }
+.movimento-caixa__simbolo-moeda {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+/* Campos com a borda na classe: o foco segue src/styles/inputs.css. */
+.movimento-caixa__input,
+.movimento-caixa__textarea,
+.movimento-caixa__select,
+.movimento-caixa__senha {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+}
+.movimento-caixa__input {
+  padding: 14px 16px 14px 48px;
+  border-radius: 12px;
+  font-weight: 700;
+  outline: none;
+}
+.movimento-caixa__textarea {
+  resize: vertical;
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+}
+.movimento-caixa__select,
+.movimento-caixa__senha {
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.movimento-caixa__senha { outline: none; }
+.movimento-caixa__senha[aria-invalid="true"] { border-color: var(--gm-red); }
+.movimento-caixa__autorizacao {
+  padding: 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gm-warn) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-warn) 27%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.movimento-caixa__aviso { font-weight: 700; }
+.movimento-caixa__erro {
+  color: var(--gm-red);
+  font-weight: 600;
+}
+.movimento-caixa__pendencia { color: var(--gm-muted); }
+.movimento-caixa__botoes {
+  display: flex;
+  gap: 10px;
+}
+.movimento-caixa__botao-cancelar {
+  flex: 1;
+  padding: 13px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-family: inherit;
+}
+.movimento-caixa__botao-confirmar {
+  flex: 2;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: var(--mov-tom);
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+.movimento-caixa__botao-confirmar:disabled {   /* mesma condição do `disabled` */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

@@ -4,9 +4,6 @@ import { createPortal } from "react-dom";
 import {
   listarSubprodutos, listarUsosEmCombos, salvarSubproduto, alterarSituacaoSubproduto, excluirSubproduto,
 } from "@/features/cardapio/dados/subprodutos";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuX, LuTriangleAlert, LuPackage, LuTrash2,
 } from "react-icons/lu";
@@ -33,10 +30,9 @@ function Toggle({ value, onChange }) {
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className="subprodutos-view__toggle"
-      style={{ background: value ? varColor(C.green) : varColor(C.faint) }}
+      className={`subprodutos-view__toggle${value ? " subprodutos-view__toggle--ligado" : ""}`}
     >
-      <span className="subprodutos-view__toggle-bolinha" style={{ left: value ? 22 : 2 }} />
+      <span className="subprodutos-view__toggle-bolinha" />
     </button>
   );
 }
@@ -96,7 +92,7 @@ function ModalSubproduto({ item, onClose, onSalvo }) {
       <div className="subprodutos-view__modal">
 
         <div className="subprodutos-view__modal-topo">
-          <div className="subprodutos-view__modal-titulo" style={{ fontWeight: 800 }}>{item ? "Editar Subproduto" : "Novo Subproduto"}</div>
+          <div className="subprodutos-view__modal-titulo">{item ? "Editar Subproduto" : "Novo Subproduto"}</div>
           <button onClick={onClose} className="subprodutos-view__modal-fechar"><LuX size={20} /></button>
         </div>
 
@@ -191,7 +187,7 @@ function ModalSubproduto({ item, onClose, onSalvo }) {
 
         <div className="subprodutos-view__modal-botoes">
           <button onClick={onClose} className="subprodutos-view__btn-cancelar">Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+          <button onClick={salvar} disabled={salvando} className="subprodutos-view__btn-salvar">
             {salvando ? "Salvando…" : item ? "Salvar alterações" : "Criar subproduto"}
           </button>
         </div>
@@ -291,10 +287,10 @@ export default function SubprodutosView({ sz }) {
     .filter(s => !busca || s.nome.toLowerCase().includes(busca.toLowerCase()));
 
   return (
-    <div className="subprodutos-view">
+    <div className="subprodutos-view" style={{ "--sub-pad": `${sz.pad}px`, "--sub-pad-sm": `${sz.padSm}px` }}>
 
       {/* Header */}
-      <div className="subprodutos-view__header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="subprodutos-view__header">
         <div className="subprodutos-view__contagem">
           {lista.length} subproduto{lista.length !== 1 ? "s" : ""}
         </div>
@@ -307,14 +303,13 @@ export default function SubprodutosView({ sz }) {
       </div>
 
       {/* Filtros */}
-      <div className="subprodutos-view__filtros" style={{ padding: `10px ${sz.pad}px` }}>
+      <div className="subprodutos-view__filtros">
         <div className="subprodutos-view__categorias">
           {cats.map(cat => (
             <button
               key={cat}
               onClick={() => setCatFiltro(cat)}
-              className="subprodutos-view__categoria-btn"
-              style={{ background: catFiltro === cat ? varColor(C.accent) : varColor(C.surface), color: catFiltro === cat ? "#fff" : varColor(C.muted) }}
+              className={`subprodutos-view__categoria-btn${catFiltro === cat ? " subprodutos-view__categoria-btn--ativa" : ""}`}
             >
               {cat}
             </button>
@@ -329,7 +324,7 @@ export default function SubprodutosView({ sz }) {
       </div>
 
       {/* Tabela */}
-      <div className="subprodutos-view__tabela-area" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="subprodutos-view__tabela-area">
         {erroTela && (
           <div className="subprodutos-view__erro subprodutos-view__erro-tela" role="alert">⚠ {erroTela}</div>
         )}
@@ -341,17 +336,17 @@ export default function SubprodutosView({ sz }) {
           null
         ) : listafiltrada.length === 0 ? (
           <div className="subprodutos-view__vazio">
-            <LuPackage size={40} style={{ opacity: 0.2 }} />
-            <div className="subprodutos-view__vazio-texto" style={{ fontWeight: 600 }}>{busca ? "Nenhum resultado" : "Nenhum subproduto cadastrado"}</div>
+            <LuPackage size={40} className="subprodutos-view__vazio-icone" />
+            <div className="subprodutos-view__vazio-texto">{busca ? "Nenhum resultado" : "Nenhum subproduto cadastrado"}</div>
           </div>
         ) : (
           <div className="subprodutos-view__tabela-moldura">
             <table className="subprodutos-view__tabela">
               <thead>
-                <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                <tr className="subprodutos-view__thead-tr">
                   {["Nome", "Categoria", "Unidade", "Preço", "Estoque", "Status", ""].map((h, i) => (
                     // TD015: cabeçalho literal da tabela de subprodutos, não vem de dado.
-                    <th key={i} className="subprodutos-view__th" style={{ textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
+                    <th key={i} className={`subprodutos-view__th subprodutos-view__th--${i >= 3 ? "centro" : "esquerda"}`}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -359,42 +354,38 @@ export default function SubprodutosView({ sz }) {
                 {listafiltrada.map(s => (
                   <tr
                     key={s.id}
-                    className="subprodutos-view__tr"
-                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                    style={{ opacity: s.ativo ? 1 : 0.5 }}
+                    className={`subprodutos-view__tr${s.ativo ? "" : " subprodutos-view__tr--inativo"}`}
                   >
                     <td className="subprodutos-view__td subprodutos-view__nome">{s.nome}</td>
                     <td className="subprodutos-view__td">
-                      <span className="subprodutos-view__tag-categoria" style={{ background: alfa(C.accent, "15"), color: varColor(C.accent) }}>{s.categoria}</span>
+                      <span className="subprodutos-view__tag-categoria">{s.categoria}</span>
                     </td>
                     <td className="subprodutos-view__td subprodutos-view__unidade">{s.unidade_medida}</td>
-                    <td className="subprodutos-view__td subprodutos-view__preco" style={{ textAlign: "center" }}>R$ {Number(s.preco).toFixed(2)}</td>
-                    <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
+                    <td className="subprodutos-view__td subprodutos-view__td--centro subprodutos-view__preco">R$ {Number(s.preco).toFixed(2)}</td>
+                    <td className="subprodutos-view__td subprodutos-view__td--centro">
                       {s.controla_estoque ? (() => {
                         const est    = estoqueDe(s);
                         const qtd    = Number(est?.quantidade ?? 0);
                         const minimo = Number(est?.minimo ?? 0);
                         const baixo  = minimo > 0 && qtd <= minimo;
                         return (
-                          <span className="subprodutos-view__estoque-qtd" style={{ fontWeight: 700, color: baixo ? varColor(C.red) : varColor(C.green), display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <span className={`subprodutos-view__estoque-qtd${baixo ? " subprodutos-view__estoque-qtd--baixo" : ""}`}>
                             {baixo && <LuTriangleAlert size={13} />}{qtd}
                           </span>
                         );
                       })() : (
-                        <span className="subprodutos-view__estoque-vazio" style={{ fontWeight: 600, color: varColor(C.muted) }}>—</span>
+                        <span className="subprodutos-view__estoque-vazio">—</span>
                       )}
                     </td>
-                    <td className="subprodutos-view__td" style={{ textAlign: "center" }}>
+                    <td className="subprodutos-view__td subprodutos-view__td--centro">
                       <button
                         onClick={() => toggleAtivo(s)}
-                        className="subprodutos-view__badge-status"
-                        style={{ padding: "3px 10px", background: s.ativo ? alfa(C.green, "18") : varColor(C.surface), color: s.ativo ? varColor(C.green) : varColor(C.muted) }}
+                        className={`subprodutos-view__badge-status subprodutos-view__badge-status--${s.ativo ? "ativo" : "inativo"}`}
                       >
                         {s.ativo ? "Ativo" : "Inativo"}
                       </button>
                     </td>
-                    <td className="subprodutos-view__td" style={{ textAlign: "right" }}>
+                    <td className="subprodutos-view__td subprodutos-view__td--direita">
                       <div className="subprodutos-view__acoes">
                         <button
                           onClick={() => abrirEditar(s)}
@@ -405,7 +396,6 @@ export default function SubprodutosView({ sz }) {
                         <button
                           onClick={() => { setErroDelete(""); setExcluindo(s); }}
                           className="subprodutos-view__btn-excluir"
-                          style={{ borderColor: alfa(C.red, "33"), background: alfa(C.red, "0c"), color: varColor(C.red) }}
                           title="Excluir subproduto"
                         >
                           <LuTrash2 size={13} />
@@ -431,43 +421,42 @@ export default function SubprodutosView({ sz }) {
         // exclusão e levar erro de FK do banco é pior do que não deixar entrar.
         const usoDesconhecido = !usoComboOk;
         const bloqueado = usos > 0 || usoDesconhecido;
-        const cor = bloqueado ? C.blue : C.red;
         return (
           <div {...fecharAoClicarFora(() => !deletando && setExcluindo(null))} className="subprodutos-view__confirm-overlay">
-            <div className="subprodutos-view__confirm-modal">
+            <div className={`subprodutos-view__confirm-modal subprodutos-view__confirm-modal--${bloqueado ? "bloqueado" : "perigo"}`}>
               <div className="subprodutos-view__confirm-topo">
-                <div className="subprodutos-view__confirm-icone" style={{ background: alfa(cor, "18"), border: `1.5px solid ${alfa(cor, "44")}` }}>
-                  <LuTriangleAlert size={22} color={varColor(cor)} />
+                <div className="subprodutos-view__confirm-icone">
+                  <LuTriangleAlert size={22} />
                 </div>
                 <div>
                   <div className="subprodutos-view__confirm-titulo">{bloqueado ? (usoDesconhecido ? "Não dá para excluir agora" : "Não dá para excluir") : "Excluir subproduto?"}</div>
-                  <div className="subprodutos-view__confirm-sub"><strong style={{ color: varColor(C.text) }}>{excluindo.nome}</strong></div>
+                  <div className="subprodutos-view__confirm-sub"><strong className="subprodutos-view__destaque">{excluindo.nome}</strong></div>
                 </div>
               </div>
 
               {bloqueado ? (
-                <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.blue, "0d"), border: `1px solid ${alfa(C.blue, "33")}` }}>
+                <div className="subprodutos-view__confirm-aviso">
                   {usoDesconhecido ? (
                     <>Não conseguimos verificar se este subproduto está em algum combo. Recarregue a página e tente de novo. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.</>
                   ) : (
-                    <>Este subproduto está em <strong style={{ color: varColor(C.text) }}>{usos} combo{usos !== 1 ? "s" : ""}</strong>. Remova-o desse{usos !== 1 ? "s" : ""} combo{usos !== 1 ? "s" : ""} antes de excluir. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.</>
+                    <>Este subproduto está em <strong className="subprodutos-view__destaque">{usos} combo{usos !== 1 ? "s" : ""}</strong>. Remova-o desse{usos !== 1 ? "s" : ""} combo{usos !== 1 ? "s" : ""} antes de excluir. Enquanto isso, você pode deixá-lo <strong>inativo</strong> para que ele não apareça na venda.</>
                   )}
                 </div>
               ) : (
-                <div className="subprodutos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
-                  Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O subproduto e o saldo de estoque dele serão removidos permanentemente.
+                <div className="subprodutos-view__confirm-aviso">
+                  Esta ação <strong className="subprodutos-view__perigo">não pode ser desfeita</strong>. O subproduto e o saldo de estoque dele serão removidos permanentemente.
                 </div>
               )}
 
-              {erroDelete && <div className="subprodutos-view__erro" style={{ marginBottom: 12 }}>⚠ {erroDelete}</div>}
+              {erroDelete && <div className="subprodutos-view__erro subprodutos-view__erro--confirmar">⚠ {erroDelete}</div>}
 
               <div className="subprodutos-view__confirm-botoes">
                 {bloqueado ? (
-                  <button onClick={() => setExcluindo(null)} className="subprodutos-view__confirm-btn-cancelar" style={{ flex: 1 }}>Entendi</button>
+                  <button onClick={() => setExcluindo(null)} className="subprodutos-view__confirm-btn-cancelar">Entendi</button>
                 ) : (
                   <>
                     <button onClick={() => setExcluindo(null)} disabled={deletando} className="subprodutos-view__confirm-btn-cancelar">Cancelar</button>
-                    <button onClick={confirmarExcluir} disabled={deletando} className="subprodutos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo…" : "Sim, excluir"}</button>
+                    <button onClick={confirmarExcluir} disabled={deletando} className="subprodutos-view__confirm-btn-excluir">{deletando ? "Excluindo…" : "Sim, excluir"}</button>
                   </>
                 )}
               </div>

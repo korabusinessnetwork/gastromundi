@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { verificarSenhaUsuario } from "@/lib/adminAuth";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/lib/caixaMovimentos";
 import "./MovimentoCaixaModal.css";
 
@@ -37,7 +34,6 @@ export default function MovimentoCaixaModal({
   const [erro,    setErro]    = useState("");
   const [salvando, setSalvando] = useState(false);
 
-  const cor = tipo === "sangria" ? C.red : C.green;
   const limiteEfetivo = limiteSangriaValido(limite);
 
   const { ok, erro: motivoBloqueio } = validarMovimento({ tipo, valor, motivo, disponivel });
@@ -88,50 +84,33 @@ export default function MovimentoCaixaModal({
   return (
     <div
       {...fecharAoClicarFora(onClose)}
-      style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        zIndex: 400, padding: 16,
-      }}
+      className="movimento-caixa"
     >
       <div
         role="dialog"
         aria-label="Movimentar dinheiro do caixa"
-        style={{
-          background: varColor(C.card), borderRadius: 20, padding: 28,
-          width: "100%", maxWidth: 460, boxSizing: "border-box",
-          border: `1px solid var(${C.border})`,
-          display: "flex", flexDirection: "column", gap: 18,
-          maxHeight: "90vh", overflowY: "auto",
-        }}
+        className={`movimento-caixa__caixa movimento-caixa--${tipo}`}
       >
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            className="movimento-caixa__icone-header"
-            style={{
-              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
-              background: alfa(cor, "18"), border: `1.5px solid ${alfa(cor, "44")}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
+        <div className="movimento-caixa__topo">
+          <div className="movimento-caixa__icone-header">
             💵
           </div>
           <div>
-            <div className="movimento-caixa__titulo" style={{ fontWeight: 800 }}>
+            <div className="movimento-caixa__titulo">
               Movimentar dinheiro do caixa
             </div>
-            <div className="movimento-caixa__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+            <div className="movimento-caixa__subtitulo">
               Fica registrado com seu nome e o motivo
             </div>
           </div>
         </div>
 
         {/* Escolha do tipo — a primeira decisão, em alvo grande de toque */}
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="movimento-caixa__tipos">
           {[
-            { id: "sangria",    titulo: "Retirar",  ajuda: "Sangria, levar ao cofre",  cor: C.red   },
-            { id: "suprimento", titulo: "Colocar",  ajuda: "Suprimento, troco",        cor: C.green },
+            { id: "sangria",    titulo: "Retirar",  ajuda: "Sangria, levar ao cofre" },
+            { id: "suprimento", titulo: "Colocar",  ajuda: "Suprimento, troco"       },
           ].map(op => {
             const ativo = tipo === op.id;
             return (
@@ -140,17 +119,10 @@ export default function MovimentoCaixaModal({
                 type="button"
                 aria-pressed={ativo}
                 onClick={() => { setTipo(op.id); setErro(""); setSenhaErro(""); }}
-                className="movimento-caixa__tipo"
-                style={{
-                  flex: 1, padding: "14px 10px", borderRadius: 14, cursor: "pointer",
-                  background: ativo ? alfa(op.cor, "18") : "none",
-                  border: `1.5px solid ${ativo ? varColor(op.cor) : `var(${C.border})`}`,
-                  color: ativo ? varColor(op.cor) : varColor(C.muted),
-                  fontFamily: "inherit",
-                }}
+                className={`movimento-caixa__tipo movimento-caixa--${op.id}${ativo ? " movimento-caixa__tipo--ativo" : ""}`}
               >
-                <div className="movimento-caixa__tipo-titulo" style={{ fontWeight: 800 }}>{op.titulo}</div>
-                <div className="movimento-caixa__tipo-ajuda" style={{ marginTop: 2 }}>{op.ajuda}</div>
+                <div className="movimento-caixa__tipo-titulo">{op.titulo}</div>
+                <div className="movimento-caixa__tipo-ajuda">{op.ajuda}</div>
               </button>
             );
           })}
@@ -159,29 +131,18 @@ export default function MovimentoCaixaModal({
         {/* A pergunta que o operador faria antes de retirar */}
         <div
           className="movimento-caixa__disponivel"
-          style={{
-            display: "flex", justifyContent: "space-between", alignItems: "center",
-            padding: "12px 14px", borderRadius: 12,
-            background: varColor(C.surface), border: `1px solid var(${C.border})`,
-          }}
         >
-          <span style={{ color: varColor(C.muted) }}>Dinheiro na gaveta agora</span>
+          <span className="movimento-caixa__apagado">Dinheiro na gaveta agora</span>
           <strong className="movimento-caixa__disponivel-valor">{fmtR(disponivel)}</strong>
         </div>
 
         {/* Valor */}
         <div>
-          <div className="movimento-caixa__label" style={{
-            fontWeight: 700, color: varColor(C.muted),
-            textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8,
-          }}>
+          <div className="movimento-caixa__label">
             Valor (R$)
           </div>
-          <div style={{ position: "relative" }}>
-            <span className="movimento-caixa__simbolo-moeda" style={{
-              position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
-              color: varColor(C.muted), fontWeight: 600,
-            }}>
+          <div className="movimento-caixa__campo">
+            <span className="movimento-caixa__simbolo-moeda">
               R$
             </span>
             <input
@@ -194,22 +155,13 @@ export default function MovimentoCaixaModal({
               onChange={e => { setValor(e.target.value); setErro(""); }}
               placeholder="0,00"
               aria-label="Valor do movimento"
-              style={{
-                width: "100%", padding: "14px 16px 14px 48px",
-                borderRadius: 12, border: "1.5px solid var(--gm-input-border)",
-                background: "var(--gm-input-bg)", color: varColor(C.text),
-                fontWeight: 700, boxSizing: "border-box", fontFamily: "inherit", outline: "none",
-              }}
             />
           </div>
         </div>
 
         {/* Motivo — obrigatório, é o que a conferência lê depois */}
         <div>
-          <div className="movimento-caixa__label" style={{
-            fontWeight: 700, color: varColor(C.muted),
-            textTransform: "uppercase", letterSpacing: 1.2, marginBottom: 8,
-          }}>
+          <div className="movimento-caixa__label">
             Motivo
           </div>
           <textarea
@@ -219,24 +171,13 @@ export default function MovimentoCaixaModal({
             rows={2}
             placeholder={tipo === "sangria" ? "Ex.: levado ao cofre" : "Ex.: reforço de troco"}
             aria-label="Motivo do movimento"
-            style={{
-              width: "100%", boxSizing: "border-box", resize: "vertical",
-              borderRadius: 12, border: "1.5px solid var(--gm-input-border)",
-              background: "var(--gm-input-bg)", color: varColor(C.text),
-              padding: "12px 14px", fontFamily: "inherit", outline: "none",
-            }}
           />
         </div>
 
         {/* Autorização de gerente acima do limite (CAIXA.md) */}
         {precisaSenha && (
-          <div style={{
-            padding: 14, borderRadius: 12,
-            background: alfa(C.warn, "12"),
-            border: `1px solid ${alfa(C.warn, "44")}`,
-            display: "flex", flexDirection: "column", gap: 10,
-          }}>
-            <div className="movimento-caixa__aviso" style={{ fontWeight: 700 }}>
+          <div className="movimento-caixa__autorizacao">
+            <div className="movimento-caixa__aviso">
               Retirada acima de {fmtR(limiteEfetivo)} precisa de um gerente
             </div>
             <select
@@ -244,12 +185,6 @@ export default function MovimentoCaixaModal({
               value={autorizador}
               onChange={e => { setAutorizador(e.target.value); setSenhaErro(""); }}
               aria-label="Quem autoriza"
-              style={{
-                width: "100%", boxSizing: "border-box", borderRadius: 10,
-                border: "1.5px solid var(--gm-input-border)",
-                background: "var(--gm-input-bg)", color: varColor(C.text),
-                padding: "10px 12px", fontFamily: "inherit",
-              }}
             >
               {autorizadores.length === 0 && <option value="">Nenhum gerente cadastrado</option>}
               {autorizadores.map(u => (
@@ -270,15 +205,10 @@ export default function MovimentoCaixaModal({
               autoComplete="new-password"
               data-1p-ignore
               data-lpignore="true"
-              style={{
-                width: "100%", boxSizing: "border-box", borderRadius: 10,
-                border: `1.5px solid ${senhaErro ? varColor(C.red) : "var(--gm-input-border)"}`,
-                background: "var(--gm-input-bg)", color: varColor(C.text),
-                padding: "10px 12px", fontFamily: "inherit", outline: "none",
-              }}
+              aria-invalid={senhaErro ? true : undefined}
             />
             {senhaErro && (
-              <div role="alert" className="movimento-caixa__erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
+              <div role="alert" className="movimento-caixa__erro">
                 {senhaErro}
               </div>
             )}
@@ -286,29 +216,23 @@ export default function MovimentoCaixaModal({
         )}
 
         {erro && (
-          <div role="alert" className="movimento-caixa__erro" style={{ color: varColor(C.red), fontWeight: 600 }}>
+          <div role="alert" className="movimento-caixa__erro">
             {erro}
           </div>
         )}
 
         {/* Por que ainda não dá para confirmar — antes de deixar errar */}
         {pendencia && !salvando && (
-          <div className="movimento-caixa__pendencia" style={{ color: varColor(C.muted) }}>
+          <div className="movimento-caixa__pendencia">
             {pendencia}
           </div>
         )}
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div className="movimento-caixa__botoes">
           <button
             type="button"
             className="movimento-caixa__botao-cancelar"
             onClick={onClose}
-            style={{
-              flex: 1, padding: 13, borderRadius: 10,
-              border: `1px solid var(${C.border})`, background: "none",
-              color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-              fontFamily: "inherit",
-            }}
           >
             Cancelar
           </button>
@@ -317,12 +241,6 @@ export default function MovimentoCaixaModal({
             className="movimento-caixa__botao-confirmar"
             onClick={confirmar}
             disabled={!pode}
-            style={{
-              flex: 2, padding: 13, borderRadius: 10, border: "none",
-              background: pode ? varColor(cor) : varColor(C.faint),
-              cursor: pode ? "pointer" : "not-allowed",
-              fontWeight: 700, fontFamily: "inherit",
-            }}
           >
             {salvando
               ? "Registrando..."
