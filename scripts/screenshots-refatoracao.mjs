@@ -225,6 +225,47 @@ function roteiro(largura) {
       await campos.nth(3).fill("30", { timeout: 3000 });
       await page.locator(".fechamento-modal__obs-textarea").fill("Faltou troco no fim da tarde.", { timeout: 3000 });
     } });
+  // Fase 5: resumo do pedido na finalização (taxa de serviço, ajuste aplicado,
+  // modo de remoção) e a janela de remover item. A taxa entra só nestas telas.
+  const comTaxaDeServico = (contexto) => contexto.route(/\/rest\/v1\/config\?.*caixa_aberto/, (route) => (route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+      body: JSON.stringify([
+        { key: "caixa_aberto", value: true }, { key: "fundo_atual", value: 100 },
+        { key: "sessao_aberta_em", value: "2026-11-20T11:00:00.000Z" },
+        { key: "meios_pagamento", value: ["dinheiro", "credito", "debito", "pix"] },
+        { key: "taxa_servico", value: true },
+      ]) })
+    : route.fallback()));
+  telas.push({ nome: "app-pdv-finalizar-taxa", perfil: "dono", caminho: "/app/pdv",
+    preparar: comTaxaDeServico, passo: (page) => irParaPagamento(page) });
+  telas.push({ nome: "app-pdv-finalizar-sem-taxa", perfil: "dono", caminho: "/app/pdv",
+    preparar: comTaxaDeServico,
+    passo: async (page) => {
+      await irParaPagamento(page);
+      await page.locator(".checkout-view__btn-toggle-taxa").click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-finalizar-ajuste", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await irParaPagamento(page);
+      await page.getByRole("button", { name: /Desconto \/ Acréscimo/ }).first().click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Acréscimo/ }).last().click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Valor Fixo/ }).click({ timeout: 3000 });
+      await page.locator(".checkout-view__modal-input").fill("5", { timeout: 3000 });
+      await page.getByRole("button", { name: "Aplicar", exact: true }).click({ timeout: 3000 });
+    } });
+  const modoRemocao = async (page) => {
+    await irParaPagamento(page);
+    await page.getByRole("button", { name: /Remover produto/ }).click({ timeout: 3000 });
+  };
+  telas.push({ nome: "app-pdv-remover-modo", perfil: "dono", caminho: "/app/pdv", passo: modoRemocao });
+  telas.push({ nome: "app-pdv-remover-item", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await modoRemocao(page);
+      await page.getByRole("button", { name: "Remover Suco de laranja" }).click({ timeout: 3000 });
+      await page.locator(".checkout-view__remocao-motivo").fill("Pedido errado", { timeout: 3000 });
+      await page.locator(".checkout-view__remocao-senha").fill("1234", { timeout: 3000 });
+      await page.locator(".checkout-view__remocao-stepper button").last().click({ timeout: 3000 });
+    } });
   // Fase 5: desconto e acréscimo no pagamento.
   const abrirAjuste = async (page) => {
     await irParaPagamento(page);
