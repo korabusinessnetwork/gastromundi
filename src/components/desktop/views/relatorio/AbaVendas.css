@@ -265,3 +265,9 @@
   font-weight: 900;
   color: var(--gm-green);
 }
+
+/* Regra sem emoji (decisão 037): o "📝" da observação virou ícone. */
+.aba-vendas__obs-icone {
+  vertical-align: -1px;
+  margin-right: 2px;
+}

@@ -1,5 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import DesempenhoReport from "./DesempenhoReport";
 import {
   LuLock, LuX
@@ -23,36 +21,24 @@ export default function RelatorioView() {
   } = tela;
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: varColor(C.bg), overflow: "hidden" }}>
+    <div className="relatorio-view" style={{ "--rel-pad": `${sz.pad}px`, "--rel-pad-sm": `${sz.padSm}px`, "--rel-gap": `${sz.gap}px` }}>
 
       {/* ── Header ── */}
-      <div style={{
-        padding: `${sz.pad - 4}px ${sz.pad}px`,
-        borderBottom: `1px solid var(${C.border})`,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexShrink: 0, gap: 16, flexWrap: "wrap",
-      }}>
+      <div className="relatorio-view__topo">
         <div>
-          <div className="relatorio-view__titulo" style={{ fontWeight: 800 }}>Relatórios</div>
-          <div className="relatorio-view__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+          <div className="relatorio-view__titulo">Relatórios</div>
+          <div className="relatorio-view__subtitulo">
             Visão geral do movimento do estabelecimento
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <div style={{ display: "flex", gap: 6 }}>
+        <div className="relatorio-view__periodos-area">
+          <div className="relatorio-view__periodos">
             {PERIODOS.map(p => (
               <button
                 key={p.id}
                 onClick={() => setPeriodo(p.id)}
-                className="relatorio-view__periodo-btn"
-                style={{
-                  padding: "8px 16px", borderRadius: 10, border: "none",
-                  background: periodo === p.id ? varColor(C.accent) : varColor(C.surface),
-                  color: periodo === p.id ? "#fff" : varColor(C.muted),
-                  cursor: "pointer", fontWeight: 600,
-                  transition: "background 0.15s, color 0.15s",
-                }}
+                className={`relatorio-view__periodo-btn${periodo === p.id ? " relatorio-view__periodo-btn--ativo" : ""}`}
               >
                 {p.label}
               </button>
@@ -60,51 +46,25 @@ export default function RelatorioView() {
           </div>
 
           {periodo === "custom" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <style>{`
-                .relatorio-date-input::-webkit-calendar-picker-indicator {
-                  filter: invert(1);
-                  cursor: pointer;
-                  opacity: 0.7;
-                }
-              `}</style>
+            <div className="relatorio-view__datas">
               <input
                 type="date"
-                className="relatorio-date-input"
+                className={`relatorio-date-input${customInicio ? " relatorio-date-input--preenchida" : ""}`}
                 value={customInicio}
                 onChange={e => setCustomInicio(e.target.value)}
-                style={{
-                  padding: "7px 12px", borderRadius: 9,
-                  border: `1.5px solid ${customInicio ? varColor(C.accent) : varColor(C.border)}`,
-                  background: varColor(C.surface), color: varColor(C.text),
-                  fontFamily: "inherit", outline: "none",
-                  cursor: "pointer", transition: "border-color 0.15s",
-                }}
               />
-              <span className="relatorio-view__date-sep" style={{ color: varColor(C.muted), fontWeight: 600 }}>até</span>
+              <span className="relatorio-view__date-sep">até</span>
               <input
                 type="date"
-                className="relatorio-date-input"
+                className={`relatorio-date-input${customFim ? " relatorio-date-input--preenchida" : ""}`}
                 value={customFim}
                 min={customInicio || undefined}
                 onChange={e => setCustomFim(e.target.value)}
-                style={{
-                  padding: "7px 12px", borderRadius: 9,
-                  border: `1.5px solid ${customFim ? varColor(C.accent) : varColor(C.border)}`,
-                  background: varColor(C.surface), color: varColor(C.text),
-                  fontFamily: "inherit", outline: "none",
-                  cursor: "pointer", transition: "border-color 0.15s",
-                }}
               />
               {(customInicio || customFim) && (
                 <button
                   onClick={() => { setCustomInicio(""); setCustomFim(""); }}
-                  style={{
-                    background: "none", border: `1px solid var(${C.border})`,
-                    borderRadius: 8, padding: "6px 8px", cursor: "pointer",
-                    color: varColor(C.muted), display: "flex", alignItems: "center",
-                    transition: "border-color 0.15s",
-                  }}
+                  className="relatorio-view__limpar-datas"
                   title="Limpar datas"
                 >
                   <LuX size={14} />
@@ -116,24 +76,12 @@ export default function RelatorioView() {
       </div>
 
       {/* ── Abas ── */}
-      <div style={{
-        display: "flex", padding: `0 ${sz.pad}px`,
-        borderBottom: `1px solid var(${C.border})`, flexShrink: 0,
-        overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch",
-      }}>
+      <div className="relatorio-view__abas">
         {ABAS.map(a => (
           <button
             key={a}
             onClick={() => setAba(a)}
-            className="relatorio-view__aba"
-            style={{
-              padding: "14px 22px", border: "none", background: "none",
-              color: aba === a ? varColor(C.accent) : varColor(C.muted),
-              fontWeight: aba === a ? 700 : 500,
-              cursor: "pointer",
-              borderBottom: `2px solid ${aba === a ? varColor(C.accent) : "transparent"}`,
-              marginBottom: -1, transition: "color 0.15s",
-            }}
+            className={`relatorio-view__aba${aba === a ? " relatorio-view__aba--ativa" : ""}`}
           >
             {a}
           </button>
@@ -141,7 +89,7 @@ export default function RelatorioView() {
       </div>
 
       {/* ── Conteúdo ── */}
-      <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div className="relatorio-view__conteudo">
 
         {/* ══ VENDAS ══ */}
         {aba === "Vendas" && <AbaVendas tela={tela} />}

@@ -1,9 +1,6 @@
 import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import {
-  LuClipboardList
+  LuClipboardList, LuReceipt, LuLandmark
 } from "react-icons/lu";
 import Th from "./Th";
 import Td from "./Td";
@@ -18,19 +15,19 @@ export default function AbaLogs({ tela }) {
     logTipo, setLogTipo, setOpLogs, loadingLogs, setLoadingLogs, sz, logsFiltrados, exportLogs,
   } = tela;
   return (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <div style={{ display: "flex", gap: 8, padding: `${sz.padSm}px ${sz.pad}px`, flexShrink: 0, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="rel-aba">
+            <div className="rel-barra rel-barra--topo rel-barra--filtros">
               {[
                 { id: "todos", label: "Todos" },
-                { id: "venda", label: "🧾 Vendas" },
-                { id: "caixa", label: "🏦 Caixa" },
+                { id: "venda", label: "Vendas", Icon: LuReceipt },
+                { id: "caixa", label: "Caixa", Icon: LuLandmark },
                 { id: "auth",  label: "Auth" },
-              ].map(({ id, label }) => (
+              ].map(({ id, label, Icon }) => (
                 <ChipBtn key={id} active={logTipo === id} onClick={() => setLogTipo(id)} sz={sz}>
-                  {label}
+                  {Icon && <Icon size={13} className="relatorio-view__chip-icone" />}{label}
                 </ChipBtn>
               ))}
-              <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+              <div className="relatorio-view__log-acoes">
                 <button
                   onClick={() => {
                     setLoadingLogs(true);
@@ -38,12 +35,6 @@ export default function AbaLogs({ tela }) {
                       .then(({ data }) => { setOpLogs(data ?? []); setLoadingLogs(false); });
                   }}
                   className="relatorio-view__log-refresh"
-                  style={{
-                    padding: "6px 14px", borderRadius: 8,
-                    border: `1px solid var(${C.border})`, background: "none",
-                    color: varColor(C.muted), cursor: "pointer", fontWeight: 600,
-                    whiteSpace: "nowrap",
-                  }}
                 >
                   {loadingLogs ? "Carregando…" : "↻ Atualizar"}
                 </button>
@@ -51,16 +42,16 @@ export default function AbaLogs({ tela }) {
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+            <div className="rel-conteudo">
               {loadingLogs ? (
-                <div style={{ color: varColor(C.muted), textAlign: "center", padding: 40 }}>Carregando logs…</div>
+                <div className="rel-carregando">Carregando logs…</div>
               ) : logsFiltrados.length === 0 ? (
                 <Empty icon={LuClipboardList} msg="Nenhum evento no período selecionado" sz={sz} />
               ) : (
-                <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
+                <div className="rel-rolagem">
+                <table className="rel-tabela rel-tabela--520">
                   <thead>
-                    <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                    <tr className="rel-linha">
                       <Th>Data / Hora</Th>
                       <Th>Ação</Th>
                       <Th>Operador</Th>
@@ -74,34 +65,21 @@ export default function AbaLogs({ tela }) {
                       return (
                         <tr
                           key={l.id ?? i}
-                          onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                          style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                          className="rel-linha rel-linha--destaque"
                         >
                           <Td sz={sz} muted nowrap>{fmtData(l.created_at)}</Td>
                           <Td sz={sz}>
-                            <span className="relatorio-view__log-tipo" style={{
-                              fontWeight: 700,
-                              background: alfa(tipo.color, "18"),
-                              border: `1px solid ${alfa(tipo.color, "44")}`,
-                              color: tipo.color,
-                              padding: "3px 10px", borderRadius: 20,
-                              whiteSpace: "nowrap",
-                            }}>
+                            <span className="relatorio-view__log-tipo" style={{ "--log-cor": tipo.color }}>
                               {tipo.label}
                             </span>
                           </Td>
                           <Td sz={sz}>{l.payload?.name ?? l.operator_id ?? "—"}</Td>
                           <Td sz={sz}>
                             {l.payload?.role ? (
-                              <span className="relatorio-view__log-role" style={{
-                                fontWeight: 600,
-                                background: varColor(C.surface), padding: "2px 8px",
-                                borderRadius: 10, color: varColor(C.muted),
-                              }}>
+                              <span className="relatorio-view__log-role">
                                 {l.payload.role}
                               </span>
-                            ) : <span style={{ color: varColor(C.muted) }}>—</span>}
+                            ) : <span className="rel-apagado">—</span>}
                           </Td>
                           <Td sz={sz} muted>{l.payload?.msg ?? l.action_type ?? "—"}</Td>
                         </tr>

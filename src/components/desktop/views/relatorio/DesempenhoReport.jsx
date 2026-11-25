@@ -4,7 +4,7 @@ import { useConfig } from "@/context/AppContext";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { rotuloMetodo } from "@/utils/pagamentos";
-import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown } from "react-icons/lu";
+import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown, LuCalendar, LuHourglass } from "react-icons/lu";
 import {
   calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual, calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
 } from "@/lib/relatorios";
@@ -82,10 +82,10 @@ function BarraHorizontal({ label, valor, max, cor }) {
   );
 }
 
-function Estado({ icon, msg }) {
+function Estado({ icon: Icone, msg }) {
   return (
     <div className="desempenho__estado">
-      <div className="desempenho__estado-icone">{icon}</div>
+      <div className="desempenho__estado-icone"><Icone size={42} /></div>
       <div className="desempenho__estado-msg">{msg}</div>
     </div>
   );
@@ -308,7 +308,7 @@ export default function DesempenhoReport() {
 
       {/* Conteúdo */}
       {!periodoValido ? (
-        <Estado icon="📅" msg="Selecione as duas datas do período" />
+        <Estado icon={LuCalendar} msg="Selecione as duas datas do período" />
       ) : erro ? (
         <div className="desempenho__body">
           <div className="desempenho__erro">
@@ -316,9 +316,9 @@ export default function DesempenhoReport() {
           </div>
         </div>
       ) : carregando ? (
-        <Estado icon="⏳" msg="Carregando relatório..." />
+        <Estado icon={LuHourglass} msg="Carregando relatório..." />
       ) : numeroVendas === 0 ? (
-        <Estado icon="📊" msg="Nenhuma venda no período selecionado" />
+        <Estado icon={LuChartBar} msg="Nenhuma venda no período selecionado" />
       ) : (
         <div className="desempenho__body">
           {/* KPIs */}

@@ -4,7 +4,7 @@ import { rotuloDiaBR } from "@/utils/datas";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import {
-  LuBanknote, LuReceipt, LuChartBar, LuCreditCard
+  LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuCalendar, LuNotebookPen
 } from "react-icons/lu";
 import KpiCard from "./KpiCard";
 import Th from "./Th";
@@ -81,7 +81,7 @@ export default function AbaVendas({ tela }) {
             {subVendas === "resumido" && (
               <div className="aba-vendas__conteudo">
                 {vendasFiltradas.length === 0 ? (
-                  <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
+                  <Empty icon={LuReceipt} msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
                   <div className="aba-vendas__rolagem">
                   <table className="aba-vendas__tabela aba-vendas__tabela--resumo">
@@ -137,7 +137,7 @@ export default function AbaVendas({ tela }) {
             {subVendas === "detalhado" && (
               <div className="aba-vendas__conteudo">
                 {vendasFiltradas.length === 0 ? (
-                  <Empty icon="🧾" msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
+                  <Empty icon={LuReceipt} msg={buscaComanda.trim() ? `Nenhuma comanda encontrada para "${buscaComanda.trim()}"` : "Nenhuma venda no período selecionado"} sz={sz} />
                 ) : (
                   <div className="aba-vendas__cartoes">
                     {vendasFiltradas.map((v, i) => {
@@ -152,7 +152,7 @@ export default function AbaVendas({ tela }) {
                           <div className="aba-vendas__cartao-topo">
                             <div className="aba-vendas__cartao-grupo">
                               <div className="relatorio-view__comanda-icon aba-vendas__comanda-icone">
-                                🧾
+                                <LuReceipt size={20} />
                               </div>
                               <div>
                                 <div className="relatorio-view__comanda-num aba-vendas__mais-forte">
@@ -219,7 +219,7 @@ export default function AbaVendas({ tela }) {
                                       </div>
                                       {it.obs && (
                                         <div className="relatorio-view__item-obs aba-vendas__item-obs">
-                                          📝 {it.obs}
+                                          <LuNotebookPen size={12} className="aba-vendas__obs-icone" /> {it.obs}
                                         </div>
                                       )}
                                     </td>
@@ -249,7 +249,7 @@ export default function AbaVendas({ tela }) {
             {subVendas === "por-dia" && (
               <div className="aba-vendas__conteudo">
                 {vendasPorDia.length === 0 ? (
-                  <Empty icon="📅" msg="Nenhuma venda no período selecionado" sz={sz} />
+                  <Empty icon={LuCalendar} msg="Nenhuma venda no período selecionado" sz={sz} />
                 ) : (
                   <div className="aba-vendas__rolagem">
                   <table className="aba-vendas__tabela aba-vendas__tabela--dias">

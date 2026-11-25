@@ -1,6 +1,3 @@
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import {
   LuShieldAlert, LuPrinter
 } from "react-icons/lu";
@@ -13,36 +10,25 @@ export default function AbaCredenciais({ tela }) {
     users, sz, exportCredenciais,
   } = tela;
   return (
-          <div style={{ flex: 1, overflowY: "auto", padding: sz.pad }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: sz.pad }}>
-              <div className="relatorio-view__aviso" style={{
-                flex: 1, background: `${alfa(C.red, "10")}`, border: `1px solid ${alfa(C.red, "33")}`,
-                borderRadius: 12, padding: "12px 16px",
-                color: varColor(C.red), fontWeight: 600,
-              }}>
-                <LuShieldAlert size={14} style={{ marginRight: 6, verticalAlign: "middle" }} />
+          <div className="rel-aba-rolavel">
+            <div className="relatorio-view__cred-topo">
+              <div className="relatorio-view__aviso relatorio-view__aviso--perigo">
+                <LuShieldAlert size={14} className="relatorio-view__aviso-icone" />
                 Área restrita, estas informações são confidenciais. Não compartilhe com terceiros.
               </div>
               <button
                 onClick={exportCredenciais}
                 title="Exportar PDF"
-                className="relatorio-view__export-btn"
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "10px 16px", borderRadius: 10, flexShrink: 0,
-                  border: `1px solid var(${C.border})`, background: "none",
-                  color: varColor(C.muted), cursor: "pointer",
-                  fontWeight: 600, whiteSpace: "nowrap",
-                }}
+                className="relatorio-view__export-btn relatorio-view__export-btn--grande"
               >
                 <LuPrinter size={14} /> PDF
               </button>
             </div>
 
-            <div style={{ background: varColor(C.card), border: `1px solid var(${C.border})`, borderRadius: 16, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 400 }}>
+            <div className="relatorio-view__cred-moldura">
+              <table className="rel-tabela rel-tabela--400">
                 <thead>
-                  <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+                  <tr className="rel-linha">
                     <Th>Usuário</Th>
                     <Th>Login</Th>
                     <Th>Cargo</Th>
@@ -54,35 +40,24 @@ export default function AbaCredenciais({ tela }) {
                     return (
                       <tr
                         key={u.id}
-                        onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        style={{ borderBottom: `1px solid var(${C.border})`, transition: "background 0.1s" }}
+                        className="rel-linha rel-linha--destaque"
                       >
                         <Td sz={sz}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div className="relatorio-view__avatar" style={{
-                              width: 32, height: 32, borderRadius: 16,
-                              background: varColor(C.accent), color: "#fff",
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 800, flexShrink: 0,
-                            }}>
+                          <div className="relatorio-view__cred-usuario">
+                            <div className="relatorio-view__avatar">
                               {(u.name ?? "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
                             </div>
-                            <span style={{ fontWeight: 700 }}>{u.name}</span>
+                            <span className="rel-forte">{u.name}</span>
                           </div>
                         </Td>
                         <Td sz={sz} muted>@{u.username}</Td>
                         <Td sz={sz}>
-                          <span className="relatorio-view__role-badge" style={{
-                            fontWeight: 700,
-                            background: varColor(C.surface), padding: "3px 10px",
-                            borderRadius: 20, color: varColor(C.muted),
-                          }}>
+                          <span className="relatorio-view__role-badge">
                             {u.role}
                           </span>
                         </Td>
                         <Td sz={sz} right>
-                          <span className="relatorio-view__cred-hint" style={{ color: varColor(C.muted), fontStyle: "italic" }}>
+                          <span className="relatorio-view__cred-hint">
                             redefinir em Configurações
                           </span>
                         </Td>
@@ -101,7 +76,7 @@ export default function AbaCredenciais({ tela }) {
               (`verificar_senha_admin`). Esta aba lista QUEM tem acesso, não
               com o quê.
             */}
-            <div className="relatorio-view__cred-nota" style={{ marginTop: 12, color: varColor(C.muted) }}>
+            <div className="relatorio-view__cred-nota">
               Senhas nunca são exibidas aqui, ficam criptografadas e não podem ser lidas por ninguém, nem pelo administrador. Para dar uma nova senha a um funcionário, use <strong>Configurações › Usuários › Redefinir senha</strong>.
             </div>
           </div>
