@@ -566,6 +566,29 @@ function roteiro(largura) {
   telas.push({ nome: "app-relatorio-resumido", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Resumido") });
   telas.push({ nome: "app-relatorio-detalhado", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Detalhado") });
   telas.push({ nome: "app-relatorio-por-dia", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Por dia") });
+  // Fase 5: Clientes (cadastro, detalhe com fiado e sem, exclusão, edição).
+  const abrirCliente = (nome) => (page) => page.locator(".clientes-view__card", { hasText: nome }).click({ timeout: 3000 });
+  const noCliente = (nome, passo) => async (page) => {
+    await abrirCliente(nome)(page);
+    await page.waitForTimeout(300);
+    if (passo) await passo(page);
+  };
+  telas.push({ nome: "app-clientes-novo", perfil: "dono", caminho: "/app/clientes",
+    passo: async (page) => {
+      await page.getByRole("button", { name: /Novo Cliente/ }).click({ timeout: 3000 });
+      await page.getByPlaceholder("Nome do cliente").fill("Zeca", { timeout: 3000 });
+      await page.getByPlaceholder("(00) 00000-0000").fill("1199", { timeout: 3000 });
+    } });
+  telas.push({ nome: "app-clientes-fiado", perfil: "dono", caminho: "/app/clientes", passo: noCliente("Maria Exemplo") });
+  telas.push({ nome: "app-clientes-fiado-registrar", perfil: "dono", caminho: "/app/clientes",
+    passo: noCliente("Maria Exemplo", (page) => page.getByRole("button", { name: "Registrar pagamento" }).first().click({ timeout: 3000 })) });
+  telas.push({ nome: "app-clientes-quitado", perfil: "dono", caminho: "/app/clientes", passo: noCliente("Carlos Teste") });
+  telas.push({ nome: "app-clientes-excluir-bloqueado", perfil: "dono", caminho: "/app/clientes",
+    passo: noCliente("Maria Exemplo", (page) => page.getByRole("button", { name: /Excluir/ }).click({ timeout: 3000 })) });
+  telas.push({ nome: "app-clientes-excluir", perfil: "dono", caminho: "/app/clientes",
+    passo: noCliente("Carlos Teste", (page) => page.getByRole("button", { name: /Excluir/ }).click({ timeout: 3000 })) });
+  telas.push({ nome: "app-clientes-editar", perfil: "dono", caminho: "/app/clientes",
+    passo: noCliente("Carlos Teste", (page) => page.getByRole("button", { name: /Editar/ }).click({ timeout: 3000 })) });
   // Fase 5: grade da Área Admin, Fornecedores e Compras.
   const abrirSecaoAdmin = (rotulo) => (page) => page.locator(".grade-inicial__card", { hasText: rotulo }).first().click({ timeout: 3000 });
   telas.push({ nome: "app-admin-hover", perfil: "dono", caminho: "/app/admin",

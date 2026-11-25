@@ -141,9 +141,24 @@ const tabelas = {
   // Fase 5: vendas fechadas para a aba Vendas do relatório desenhar os três
   // modos (resumido, detalhado, por dia), com um pagamento dividido e uma
   // venda de ontem. O relógio do roteiro está em 20/11/2026 às 15h.
+  // Fase 5: clientes fictícios. A Maria tem fiado em aberto (uma conta prevista
+  // e uma vencida) e uma venda; o Carlos não deve nada.
+  clientes: [
+    { id: "cli-1", nome: "Maria Exemplo", telefone: "11988887777", documento: null, documento_tipo: null,
+      endereco: "Rua das Flores, 10, Centro", observacoes: null, created_at: "2026-10-01T12:00:00.000Z", anonimizado: false },
+    { id: "cli-2", nome: "Carlos Teste", telefone: "11977776666", documento: null, documento_tipo: null,
+      endereco: null, observacoes: null, created_at: "2026-10-05T12:00:00.000Z", anonimizado: false },
+  ],
+  lancamentos: [
+    { id: "lanc-1", cliente_id: "cli-1", tipo: "receita", valor: 25, status: "previsto", competencia: "2026-11-20",
+      vencimento: "2026-12-20", descricao: "Fiado, comanda 8", created_at: "2026-11-20T13:10:00.000Z" },
+    { id: "lanc-2", cliente_id: "cli-1", tipo: "receita", valor: 12, status: "vencido", competencia: "2026-10-10",
+      vencimento: "2026-11-09", descricao: "Fiado, comanda 3", created_at: "2026-10-10T19:00:00.000Z" },
+  ],
   vendas: [
     { id: "venda-1", comanda: "8", mesa: null, subtotal: 25, taxa_servico: false, valor_taxa: 0,
-      valor_ajuste: 0, total: 25, cashier: "Ana Demo", at: "2026-11-20T13:10:00.000Z", cancelada: false },
+      valor_ajuste: 0, total: 25, cashier: "Ana Demo", at: "2026-11-20T13:10:00.000Z", cancelada: false,
+      cliente_id: "cli-1" },
     { id: "venda-2", comanda: "9", mesa: "2", subtotal: 42.5, taxa_servico: false, valor_taxa: 0,
       valor_ajuste: 0, total: 42.5, cashier: "Carla Demo", at: "2026-11-20T15:40:00.000Z", cancelada: false },
     { id: "venda-3", comanda: "5", mesa: null, subtotal: 18, taxa_servico: false, valor_taxa: 0,
