@@ -360,6 +360,8 @@ Depois, o painel do Jarvas (35 para 0) e a barra lateral (32 para 0).
 Depois, os Subprodutos (31 para 0) e a janela de dinheiro do caixa (28 para 0).
 Depois, o resumo do pedido (26 para 0) e a janela de remover item (24 para 0).
 Depois, a lista de produtos (21 para 0) e a janela de cadastro de produto (23 para 0).
+Depois, os combos (40 para 0) e as janelas de categoria e de exclusão (30 para 0): a área de
+Cadastro de Produtos inteira fica sem estilo inline.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
@@ -375,9 +377,10 @@ na mesma rodada da quebra, para não mexer duas vezes.
 **5.z Sem emoji (regra do dono, 2026-11-25):** o sistema não tem emoji. O guard
 `emojiGuard.test.js` trava o número (118 em 58 arquivos no dia da regra) e a linha de base só
 encolhe. Cada rodada da fase 5 que mexe num arquivo tira o emoji dele junto, trocando ícone
-de reserva e aviso por componente de `react-icons/lu`. Pendente de decisão do dono: o ícone
-que o estabelecimento escolhe para cada produto (campo `emoji` do cadastro), que é dado e não
-código, e o que o cupom impresso mostra.
+de reserva e aviso por componente de `react-icons/lu` (decisão 037: junto com a fase 5, sem
+rodada dedicada). O ícone que o estabelecimento escolhe para cada produto (campo `emoji` do
+cadastro) também sai, numa rodada própria depois da fase 5: some o campo de escolha e a
+exibição no PDV, na cozinha, no cardápio digital e no relatório.
 
 **5.y Prova do white-label:** rodar o roteiro de screenshots com dois temas de tenant
 diferentes e confirmar que nenhuma cor da marca padrão aparece no tema do outro.

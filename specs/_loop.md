@@ -1,3 +1,10 @@
+## Rodada 119, refatoração 5.13, combos e janelas de produto sem estilo inline, e a regra sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-13-combos-e-janelas-de-produto.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 114 telas, 0
+  diferença. Sem migration. Estilo inline: 665 para 595.
+- Combos 40 para 0; janelas de categoria e exclusão 30 para 0. Área de produtos sem estilo inline.
+- Regra nova do dono: o sistema não tem emoji. `emojiGuard` trava 118 em 58 arquivos; decisão 037.
 ## Rodada 118, refatoração 5.12, lista e cadastro de produtos sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-12-cadastro-de-produtos.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431

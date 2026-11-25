@@ -65,6 +65,10 @@ queda: `GERAR_LINHA_DE_BASE=1 npx vitest run src/lib/emojiGuard.test.js`.
 Ficam de fora, como no travessão: comentário de código, e as setas e o visto usados como
 texto (→, ✓, ✕), que não são emoji.
 
+Decisão 037 (`memory/decisions.md`): os emojis que o código já tem saem junto com a fase 5
+da refatoração, arquivo por arquivo; e o ícone emoji que o estabelecimento escolhe para cada
+produto também sai, numa rodada própria depois da fase 5.
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.
