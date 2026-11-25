@@ -2,8 +2,7 @@ import { useState } from "react";
 import { useSessao, useConfig } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
-import { LuPlus, LuTrash2, LuWallet } from "react-icons/lu";
+import { LuPlus, LuTrash2, LuWallet, LuTriangleAlert } from "react-icons/lu";
 import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
 import ToggleChip from "./ToggleChip";
 import { METODOS_CATALOG } from "@/constants/metodosPagamento";
@@ -68,31 +67,26 @@ export default function MeiosPagamentoTab({ sz }) {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
-      <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
+    <div className="meios-pagamento-tab" style={{ "--meios-pad": `${sz.pad}px`, "--meios-pad-sm": `${sz.padSm}px`, "--meios-gap": `${sz.gap}px` }}>
+      <div className="meios-pagamento-tab__card">
         <div className="meios-pagamento-tab__topo">
           <div className="meios-pagamento-tab__titulo">Meios de Pagamento</div>
           {isAdmin && (
             <button
               onClick={() => { setShowForm(v => !v); setNovoNome(""); }}
-              className="meios-pagamento-tab__btn-adicionar"
-              style={{
-                borderColor: varColor(C.accent),
-                background: showForm ? varColor(C.accent) : "transparent",
-                color: showForm ? "#fff" : varColor(C.accent),
-              }}
+              className={`meios-pagamento-tab__btn-adicionar${showForm ? " meios-pagamento-tab__btn-adicionar--aberto" : ""}`}
             >
               <LuPlus size={15} /> Adicionar
             </button>
           )}
         </div>
-        <div className="meios-pagamento-tab__ajuda" style={{ marginBottom: sz.pad }}>
+        <div className="meios-pagamento-tab__ajuda meios-pagamento-tab__ajuda--antes">
           Ative ou desative as formas de pagamento disponíveis no checkout e no fechamento de caixa.
         </div>
 
         {/* Formulário inline para novo método */}
         {showForm && isAdmin && (
-          <div className="meios-pagamento-tab__form-novo" style={{ marginBottom: sz.pad, padding: sz.padSm, borderColor: alfa(C.accent, "44") }}>
+          <div className="meios-pagamento-tab__form-novo">
             <input
               autoFocus
               value={novoNome}
@@ -101,14 +95,11 @@ export default function MeiosPagamentoTab({ sz }) {
               placeholder="Nome da forma de pagamento..."
               maxLength={40}
               className="meios-pagamento-tab__input-novo"
-              onFocus={e => e.currentTarget.style.borderColor = alfa(C.accent, "88")}
-              onBlur={e => e.currentTarget.style.borderColor = "var(--gm-input-border)"}
             />
             <button
               onClick={adicionarCustom}
               disabled={!novoNome.trim() || adicionando}
-              className="meios-pagamento-tab__btn-confirmar"
-              style={{ background: novoNome.trim() ? varColor(C.accent) : varColor(C.faint), cursor: novoNome.trim() ? "pointer" : "not-allowed" }}
+              className={`meios-pagamento-tab__btn-confirmar${novoNome.trim() ? " meios-pagamento-tab__btn-confirmar--pode" : ""}`}
             >
               {adicionando ? "..." : "Confirmar"}
             </button>
@@ -121,32 +112,20 @@ export default function MeiosPagamentoTab({ sz }) {
           </div>
         )}
 
-        <div className="meios-pagamento-tab__grid" style={{ gap: sz.gap }}>
+        <div className="meios-pagamento-tab__grid">
           {todosMetodos.map(m => {
             const ativo = ativos.includes(m.id);
             return (
-              <div key={m.id} style={{ position: "relative" }}>
+              <div key={m.id} className="meios-pagamento-tab__metodo">
                 <button
                   onClick={() => toggle(m.id)}
                   disabled={!isAdmin}
-                  className="meios-pagamento-tab__metodo-card"
-                  style={{
-                    padding: `${sz.pad}px ${sz.padSm}px`,
-                    borderColor: ativo ? varColor(C.accent) : varColor(C.border),
-                    background: ativo ? alfa(C.accent, "10") : varColor(C.surface),
-                    color: ativo ? varColor(C.accent) : varColor(C.muted),
-                    cursor: isAdmin ? "pointer" : "default",
-                    opacity: !isAdmin ? 0.7 : 1,
-                  }}
+                  className={`meios-pagamento-tab__metodo-card${ativo ? " meios-pagamento-tab__metodo-card--ativo" : ""}`}
                 >
                   <m.Icon size={26} />
                   <div className="meios-pagamento-tab__metodo-nome">{m.label}</div>
-                  <div className="meios-pagamento-tab__metodo-desc" style={{ color: ativo ? alfa(C.accent, "bb") : varColor(C.muted) }}>{m.desc}</div>
-                  <div className="meios-pagamento-tab__status-tag" style={{
-                    background: ativo ? alfa(C.green, "18") : varColor(C.faint),
-                    color: ativo ? varColor(C.green) : varColor(C.muted),
-                    border: `1px solid ${alfa(ativo ? varColor(C.green) : varColor(C.border), "44")}`,
-                  }}>
+                  <div className="meios-pagamento-tab__metodo-desc">{m.desc}</div>
+                  <div className="meios-pagamento-tab__status-tag">
                     {ativo ? "Ativo" : "Desabilitado"}
                   </div>
                 </button>
@@ -155,7 +134,6 @@ export default function MeiosPagamentoTab({ sz }) {
                     onClick={() => removerCustom(m.id)}
                     title="Remover"
                     className="meios-pagamento-tab__btn-remover-custom"
-                    style={{ background: alfa(C.red, "20"), border: `1px solid ${alfa(C.red, "44")}`, color: varColor(C.red) }}
                   >
                     <LuTrash2 size={13} />
                   </button>
@@ -166,8 +144,8 @@ export default function MeiosPagamentoTab({ sz }) {
         </div>
 
         {ativos.length === 0 && (
-          <div className="meios-pagamento-tab__aviso-vazio" style={{ marginTop: sz.padSm, background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
-            ⚠️ É necessário pelo menos um meio de pagamento ativo.
+          <div className="meios-pagamento-tab__aviso-vazio">
+            <LuTriangleAlert size={16} className="meios-pagamento-tab__aviso-icone" /> É necessário pelo menos um meio de pagamento ativo.
           </div>
         )}
       </div>
@@ -175,16 +153,16 @@ export default function MeiosPagamentoTab({ sz }) {
       {/* Maquininha (TEF) — quais métodos passam pela maquininha. Quem
           passa pela maquininha só cobra com internet; os demais podem
           fechar a comanda offline (a venda sobe sozinha quando voltar). */}
-      <div className="meios-pagamento-tab__card" style={{ padding: sz.pad }}>
-        <div className="meios-pagamento-tab__titulo" style={{ marginBottom: 4 }}>
+      <div className="meios-pagamento-tab__card">
+        <div className="meios-pagamento-tab__titulo meios-pagamento-tab__titulo--tef">
           Maquininha (TEF)
         </div>
-        <div className="meios-pagamento-tab__ajuda" style={{ marginBottom: sz.pad }}>
+        <div className="meios-pagamento-tab__ajuda meios-pagamento-tab__ajuda--antes">
           Marque quais formas de pagamento passam pela maquininha. Essas precisam de internet
           na hora de cobrar; as demais funcionam mesmo sem internet, a venda fica guardada e
           sobe sozinha quando a conexão voltar.
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: sz.gap }}>
+        <div className="meios-pagamento-tab__chips">
           {/* dinheiro fica de fora: espécie nunca passa por terminal (podeUsarTef) */}
           {todosMetodos.filter((m) => podeUsarTef(m.id)).map((m) => {
             const listaTef = Array.isArray(metodosTef) ? metodosTef : METODOS_TEF_PADRAO;
@@ -207,7 +185,7 @@ export default function MeiosPagamentoTab({ sz }) {
           })}
         </div>
         {!isAdmin && (
-          <div className="meios-pagamento-tab__ajuda" style={{ marginTop: sz.padSm }}>
+          <div className="meios-pagamento-tab__ajuda meios-pagamento-tab__ajuda--depois">
             Somente o administrador pode alterar quais métodos usam a maquininha.
           </div>
         )}
@@ -222,10 +200,6 @@ export default function MeiosPagamentoTab({ sz }) {
             onClick={salvar}
             disabled={salvando || ativos.length === 0}
             className="meios-pagamento-tab__btn-salvar"
-            style={{
-              background: (salvando || ativos.length === 0) ? varColor(C.faint) : varColor(C.accent),
-              cursor: (salvando || ativos.length === 0) ? "not-allowed" : "pointer",
-            }}
           >
             {salvando ? "Salvando..." : "Salvar Configurações"}
           </button>

@@ -4,10 +4,7 @@ import { useSessao } from "@/context/AppContext";
 import { passwordStrength, sanitizeInput } from "@/utils";
 import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
 import { getPermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_DESCRICOES, mesclarPermissoes, calcularOverride, ehGerencia } from "@/constants/roles";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
-import { LuEye, LuEyeOff } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuCrown, LuBriefcase, LuMonitor, LuUtensils } from "react-icons/lu";
 import PermCheck from "./PermCheck";
 import RoleBadge from "./RoleBadge";
 import Avatar from "./Avatar";
@@ -197,34 +194,31 @@ export default function UsuariosTab({ sz }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm }}>
+    <div className="usuarios-tab" style={{ "--usu-pad": `${sz.pad}px`, "--usu-pad-sm": `${sz.padSm}px`, "--usu-gap": `${sz.gap}px` }}>
 
       {/* Card de explicação de cargos e permissões */}
-      <div className="usuarios-tab__guia" style={{ padding: sz.pad, gap: sz.pad - 4 }}>
+      <div className="usuarios-tab__guia">
         <div className="usuarios-tab__guia-titulo">
           Guia de Cargos e Permissões
         </div>
 
         {/* Cargos */}
         <div>
-          <div className="usuarios-tab__cargos-label" style={{ marginBottom: sz.padSm }}>
+          <div className="usuarios-tab__cargos-label">
             Cargos
           </div>
-          <div className="usuarios-tab__cargos-grid" style={{ gap: sz.gap }}>
+          <div className="usuarios-tab__cargos-grid">
             {[
-              { role: "admin",   icon: "👑",    desc: "Acesso total ao sistema: vendas, relatórios, usuários, produtos, abertura e fechamento de caixa." },
-              { role: "gerente", icon: "🧑‍💼", desc: "Gerencia usuários e produtos, visualiza relatórios completos e opera o caixa." },
-              { role: "caixa",   icon: "🖥️",   desc: "Opera a Frente de Caixa: abre comandas, lança pedidos e processa pagamentos." },
-              { role: "garcom",  icon: "🍽️",   desc: "Acessa o Palm pelo celular para abrir mesas e lançar pedidos diretamente da mesa." },
+              { role: "admin",   Icon: LuCrown,     desc: "Acesso total ao sistema: vendas, relatórios, usuários, produtos, abertura e fechamento de caixa." },
+              { role: "gerente", Icon: LuBriefcase, desc: "Gerencia usuários e produtos, visualiza relatórios completos e opera o caixa." },
+              { role: "caixa",   Icon: LuMonitor,   desc: "Opera a Frente de Caixa: abre comandas, lança pedidos e processa pagamentos." },
+              { role: "garcom",  Icon: LuUtensils,  desc: "Acessa o Palm pelo celular para abrir mesas e lançar pedidos diretamente da mesa." },
             ].map(item => {
               const r = ROLE_MAP[item.role];
               return (
-                <div key={item.role} className="usuarios-tab__cargo-card" style={{
-                  border: `1px solid ${alfa(r.color, "33")}`,
-                  padding: `${sz.padSm}px ${sz.padSm + 4}px`,
-                }}>
+                <div key={item.role} className="usuarios-tab__cargo-card" style={{ "--cargo-cor": r.color }}>
                   <div className="usuarios-tab__cargo-topo">
-                    <span className="usuarios-tab__cargo-icone">{item.icon}</span>
+                    <span className="usuarios-tab__cargo-icone"><item.Icon size={20} /></span>
                     <RoleBadge role={item.role} sz={sz} />
                   </div>
                   <div className="usuarios-tab__cargo-desc">
@@ -239,7 +233,7 @@ export default function UsuariosTab({ sz }) {
       </div>
 
       {/* Editor: Permissões por cargo (matriz do estabelecimento) */}
-      <div className="perm-matriz" style={{ padding: sz.pad, gap: sz.padSm }}>
+      <div className="perm-matriz usuarios-tab__matriz">
         <div className="perm-matriz__head">
           <div className="perm-matriz__titulo">Permissões por cargo</div>
           <div className="perm-matriz__nota">
@@ -256,7 +250,7 @@ export default function UsuariosTab({ sz }) {
                 <th className="perm-matriz__th-perm">Permissão</th>
                 {CARGOS_MATRIZ.map(r => (
                   <th key={r.id} className="perm-matriz__th-cargo">
-                    <span className="perm-matriz__th-cargo-label" style={{ color: r.color }}>{r.label}</span>
+                    <span className="perm-matriz__th-cargo-label" style={{ "--cargo-cor": r.color }}>{r.label}</span>
                   </th>
                 ))}
               </tr>
@@ -321,7 +315,7 @@ export default function UsuariosTab({ sz }) {
       <div className="usuarios-tab__tabela-moldura">
         <table className="usuarios-tab__tabela">
           <thead>
-            <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+            <tr className="usuarios-tab__thead-tr">
               {["", "Nome", "Usuário", "Cargo", "Acesso", ""].map((h, i) => (
                 // TD015: cabeçalho literal da tabela de usuários, não vem de dado.
                 <th key={i} className="usuarios-tab__th">
@@ -335,10 +329,8 @@ export default function UsuariosTab({ sz }) {
               <tr
                 key={u.id}
                 className="usuarios-tab__tr"
-                onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
               >
-                <td className="usuarios-tab__td" style={{ width: 48 }}>
+                <td className="usuarios-tab__td usuarios-tab__td--avatar">
                   <Avatar name={u.name} size={36} />
                 </td>
                 <td className="usuarios-tab__td">
@@ -349,7 +341,7 @@ export default function UsuariosTab({ sz }) {
                     )}
                   </div>
                 </td>
-                <td className="usuarios-tab__td usuarios-tab__username" style={{ color: varColor(C.muted) }}>
+                <td className="usuarios-tab__td usuarios-tab__username">
                   @{u.username}
                 </td>
                 <td className="usuarios-tab__td">
@@ -357,25 +349,23 @@ export default function UsuariosTab({ sz }) {
                 </td>
                 <td className="usuarios-tab__td">
                   <div className="usuarios-tab__perm-chips">
-                    {u.permissions?.pdv  && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.green, "15"), border: `1px solid ${alfa(C.green, "33")}`, color: varColor(C.green) }}>PDV</span>}
-                    {u.permissions?.palm && <span className="usuarios-tab__perm-chip" style={{ background: alfa(C.blue, "15"), border: `1px solid ${alfa(C.blue, "33")}`, color: varColor(C.blue) }}>Palm</span>}
+                    {u.permissions?.pdv  && <span className="usuarios-tab__perm-chip usuarios-tab__perm-chip--pdv">PDV</span>}
+                    {u.permissions?.palm && <span className="usuarios-tab__perm-chip usuarios-tab__perm-chip--palm">Palm</span>}
                   </div>
                 </td>
-                <td className="usuarios-tab__td" style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                <td className="usuarios-tab__td usuarios-tab__td--acoes">
                   {isAdmin && (
                     <div className="usuarios-tab__acoes">
                       <button
                         onClick={() => abrirEditar(u)}
-                        className="usuarios-tab__action-btn"
-                        style={{ border: `1px solid var(${C.border})`, background: "none", color: varColor(C.text) }}
+                        className="usuarios-tab__action-btn usuarios-tab__action-btn--editar"
                       >
                         Editar
                       </button>
                       {u.id !== currentUser?.id && (
                         <button
                           onClick={() => { setDeleteErro(""); setDeleteId(u.id); }}
-                          className="usuarios-tab__action-btn"
-                          style={{ border: `1px solid ${alfa(C.red, "44")}`, background: alfa(C.red, "0f"), color: varColor(C.red) }}
+                          className="usuarios-tab__action-btn usuarios-tab__action-btn--excluir"
                         >
                           Excluir
                         </button>
@@ -395,7 +385,7 @@ export default function UsuariosTab({ sz }) {
           {...fecharAoClicarFora(fechar)}
           className="cfg__overlay"
         >
-          <div className="usuarios-tab__modal" style={{ padding: sz.pad + 4, gap: sz.padSm + 4 }}>
+          <div className="usuarios-tab__modal">
             <div className="usuarios-tab__modal-titulo">
               {modal === "novo" ? "Novo Usuário" : "Editar Usuário"}
             </div>
@@ -430,12 +420,8 @@ export default function UsuariosTab({ sz }) {
                   <button
                     key={r.id}
                     onClick={() => setF("role", r.id)}
-                    className="usuarios-tab__cargo-chip"
-                    style={{
-                      borderColor: form.role === r.id ? r.color : varColor(C.border),
-                      background: form.role === r.id ? alfa(r.color, "18") : varColor(C.surface),
-                      color: form.role === r.id ? r.color : varColor(C.muted),
-                    }}
+                    className={`usuarios-tab__cargo-chip${form.role === r.id ? " usuarios-tab__cargo-chip--ativo" : ""}`}
+                    style={{ "--cargo-cor": r.color }}
                   >
                     {r.label}
                   </button>
@@ -482,12 +468,12 @@ export default function UsuariosTab({ sz }) {
               </div>
             </div>
 
-            <div className="usuarios-tab__senha-secao" style={{ paddingTop: sz.padSm }}>
-              <div className="usuarios-tab__senha-titulo" style={{ marginBottom: sz.padSm }}>
+            <div className="usuarios-tab__senha-secao">
+              <div className="usuarios-tab__senha-titulo">
                 {modal === "novo" ? "Senha inicial *" : "Redefinir senha (deixe em branco para manter)"}
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: sz.padSm - 4 }}>
+              <div className="usuarios-tab__senha-campos">
                 <Field label="Senha">
                   <div className="usuarios-tab__senha-wrap">
                     <TextInput
@@ -536,13 +522,12 @@ export default function UsuariosTab({ sz }) {
 
             <ErrBox msg={erro} />
 
-            <div style={{ display: "flex", gap: 10 }}>
+            <div className="usuarios-tab__botoes">
               <button onClick={fechar} className="cfg__cancel-btn">Cancelar</button>
               <button
                 onClick={salvar}
                 disabled={salvando}
                 className="usuarios-tab__btn-salvar"
-                style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}
               >
                 {salvando ? "Salvando..." : modal === "novo" ? "Criar Usuário" : "Salvar Alterações"}
               </button>
@@ -557,7 +542,7 @@ export default function UsuariosTab({ sz }) {
           {...fecharAoClicarFora(() => setDeleteId(null))}
           className="cfg__overlay"
         >
-          <div className="usuarios-tab__confirm-modal" style={{ padding: sz.pad }}>
+          <div className="usuarios-tab__confirm-modal">
             {(() => {
               const u = users.find(x => x.id === deleteId);
               return (
@@ -569,13 +554,12 @@ export default function UsuariosTab({ sz }) {
                   <div className="usuarios-tab__confirm-ajuda">
                     O usuário será removido permanentemente do banco de dados. Esta ação não pode ser desfeita.
                   </div>
-                  <div style={{ display: "flex", gap: 10 }}>
+                  <div className="usuarios-tab__botoes">
                     <button onClick={() => setDeleteId(null)} className="cfg__cancel-btn">Cancelar</button>
                     <button
                       onClick={confirmarDelete}
                       disabled={deletando}
                       className="usuarios-tab__btn-excluir"
-                      style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}
                     >
                       {deletando ? "Excluindo..." : "Sim, excluir"}
                     </button>

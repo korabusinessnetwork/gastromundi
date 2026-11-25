@@ -1440,3 +1440,245 @@
   line-height: var(--lh-sm);
   font-weight: 600;
 }
+
+/* ── Abas Usuários, Meios de Pagamento e Geral sem estilo inline (fase 5, 5.14) ──
+   Espaçamento de `sz` chega por variável na raiz de cada aba. A cor de cada
+   cargo vem de dado (ROLES) e chega como --cargo-cor. Os ícones de cargo eram
+   emoji e viraram react-icons/lu (regra sem emoji, decisão 037).
+   Transparências (hex/255): 0f→6%, 10→6%, 15→8%, 18→9%, 20→13%, 33→20%,
+   44→27%, bb→73%. */
+
+.usuarios-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--usu-pad-sm);
+}
+.usuarios-tab__guia {
+  padding: var(--usu-pad);
+  gap: calc(var(--usu-pad) - 4px);
+}
+.usuarios-tab__cargos-label { margin-bottom: var(--usu-pad-sm); }
+.usuarios-tab__cargos-grid { gap: var(--usu-gap); }
+.usuarios-tab__cargo-card {
+  border: 1px solid color-mix(in srgb, var(--cargo-cor) 20%, transparent);
+  padding: var(--usu-pad-sm) calc(var(--usu-pad-sm) + 4px);
+}
+.usuarios-tab__cargo-icone {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cargo-cor);
+}
+.usuarios-tab__matriz {
+  padding: var(--usu-pad);
+  gap: var(--usu-pad-sm);
+}
+.perm-matriz__th-cargo-label { color: var(--cargo-cor); }
+.usuarios-tab__thead-tr { border-bottom: 1px solid var(--gm-border); }
+/* O hover era onMouseEnter/onMouseLeave na linha. */
+.usuarios-tab__tr:hover { background: var(--gm-surface); }
+.usuarios-tab__td--avatar { width: 48px; }
+.usuarios-tab__username { color: var(--gm-muted); }
+.usuarios-tab__perm-chip--pdv {
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 20%, transparent);
+  color: var(--gm-green);
+}
+.usuarios-tab__perm-chip--palm {
+  background: color-mix(in srgb, var(--gm-blue) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 20%, transparent);
+  color: var(--gm-blue);
+}
+.usuarios-tab__td--acoes {
+  text-align: right;
+  white-space: nowrap;
+}
+.usuarios-tab__action-btn--editar {
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-text);
+}
+.usuarios-tab__action-btn--excluir {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+}
+.usuarios-tab__modal {
+  padding: calc(var(--usu-pad) + 4px);
+  gap: calc(var(--usu-pad-sm) + 4px);
+}
+.usuarios-tab__cargo-chip {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.usuarios-tab__cargo-chip--ativo {
+  border-color: var(--cargo-cor);
+  background: color-mix(in srgb, var(--cargo-cor) 9%, transparent);
+  color: var(--cargo-cor);
+}
+.usuarios-tab__senha-secao { padding-top: var(--usu-pad-sm); }
+.usuarios-tab__senha-titulo { margin-bottom: var(--usu-pad-sm); }
+.usuarios-tab__senha-campos {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--usu-pad-sm) - 4px);
+}
+.usuarios-tab__botoes {
+  display: flex;
+  gap: 10px;
+}
+.usuarios-tab__btn-salvar { background: var(--gm-accent); }
+.usuarios-tab__btn-salvar:disabled {   /* salvando */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+.usuarios-tab__confirm-modal { padding: var(--usu-pad); }
+.usuarios-tab__btn-excluir { background: var(--gm-red); }
+.usuarios-tab__btn-excluir:disabled {   /* excluindo */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.meios-pagamento-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--meios-pad);
+}
+.meios-pagamento-tab__card { padding: var(--meios-pad); }
+.meios-pagamento-tab__btn-adicionar {
+  border-color: var(--gm-accent);
+  background: transparent;
+  color: var(--gm-accent);
+}
+.meios-pagamento-tab__btn-adicionar--aberto {
+  background: var(--gm-accent);
+  color: #fff;
+}
+.meios-pagamento-tab__ajuda--antes { margin-bottom: var(--meios-pad); }
+.meios-pagamento-tab__ajuda--depois { margin-top: var(--meios-pad-sm); }
+.meios-pagamento-tab__form-novo {
+  margin-bottom: var(--meios-pad);
+  padding: var(--meios-pad-sm);
+  border-color: color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.meios-pagamento-tab__btn-confirmar {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+.meios-pagamento-tab__btn-confirmar--pode {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.meios-pagamento-tab__grid { gap: var(--meios-gap); }
+.meios-pagamento-tab__metodo { position: relative; }
+.meios-pagamento-tab__metodo-card {
+  padding: var(--meios-pad) var(--meios-pad-sm);
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: pointer;
+}
+.meios-pagamento-tab__metodo-card--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+  color: var(--gm-accent);
+}
+.meios-pagamento-tab__metodo-card:disabled {   /* só o administrador muda */
+  cursor: default;
+  opacity: 0.7;
+}
+.meios-pagamento-tab__metodo-desc { color: var(--gm-muted); }
+.meios-pagamento-tab__metodo-card--ativo .meios-pagamento-tab__metodo-desc {
+  color: color-mix(in srgb, var(--gm-accent) 73%, transparent);
+}
+.meios-pagamento-tab__status-tag {
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  border: 1px solid color-mix(in srgb, var(--gm-border) 27%, transparent);
+}
+.meios-pagamento-tab__metodo-card--ativo .meios-pagamento-tab__status-tag {
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+  border-color: color-mix(in srgb, var(--gm-green) 27%, transparent);
+}
+.meios-pagamento-tab__btn-remover-custom {
+  background: color-mix(in srgb, var(--gm-red) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  color: var(--gm-red);
+}
+.meios-pagamento-tab__aviso-vazio {
+  margin-top: var(--meios-pad-sm);
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.meios-pagamento-tab__aviso-icone { flex-shrink: 0; }
+.meios-pagamento-tab__titulo--tef { margin-bottom: 4px; }
+.meios-pagamento-tab__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meios-gap);
+}
+.meios-pagamento-tab__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.meios-pagamento-tab__btn-salvar:disabled {   /* salvando, ou nenhum meio ativo */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+.geral-tab__card {
+  padding: var(--geral-pad);
+  gap: var(--geral-pad);
+}
+.geral-tab__texto { flex: 1; }
+.geral-tab__toggle {
+  background: var(--gm-faint);
+  cursor: pointer;
+}
+.geral-tab__toggle--ligada { background: var(--gm-green); }
+.geral-tab__toggle:disabled {   /* salvando */
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.geral-tab__toggle-bolinha { left: 3px; }
+.geral-tab__toggle--ligada .geral-tab__toggle-bolinha { left: 29px; }
+.geral-tab__linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Borda na classe: o foco segue src/styles/inputs.css; o valor inválido
+   ganha aria-invalid e a borda vermelha. */
+.geral-tab__campo {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  text-align: center;
+}
+.geral-tab__campo[aria-invalid="true"] { border-color: var(--gm-red); }
+.geral-tab__input-dias { width: 72px; }
+.geral-tab__input-limite { width: 96px; }
+.geral-tab__label-dias { color: var(--gm-muted); }
+.geral-tab__btn-salvar-dias {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+.geral-tab__btn-salvar-dias:disabled {   /* sem mudança, valor inválido ou salvando */
+  background: var(--gm-faint);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}

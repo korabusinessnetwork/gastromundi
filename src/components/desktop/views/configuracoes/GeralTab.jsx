@@ -1,7 +1,5 @@
 import { useState, useEffect } from "react";
 import { useConfig } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { LIMITE_SANGRIA_PADRAO } from "@/lib/caixaMovimentos";
 
 export default function GeralTab({ sz }) {
@@ -44,9 +42,9 @@ export default function GeralTab({ sz }) {
   const podeSalvarLimite = limiteValido && limiteAlterado && !savingLimite;
 
   return (
-    <div className="geral-tab">
-      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
-        <div style={{ flex: 1 }}>
+    <div className="geral-tab" style={{ "--geral-pad": `${sz.pad}px` }}>
+      <div className="geral-tab__card">
+        <div className="geral-tab__texto">
           <div className="geral-tab__titulo">Taxa de Serviço</div>
           <div className="geral-tab__ajuda">
             Cobra automaticamente 10% de taxa de serviço no fechamento
@@ -55,52 +53,35 @@ export default function GeralTab({ sz }) {
         <button
           onClick={handleToggle}
           disabled={saving}
-          className="geral-tab__toggle"
-          style={{
-            background: taxaServico ? varColor(C.green) : varColor(C.faint),
-            cursor: saving ? "not-allowed" : "pointer",
-            opacity: saving ? 0.7 : 1,
-          }}
+          className={`geral-tab__toggle${taxaServico ? " geral-tab__toggle--ligada" : ""}`}
         >
-          <span className="geral-tab__toggle-bolinha" style={{ left: taxaServico ? 29 : 3 }} />
+          <span className="geral-tab__toggle-bolinha" />
         </button>
       </div>
 
       {/* C1 — janela de alerta de validade */}
-      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
-        <div style={{ flex: 1 }}>
+      <div className="geral-tab__card">
+        <div className="geral-tab__texto">
           <div className="geral-tab__titulo">Alerta de Validade</div>
           <div className="geral-tab__ajuda">
             Avisa no PDV quando um produto está a até esta quantidade de dias de vencer
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="geral-tab__linha">
           <input
             type="number"
             min="1"
             max="365"
             value={dias}
             onChange={e => setDias(e.target.value)}
-            className="geral-tab__input-dias"
-            style={{
-              width: 72, padding: "9px 12px", borderRadius: 10,
-              border: `1.5px solid ${diasValido ? "var(--gm-input-border)" : varColor(C.red)}`,
-              background: "var(--gm-input-bg)", color: varColor(C.text),
-              fontFamily: "inherit", outline: "none", textAlign: "center",
-            }}
+            aria-invalid={diasValido ? undefined : true}
+            className="geral-tab__input-dias geral-tab__campo"
           />
-          <span className="geral-tab__label-dias" style={{ color: varColor(C.muted) }}>dias</span>
+          <span className="geral-tab__label-dias">dias</span>
           <button
             onClick={handleSalvarDias}
             disabled={savingDias || !diasValido || !diasAlterado}
             className="geral-tab__btn-salvar-dias"
-            style={{
-              padding: "9px 16px", borderRadius: 10, border: "none",
-              background: (diasValido && diasAlterado && !savingDias) ? varColor(C.accent) : varColor(C.faint),
-              color: (diasValido && diasAlterado && !savingDias) ? "#fff" : varColor(C.muted),
-              cursor: (diasValido && diasAlterado && !savingDias) ? "pointer" : "not-allowed",
-              fontWeight: 700, fontFamily: "inherit",
-            }}
           >
             {savingDias ? "Salvando…" : "Salvar"}
           </button>
@@ -108,15 +89,15 @@ export default function GeralTab({ sz }) {
       </div>
 
       {/* F005 — limite de retirada sem autorização de gerente */}
-      <div className="geral-tab__card" style={{ padding: sz.pad, gap: sz.pad }}>
-        <div style={{ flex: 1 }}>
+      <div className="geral-tab__card">
+        <div className="geral-tab__texto">
           <div className="geral-tab__titulo">Retirada sem autorização</div>
           <div className="geral-tab__ajuda">
             Acima deste valor, tirar dinheiro do caixa exige a senha de um gerente
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="geral-tab__label-dias" style={{ color: varColor(C.muted) }}>R$</span>
+        <div className="geral-tab__linha">
+          <span className="geral-tab__label-dias">R$</span>
           <input
             type="number"
             min="1"
@@ -124,25 +105,13 @@ export default function GeralTab({ sz }) {
             value={limite}
             onChange={e => setLimite(e.target.value)}
             aria-label="Limite de retirada sem autorização"
-            className="geral-tab__input-limite"
-            style={{
-              width: 96, padding: "9px 12px", borderRadius: 10,
-              border: `1.5px solid ${limiteValido ? "var(--gm-input-border)" : varColor(C.red)}`,
-              background: "var(--gm-input-bg)", color: varColor(C.text),
-              fontFamily: "inherit", outline: "none", textAlign: "center",
-            }}
+            aria-invalid={limiteValido ? undefined : true}
+            className="geral-tab__input-limite geral-tab__campo"
           />
           <button
             onClick={handleSalvarLimite}
             disabled={!podeSalvarLimite}
             className="geral-tab__btn-salvar-dias"
-            style={{
-              padding: "9px 16px", borderRadius: 10, border: "none",
-              background: podeSalvarLimite ? varColor(C.accent) : varColor(C.faint),
-              color: podeSalvarLimite ? "#fff" : varColor(C.muted),
-              cursor: podeSalvarLimite ? "pointer" : "not-allowed",
-              fontWeight: 700, fontFamily: "inherit",
-            }}
           >
             {savingLimite ? "Salvando…" : "Salvar"}
           </button>
