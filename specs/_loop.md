@@ -1,3 +1,9 @@
+## Rodada 118, refatoração 5.12, lista e cadastro de produtos sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-12-cadastro-de-produtos.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 106 telas, 0
+  diferença. Sem migration. Estilo inline: 710 para 665.
+- Lista 21 para 0; cadastro 23 para 0; `Input` 1 para 0. Janela de combo fica para a 5.13.
 ## Rodada 117, refatoração 5.11, resumo do pedido e remoção sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-11-resumo-e-remocao.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
