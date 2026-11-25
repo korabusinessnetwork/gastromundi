@@ -5,9 +5,6 @@ import {
   listarCombos, listarSubprodutosAtivos, alterarSituacaoCombo, excluirCombo
 } from "@/features/cardapio/dados/combos";
 import { useCatalogo } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuPencil, LuPackage, LuTrash2, LuTriangleAlert
 } from "react-icons/lu";
@@ -91,10 +88,10 @@ export default function CombosView({ sz }) {
   const prodMap = useMemo(() => Object.fromEntries(products.map(p => [p.id, p])), [products]);
 
   return (
-    <div className="combos-view">
+    <div className="combos-view" style={{ "--combos-pad": `${sz.pad}px`, "--combos-pad-sm": `${sz.padSm}px` }}>
 
       {/* Header */}
-      <div className="combos-view__header" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="combos-view__header">
         <div className="combos-view__header-esquerda">
           <div className="combos-view__contagem">{combos.length} combo{combos.length !== 1 ? "s" : ""}</div>
           <input
@@ -113,7 +110,7 @@ export default function CombosView({ sz }) {
       </div>
 
       {/* Lista */}
-      <div className="combos-view__lista-area" style={{ padding: `${sz.padSm}px ${sz.pad}px` }}>
+      <div className="combos-view__lista-area">
         {erroTela && (
           <div className="combos-view__erro" role="alert">{erroTela}</div>
         )}
@@ -125,8 +122,8 @@ export default function CombosView({ sz }) {
           null
         ) : listafiltrada.length === 0 ? (
           <div className="combos-view__vazio">
-            <LuPackage size={40} style={{ opacity: 0.2 }} />
-            <div className="combos-view__vazio-texto" style={{ fontWeight: 600 }}>{busca ? "Nenhum resultado" : "Nenhum combo criado"}</div>
+            <LuPackage size={40} className="combos-view__vazio-icone" />
+            <div className="combos-view__vazio-texto">{busca ? "Nenhum resultado" : "Nenhum combo criado"}</div>
           </div>
         ) : (
           <div className="combos-view__lista">
@@ -141,16 +138,15 @@ export default function CombosView({ sz }) {
               return (
                 <div
                   key={c.id}
-                  className="combos-view__card"
-                  style={{ padding: `${sz.padSm}px ${sz.pad}px`, opacity: c.ativo ? 1 : 0.55 }}
+                  className={`combos-view__card${c.ativo ? "" : " combos-view__card--inativo"}`}
                 >
                   {/* Ícone */}
-                  <div className="combos-view__card-icone" style={{ background: alfa(C.accent, "15"), border: `1px solid ${alfa(C.accent, "33")}` }}>
+                  <div className="combos-view__card-icone">
                     {prod?.emoji ?? "🍽️"}
                   </div>
 
                   {/* Info */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="combos-view__card-corpo">
                     <div className="combos-view__card-nome">{c.nome}</div>
                     <div className="combos-view__card-info">
                       {prod?.name ?? "Produto removido"} · {composicao}
@@ -163,15 +159,14 @@ export default function CombosView({ sz }) {
                   </div>
 
                   {/* Modo badge */}
-                  <span className="combos-view__badge" style={{ background: c.modo === "substituir" ? alfa(C.blue, "18") : alfa(C.accent, "18"), color: c.modo === "substituir" ? varColor(C.blue) : varColor(C.accent) }}>
+                  <span className={`combos-view__badge combos-view__badge--${c.modo === "substituir" ? "substituir" : "combo"}`}>
                     {c.modo === "substituir" ? "Substitui" : "Combo"}
                   </span>
 
                   {/* Status */}
                   <button
                     onClick={() => toggleAtivo(c)}
-                    className="combos-view__badge-status"
-                    style={{ background: c.ativo ? alfa(C.green, "18") : varColor(C.surface), color: c.ativo ? varColor(C.green) : varColor(C.muted) }}
+                    className={`combos-view__badge-status combos-view__badge-status--${c.ativo ? "ativo" : "inativo"}`}
                   >
                     {c.ativo ? "Ativo" : "Inativo"}
                   </button>
@@ -189,7 +184,6 @@ export default function CombosView({ sz }) {
                   <button
                     onClick={() => { setErroDelete(""); setExcluindo(c); }}
                     className="combos-view__btn-excluir"
-                    style={{ borderColor: alfa(C.red, "33"), background: alfa(C.red, "0c"), color: varColor(C.red) }}
                     title="Excluir combo"
                   >
                     <LuTrash2 size={15} />
@@ -217,21 +211,21 @@ export default function CombosView({ sz }) {
         <div {...fecharAoClicarFora(() => !deletando && setExcluindo(null))} className="combos-view__confirm-overlay">
           <div className="combos-view__confirm-modal">
             <div className="combos-view__confirm-topo">
-              <div className="combos-view__confirm-icone" style={{ background: alfa(C.red, "18"), border: `1.5px solid ${alfa(C.red, "44")}` }}>
-                <LuTriangleAlert size={22} color={varColor(C.red)} />
+              <div className="combos-view__confirm-icone">
+                <LuTriangleAlert size={22} />
               </div>
               <div>
                 <div className="combos-view__confirm-titulo">Excluir combo?</div>
-                <div className="combos-view__confirm-sub">{prodMap[excluindo.item_principal_id]?.emoji ?? "🍽️"} <strong style={{ color: varColor(C.text) }}>{excluindo.nome}</strong></div>
+                <div className="combos-view__confirm-sub">{prodMap[excluindo.item_principal_id]?.emoji ?? "🍽️"} <strong className="combos-view__destaque">{excluindo.nome}</strong></div>
               </div>
             </div>
-            <div className="combos-view__confirm-aviso" style={{ background: alfa(C.red, "0d"), border: `1px solid ${alfa(C.red, "33")}` }}>
-              Esta ação <strong style={{ color: varColor(C.red) }}>não pode ser desfeita</strong>. O combo será removido permanentemente. Os produtos e subprodutos do catálogo <strong>não</strong> são afetados.
+            <div className="combos-view__confirm-aviso">
+              Esta ação <strong className="combos-view__perigo">não pode ser desfeita</strong>. O combo será removido permanentemente. Os produtos e subprodutos do catálogo <strong>não</strong> são afetados.
             </div>
-            {erroDelete && <div className="combos-view__erro" style={{ marginBottom: 12 }}>⚠ {erroDelete}</div>}
+            {erroDelete && <div className="combos-view__erro combos-view__erro--confirmar">⚠ {erroDelete}</div>}
             <div className="combos-view__confirm-botoes">
               <button onClick={() => setExcluindo(null)} disabled={deletando} className="combos-view__confirm-btn-cancelar">Cancelar</button>
-              <button onClick={confirmarExcluir} disabled={deletando} className="combos-view__confirm-btn-excluir" style={{ background: deletando ? varColor(C.faint) : varColor(C.red), cursor: deletando ? "not-allowed" : "pointer" }}>{deletando ? "Excluindo…" : "Sim, excluir"}</button>
+              <button onClick={confirmarExcluir} disabled={deletando} className="combos-view__confirm-btn-excluir">{deletando ? "Excluindo…" : "Sim, excluir"}</button>
             </div>
           </div>
         </div>,

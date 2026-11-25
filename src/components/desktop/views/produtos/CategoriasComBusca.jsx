@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { CATS_VISIVEIS } from "./apoio";
 
 export default function CategoriasComBusca({ categorias, catFiltro, setCatFiltro, busca, setBusca, sz }) {
@@ -26,13 +24,7 @@ export default function CategoriasComBusca({ categorias, catFiltro, setCatFiltro
       <button
         key={cat}
         onClick={() => { setCatFiltro(cat); setAberto(false); }}
-        className="categorias-busca__cat"
-        style={{
-          padding: small ? "6px 14px" : "7px 18px",
-          background: ativo ? varColor(C.accent) : varColor(C.surface),
-          color: ativo ? "#fff" : varColor(C.muted),
-          width: small ? "100%" : undefined,
-        }}
+        className={`categorias-busca__cat${small ? " categorias-busca__cat--lista" : ""}${ativo ? " categorias-busca__cat--ativa" : ""}`}
       >
         {cat}
       </button>
@@ -40,7 +32,7 @@ export default function CategoriasComBusca({ categorias, catFiltro, setCatFiltro
   };
 
   return (
-    <div className="categorias-busca" style={{ padding: `12px ${sz.pad}px` }}>
+    <div className="categorias-busca" style={{ "--busca-pad": `${sz.pad}px` }}>
       {/* Categorias visíveis */}
       <div className="categorias-busca__lista">
         {visiveis.map(cat => btnCat(cat))}
@@ -50,12 +42,7 @@ export default function CategoriasComBusca({ categorias, catFiltro, setCatFiltro
           <div ref={dropRef} className="categorias-busca__mais-wrap">
             <button
               onClick={() => setAberto(v => !v)}
-              className="categorias-busca__cat"
-              style={{
-                padding: "7px 18px",
-                background: (aberto || extras.includes(catFiltro)) ? varColor(C.accent) : varColor(C.surface),
-                color: (aberto || extras.includes(catFiltro)) ? "#fff" : varColor(C.muted),
-              }}
+              className={`categorias-busca__cat${(aberto || extras.includes(catFiltro)) ? " categorias-busca__cat--ativa" : ""}`}
             >
               {extras.includes(catFiltro) ? catFiltro : `+ ${extras.length} mais`} ▾
             </button>
@@ -75,7 +62,6 @@ export default function CategoriasComBusca({ categorias, catFiltro, setCatFiltro
         onChange={e => setBusca(e.target.value)}
         placeholder="Buscar produto..."
         className="categorias-busca__input"
-        style={{ padding: "9px 16px" }}
       />
     </div>
   );

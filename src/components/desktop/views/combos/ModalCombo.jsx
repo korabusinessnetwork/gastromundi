@@ -4,9 +4,6 @@ import { createPortal } from "react-dom";
 import {
   salvarCombo, carregarSubprodutosDoCombo, carregarProdutosDoCombo
 } from "@/features/cardapio/dados/combos";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight
 } from "react-icons/lu";
@@ -190,7 +187,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
 
         {/* Título */}
         <div className="combos-view__modal-topo">
-          <div className="combos-view__modal-titulo" style={{ fontWeight: 800 }}>{isEdit ? "Editar Combo" : "Criar Combo"}</div>
+          <div className="combos-view__modal-titulo">{isEdit ? "Editar Combo" : "Criar Combo"}</div>
           <button onClick={onClose} className="combos-view__modal-fechar"><LuX size={20} /></button>
         </div>
 
@@ -211,9 +208,9 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
         <div className="combos-view__principal-wrap">
           <div className="combos-view__label">Produto principal *</div>
           {principal ? (
-            <div className="combos-view__principal-selecionado" style={{ background: alfa(C.accent, "10"), border: `1.5px solid ${alfa(C.accent, "44")}` }}>
+            <div className="combos-view__principal-selecionado">
               <span className="combos-view__principal-emoji">{principal.emoji ?? "📦"}</span>
-              <div style={{ flex: 1 }}>
+              <div className="combos-view__cresce">
                 <div className="combos-view__principal-nome">{principal.name}</div>
                 <div className="combos-view__principal-preco">R$ {Number(principal.price).toFixed(2)}</div>
               </div>
@@ -228,8 +225,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                   onChange={e => { setBuscaProd(e.target.value); setShowProd(true); }}
                   onFocus={() => setShowProd(true)}
                   placeholder="Buscar produto..."
-                  className="combos-view__input"
-                  style={{ paddingLeft: 36 }}
+                  className="combos-view__input combos-view__input--busca"
                 />
               </div>
               {showProd && prodsFiltrados.length > 0 && (
@@ -239,11 +235,9 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                       key={p.id}
                       onClick={() => escolherPrincipal(p)}
                       className="combos-view__dropdown-item"
-                      onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                      onMouseLeave={e => e.currentTarget.style.background = "none"}
                     >
                       <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
-                      <div style={{ flex: 1 }}>
+                      <div className="combos-view__cresce">
                         <div className="combos-view__dropdown-item-nome">{p.name}</div>
                         <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>
                       </div>
@@ -257,8 +251,8 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
 
         {/* Outros produtos do combo (além do principal) */}
         <div>
-          <div className="combos-view__label">Outros produtos <span style={{ color: varColor(C.muted), fontWeight: 400 }}>(opcional)</span></div>
-          <div className="combos-view__ajuda" style={{ color: varColor(C.muted), fontSize: 12, marginBottom: 8 }}>
+          <div className="combos-view__label">Outros produtos <span className="combos-view__opcional">(opcional)</span></div>
+          <div className="combos-view__ajuda">
             Produtos do catálogo que também compõem o combo, cada um baixa o próprio estoque. Ex.: Hambúrguer (principal) + Coca Zero.
           </div>
 
@@ -266,9 +260,9 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
             <div className="combos-view__itens-lista">
               {itensProd.map((it, idx) => (
                 <div key={it.produto.id} className="combos-view__item-card">
-                  <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
+                  <div className={`combos-view__item-linha${it.usarCustom ? " combos-view__item-linha--custom" : ""}`}>
                     {/* Nome */}
-                    <div style={{ flex: 1 }}>
+                    <div className="combos-view__cresce">
                       <div className="combos-view__item-nome">{it.produto.emoji ?? "📦"} {it.produto.name}</div>
                       <div className="combos-view__item-info">{it.produto.category ?? "Produto"} · {!it.usarCustom ? fmtBRL(it.produto.price) : "preço custom"}</div>
                     </div>
@@ -295,8 +289,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                       value={it.precoCustom}
                       onChange={e => setCustomComp(idx, e.target.value)}
                       placeholder="Preço para este combo (R$)"
-                      className="combos-view__input"
-                      style={{ marginTop: 4 }}
+                      className="combos-view__input combos-view__input--custom"
                     />
                   )}
                 </div>
@@ -312,8 +305,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
               onChange={e => { setBuscaComp(e.target.value); setShowComp(true); }}
               onFocus={() => setShowComp(true)}
               placeholder="Buscar e adicionar produto..."
-              className="combos-view__input"
-              style={{ paddingLeft: 36 }}
+              className="combos-view__input combos-view__input--busca"
             />
             {showComp && compFiltrados.length > 0 && (
               <div className="combos-view__dropdown">
@@ -322,15 +314,13 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                     key={p.id}
                     onClick={() => addComp(p)}
                     className="combos-view__dropdown-item"
-                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                    onMouseLeave={e => e.currentTarget.style.background = "none"}
                   >
                     <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
-                    <div style={{ flex: 1 }}>
+                    <div className="combos-view__cresce">
                       <div className="combos-view__dropdown-item-nome">{p.name}</div>
                       <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>
                     </div>
-                    <LuPlus size={14} color={varColor(C.accent)} />
+                    <LuPlus size={14} className="combos-view__icone-mais" />
                   </button>
                 ))}
               </div>
@@ -351,11 +341,10 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                 <button
                   key={m.id}
                   onClick={() => setModo(m.id)}
-                  className="combos-view__modo-card"
-                  style={{ borderColor: ativo ? varColor(C.accent) : varColor(C.border), background: ativo ? alfa(C.accent, "10") : varColor(C.surface) }}
+                  className={`combos-view__modo-card${ativo ? " combos-view__modo-card--ativo" : ""}`}
                 >
-                  <m.icon size={20} color={ativo ? varColor(C.accent) : varColor(C.muted)} />
-                  <div className="combos-view__modo-titulo" style={{ color: ativo ? varColor(C.accent) : varColor(C.text) }}>{m.title}</div>
+                  <m.icon size={20} className="combos-view__modo-icone" />
+                  <div className="combos-view__modo-titulo">{m.title}</div>
                   <div className="combos-view__modo-desc">{m.desc}</div>
                 </button>
               );
@@ -365,15 +354,15 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
 
         {/* Subprodutos */}
         <div>
-          <div className="combos-view__label">Subprodutos <span style={{ color: varColor(C.muted), fontWeight: 400 }}>(opcional)</span></div>
+          <div className="combos-view__label">Subprodutos <span className="combos-view__opcional">(opcional)</span></div>
 
           {itens.length > 0 && (
             <div className="combos-view__itens-lista">
               {itens.map((it, idx) => (
                 <div key={it.subproduto.id} className="combos-view__item-card">
-                  <div className="combos-view__item-linha" style={{ marginBottom: it.usarCustom ? 8 : 0 }}>
+                  <div className={`combos-view__item-linha${it.usarCustom ? " combos-view__item-linha--custom" : ""}`}>
                     {/* Nome */}
-                    <div style={{ flex: 1 }}>
+                    <div className="combos-view__cresce">
                       <div className="combos-view__item-nome">{it.subproduto.nome}</div>
                       <div className="combos-view__item-info">{it.subproduto.categoria} · {!it.usarCustom ? fmtBRL(it.subproduto.preco) : "preço custom"}</div>
                     </div>
@@ -400,8 +389,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                       value={it.precoCustom}
                       onChange={e => setCustom(idx, e.target.value)}
                       placeholder="Preço para este combo (R$)"
-                      className="combos-view__input"
-                      style={{ marginTop: 4 }}
+                      className="combos-view__input combos-view__input--custom"
                     />
                   )}
                 </div>
@@ -417,8 +405,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
               onChange={e => { setBuscaSub(e.target.value); setShowSub(true); }}
               onFocus={() => setShowSub(true)}
               placeholder="Buscar e adicionar subproduto..."
-              className="combos-view__input"
-              style={{ paddingLeft: 36 }}
+              className="combos-view__input combos-view__input--busca"
             />
             {showSub && subsFiltrados.length > 0 && (
               <div className="combos-view__dropdown">
@@ -427,14 +414,12 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                     key={s.id}
                     onClick={() => addSubproduto(s)}
                     className="combos-view__dropdown-item"
-                    onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)}
-                    onMouseLeave={e => e.currentTarget.style.background = "none"}
                   >
-                    <div style={{ flex: 1 }}>
+                    <div className="combos-view__cresce">
                       <div className="combos-view__dropdown-item-nome">{s.nome}</div>
                       <div className="combos-view__dropdown-item-preco">{s.categoria} · {fmtBRL(s.preco)}</div>
                     </div>
-                    <LuPlus size={14} color={varColor(C.accent)} />
+                    <LuPlus size={14} className="combos-view__icone-mais" />
                   </button>
                 ))}
               </div>
@@ -443,7 +428,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
         </div>
 
         {/* Preço total */}
-        <div className="combos-view__preco-total" style={{ background: alfa(C.green, "0c"), border: `1px solid ${alfa(C.green, "33")}` }}>
+        <div className="combos-view__preco-total">
           <div className="combos-view__preco-total-label">Preço total calculado</div>
           <div className="combos-view__preco-total-valor">{fmtBRL(precoTotal)}</div>
         </div>
@@ -452,7 +437,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
 
         <div className="combos-view__modal-botoes">
           <button onClick={onClose} className="combos-view__btn-cancelar">Cancelar</button>
-          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+          <button onClick={salvar} disabled={salvando} className="combos-view__btn-salvar">
             {salvando ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar combo"}
           </button>
         </div>

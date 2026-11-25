@@ -676,3 +676,120 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* ── Estilo que saiu do JSX (fase 5, 5.13) ──
+   Espaçamento de `sz` chega por variável na raiz (--combos-pad,
+   --combos-pad-sm). Transparências (hex/255): 0c→5%, 0d→5%, 10→6%,
+   15→8%, 18→9%, 33→20%, 44→27%. */
+
+.combos-view__header { padding: var(--combos-pad-sm) var(--combos-pad); }
+.combos-view__lista-area { padding: var(--combos-pad-sm) var(--combos-pad); }
+.combos-view__vazio-icone { opacity: 0.2; }
+.combos-view__vazio-texto { font-weight: 600; }
+.combos-view__card { padding: var(--combos-pad-sm) var(--combos-pad); }
+.combos-view__card--inativo { opacity: 0.55; }
+.combos-view__card-icone {
+  background: color-mix(in srgb, var(--gm-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 20%, transparent);
+}
+.combos-view__card-corpo {
+  flex: 1;
+  min-width: 0;
+}
+.combos-view__badge--combo {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  color: var(--gm-accent);
+}
+.combos-view__badge--substituir {
+  background: color-mix(in srgb, var(--gm-blue) 9%, transparent);
+  color: var(--gm-blue);
+}
+.combos-view__badge-status--ativo {
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  color: var(--gm-green);
+}
+.combos-view__badge-status--inativo {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.combos-view__btn-excluir {
+  border-color: color-mix(in srgb, var(--gm-red) 20%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+  color: var(--gm-red);
+}
+.combos-view__confirm-icone {
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  color: var(--gm-red);
+}
+.combos-view__confirm-aviso {
+  background: color-mix(in srgb, var(--gm-red) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+.combos-view__destaque { color: var(--gm-text); }
+.combos-view__perigo { color: var(--gm-red); }
+.combos-view__erro--confirmar { margin-bottom: 12px; }
+.combos-view__confirm-btn-excluir {
+  background: var(--gm-red);
+  cursor: pointer;
+}
+.combos-view__confirm-btn-excluir:disabled {   /* excluindo */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+
+/* ── Interruptor e janela de combo ── */
+
+.combos-view__toggle { background: var(--gm-faint); }
+.combos-view__toggle--ligado { background: var(--gm-green); }
+.combos-view__toggle-bolinha { left: 2px; }
+.combos-view__toggle--ligado .combos-view__toggle-bolinha { left: 22px; }
+
+.combos-view__modal-titulo { font-weight: 800; }
+.combos-view__principal-selecionado {
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.combos-view__cresce { flex: 1; }
+.combos-view__input--busca { padding-left: 36px; }
+.combos-view__input--custom { margin-top: 4px; }
+/* O hover dos itens do dropdown era onMouseEnter/onMouseLeave. */
+.combos-view__dropdown-item:hover { background: var(--gm-surface); }
+.combos-view__opcional {
+  color: var(--gm-muted);
+  font-weight: 400;
+}
+.combos-view__ajuda {
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);   /* era 12px no JSX */
+  margin-bottom: 8px;
+}
+.combos-view__item-linha { margin-bottom: 0; }
+.combos-view__item-linha--custom { margin-bottom: 8px; }   /* com o campo de preço logo abaixo */
+.combos-view__icone-mais { color: var(--gm-accent); }
+.combos-view__modo-card {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+}
+.combos-view__modo-card--ativo {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+}
+.combos-view__modo-icone { color: var(--gm-muted); }
+.combos-view__modo-titulo { color: var(--gm-text); }
+.combos-view__modo-card--ativo .combos-view__modo-icone,
+.combos-view__modo-card--ativo .combos-view__modo-titulo {
+  color: var(--gm-accent);
+}
+.combos-view__preco-total {
+  background: color-mix(in srgb, var(--gm-green) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-green) 20%, transparent);
+}
+.combos-view__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.combos-view__btn-salvar:disabled {   /* salvando */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
