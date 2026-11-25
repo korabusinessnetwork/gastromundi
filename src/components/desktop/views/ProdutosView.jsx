@@ -1,6 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { labelEstoque, getUnidadesCompra } from "@/utils/conversaoUnidades";
 import { LuTag } from "react-icons/lu";
 import SubprodutosView from "./SubprodutosView";
@@ -20,12 +17,12 @@ export default function ProdutosView() {
   } = tela;
 
   return (
-    <div className="produtos-view" style={{ background: varColor(C.bg) }}>
+    <div className="produtos-view" style={{ "--produtos-pad": `${sz.pad}px` }}>
 
       {/* Header */}
-      <div className="produtos-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+      <div className="produtos-view__header">
         <div>
-          <div className="produtos-view__titulo" style={{ fontWeight: 800 }}>Produtos</div>
+          <div className="produtos-view__titulo">Produtos</div>
           <div className="produtos-view__contagem">
             {carregando ? "Carregando…" : `${products.length} cadastrado${products.length !== 1 ? "s" : ""}`}
           </div>
@@ -33,16 +30,16 @@ export default function ProdutosView() {
         <div className="produtos-view__acoes">
           {isAdmin && abaAtiva === "produtos" && (
             <>
-              <button onClick={() => setShowCatModal(true)} className="produtos-view__btn-categorias" style={{ padding: `9px ${sz.pad - 8}px` }}>
+              <button onClick={() => setShowCatModal(true)} className="produtos-view__btn-categorias produtos-view__btn-topo">
                 <LuTag size={15} /> Categorias
               </button>
-              <button onClick={() => abrirNovo(true)} className="produtos-view__btn-insumo" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: varColor(C.green), background: alfa(C.green, "12"), color: varColor(C.green) }}>
+              <button onClick={() => abrirNovo(true)} className="produtos-view__btn-insumo produtos-view__btn-topo">
                 + Novo Insumo
               </button>
-              <button onClick={() => abrirNovo(false, true)} className="produtos-view__btn-producao" style={{ padding: `9px ${sz.pad - 8}px`, borderColor: varColor(C.blue), background: alfa(C.blue, "12"), color: varColor(C.blue) }}>
+              <button onClick={() => abrirNovo(false, true)} className="produtos-view__btn-producao produtos-view__btn-topo">
                 + Item de Produção
               </button>
-              <button onClick={() => abrirNovo(false)} className="produtos-view__btn-novo" style={{ padding: `9px ${sz.pad - 8}px` }}>
+              <button onClick={() => abrirNovo(false)} className="produtos-view__btn-novo produtos-view__btn-topo">
                 + Novo Produto
               </button>
             </>
@@ -51,15 +48,14 @@ export default function ProdutosView() {
       </div>
 
       {/* Abas */}
-      <div className="produtos-view__abas" style={{ padding: `0 ${sz.pad}px` }}>
+      <div className="produtos-view__abas">
         {ABAS.map(aba => {
           const ativo = abaAtiva === aba.id;
           return (
             <button
               key={aba.id}
               onClick={() => setAbaAtiva(aba.id)}
-              className="produtos-view__aba"
-              style={{ borderBottom: ativo ? `2px solid var(${C.accent})` : "2px solid transparent", color: ativo ? varColor(C.accent) : varColor(C.muted), fontWeight: ativo ? 700 : 500 }}
+              className={`produtos-view__aba${ativo ? " produtos-view__aba--ativa" : ""}`}
             >
               {aba.label}
             </button>
@@ -89,22 +85,22 @@ export default function ProdutosView() {
       <div className="produtos-view__tabela-area">
         {carregando ? (
           <div className="produtos-view__vazio" role="status">
-            <div className="produtos-view__vazio-emoji" style={{ opacity: 0.3 }}>⏳</div>
-            <div className="produtos-view__vazio-titulo" style={{ fontWeight: 600 }}>Carregando os produtos…</div>
+            <div className="produtos-view__vazio-emoji">⏳</div>
+            <div className="produtos-view__vazio-titulo">Carregando os produtos…</div>
           </div>
         ) : produtosFiltrados.length === 0 ? (
           <div className="produtos-view__vazio">
-            <div className="produtos-view__vazio-emoji" style={{ opacity: 0.3 }}>📦</div>
-            <div className="produtos-view__vazio-titulo" style={{ fontWeight: 600 }}>{busca ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}</div>
+            <div className="produtos-view__vazio-emoji">📦</div>
+            <div className="produtos-view__vazio-titulo">{busca ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}</div>
             {isAdmin && !busca && <div className="produtos-view__vazio-texto">Clique em "+ Novo Produto" para adicionar</div>}
           </div>
         ) : (
           <table className="produtos-view__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+              <tr className="produtos-view__thead-tr">
                 {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
                   // TD015: cabeçalho literal da tabela de produtos, não vem de dado.
-                  <th key={i} className="produtos-view__th" style={{ padding: `12px ${i === 0 ? sz.pad : 16}px`, textAlign: i >= 4 ? "right" : "left" }}>{h}</th>
+                  <th key={i} className={`produtos-view__th produtos-view__th--${i >= 4 ? "direita" : "esquerda"}${i === 0 ? " produtos-view__th--primeira" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -112,8 +108,8 @@ export default function ProdutosView() {
               {produtosFiltrados.map(p => {
                 const units = getUnidadesCompra(p);
                 return (
-                  <tr key={p.id} className="produtos-view__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td className="produtos-view__td-emoji" style={{ padding: `14px ${sz.pad}px` }}>
+                  <tr key={p.id} className="produtos-view__tr">
+                    <td className="produtos-view__td-emoji">
                       <div className="produtos-view__emoji-box">{p.emoji || "📦"}</div>
                     </td>
                     <td className="produtos-view__td">
@@ -129,16 +125,16 @@ export default function ProdutosView() {
                       <span className="produtos-view__tag-categoria">{p.category}</span>
                     </td>
                     <td className="produtos-view__td">
-                      <span className="produtos-view__tag-unidade" style={{ background: alfa(C.accent, "12"), border: `1px solid ${alfa(C.accent, "33")}` }}>{labelEstoque(p)}</span>
+                      <span className="produtos-view__tag-unidade">{labelEstoque(p)}</span>
                     </td>
-                    <td className="produtos-view__td" style={{ textAlign: "right" }}>
+                    <td className="produtos-view__td produtos-view__td--direita">
                       <span className="produtos-view__preco">R$ {Number(p.price).toFixed(2)}</span>
                     </td>
-                    <td className="produtos-view__td" style={{ paddingRight: 24, textAlign: "right", whiteSpace: "nowrap" }}>
+                    <td className="produtos-view__td produtos-view__td--acoes">
                       {isAdmin && (
-                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                        <div className="produtos-view__linha-acoes">
                           <button onClick={() => abrirEditar(p)} className="produtos-view__btn-editar">Editar</button>
-                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir" style={{ borderColor: alfa(C.red, "44"), background: alfa(C.red, "0f"), color: varColor(C.red) }}>Excluir</button>
+                          <button onClick={() => setDeleteId(p.id)} className="produtos-view__btn-excluir">Excluir</button>
                         </div>
                       )}
                     </td>

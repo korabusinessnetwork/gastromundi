@@ -986,3 +986,161 @@
   font-family: inherit;
   outline: none;
 }
+
+/* ── Estilo que saiu do JSX (fase 5, 5.12) ──
+   Espaçamento de `sz` chega por variável na raiz (--produtos-pad). Na janela
+   de cadastro, cada bloco de unidade tem seu tom quando escolhido: estoque em
+   destaque (accent), compra em azul, consumo em verde.
+   Transparências (hex/255): 07→3%, 0f→6%, 10→6%, 12→7%, 15→8%, 33→20%,
+   44→27%, 55→33%, 66→40%, 88→53%. */
+
+.produtos-view { background: var(--gm-bg); }
+.produtos-view__header { padding: calc(var(--produtos-pad) - 4px) var(--produtos-pad); }
+.produtos-view__titulo { font-weight: 800; }
+.produtos-view__btn-topo { padding: 9px calc(var(--produtos-pad) - 8px); }
+.produtos-view__btn-insumo {
+  border-color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 7%, transparent);
+  color: var(--gm-green);
+}
+.produtos-view__btn-producao {
+  border-color: var(--gm-blue);
+  background: color-mix(in srgb, var(--gm-blue) 7%, transparent);
+  color: var(--gm-blue);
+}
+.produtos-view__abas { padding: 0 var(--produtos-pad); }
+.produtos-view__aba {
+  border-bottom: 2px solid transparent;
+  color: var(--gm-muted);
+}
+.produtos-view__aba--ativa {
+  border-bottom-color: var(--gm-accent);
+  color: var(--gm-accent);
+  font-weight: 700;
+}
+.produtos-view__vazio-emoji { opacity: 0.3; }
+.produtos-view__vazio-titulo { font-weight: 600; }
+
+.produtos-view__thead-tr { border-bottom: 1px solid var(--gm-border); }
+.produtos-view__th--esquerda { text-align: left; }
+.produtos-view__th--direita { text-align: right; }
+.produtos-view__th--primeira { padding: 12px var(--produtos-pad); }
+/* O hover era onMouseEnter/onMouseLeave na linha. */
+.produtos-view__tr:hover { background: var(--gm-surface); }
+.produtos-view__td-emoji { padding: 14px var(--produtos-pad); }
+.produtos-view__tag-unidade {
+  background: color-mix(in srgb, var(--gm-accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 20%, transparent);
+}
+.produtos-view__td--direita { text-align: right; }
+.produtos-view__td--acoes {
+  padding-right: 24px;
+  text-align: right;
+  white-space: nowrap;
+}
+.produtos-view__linha-acoes {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.produtos-view__btn-excluir {
+  border-color: color-mix(in srgb, var(--gm-red) 27%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+}
+
+/* ── Janela de cadastro ── */
+
+.produtos-view__modal-titulo { font-weight: 800; }
+.produtos-view__categoria-chip {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.produtos-view__categoria-chip--ativa {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+.produtos-view__secao-icone { color: var(--gm-accent); }
+
+.produtos-view__unidade-btn {
+  border-color: var(--gm-border);
+  background: var(--gm-card);
+  color: var(--gm-muted);
+}
+.produtos-view__unidade-btn--compra {
+  padding: 6px 14px;
+  border-radius: 9px;
+  background: var(--gm-surface);
+}
+.produtos-view__unidade-btn--estoque.produtos-view__unidade-btn--ativa {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+.produtos-view__unidade-btn--compra.produtos-view__unidade-btn--ativa {
+  border-color: var(--gm-blue);
+  background: color-mix(in srgb, var(--gm-blue) 8%, transparent);
+  color: var(--gm-blue);
+}
+.produtos-view__unidade-btn--consumo.produtos-view__unidade-btn--ativa {
+  border-color: var(--gm-green);
+  background: color-mix(in srgb, var(--gm-green) 8%, transparent);
+  color: var(--gm-green);
+}
+.produtos-view__unidades-compra {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.produtos-view__fornecedor-card {
+  border-color: color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+.produtos-view__fornecedor-input {
+  border-color: color-mix(in srgb, var(--gm-blue) 40%, transparent);
+}
+.produtos-view__fornecedor-nome { color: var(--gm-text); }
+.produtos-view__fornecedor-nome--vazio { color: var(--gm-muted); }
+.produtos-view__fornecedor-btn-icone { color: var(--gm-muted); }
+.produtos-view__fornecedor-btn-icone--ativo { color: var(--gm-blue); }
+
+.produtos-view__frase-unidade { font-weight: 800; }
+.produtos-view__frase-unidade--compra { color: var(--gm-blue); }
+.produtos-view__frase-unidade--estoque { color: var(--gm-accent); }
+.produtos-view__frase-unidade--consumo { color: var(--gm-green); }
+
+.produtos-view__conversao-fator { border-color: var(--gm-input-border); }
+.produtos-view__conversao-fator--compra.produtos-view__conversao-fator--preenchido {
+  border-color: color-mix(in srgb, var(--gm-blue) 53%, transparent);
+}
+.produtos-view__conversao-fator--consumo.produtos-view__conversao-fator--preenchido {
+  border-color: color-mix(in srgb, var(--gm-green) 53%, transparent);
+}
+/* O texto continua azul nos dois, como era (a cor vinha da classe base). */
+.produtos-view__conversao-preview--compra {
+  background: color-mix(in srgb, var(--gm-blue) 6%, transparent);
+  border-color: color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+.produtos-view__conversao-preview--consumo {
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  border-color: color-mix(in srgb, var(--gm-green) 20%, transparent);
+}
+.produtos-view__btn-add-fornecedor {
+  border-color: color-mix(in srgb, var(--gm-blue) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-blue) 3%, transparent);
+  color: var(--gm-blue);
+}
+.produtos-view__erro--caixa {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+.produtos-view__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.produtos-view__btn-salvar:disabled {   /* salvando */
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

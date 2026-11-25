@@ -1,6 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
 import { fmtQtd } from "@/utils/conversaoUnidades";
@@ -18,7 +15,7 @@ export default function ModalCadastroProduto({ tela }) {
         <div {...fecharAoClicarFora(fecharModal)} className="produtos-view__modal-overlay">
           <div className="produtos-view__modal">
             <div className="produtos-view__modal-topo">
-              <div className="produtos-view__modal-titulo" style={{ fontWeight: 800 }}>
+              <div className="produtos-view__modal-titulo">
                 {modal === "novo"
                   ? isInsumo ? "Novo Insumo" : isProducao ? "Novo Item de Produção" : "Novo Produto"
                   : isInsumo ? "Editar Insumo" : isProducao ? "Editar Item de Produção" : "Editar Produto"}
@@ -52,12 +49,12 @@ export default function ModalCadastroProduto({ tela }) {
                 <Label>Categoria *</Label>
                 <div className="produtos-view__categorias-form">
                   {categoriasProduto.map(cat => (
-                    <button key={cat} onClick={() => setField("category", cat)} className="produtos-view__categoria-chip" style={{ borderColor: form.category === cat ? varColor(C.accent) : varColor(C.border), background: form.category === cat ? "var(--gm-alow)" : varColor(C.surface), color: form.category === cat ? varColor(C.accent) : varColor(C.muted) }}>
+                    <button key={cat} onClick={() => setField("category", cat)} className={`produtos-view__categoria-chip${form.category === cat ? " produtos-view__categoria-chip--ativa" : ""}`}>
                       {cat}
                     </button>
                   ))}
                 </div>
-                <Input value={form.category} onChange={v => setField("category", v)} placeholder="Ou digite uma nova categoria" maxLength={40} style={{ marginTop: 8 }} />
+                <Input value={form.category} onChange={v => setField("category", v)} placeholder="Ou digite uma nova categoria" maxLength={40} />
                 {/* Prevenção de erro > mensagem de erro: se o usuário digitar
                     "insumo"/"produção" à mão, o aviso já aparece enquanto ele
                     digita e diz qual botão usar — não espera o Salvar falhar. */}
@@ -85,7 +82,7 @@ export default function ModalCadastroProduto({ tela }) {
             {/* ── Seção: Unidades de medida ── */}
             <div className="produtos-view__secao-unidades">
               <div className="produtos-view__secao-titulo">
-                <LuRuler size={15} color={varColor(C.accent)} />
+                <LuRuler size={15} className="produtos-view__secao-icone" />
                 <span>Unidades de medida</span>
               </div>
 
@@ -101,7 +98,7 @@ export default function ModalCadastroProduto({ tela }) {
                     {unidadesEstoque.map(u => {
                       const sel = form.unidade_estoque === u.abreviacao;
                       return (
-                        <button key={u.id} onClick={() => setField("unidade_estoque", u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? varColor(C.accent) : varColor(C.border), background: sel ? "var(--gm-alow)" : varColor(C.card), color: sel ? varColor(C.accent) : varColor(C.muted) }}>
+                        <button key={u.id} onClick={() => setField("unidade_estoque", u.abreviacao)} className={`produtos-view__unidade-btn produtos-view__unidade-btn--estoque${sel ? " produtos-view__unidade-btn--ativa" : ""}`}>
                           {u.abreviacao}
                           <span className="produtos-view__unidade-nome">{u.nome !== u.abreviacao ? u.nome : ""}</span>
                         </button>
@@ -125,7 +122,7 @@ export default function ModalCadastroProduto({ tela }) {
                   const fator = parseFloat(c.fator) || 0;
                   const isEditing = editingCompra === idx;
                   return (
-                    <div key={c.uid ?? idx} className="produtos-view__fornecedor-card" style={{ borderColor: alfa(C.blue, "33") }}>
+                    <div key={c.uid ?? idx} className="produtos-view__fornecedor-card">
                       {/* Cabeçalho com nome do fornecedor */}
                       <div className="produtos-view__fornecedor-cabecalho">
                         {isEditing ? (
@@ -137,17 +134,16 @@ export default function ModalCadastroProduto({ tela }) {
                             onKeyDown={e => e.key === "Enter" && setEditingCompra(null)}
                             maxLength={40}
                             className="produtos-view__fornecedor-input"
-                            style={{ borderColor: alfa(C.blue, "66") }}
                           />
                         ) : (
-                          <span className="produtos-view__fornecedor-nome" style={{ color: c.nome ? varColor(C.text) : varColor(C.muted) }}>
+                          <span className={`produtos-view__fornecedor-nome${c.nome ? "" : " produtos-view__fornecedor-nome--vazio"}`}>
                             {c.nome || "Fornecedor"}
                           </span>
                         )}
-                        <button onClick={() => setEditingCompra(isEditing ? null : idx)} title="Renomear" className="produtos-view__fornecedor-btn-icone" style={{ color: isEditing ? varColor(C.blue) : varColor(C.muted) }}>
+                        <button onClick={() => setEditingCompra(isEditing ? null : idx)} title="Renomear" className={`produtos-view__fornecedor-btn-icone${isEditing ? " produtos-view__fornecedor-btn-icone--ativo" : ""}`}>
                           <LuPencil size={12} />
                         </button>
-                        <button onClick={() => removeCompra(idx)} className="produtos-view__fornecedor-btn-icone" style={{ color: varColor(C.muted) }}>
+                        <button onClick={() => removeCompra(idx)} className="produtos-view__fornecedor-btn-icone">
                           <LuXIcon size={13} />
                         </button>
                       </div>
@@ -155,7 +151,7 @@ export default function ModalCadastroProduto({ tela }) {
                       {/* Frase de conversão */}
                       <div className="produtos-view__conversao-frase">
                         Uma{" "}
-                        <span style={{ color: varColor(C.blue), fontWeight: 800 }}>{c.unidade || "…"}</span>
+                        <span className="produtos-view__frase-unidade produtos-view__frase-unidade--compra">{c.unidade || "…"}</span>
                         {" "}equivale a{" "}
                         <input
                           type="number"
@@ -164,21 +160,20 @@ export default function ModalCadastroProduto({ tela }) {
                           value={c.fator}
                           onChange={e => setCompra(idx, "fator", e.target.value)}
                           placeholder="0"
-                          className="produtos-view__conversao-fator"
-                          style={{ borderColor: c.fator ? alfa(C.blue, "88") : "var(--gm-input-border)" }}
+                          className={`produtos-view__conversao-fator produtos-view__conversao-fator--compra${c.fator ? " produtos-view__conversao-fator--preenchido" : ""}`}
                         />
-                        {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque || "…"}</span>{" "}de estoque
+                        {" "}<span className="produtos-view__frase-unidade produtos-view__frase-unidade--estoque">{form.unidade_estoque || "…"}</span>{" "}de estoque
                       </div>
 
                       {/* Botões de unidade */}
                       {unidadesCompra.length === 0 ? (
                         <div className="produtos-view__bloco-vazio">Nenhuma unidade de compra cadastrada.</div>
                       ) : (
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <div className="produtos-view__unidades-compra">
                           {unidadesCompra.map(u => {
                             const sel = c.unidade === u.abreviacao;
                             return (
-                              <button key={u.id} onClick={() => setCompra(idx, "unidade", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ padding: "6px 14px", borderRadius: 9, borderColor: sel ? varColor(C.blue) : varColor(C.border), background: sel ? alfa(C.blue, "15") : varColor(C.surface), color: sel ? varColor(C.blue) : varColor(C.muted) }}>
+                              <button key={u.id} onClick={() => setCompra(idx, "unidade", sel ? "" : u.abreviacao)} className={`produtos-view__unidade-btn produtos-view__unidade-btn--compra${sel ? " produtos-view__unidade-btn--ativa" : ""}`}>
                                 {u.abreviacao}
                               </button>
                             );
@@ -188,7 +183,7 @@ export default function ModalCadastroProduto({ tela }) {
 
                       {/* Preview */}
                       {c.unidade && fator > 0 && form.unidade_estoque && (
-                        <div className="produtos-view__conversao-preview" style={{ background: alfa(C.blue, "10"), borderColor: alfa(C.blue, "33") }}>
+                        <div className="produtos-view__conversao-preview produtos-view__conversao-preview--compra">
                           ✓ 1 {c.unidade} → +{fmtQtd(fator)} {form.unidade_estoque} no estoque
                         </div>
                       )}
@@ -199,7 +194,6 @@ export default function ModalCadastroProduto({ tela }) {
                 <button
                   onClick={addCompra}
                   className="produtos-view__btn-add-fornecedor"
-                  style={{ borderColor: alfa(C.blue, "55"), background: alfa(C.blue, "07"), color: varColor(C.blue) }}
                 >
                   <LuPencil size={13} /> + Adicionar fornecedor
                 </button>
@@ -219,7 +213,7 @@ export default function ModalCadastroProduto({ tela }) {
                     {unidadesConsumo.map(u => {
                       const sel = form.unidade_consumo === u.abreviacao;
                       return (
-                        <button key={u.id} onClick={() => setField("unidade_consumo", sel ? "" : u.abreviacao)} className="produtos-view__unidade-btn" style={{ borderColor: sel ? varColor(C.green) : varColor(C.border), background: sel ? alfa(C.green, "15") : varColor(C.card), color: sel ? varColor(C.green) : varColor(C.muted) }}>
+                        <button key={u.id} onClick={() => setField("unidade_consumo", sel ? "" : u.abreviacao)} className={`produtos-view__unidade-btn produtos-view__unidade-btn--consumo${sel ? " produtos-view__unidade-btn--ativa" : ""}`}>
                           {u.abreviacao}
                           <span className="produtos-view__unidade-nome">{u.nome !== u.abreviacao ? u.nome : ""}</span>
                         </button>
@@ -234,7 +228,7 @@ export default function ModalCadastroProduto({ tela }) {
                   <>
                     <div className="produtos-view__conversao-frase">
                       Uma{" "}
-                      <span style={{ color: varColor(C.green), fontWeight: 800 }}>{form.unidade_consumo}</span>
+                      <span className="produtos-view__frase-unidade produtos-view__frase-unidade--consumo">{form.unidade_consumo}</span>
                       {" "}vendida gasta{" "}
                       <input
                         type="number"
@@ -243,16 +237,15 @@ export default function ModalCadastroProduto({ tela }) {
                         value={form.fator_consumo}
                         onChange={e => setField("fator_consumo", e.target.value)}
                         placeholder="1"
-                        className="produtos-view__conversao-fator"
-                        style={{ borderColor: form.fator_consumo ? alfa(C.green, "88") : "var(--gm-input-border)" }}
+                        className={`produtos-view__conversao-fator produtos-view__conversao-fator--consumo${form.fator_consumo ? " produtos-view__conversao-fator--preenchido" : ""}`}
                       />
-                      {" "}<span style={{ color: varColor(C.accent), fontWeight: 800 }}>{form.unidade_estoque}</span>{" "}do estoque
+                      {" "}<span className="produtos-view__frase-unidade produtos-view__frase-unidade--estoque">{form.unidade_estoque}</span>{" "}do estoque
                     </div>
                     {(() => {
                       const f = parseFloat(String(form.fator_consumo).replace(",", "."));
                       if (!(f > 0)) return null;
                       return (
-                        <div className="produtos-view__conversao-preview" style={{ background: alfa(C.green, "10"), borderColor: alfa(C.green, "33") }}>
+                        <div className="produtos-view__conversao-preview produtos-view__conversao-preview--consumo">
                           ✓ 1 {form.unidade_consumo} vendida → −{fmtQtd(f)} {form.unidade_estoque} no estoque
                         </div>
                       );
@@ -264,7 +257,7 @@ export default function ModalCadastroProduto({ tela }) {
 
             {/* Erro */}
             {erro && (
-              <div className="produtos-view__erro" style={{ background: alfa(C.red, "15"), border: `1px solid ${alfa(C.red, "44")}` }}>
+              <div className="produtos-view__erro produtos-view__erro--caixa">
                 ⚠️ {erro}
               </div>
             )}
@@ -272,7 +265,7 @@ export default function ModalCadastroProduto({ tela }) {
             {/* Botões */}
             <div className="produtos-view__modal-botoes">
               <button onClick={fecharModal} className="produtos-view__btn-cancelar">Cancelar</button>
-              <button onClick={salvar} disabled={salvando} className="produtos-view__btn-salvar" style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}>
+              <button onClick={salvar} disabled={salvando} className="produtos-view__btn-salvar">
                 {salvando ? "Salvando..." : modal === "novo"
                   ? isInsumo ? "Cadastrar Insumo" : isProducao ? "Cadastrar Item" : "Cadastrar Produto"
                   : "Salvar Alterações"}
