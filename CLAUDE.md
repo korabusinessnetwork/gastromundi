@@ -47,6 +47,24 @@ pontuação, e isso é decisão do dono, não varredura.
 Comentário de código fica de fora de propósito. Comentário não é front, e proibir
 travessão lá só tornaria a regra irritante o bastante para ser ignorada.
 
+## Regra absoluta de interface, o sistema não tem emoji
+
+**Pedido do dono (2026-11-25): "não vamos ter emotes dentro do sistema".** Nada que o
+código escreve na tela, no cupom ou na planilha leva emoji: rótulo, botão, aviso, mensagem
+de erro, ícone de reserva (o "📦" de quando falta ícone), estado vazio, dado de
+demonstração. Ícone de interface é componente de ícone (`react-icons/lu`), que segue a cor
+do tema do estabelecimento; emoji não segue tema, muda de desenho de aparelho para aparelho
+e vira quadrado na impressora térmica.
+
+**`src/lib/emojiGuard.test.js` cobra na suíte.** Ele conta emoji por arquivo contra a linha
+de base `emojiGuard.linhaDeBase.json` (118 em 58 arquivos quando a regra nasceu): falha se
+um arquivo ganha emoji, se um arquivo novo aparece com emoji, e se um arquivo perde emoji
+sem a linha de base acompanhar. A linha de base só encolhe, até zerar. Para registrar uma
+queda: `GERAR_LINHA_DE_BASE=1 npx vitest run src/lib/emojiGuard.test.js`.
+
+Ficam de fora, como no travessão: comentário de código, e as setas e o visto usados como
+texto (→, ✓, ✕), que não são emoji.
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.

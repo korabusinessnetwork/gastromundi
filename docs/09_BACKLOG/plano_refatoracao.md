@@ -372,6 +372,13 @@ na mesma rodada da quebra, para não mexer duas vezes.
 
 **5.x Cores fixas:** as 25 cores hexadecimais no JSX passam a usar `var(--gm-*)`.
 
+**5.z Sem emoji (regra do dono, 2026-11-25):** o sistema não tem emoji. O guard
+`emojiGuard.test.js` trava o número (118 em 58 arquivos no dia da regra) e a linha de base só
+encolhe. Cada rodada da fase 5 que mexe num arquivo tira o emoji dele junto, trocando ícone
+de reserva e aviso por componente de `react-icons/lu`. Pendente de decisão do dono: o ícone
+que o estabelecimento escolhe para cada produto (campo `emoji` do cadastro), que é dado e não
+código, e o que o cupom impresso mostra.
+
 **5.y Prova do white-label:** rodar o roteiro de screenshots com dois temas de tenant
 diferentes e confirmar que nenhuma cor da marca padrão aparece no tema do outro.
 

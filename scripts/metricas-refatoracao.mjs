@@ -13,6 +13,7 @@
 
 import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
 import { contarEstiloInline } from "./contarEstiloInline.mjs";
+import { contarEmoji } from "./contarEmoji.mjs";
 import { join, relative, resolve } from "node:path";
 
 const RAIZ = resolve(import.meta.dirname, "..");
@@ -65,6 +66,8 @@ let estilosOutros = 0;
 let estilosSoVariavel = 0;
 const estilosPorArquivo = [];
 let hexNoJsx = 0;
+// Regra do dono (2026-11-25): o sistema não tem emoji. Mesma conta do emojiGuard.
+let emojiNoCodigo = 0;
 const celularImportaDesktop = [];
 const featuresImportaDesktop = [];
 let maiorUseState = { caminho: "", total: 0 };
@@ -85,6 +88,7 @@ for (const { caminho, texto } of arquivos) {
     if (outros) estilosPorArquivo.push({ caminho, total: outros });
     hexNoJsx += contar(texto, /#[0-9a-fA-F]{6}\b/g);
   }
+  if (!/\.test\.(jsx|js)$/.test(caminho) && !/\/test\//.test(caminho)) emojiNoCodigo += contarEmoji(texto);
 
   // A camada de funcionalidade (`src/features/`) também não depende das telas do
   // computador: um gancho que o celular usa e que importa de lá carrega a mesma
@@ -128,6 +132,7 @@ const metricas = {
   estiloSoVariavel: estilosSoVariavel,
   estiloPorArquivo: estilosPorArquivo.sort((a, b) => b.total - a.total),
   hexNoJsx,
+  emojiNoCodigo,
   celularImportaDesktop,
   featuresImportaDesktop,
   maiorPacoteJs: maiorPacote,
@@ -149,6 +154,7 @@ if (process.argv.includes("--json")) {
   linha("style={{}} que não é só variável CSS", metricas.estiloInline);
   linha("style={{}} só com variável CSS (permitido)", metricas.estiloSoVariavel);
   linha("Cor hexadecimal em JSX", metricas.hexNoJsx);
+  linha("Emoji no código (texto de tela, cupom, dado)", metricas.emojiNoCodigo);
   linha("Telas de celular importando components/desktop", celularImportaDesktop.length);
   linha("Arquivos de features/ importando components/desktop", featuresImportaDesktop.length);
   linha("Maior pacote JS em dist/", maiorPacote ? `${maiorPacote.kb} kB (${maiorPacote.nome})` : "sem dist/, rode npm run build");
