@@ -1,7 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import {
   LuX, LuCheck
 } from "react-icons/lu";
@@ -12,7 +10,7 @@ export default function ModalBase({ title, onClose, onSave, saveLabel = "Salvar"
       {...fecharAoClicarFora(onClose)}
       className="admin__modal-overlay"
     >
-      <div className="admin__modal" style={{ maxWidth: width }}>
+      <div className="admin__modal" style={{ "--admin-modal-w": `${width}px` }}>
         <div className="admin__modal-topo">
           <div className="admin__modal-titulo">{title}</div>
           <button
@@ -31,7 +29,6 @@ export default function ModalBase({ title, onClose, onSave, saveLabel = "Salvar"
             onClick={onSave}
             disabled={saving}
             className="admin__modal-salvar"
-            style={{ background: saving ? varColor(C.faint) : varColor(C.accent), cursor: saving ? "not-allowed" : "pointer" }}
           >
             {saving ? "Salvando..." : <><LuCheck size={14} />{saveLabel}</>}
           </button>

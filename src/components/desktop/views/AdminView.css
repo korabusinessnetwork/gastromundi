@@ -1173,3 +1173,176 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+/* ---- Fase 5: o que saiu do JSX da Área Admin ----
+   --admin-pad chega por variável na .admin-view (vem do `sz`). */
+.admin-view {
+  background: var(--gm-bg);
+}
+.admin-view__header {
+  padding: calc(var(--admin-pad) - 4px) var(--admin-pad);
+}
+.admin-view__conteudo {
+  padding: var(--admin-pad);
+}
+
+/* Janela padrão: a largura vem do componente por --admin-modal-w. */
+.admin__modal {
+  max-width: var(--admin-modal-w);
+}
+.admin__modal-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.admin__modal-salvar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}
+.admin__form-duas-colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Tabelas de Fornecedores e Compras. */
+.admin__thead-tr {
+  border-bottom: 1px solid var(--gm-border);
+}
+.admin__th--direita,
+.admin__td--direita {
+  text-align: right;
+}
+.admin__tr:hover {
+  background: var(--gm-surface);
+}
+.admin__td--forte {
+  font-weight: 700;
+}
+.admin__td--apagado,
+.admin__vazio-celula {
+  color: var(--gm-muted);
+}
+.admin__td--dinheiro {
+  font-weight: 800;
+  color: var(--gm-green);
+}
+
+/* Compras: status, data, itens e total. */
+.compras-tab__td-data {
+  white-space: nowrap;
+}
+.compras-tab__data {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.compras-tab__status--pendente  { --status-cor: var(--gm-warn); }
+.compras-tab__status--pago      { --status-cor: var(--gm-green); }
+.compras-tab__status--cancelado { --status-cor: var(--gm-muted); }
+.compras-tab__status {
+  background: color-mix(in srgb, var(--status-cor) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--status-cor) 27%, transparent);
+  color: var(--status-cor);
+}
+.compras-tab__status-chips {
+  display: flex;
+  gap: 8px;
+}
+.compras-tab__status-chip {
+  border-color: var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+}
+.compras-tab__status-chip--ativo {
+  border-color: var(--status-cor);
+  background: color-mix(in srgb, var(--status-cor) 9%, transparent);
+  color: var(--status-cor);
+}
+.compras-tab__select-fornecedor {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.compras-tab__select-fornecedor--vazio {
+  color: var(--gm-muted);
+}
+.compras-tab__itens-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.compras-tab__btn-add-item {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  color: var(--gm-accent);
+  font-weight: 700;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.compras-tab__itens {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.compras-tab__btn-remover-item {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--gm-muted);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.compras-tab__itens-vazio {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+.compras-tab__total-label {
+  margin-top: 10px;
+  text-align: right;
+  color: var(--gm-muted);
+}
+.compras-tab__total-valor {
+  color: var(--gm-green);
+}
+
+/* Grade inicial: cada seção tem um tom. O laranja de Impostos e da
+   Configuração Fiscal é literal porque o design system não tem token para ele
+   (tarefa 5.x, cores fixas). */
+.grade-inicial__card--destaque { --secao-cor: var(--gm-accent); }
+.grade-inicial__card--azul     { --secao-cor: var(--gm-blue); }
+.grade-inicial__card--verde    { --secao-cor: var(--gm-green); }
+.grade-inicial__card--laranja  { --secao-cor: #f97316; }
+.grade-inicial__card {
+  border-color: var(--gm-border);
+}
+.grade-inicial__card:hover {
+  border-color: color-mix(in srgb, var(--secao-cor) 40%, transparent);
+  background: color-mix(in srgb, var(--secao-cor) 3%, transparent);
+}
+.grade-inicial__icone {
+  background: color-mix(in srgb, var(--secao-cor) 9%, transparent);
+  border-color: color-mix(in srgb, var(--secao-cor) 27%, transparent);
+  color: var(--secao-cor);
+}
+.grade-inicial__texto {
+  flex: 1;
+}
+.grade-inicial__seta {
+  color: var(--gm-muted);
+}

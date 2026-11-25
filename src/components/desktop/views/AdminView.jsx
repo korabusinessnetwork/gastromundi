@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { lerCadastrosAdministrativos, salvarCadastroAdministrativo, contarNotasFiscais } from "@/features/admin/dados/administrativo";
 import { useSessao, useCatalogo } from "@/context/AppContext";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 // O dia UTC vira às 21h de Brasília: a compra aberta à noite já nascia datada
 // de amanhã.
@@ -88,8 +86,8 @@ export default function AdminView() {
   const secaoAtual = SECOES.find(s => s.id === secao);
 
   return (
-    <div className="admin-view" style={{ background: varColor(C.bg) }}>
-      <div className="admin-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+    <div className="admin-view" style={{ "--admin-pad": `${sz.pad}px` }}>
+      <div className="admin-view__header">
         <div className="admin-view__header-topo">
           {secao && (
             <button
@@ -108,7 +106,7 @@ export default function AdminView() {
         </div>
       </div>
 
-      <div className="admin-view__conteudo" style={{ padding: sz.pad }}>
+      <div className="admin-view__conteudo">
         {erroTela && (
           <div className="admin-view__erro" role="alert">{erroTela}</div>
         )}

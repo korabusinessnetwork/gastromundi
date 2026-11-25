@@ -1,7 +1,4 @@
 import { useState } from "react";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { hojeLocalISO } from "@/utils/datas";
 import {
   LuPlus, LuPencil, LuTrash2, LuX, LuShoppingCart, LuCalendar
@@ -69,28 +66,29 @@ export default function ComprasTab({ compras, fornecedores, onSave, onDelete }) 
         <div className="admin__tabela-moldura">
           <table className="admin__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+              <tr className="admin__thead-tr">
                 {["Data", "Fornecedor", "Itens", "Total", "Status", ""].map((h, i) => (
                   // TD015: cabeçalho literal da tabela de compras, não vem de dado.
-                  <th key={i} className="admin__th" style={{ textAlign: i >= 2 ? "right" : "left" }}>{h}</th>
+                  <th key={i} className={`admin__th${i >= 2 ? " admin__th--direita" : ""}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {compras.map(c => {
-                const st = STATUS_COMPRA[c.status] ?? STATUS_COMPRA.pendente;
+                const status = STATUS_COMPRA[c.status] ? c.status : "pendente";
+                const st = STATUS_COMPRA[status];
                 return (
-                  <tr key={c.id} className="admin__tr" onMouseEnter={e => e.currentTarget.style.background = varColor(C.surface)} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <td className="admin__td admin__td--simples" style={{ color: varColor(C.muted), whiteSpace: "nowrap" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}><LuCalendar size={13} /> {fmtDt(c.data)}</div>
+                  <tr key={c.id} className="admin__tr">
+                    <td className="admin__td admin__td--simples admin__td--apagado compras-tab__td-data">
+                      <div className="compras-tab__data"><LuCalendar size={13} /> {fmtDt(c.data)}</div>
                     </td>
-                    <td className="admin__td admin__td--forte" style={{ fontWeight: 700 }}>{c.fornecedor}</td>
-                    <td className="admin__td admin__td--simples" style={{ textAlign: "right", color: varColor(C.muted) }}>{c.itens?.length ?? 0} {(c.itens?.length ?? 0) === 1 ? "item" : "itens"}</td>
-                    <td className="admin__td admin__td--dinheiro" style={{ textAlign: "right", fontWeight: 800, color: varColor(C.green) }}>{fmtR(c.total)}</td>
-                    <td className="admin__td" style={{ textAlign: "right" }}>
-                      <span className="admin__tag" style={{ background: alfa(st.color, "18"), border: `1px solid ${alfa(st.color, "44")}`, color: st.color }}>{st.label}</span>
+                    <td className="admin__td admin__td--forte">{c.fornecedor}</td>
+                    <td className="admin__td admin__td--simples admin__td--apagado admin__td--direita">{c.itens?.length ?? 0} {(c.itens?.length ?? 0) === 1 ? "item" : "itens"}</td>
+                    <td className="admin__td admin__td--dinheiro admin__td--direita">{fmtR(c.total)}</td>
+                    <td className="admin__td admin__td--direita">
+                      <span className={`admin__tag compras-tab__status compras-tab__status--${status}`}>{st.label}</span>
                     </td>
-                    <td className="admin__td" style={{ textAlign: "right" }}>
+                    <td className="admin__td admin__td--direita">
                       <div className="admin__acoes-linha">
                         <CardBtn onClick={() => abrirEditar(c)}><LuPencil size={12} /> Editar</CardBtn>
                         <CardBtn onClick={() => setDeleteId(c.id)}><LuTrash2 size={12} /></CardBtn>
@@ -106,10 +104,10 @@ export default function ComprasTab({ compras, fornecedores, onSave, onDelete }) 
 
       {form && (
         <ModalBase title={compras.find(c => c.id === form.id) ? "Editar Compra" : "Registrar Compra"} onClose={fechar} onSave={salvar} saving={saving} width={620}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="admin__form-duas-colunas">
             <Field label="Fornecedor *">
               {fns.length > 0 ? (
-                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} className="compras-tab__select-fornecedor" style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid var(--gm-input-border)", background: "var(--gm-input-bg)", color: form.fornecedor ? varColor(C.text) : varColor(C.muted), fontFamily: "inherit", outline: "none", cursor: "pointer" }}>
+                <select value={form.fornecedor} onChange={e => setF("fornecedor", e.target.value)} className={`compras-tab__select-fornecedor${form.fornecedor ? "" : " compras-tab__select-fornecedor--vazio"}`}>
                   <option value="">Selecionar...</option>
                   {fns.map(n => <option key={n} value={n}>{n}</option>)}
                   <option value="__outro">Outro (digitar)</option>
@@ -127,37 +125,37 @@ export default function ComprasTab({ compras, fornecedores, onSave, onDelete }) 
           </div>
 
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div className="compras-tab__itens-topo">
               <div className="admin__secao-label">Itens</div>
-              <button onClick={addItem} className="compras-tab__btn-add-item" style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, padding: "4px 10px", cursor: "pointer", color: varColor(C.accent), fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}>
+              <button onClick={addItem} className="compras-tab__btn-add-item">
                 <LuPlus size={12} /> Adicionar item
               </button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div className="compras-tab__itens">
               {form.itens.map((it, i) => (
                 <div key={it.uid} className="compras-tab__item-linha">
                   <Inp value={it.nome} onChange={v => setItem(i, "nome", v)} placeholder="Produto / insumo" />
                   <Inp type="number" value={it.qtd} onChange={v => setItem(i, "qtd", v)} placeholder="Qtd" />
                   <Inp value={it.unidade} onChange={v => setItem(i, "unidade", v)} placeholder="Un" />
                   <Inp type="number" value={it.valorUnit} onChange={v => setItem(i, "valorUnit", v)} placeholder="R$/un" />
-                  <button onClick={() => removeItem(i)} style={{ background: "none", border: `1px solid var(${C.border})`, borderRadius: 8, cursor: "pointer", color: varColor(C.muted), padding: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <button onClick={() => removeItem(i)} className="compras-tab__btn-remover-item" aria-label="Remover item">
                     <LuX size={13} />
                   </button>
                 </div>
               ))}
-              {form.itens.length === 0 && <div className="compras-tab__itens-vazio" style={{ color: varColor(C.muted), textAlign: "center", padding: "12px 0" }}>Nenhum item adicionado</div>}
+              {form.itens.length === 0 && <div className="compras-tab__itens-vazio">Nenhum item adicionado</div>}
             </div>
             {form.itens.length > 0 && (
-              <div className="compras-tab__total-label" style={{ marginTop: 10, textAlign: "right", color: varColor(C.muted) }}>
-                Total: <strong className="compras-tab__total-valor" style={{ color: varColor(C.green) }}>{fmtR(totalForm)}</strong>
+              <div className="compras-tab__total-label">
+                Total: <strong className="compras-tab__total-valor">{fmtR(totalForm)}</strong>
               </div>
             )}
           </div>
 
           <Field label="Status">
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="compras-tab__status-chips">
               {Object.entries(STATUS_COMPRA).map(([id, s]) => (
-                <button key={id} onClick={() => setF("status", id)} className="compras-tab__status-chip" style={{ borderColor: form.status === id ? s.color : varColor(C.border), background: form.status === id ? alfa(s.color, "18") : "none", color: form.status === id ? s.color : varColor(C.muted) }}>
+                <button key={id} onClick={() => setF("status", id)} className={`compras-tab__status-chip compras-tab__status--${id}${form.status === id ? " compras-tab__status-chip--ativo" : ""}`}>
                   {s.label}
                 </button>
               ))}
