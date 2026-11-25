@@ -631,7 +631,7 @@ function roteiro(largura) {
     preparar: comMesasPosicionadas(false), passo: naMesas(async (page) => {
       await page.getByRole("button", { name: "Nova Mesa" }).click({ timeout: 3000 });
       await page.getByPlaceholder("Ex: 1, 2, Varanda A…").fill("1", { timeout: 3000 });
-      await page.getByRole("button", { name: "Criar mesa" }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: "Criar mesa", exact: true }).click({ timeout: 3000 });
     }) });
   telas.push({ nome: "app-configuracoes-mesas-editar", perfil: "dono", caminho: "/app/configuracoes",
     preparar: comMesasPosicionadas(false), passo: naMesas(async (page) => {
