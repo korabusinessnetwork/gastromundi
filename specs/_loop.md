@@ -1,3 +1,10 @@
+## Rodada 124, refatoração 5.18, o resto da Frente de Caixa sem estilo inline e sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-18-resto-do-pdv.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 150 telas, 1
+  diferença e 2 leves (a cadeira do subtítulo da comanda virou ícone). Sem migration. Estilo
+  inline: 351 para 295. Emoji: 99 para 98.
+- A pasta `PDVView` inteira fica sem estilo inline.
 ## Rodada 123, refatoração 5.17, cadastro de mesas sem estilo inline e sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-17-cadastro-de-mesas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
