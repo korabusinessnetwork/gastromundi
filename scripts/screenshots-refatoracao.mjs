@@ -275,17 +275,39 @@ function roteiro(largura) {
       await page.waitForTimeout(400);
     } });
   // Um plano sem o módulo Delivery: o item fica na barra com o convite.
-  const semDelivery = async (contexto) => {
+  // Estabelecimento com plano e, se pedido, uma assinatura. Sem `delivery`,
+  // o plano não tem o módulo Delivery.
+  const MODULOS_SEM_DELIVERY = ["cardapio", "pdv", "caixa", "estoque", "pedidos", "mesas_comandas", "cozinha",
+    "alertas", "financeiro", "clientes", "relatorios", "jarvas", "fiscal_integracoes"];
+  const comTenant = ({ modulos, assinatura }) => async (contexto) => {
     const responder = (corpo) => (route) => (route.request().method() === "GET"
       ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
       : route.fallback());
     await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema: {}, plano_codigo: "basico", created_at: "2026-01-01T00:00:00.000Z" }));
-    await contexto.route(/\/rest\/v1\/planos_modulos/, responder(
-      ["cardapio", "pdv", "caixa", "estoque", "pedidos", "mesas_comandas", "cozinha", "alertas", "financeiro", "clientes", "relatorios", "jarvas", "fiscal_integracoes"]
-        .map((modulo_codigo) => ({ modulo_codigo }))));
+    await contexto.route(/\/rest\/v1\/planos_modulos/, responder(modulos.map((modulo_codigo) => ({ modulo_codigo }))));
+    if (assinatura) await contexto.route(/\/rest\/v1\/assinaturas/, responder(assinatura));
   };
+  const semDelivery = comTenant({ modulos: MODULOS_SEM_DELIVERY });
   telas.push({ nome: "app-plano-bloqueado", perfil: "dono", caminho: "/app/pdv", preparar: semDelivery,
     passo: (page) => page.locator(".sidebar__nav-item--bloqueado").first().click({ timeout: 3000 }) });
+  // Fase 5: a casca do app (barra lateral recolhida, largura estreita com menu
+  // de gaveta) e as telas de acesso (fora do plano, sem permissão, assinatura).
+  const botaoRecolher = (page) => page.getByTitle(/Recolher sidebar|Expandir sidebar/);
+  telas.push({ nome: "app-sidebar-hover", perfil: "dono", caminho: "/app/pdv", passo: (page) => botaoRecolher(page).hover({ timeout: 3000 }) });
+  telas.push({ nome: "app-sidebar-recolhida", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => { await botaoRecolher(page).click({ timeout: 3000 }); await page.waitForTimeout(400); } });
+  // A largura estreita (barra de topo com menu de gaveta) e a tela "Sem acesso"
+  // não entram: abaixo de 768 px e sem nenhuma permissão o app manda para o
+  // /palm, então o roteiro não chega a elas por navegação.
+  telas.push({ nome: "app-fora-do-plano", perfil: "dono", caminho: "/app/delivery", preparar: semDelivery });
+  const TODOS_OS_MODULOS = [...MODULOS_SEM_DELIVERY, "delivery"];
+  // O relógio do roteiro está em 20/11/2026.
+  telas.push({ nome: "app-assinatura-vencendo", perfil: "dono", caminho: "/app/pdv",
+    preparar: comTenant({ modulos: TODOS_OS_MODULOS, assinatura: { data_vencimento: "2026-11-23", carencia_dias: 5, valor_mensal: 149, status: "ativo" } }) });
+  telas.push({ nome: "app-assinatura-carencia", perfil: "dono", caminho: "/app/pdv",
+    preparar: comTenant({ modulos: TODOS_OS_MODULOS, assinatura: { data_vencimento: "2026-11-18", carencia_dias: 5, valor_mensal: 149, status: "carencia" } }) });
+  telas.push({ nome: "app-assinatura-bloqueada", perfil: "dono", caminho: "/app/pdv",
+    preparar: comTenant({ modulos: TODOS_OS_MODULOS, assinatura: { data_vencimento: "2026-10-01", carencia_dias: 5, valor_mensal: 149, status: "bloqueado" } }) });
   // Fase 5: abertura de caixa, com o caixa fechado.
   const comCaixaFechado = (contexto) => contexto.route(/\/rest\/v1\/config\?.*caixa_aberto/, (route) => (route.request().method() === "GET"
     ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
@@ -910,6 +932,9 @@ async function capturar(pasta, ref) {
           await contexto.addInitScript(([k, v]) => { globalThis.localStorage.setItem(k, v); }, [chave, valor]);
         }
         const page = await contexto.newPage();
+        // `viewport`: a tela pede outra largura (ex.: computador estreito, que
+        // troca a barra lateral pelo menu de gaveta).
+        if (tela.viewport) await page.setViewportSize(tela.viewport);
         const arquivo = join(pasta, `${largura}--${tela.nome}.png`);
         try {
           // `host`: a tela abre por outro nome (ex.: subdomínio de estabelecimento).
