@@ -1518,3 +1518,45 @@
   cursor: not-allowed;
   opacity: 0.4;
 }
+
+/* ---- Fase 5: cor e estado do cabeçalho, que saíram do JSX ---- */
+.checkout-view {
+  background: var(--gm-bg);
+}
+.checkout-view__header-info {
+  flex: 1;
+}
+.checkout-view__btn-voltar,
+.checkout-view__btn-ajuste,
+.checkout-view__btn-remover-item {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+}
+.checkout-view__btn-voltar {
+  cursor: pointer;
+}
+.checkout-view__btn-voltar:hover:not(:disabled) {
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
+.checkout-view__btn-voltar:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+/* Desconto ou acréscimo aplicado: o botão ganha a cor do ajuste. */
+.checkout-view__btn-ajuste--desconto,
+.checkout-view__btn-remover-item--ativo {
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-red) 40%, transparent);
+  color: var(--gm-red);
+}
+.checkout-view__btn-ajuste--acrescimo {
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-green) 40%, transparent);
+  color: var(--gm-green);
+}
+.checkout-view__body--coluna {
+  flex-direction: column;
+}

@@ -1,4 +1,4 @@
-import { LuArrowLeft, LuArrowLeftRight, LuPlus, LuX, LuChartBar, LuPencil, LuScanBarcode, LuUser } from "react-icons/lu";
+import { LuArmchair, LuArrowLeft, LuArrowLeftRight, LuPlus, LuX, LuChartBar, LuPencil, LuScanBarcode, LuUser } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { fmtComanda } from "@/lib/rotuloComanda";
 
@@ -8,28 +8,21 @@ export default function CabecalhoPdv({ tela }) {
     mode, selected, cartItems, toast, barcodeInputOpen, setBarcodeInputOpen, barcodeValue, setBarcodeValue, barcodeFeedback, setBarcodeFeedback, caixaAberto, setShowNova, setNomeComanda, setConfirmCancelar, setConfirmCancelarMotivo, setShowSaldo, setSaldoSenha, setSaldoSenhaErro, setSaldoAutorizado, setSaldoSenhaVis, setShowCancelarComanda, setCancelarSenha, setCancelarSenhaErro, setCancelarAutorizado, setCancelarMotivo, abrirTransferir, sz, isCel, emPainel, abertas, abrirEditarMesa, abrirClienteComanda, handleBack, handleBarcodeScan,
   } = tela;
   return (
-        <div className="pdv__header" style={{
-          // Faixa de topo compacta: header + alerta + abas + busca empilhados
-          // comiam ~240px antes do primeiro card. Cada bloco perdeu altura sem
-          // perder alvo de toque (ver comentários abaixo).
-          padding: `${sz.padSm - 3}px ${sz.pad}px`,
-          ...(isCel
-            ? { display: "flex", flexDirection: "column", alignItems: "stretch" }
-            : { display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center" }),
-          gap: sz.gap,
-        }}>
+        // Faixa de topo compacta: header + alerta + abas + busca empilhados
+        // comiam ~240px antes do primeiro card. Cada bloco perdeu altura sem
+        // perder alvo de toque (os espaços estão no PDVView.css).
+        <div className={`pdv__header${isCel ? " pdv__header--celular" : ""}`}>
           {/* Esquerda: título / voltar */}
           <div className="pdv__header-esq">
             {mode === "pedido" && (
               <button
                 onClick={handleBack}
                 className="pdv__voltar-btn"
-                style={{ padding: `${sz.padSm - 2}px ${sz.padSm + 2}px` }}
               >
                 <LuArrowLeft size={16} /> Voltar
               </button>
             )}
-            <div className="pdv__header-info" style={isCel ? { flex: 1, justifyContent: "space-between" } : undefined}>
+            <div className="pdv__header-info">
               <div className="pdv__header-titulos">
                 <div className="pdv__titulo">
                   {mode === "pedido" ? fmtComanda(selected?.comanda) : "Frente de Caixa"}
@@ -37,7 +30,7 @@ export default function CabecalhoPdv({ tela }) {
                 <div className="pdv__subtitulo">
                   {mode === "pedido"
                     ? <>
-                        {selected?.mesa && <span className="pdv__subtitulo-mesa">🪑 Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
+                        {selected?.mesa && <span className="pdv__subtitulo-mesa"><LuArmchair size={13} aria-hidden="true" className="pdv__subtitulo-mesa-icone" /> Mesa {selected.mesa}{selected?.apelido ? ` · ${selected.apelido}` : ""} ·</span>}
                         {cartItems.length} {cartItems.length === 1 ? "tipo de item" : "tipos de item"} no carrinho
                       </>
                     : `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} em aberto`}
@@ -48,7 +41,6 @@ export default function CabecalhoPdv({ tela }) {
                   onClick={() => { setShowSaldo(true); setSaldoSenha(""); setSaldoSenhaErro(""); setSaldoAutorizado(false); setSaldoSenhaVis(false); }}
                   title="Saldo do dia"
                   className="pdv__saldo-btn"
-                  style={{ padding: `${sz.padSm - 5}px ${sz.pad - 6}px` }}
                 >
                   <LuChartBar size={15} /> Saldo do Dia
                 </button>
@@ -60,7 +52,7 @@ export default function CabecalhoPdv({ tela }) {
           {!isCel && <div />}
 
           {/* Direita: ações */}
-          <div className="pdv__header-acoes" style={{ justifyContent: isCel ? "flex-start" : "flex-end", gap: sz.gap }}>
+          <div className="pdv__header-acoes">
           {/* Toast inline — visível no mapa/lista após lançar */}
           {emPainel && (
             <div className={`pdv__toast${toast ? " pdv__toast--visivel" : ""}`}>
@@ -72,10 +64,6 @@ export default function CabecalhoPdv({ tela }) {
               onClick={() => { setShowNova(true); setNomeComanda(""); }}
               disabled={!caixaAberto}
               className="pdv__nova-comanda-btn"
-              style={{
-                padding: `${sz.padSm - 5}px ${sz.pad - 2}px`,
-                ...(isCel ? { width: "100%", justifyContent: "center" } : {}),
-              }}
             >
               <LuPlus size={sz.fontBase} /> Nova Comanda
             </button>
@@ -137,7 +125,6 @@ export default function CabecalhoPdv({ tela }) {
                   onClick={abrirEditarMesa}
                   title="Editar mesa e apelido"
                   className="pdv__acao-btn pdv__acao-btn--neutro"
-                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                 >
                   <LuPencil size={sz.fontBase - 2} />
                   {selected?.mesa ? `Mesa ${selected.mesa}` : "Mesa"}
@@ -148,7 +135,6 @@ export default function CabecalhoPdv({ tela }) {
                   onClick={abrirClienteComanda}
                   title="Vincular cliente à comanda"
                   className={`pdv__acao-btn pdv__acao-btn--cliente${selected?.cliente_id ? " pdv__acao-btn--cliente-vinculado" : ""}`}
-                  style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                 >
                   <LuUser size={sz.fontBase - 2} />
                   <span className="pdv__acao-btn-texto">
@@ -161,14 +147,12 @@ export default function CabecalhoPdv({ tela }) {
                   <button
                     onClick={abrirTransferir}
                     className="pdv__acao-btn pdv__acao-btn--neutro"
-                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     <LuArrowLeftRight size={sz.fontBase - 1} /> Transferir
                   </button>
                   <button
                     onClick={() => { setShowCancelarComanda(true); setCancelarSenha(""); setCancelarSenhaErro(""); setCancelarAutorizado(false); setCancelarMotivo(""); }}
                     className="pdv__acao-btn pdv__acao-btn--cancelar-comanda"
-                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     <LuX size={sz.fontBase - 1} /> Cancelar Comanda
                   </button>
@@ -177,7 +161,6 @@ export default function CabecalhoPdv({ tela }) {
                   <button
                     onClick={() => { setConfirmCancelar(true); setConfirmCancelarMotivo(""); }}
                     className="pdv__acao-btn pdv__acao-btn--cancelar-pedido"
-                    style={{ padding: `${sz.padSm - 2}px ${sz.padSm}px` }}
                   >
                     Cancelar Pedido
                   </button>

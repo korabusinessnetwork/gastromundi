@@ -153,3 +153,21 @@
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm - 1) */
   line-height: var(--lh-sm);
 }
+
+/* ---- Fase 5: espaços que vinham do `sz` no JSX, por variável na raiz ---- */
+.produto-grid__filtro {
+  gap: calc(var(--pg-gap) - 4px);
+  padding: var(--pg-pad-sm) var(--pg-pad);
+}
+.produto-grid__chip {
+  padding: calc(var(--pg-pad-sm) - 4px) calc(var(--pg-pad) - 4px);
+}
+.produto-grid__lista {
+  padding: var(--pg-pad);
+  grid-template-columns: repeat(auto-fill, minmax(var(--pg-card-min), 1fr));
+  gap: calc(var(--pg-gap) - 2px);
+}
+.produto-card {
+  padding: calc(var(--pg-pad) - 2px) var(--pg-pad-sm);
+  gap: max(0px, calc(var(--pg-gap) - 8px));
+}

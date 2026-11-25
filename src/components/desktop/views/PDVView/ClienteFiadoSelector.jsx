@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { LuUser, LuSearch, LuCheck, LuX } from "react-icons/lu";
 import { listarClientes, cadastrarCliente } from "@/lib/clientes";
 import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
@@ -59,19 +56,16 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
 
   if (cliente) {
     return (
-      <div style={{
-        display: "flex", alignItems: "center", gap: 10,
-        padding: "10px 14px", borderRadius: 10,
-        border: `1.5px solid ${alfa(C.accent, "55")}`, background: varColor(C.alow),
-      }}>
-        <LuCheck size={16} color={varColor(C.accent)} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="cliente-fiado-selecionado__nome" style={{ color: varColor(C.text) }}>{cliente.nome}</div>
-          {cliente.telefone && <div className="cliente-fiado-selecionado__telefone" style={{ color: varColor(C.muted) }}>{formatarTelefone(cliente.telefone)}</div>}
+      <div className="cliente-fiado-selecionado">
+        <LuCheck size={16} className="cliente-fiado-selecionado__icone" />
+        <div className="cliente-fiado__texto">
+          <div className="cliente-fiado-selecionado__nome">{cliente.nome}</div>
+          {cliente.telefone && <div className="cliente-fiado-selecionado__telefone">{formatarTelefone(cliente.telefone)}</div>}
         </div>
         <button
           onClick={() => onSelecionar(null)}
-          style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4, display: "flex" }}
+          className="cliente-fiado-selecionado__trocar"
+          aria-label="Trocar cliente"
         >
           <LuX size={16} />
         </button>
@@ -80,45 +74,33 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{
-        display: "flex", alignItems: "center", gap: 8,
-        border: `1.5px solid var(${C.border})`, borderRadius: 10, padding: "8px 12px",
-        background: varColor(C.surface),
-      }}>
-        <LuSearch size={15} color={varColor(C.muted)} />
+    <div className="cliente-fiado">
+      <div className="cliente-fiado-busca">
+        <LuSearch size={15} className="cliente-fiado-busca__icone" />
         <input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder={placeholder}
           className="cliente-fiado-busca__input"
-          style={{
-            flex: 1, border: "none", background: "none", outline: "none",
-            color: varColor(C.text),
-          }}
         />
       </div>
 
-      {erro && <div className="cliente-fiado-estado__erro" style={{ color: varColor(C.red) }}>{erro}</div>}
+      {erro && <div className="cliente-fiado-estado__erro" role="alert">{erro}</div>}
 
-      {carregando && <div className="cliente-fiado-estado__carregando" style={{ color: varColor(C.muted) }}>Buscando...</div>}
+      {carregando && <div className="cliente-fiado-estado__carregando">Buscando...</div>}
 
       {!carregando && busca.trim() && resultados.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+        <div className="cliente-fiado-resultados">
           {resultados.map((c) => (
             <button
               key={c.id}
               onClick={() => onSelecionar(c)}
-              style={{
-                display: "flex", alignItems: "center", gap: 10, textAlign: "left",
-                padding: "8px 12px", borderRadius: 8, border: `1px solid var(${C.border})`,
-                background: varColor(C.card), cursor: "pointer", fontFamily: "inherit",
-              }}
+              className="cliente-fiado-resultado"
             >
-              <LuUser size={14} color={varColor(C.muted)} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="cliente-fiado-resultado__nome" style={{ color: varColor(C.text) }}>{c.nome}</div>
-                {c.telefone && <div className="cliente-fiado-resultado__telefone" style={{ color: varColor(C.muted) }}>{formatarTelefone(c.telefone)}</div>}
+              <LuUser size={14} className="cliente-fiado-resultado__icone" />
+              <div className="cliente-fiado__texto">
+                <div className="cliente-fiado-resultado__nome">{c.nome}</div>
+                {c.telefone && <div className="cliente-fiado-resultado__telefone">{formatarTelefone(c.telefone)}</div>}
               </div>
             </button>
           ))}
@@ -129,22 +111,14 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
         <button
           onClick={() => setMostrarCadastro(true)}
           className="cliente-fiado-acao__cadastro-rapido"
-          style={{
-            padding: "9px 12px", borderRadius: 8, border: `1.5px dashed ${alfa(C.accent, "66")}`,
-            background: "none", color: varColor(C.accent), cursor: "pointer",
-            textAlign: "left",
-          }}
         >
           + Cadastrar "{busca}" como novo cliente
         </button>
       )}
 
       {mostrarCadastro && (
-        <div style={{
-          display: "flex", flexDirection: "column", gap: 8,
-          padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${alfa(C.accent, "44")}`, background: varColor(C.surface),
-        }}>
-          <div className="cliente-fiado-cadastro__label" style={{ color: varColor(C.muted) }}>Telefone de <strong>{busca}</strong> (obrigatório)</div>
+        <div className="cliente-fiado-cadastro">
+          <div className="cliente-fiado-cadastro__label">Telefone de <strong>{busca}</strong> (obrigatório)</div>
           <input
             value={novoTelefone}
             onChange={(e) => setNovoTelefone(mascararTelefone(e.target.value))}
@@ -152,24 +126,16 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
             inputMode="numeric"
             aria-invalid={novoTelefone.trim().length > 0 && !telefoneOk}
             className="cliente-fiado-cadastro__input-telefone"
-            style={{
-              padding: "8px 10px", borderRadius: 8, border: `1.5px solid var(--gm-input-border)`,
-              background: "var(--gm-input-bg)", color: varColor(C.text), outline: "none",
-            }}
           />
           {novoTelefone.trim().length > 0 && !telefoneOk && (
-            <div className="cliente-fiado-cadastro__aviso" style={{ color: varColor(C.red) }}>
+            <div className="cliente-fiado-cadastro__aviso">
               Telefone incompleto, informe DDD e número.
             </div>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="cliente-fiado-cadastro__botoes">
             <button
               onClick={() => setMostrarCadastro(false)}
               className="cliente-fiado-cadastro__botao"
-              style={{
-                flex: 1, padding: "8px", borderRadius: 8, border: `1.5px solid var(${C.border})`,
-                background: "none", color: varColor(C.muted), cursor: "pointer",
-              }}
             >
               Cancelar
             </button>
@@ -177,11 +143,6 @@ export default function ClienteFiadoSelector({ cliente, onSelecionar, usuario, p
               onClick={handleCadastrarRapido}
               disabled={salvando || !telefoneOk}
               className="cliente-fiado-cadastro__botao-confirmar"
-              style={{
-                flex: 2, padding: "8px", borderRadius: 8, border: "none",
-                background: (salvando || !telefoneOk) ? varColor(C.faint) : varColor(C.accent),
-                color: "#fff", cursor: (salvando || !telefoneOk) ? "not-allowed" : "pointer",
-              }}
             >
               {salvando ? "Salvando..." : "Cadastrar e usar"}
             </button>

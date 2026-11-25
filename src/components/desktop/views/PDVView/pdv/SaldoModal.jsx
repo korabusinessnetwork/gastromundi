@@ -3,9 +3,6 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useResponsive } from "@/utils/hooks";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { LuLock, LuX, LuChartBar, LuEye, LuEyeOff } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { listarCancelamentosDeComandaDesde } from "@/features/auditoria/dados/logsOperador";
@@ -62,7 +59,9 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
   vendasHoje.forEach(v => { Object.entries(totalPorMetodo(v)).forEach(([m, val]) => { porMetodo[m] = (porMetodo[m] ?? 0) + val; }); });
 
   const customLabels = Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label]));
-  const METODOS_COLOR = { dinheiro: "#10b981", credito: "#3b82f6", debito: "#8b5cf6", pix: "#f59e0b" };
+  // Cor de cada meio de fábrica no CSS (`pdv__saldo-metodo-pill--<meio>`);
+  // meio personalizado fica no tom neutro.
+  const METODOS_COM_COR = ["dinheiro", "credito", "debito", "pix"];
 
   const verificarSenha = async () => {
     const { ok, erro } = await verificarSenhaAdmin(senha);
@@ -71,13 +70,17 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
   };
 
   return (
-    <div {...fecharAoClicarFora(onClose)} className="pdv__saldo-overlay">
-      <div className={`pdv__saldo-modal${autorizado ? " pdv__saldo-modal--autorizado" : ""}`}>
+    <div
+      {...fecharAoClicarFora(onClose)}
+      className="pdv__saldo-overlay"
+      style={{ "--saldo-pad": `${sz.pad}px`, "--saldo-pad-sm": `${sz.padSm}px` }}
+    >
+      <div className={`pdv__saldo-modal${autorizado ? " pdv__saldo-modal--autorizado" : ""}${isNarrow ? " pdv__saldo-modal--estreito" : ""}`}>
         {/* Header */}
-        <div className="pdv__saldo-header" style={{ padding: `${sz.padSm + 4}px ${sz.pad}px` }}>
+        <div className="pdv__saldo-header">
           <div className="pdv__saldo-header-info">
             <div className="pdv__saldo-icone">
-              <LuChartBar size={18} color={varColor(C.accent)} />
+              <LuChartBar size={18} />
             </div>
             <div>
               <div className="pdv__saldo-titulo">Saldo do Dia</div>
@@ -93,9 +96,9 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
 
         {/* Corpo: senha ou dados */}
         {!autorizado ? (
-          <div className="pdv__saldo-corpo" style={{ padding: sz.pad }}>
+          <div className="pdv__saldo-corpo">
             <div className="pdv__saldo-aviso">
-              <LuLock size={16} color={varColor(C.accent)} />
+              <LuLock size={16} className="pdv__saldo-aviso-icone" />
               Acesso restrito a administradores e gerentes.
             </div>
 
@@ -142,17 +145,17 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
             </div>
           </div>
         ) : (
-          <div className="pdv__saldo-corpo pdv__saldo-corpo--dados" style={{ padding: sz.pad }}>
+          <div className="pdv__saldo-corpo pdv__saldo-corpo--dados">
 
             {/* KPIs */}
-            <div className="pdv__saldo-kpis" style={{ gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr" }}>
+            <div className="pdv__saldo-kpis">
               {[
-                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, color: varColor(C.green) },
-                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, color: varColor(C.accent) },
+                { label: "Vendas Finalizadas",    value: `R$ ${totalVendas.toFixed(2)}`, sub: `${qtdVendas} comanda${qtdVendas !== 1 ? "s" : ""}`, tom: "vendas" },
+                { label: "Em Aberto (estimado)",  value: `R$ ${totalAberto.toFixed(2)}`, sub: `${abertas.length} comanda${abertas.length !== 1 ? "s" : ""} ativa${abertas.length !== 1 ? "s" : ""}`, tom: "aberto" },
               ].map(k => (
                 <div key={k.label} className="pdv__saldo-kpi">
                   <div className="pdv__saldo-kpi-label">{k.label}</div>
-                  <div className="pdv__saldo-kpi-valor" style={{ color: k.color }}>{k.value}</div>
+                  <div className={`pdv__saldo-kpi-valor pdv__saldo-kpi-valor--${k.tom}`}>{k.value}</div>
                   <div className="pdv__saldo-kpi-sub">{k.sub}</div>
                 </div>
               ))}
@@ -160,7 +163,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
 
             {/* Card de Cancelamentos */}
             <div className="pdv__saldo-cancelamentos">
-              <div className="pdv__saldo-cancelamentos-linha" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+              <div className="pdv__saldo-cancelamentos-linha">
                 <div className="pdv__saldo-cancelamentos-info">
                   <div className="pdv__saldo-kpi-label">
                     Cancelamentos do Dia
@@ -193,7 +196,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
             </div>
 
             {/* Total geral */}
-            <div className="pdv__saldo-total" style={{ flexWrap: isNarrow ? "wrap" : "nowrap" }}>
+            <div className="pdv__saldo-total">
               <div className="pdv__saldo-total-info">
                 <div className="pdv__saldo-total-titulo">Total do Dia (projetado)</div>
                 <div className="pdv__saldo-kpi-sub">Fechadas + em aberto · cancelamentos não incluídos</div>
@@ -212,7 +215,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                 <div className="pdv__saldo-metodos">
                   {Object.entries(porMetodo).sort((a, b) => b[1] - a[1]).map(([metodo, val]) => (
                     <div key={metodo} className="pdv__saldo-metodo">
-                      <span className="pdv__saldo-metodo-pill" style={{ color: METODOS_COLOR[metodo] ?? varColor(C.muted), background: alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "18"), border: `1px solid ${alfa(METODOS_COLOR[metodo] ?? varColor(C.muted), "44")}` }}>
+                      <span className={`pdv__saldo-metodo-pill pdv__saldo-metodo-pill--${METODOS_COM_COR.includes(metodo) ? metodo : "outro"}`}>
                         {rotuloMetodo(metodo, customLabels)}
                       </span>
                       <span className="pdv__saldo-metodo-valor">
@@ -235,7 +238,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                 >
                   <div className="pdv__saldo-accordion-esq">
                     <div className="pdv__saldo-accordion-icone">
-                      <LuX size={13} color={varColor(C.red)} />
+                      <LuX size={13} />
                     </div>
                     <span className="pdv__saldo-kpi-label">
                       Itens Cancelados
@@ -250,7 +253,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                     </span>
                     <svg
                       width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke={varColor(C.red)} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                       className="pdv__saldo-chevron"
                     >
                       <polyline points="6 9 12 15 18 9" />
@@ -309,7 +312,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                           {p.garcom && <div className="pdv__saldo-comanda-meta">{p.garcom}</div>}
                         </div>
                         <div className="pdv__saldo-comanda-dir">
-                          <div className="pdv__saldo-comanda-valor" style={{ color: subtotal > 0 ? varColor(C.accent) : varColor(C.muted) }}>
+                          <div className={`pdv__saldo-comanda-valor${subtotal > 0 ? "" : " pdv__saldo-comanda-valor--vazia"}`}>
                             {subtotal > 0 ? `R$ ${subtotal.toFixed(2)}` : "Sem itens"}
                           </div>
                           <div className="pdv__saldo-comanda-meta">

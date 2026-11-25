@@ -62,7 +62,13 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   }
 
   return (
-    <div className="produto-grid">
+    <div
+      className="produto-grid"
+      style={{
+        "--pg-pad": `${sz.pad}px`, "--pg-pad-sm": `${sz.padSm}px`,
+        "--pg-gap": `${sz.gap}px`, "--pg-card-min": `${sz.productCardMin}px`,
+      }}
+    >
 
       {/* Filtro de categorias — arrastável para alcançar as que transbordam.
           Sem produto nenhum a barra teria só o chip "Todos", que não filtra
@@ -71,7 +77,6 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
       <div
         ref={filtroRef}
         className="produto-grid__filtro"
-        style={{ gap: sz.gap - 4, padding: `${sz.padSm}px ${sz.pad}px` }}
         onPointerDown={iniciarArrasto}
         onPointerMove={moverArrasto}
         onPointerUp={fimArrasto}
@@ -82,7 +87,6 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
             key={cat}
             onClick={() => selecionarCat(cat)}
             className={`produto-grid__chip${catAtiva === cat ? " produto-grid__chip--ativo" : ""}`}
-            style={{ padding: `${sz.padSm - 4}px ${sz.pad - 4}px` }}
           >
             {cat}
           </button>
@@ -93,16 +97,11 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
       {/* Grid de produtos */}
       <div
         className="produto-grid__lista"
-        style={{
-          padding: `${sz.pad}px`,
-          gridTemplateColumns: `repeat(auto-fill, minmax(${sz.productCardMin}px, 1fr))`,
-          gap: sz.gap - 2,
-        }}
       >
         {cards.map(card => card.tipo === "produto" ? (
-          <ProdutoCard key={card.produto.id} product={card.produto} onAdd={onAdd} sz={sz} />
+          <ProdutoCard key={card.produto.id} product={card.produto} onAdd={onAdd} />
         ) : (
-          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onAdd={onAdd} sz={sz} />
+          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onAdd={onAdd} />
         ))}
         {cards.length === 0 && (
           <div className="produto-grid__vazio">
@@ -124,7 +123,7 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   );
 }
 
-function ProdutoCard({ product, onAdd, sz }) {
+function ProdutoCard({ product, onAdd }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
@@ -137,7 +136,6 @@ function ProdutoCard({ product, onAdd, sz }) {
     <button
       onClick={handleClick}
       className={`produto-card${pressed ? " produto-card--pressed" : ""}`}
-      style={{ padding: `${sz.pad - 2}px ${sz.padSm}px`, gap: sz.gap - 8 }}
     >
       {product.emoji && (
         <div className="produto-card__emoji">{product.emoji}</div>
@@ -152,7 +150,7 @@ function ProdutoCard({ product, onAdd, sz }) {
   );
 }
 
-function ComboCard({ combo, produto, onAdd, sz }) {
+function ComboCard({ combo, produto, onAdd }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
@@ -178,7 +176,6 @@ function ComboCard({ combo, produto, onAdd, sz }) {
     <button
       onClick={handleClick}
       className={`produto-card produto-card--combo${pressed ? " produto-card--pressed" : ""}`}
-      style={{ padding: `${sz.pad - 2}px ${sz.padSm}px`, gap: sz.gap - 8 }}
     >
       <div className="produto-card__badge-combo">COMBO</div>
       <div className="produto-card__nome">

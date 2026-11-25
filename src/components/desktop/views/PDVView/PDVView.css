@@ -2251,3 +2251,106 @@
   font-variant-numeric: tabular-nums;
   font-weight: 800;
 }
+
+/* ---- Fase 5: espaços e layout do cabeçalho, que vinham do `sz` no JSX ----
+   --pdv-pad, --pdv-pad-sm e --pdv-gap chegam por variável na .pdv__raiz. */
+.pdv__header {
+  padding: calc(var(--pdv-pad-sm) - 3px) var(--pdv-pad);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--pdv-gap);
+}
+.pdv__header--celular {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.pdv__header--celular .pdv__header-info {
+  flex: 1;
+  justify-content: space-between;
+}
+.pdv__header-acoes {
+  justify-content: flex-end;
+  gap: var(--pdv-gap);
+}
+.pdv__header--celular .pdv__header-acoes {
+  justify-content: flex-start;
+}
+.pdv__voltar-btn {
+  padding: calc(var(--pdv-pad-sm) - 2px) calc(var(--pdv-pad-sm) + 2px);
+}
+.pdv__saldo-btn {
+  padding: calc(var(--pdv-pad-sm) - 5px) calc(var(--pdv-pad) - 6px);
+}
+.pdv__nova-comanda-btn {
+  padding: calc(var(--pdv-pad-sm) - 5px) calc(var(--pdv-pad) - 2px);
+}
+.pdv__header--celular .pdv__nova-comanda-btn {
+  width: 100%;
+  justify-content: center;
+}
+.pdv__acao-btn {
+  padding: calc(var(--pdv-pad-sm) - 2px) var(--pdv-pad-sm);
+}
+.pdv__subtitulo-mesa-icone {
+  vertical-align: -2px;
+}
+.pdv__tabs {
+  padding: 0 var(--pdv-pad);
+}
+
+/* ---- Fase 5: Saldo do Dia, cor e espaço que saíram do JSX ----
+   --saldo-pad e --saldo-pad-sm chegam por variável no .pdv__saldo-overlay. */
+.pdv__saldo-header {
+  padding: calc(var(--saldo-pad-sm) + 4px) var(--saldo-pad);
+}
+.pdv__saldo-corpo {
+  padding: var(--saldo-pad);
+}
+.pdv__saldo-icone,
+.pdv__saldo-aviso-icone {
+  color: var(--gm-accent);
+}
+.pdv__saldo-accordion-icone,
+.pdv__saldo-chevron {
+  color: var(--gm-red);
+}
+.pdv__saldo-kpis {
+  grid-template-columns: 1fr 1fr;
+}
+.pdv__saldo-modal--estreito .pdv__saldo-kpis {
+  grid-template-columns: 1fr;
+}
+.pdv__saldo-cancelamentos-linha,
+.pdv__saldo-total {
+  flex-wrap: nowrap;
+}
+.pdv__saldo-modal--estreito .pdv__saldo-cancelamentos-linha,
+.pdv__saldo-modal--estreito .pdv__saldo-total {
+  flex-wrap: wrap;
+}
+.pdv__saldo-kpi-valor--vendas {
+  color: var(--gm-green);
+}
+.pdv__saldo-kpi-valor--aberto {
+  color: var(--gm-accent);
+}
+/* Cor de cada meio de pagamento de fábrica. Débito fica no violeta literal
+   porque o design system não tem token para ele (tarefa 5.x, cores fixas). */
+.pdv__saldo-metodo-pill {
+  --metodo-cor: var(--gm-muted);
+  color: var(--metodo-cor);
+  background: color-mix(in srgb, var(--metodo-cor) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--metodo-cor) 27%, transparent);
+}
+.pdv__saldo-metodo-pill--dinheiro { --metodo-cor: var(--gm-green); }
+.pdv__saldo-metodo-pill--credito  { --metodo-cor: var(--gm-blue); }
+.pdv__saldo-metodo-pill--debito   { --metodo-cor: #8b5cf6; }
+.pdv__saldo-metodo-pill--pix      { --metodo-cor: var(--gm-warn); }
+.pdv__saldo-comanda-valor {
+  color: var(--gm-accent);
+}
+.pdv__saldo-comanda-valor--vazia {
+  color: var(--gm-muted);
+}

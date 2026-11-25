@@ -1,6 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { LuArrowLeft, LuPercent, LuTrash2 } from "react-icons/lu";
 import ImpressaoAcoes from "./ImpressaoAcoes";
 import ModalCpfNota from "./ModalCpfNota";
@@ -25,7 +22,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
 
   return (
     <>
-      <div className="checkout-view" style={{ background: varColor(C.bg) }}>
+      <div className="checkout-view">
 
         {/* ── Header ── */}
         <div className="checkout-view__header">
@@ -33,22 +30,13 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
             onClick={onBack}
             disabled={confirmando}
             className="checkout-view__btn-voltar"
-            style={{
-              background: varColor(C.surface),
-              border: `1.5px solid var(${C.border})`,
-              color: varColor(C.text),
-              cursor: confirmando ? "not-allowed" : "pointer",
-              opacity: confirmando ? 0.5 : 1,
-            }}
-            onMouseEnter={e => { if (!confirmando) { e.currentTarget.style.background = varColor(C.accent); e.currentTarget.style.borderColor = varColor(C.accent); e.currentTarget.style.color = "#fff"; } }}
-            onMouseLeave={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.borderColor = varColor(C.border); e.currentTarget.style.color = varColor(C.text); }}
           >
             <LuArrowLeft size={16} /> Voltar
           </button>
 
-          <div style={{ flex: 1 }}>
+          <div className="checkout-view__header-info">
             <div className="checkout-view__titulo">Finalizar Comanda</div>
-            <div className="checkout-view__subtitulo" style={{ color: varColor(C.muted) }}>
+            <div className="checkout-view__subtitulo">
               {fmtComanda(comanda?.comanda)} · {itensVisiveis.reduce((s, i) => s + i.qty, 0)} {itensVisiveis.reduce((s, i) => s + i.qty, 0) === 1 ? "item" : "itens"}
             </div>
           </div>
@@ -56,12 +44,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
           {/* Botão Desconto/Acréscimo */}
           <button
             onClick={abrirAjuste}
-            className="checkout-view__btn-ajuste"
-            style={{
-              background: ajusteAplicado ? alfa(ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green), "18") : varColor(C.surface),
-              border: `1.5px solid ${ajusteAplicado ? alfa(ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green), "66") : varColor(C.border)}`,
-              color: ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? varColor(C.red) : varColor(C.green)) : varColor(C.text),
-            }}
+            className={`checkout-view__btn-ajuste${ajusteAplicado ? ` checkout-view__btn-ajuste--${ajusteAplicado.tipo === "desconto" ? "desconto" : "acrescimo"}` : ""}`}
           >
             <LuPercent size={16} /> {ajusteAplicado ? (ajusteAplicado.tipo === "desconto" ? "Desconto" : "Acréscimo") : "Desconto / Acréscimo"}
           </button>
@@ -70,12 +53,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
           {onRemoverItem && itensVisiveis.length > 0 && (
             <button
               onClick={() => setModoRemocao(v => !v)}
-              className="checkout-view__btn-remover-item"
-              style={{
-                background: modoRemocao ? alfa(varColor(C.red), "18") : varColor(C.surface),
-                border: `1.5px solid ${modoRemocao ? alfa(varColor(C.red), "66") : varColor(C.border)}`,
-                color: modoRemocao ? varColor(C.red) : varColor(C.text),
-              }}
+              className={`checkout-view__btn-remover-item${modoRemocao ? " checkout-view__btn-remover-item--ativo" : ""}`}
             >
               <LuTrash2 size={16} /> {modoRemocao ? "Concluir remoção" : "Remover item"}
             </button>
@@ -86,7 +64,7 @@ export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemo
         </div>
 
         {/* ── Body ── */}
-        <div className="checkout-view__body" style={{ flexDirection: isMob ? "column" : "row" }}>
+        <div className={`checkout-view__body${isMob ? " checkout-view__body--coluna" : ""}`}>
 
           {/* ── Resumo do pedido ── */}
           <ResumoPedido tela={tela} />

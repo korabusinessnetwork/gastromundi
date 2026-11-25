@@ -53,7 +53,10 @@ export default function PDVView({ notify }) {
   }
 
   return (
-    <div className="pdv__raiz">
+    <div
+      className="pdv__raiz"
+      style={{ "--pdv-pad": `${sz.pad}px`, "--pdv-pad-sm": `${sz.padSm}px`, "--pdv-gap": `${sz.gap}px` }}
+    >
 
       {/* ── Header (oculto no checkout — ele tem o próprio — e no painel
              enxuto do celular, onde a tela é só busca + lista) ────────── */}
@@ -145,7 +148,7 @@ export default function PDVView({ notify }) {
 
       {/* ── Tab Mapa / Lista (celular fica só na lista) ───────────── */}
       {emPainel && !painelEnxuto && (
-        <div className="pdv__tabs" style={{ padding: `0 ${sz.pad}px` }}>
+        <div className="pdv__tabs">
           {[
             { key: "grid",     label: "Lista",            Icon: LuList },
             { key: "mapa",     label: "Mapa",             Icon: LuLayoutGrid },
