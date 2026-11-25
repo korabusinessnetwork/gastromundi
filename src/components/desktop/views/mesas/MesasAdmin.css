@@ -1,8 +1,8 @@
 /**
  * F018 — migração de tipografia (MesasAdmin). Decisão 018 (CSS separado do JSX) +
- * tokens --fs-* e --lh-* (ADR-007). Cores/padding/gap/grid/layout continuam inline
- * via `sz` (breakpoint) — só o TAMANHO DE FONTE migrou para a escala do design
- * system (src/styles/tipografia.css), por classe de componente. `tabular-nums`
+ * tokens --fs-* e --lh-* (ADR-007). Fase 5 da refatoração: cor e layout também saíram
+ * do JSX. O que depende de medida chega por variável na raiz (--mesas-pad do `sz`,
+ * --mesas-card-w/-h de CARD_W/CARD_H) e em cada peça do mapa (--mesas-x, --mesas-y). `tabular-nums`
  * em número de mesa e capacidade (quantidade).
  */
 
@@ -15,6 +15,10 @@
    card). */
 .mesas-admin__slot {
   position: absolute;
+  left: var(--mesas-x);
+  top: var(--mesas-y);
+  width: var(--mesas-card-w);
+  height: var(--mesas-card-h);
   box-sizing: border-box;
   border: 2px dashed var(--gm-border);
   border-radius: 14px;
@@ -52,6 +56,10 @@
    Fica acima dos slots (sem pointer-events) e recebe o clique normalmente. */
 .mesas-admin__ghost {
   position: absolute;
+  left: var(--mesas-x);
+  top: var(--mesas-y);
+  width: var(--mesas-card-w);
+  height: var(--mesas-card-h);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -123,16 +131,22 @@
 }
 
 .mesas-admin__loading {
+  color: var(--gm-muted);
+  padding: 40px 0;
+  text-align: center;
   font-size: var(--fs-base);   /* role: corpo (era sz.fontBase) */
   line-height: var(--lh-base);
 }
 
 .mesas-admin__titulo {
+  font-weight: 700;
   font-size: var(--fs-xl);   /* role: título de seção (era sz.fontBase) */
   line-height: var(--lh-xl);
 }
 
 .mesas-admin__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 2px;
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
   line-height: var(--lh-sm);
 }
@@ -147,13 +161,21 @@
   line-height: var(--lh-sm);
 }
 
-/* Emoji decorativo do estado vazio — line-height 1 literal (glyph, não texto). */
-.mesas-admin__vazio-emoji {
+.mesas-admin__vazio {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--gm-muted);
+}
+.mesas-admin__vazio-icone {
+  display: block;
+  margin: 0 auto 12px;
   font-size: var(--fs-5xl);   /* role: hero/estado vazio (era 48px literal) */
-  line-height: 1;
 }
 
 .mesas-admin__vazio-titulo {
+  font-weight: 700;
+  color: var(--gm-text);
+  margin-bottom: 4px;
   font-size: var(--fs-lg);   /* role: vazio (era sz.fontBase) */
   line-height: var(--lh-lg);
 }
@@ -164,26 +186,46 @@
 }
 
 .mesas-admin__modal-titulo {
+  font-weight: 800;
+  color: var(--gm-text);
   font-size: var(--fs-xl);   /* role: título de modal (era sz.fontBase + 1 / sz.fontBase) */
   line-height: var(--lh-xl);
 }
 
 .mesas-admin__campo-label {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
   font-size: var(--fs-xs);   /* role: caption/selo — label de campo maiúsculo (era 12px literal) */
   line-height: var(--lh-xs);
 }
 
 .mesas-admin__campo-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
   font-size: var(--fs-base);   /* role: corpo — texto digitado (era sz.fontBase) */
   line-height: var(--lh-base);
 }
 
 .mesas-admin__campo-ajuda {
+  color: var(--gm-muted);
+  margin-top: 4px;
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
   line-height: var(--lh-sm);
 }
 
 .mesas-admin__confirm-descricao {
+  color: var(--gm-muted);
+  margin-top: 4px;
   font-size: var(--fs-sm);   /* role: label/apoio (era sz.fontSm) */
   line-height: var(--lh-sm);   /* 1.5 — igual ao literal anterior */
 }
@@ -195,13 +237,271 @@
 
 /* Número da mesa no card do admin — número hero (ex. do design system). */
 .mesas-admin__mesa-numero {
+  font-weight: 900;
+  color: var(--gm-text);
   font-size: var(--fs-2xl);   /* role: número hero (era sz.fontBase + 2) */
   line-height: var(--lh-2xl);
   font-variant-numeric: tabular-nums;
 }
 
 .mesas-admin__mesa-capacidade {
+  color: var(--gm-muted);
+  font-weight: 600;
   font-size: var(--fs-xs);   /* role: caption — quantidade (era 11px literal) */
   line-height: var(--lh-xs);
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- Fase 5: estrutura que saiu do JSX ---- */
+.mesas-admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mesas-pad);
+}
+.mesas-admin__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mesas-admin__acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.mesas-admin__botao-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+.mesas-admin__botao-salvar {
+  padding: 9px 18px;
+  background: var(--gm-green);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--gm-green) 27%, transparent);
+  transition: background 0.15s;
+}
+.mesas-admin__botao-salvar:disabled {
+  background: var(--gm-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.mesas-admin__botao-nova {
+  padding: 10px 16px;
+  background: var(--gm-accent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--gm-accent) 27%, transparent);
+}
+.mesas-admin__erro {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  color: var(--gm-red);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mesas-admin__erro--janela {
+  padding: 8px 12px;
+  display: block;
+}
+.mesas-admin__erro-icone {
+  flex-shrink: 0;
+}
+.mesas-admin__mapa {
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 16px;
+  padding: var(--mesas-pad);
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+}
+.mesas-admin__area {
+  position: relative;
+  width: var(--mesas-area-w);
+  height: var(--mesas-area-h);
+  border-radius: 8px;
+}
+.mesas-admin__posicao {
+  position: absolute;
+  left: var(--mesas-x);
+  top: var(--mesas-y);
+  transition: opacity 0.15s;
+}
+/* A mesa que está sendo arrastada fica apagada no lugar de origem. */
+.mesas-admin__posicao--arrastando {
+  opacity: 0.35;
+  transition: none;
+}
+
+/* Cartão da mesa no cadastro. */
+.mesas-admin__card {
+  width: var(--mesas-card-w);
+  height: var(--mesas-card-h);
+  border-radius: 14px;
+  box-sizing: border-box;
+  background: var(--gm-surface);
+  border: 2px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  user-select: none;
+  cursor: grab;
+  position: relative;
+  transition: border-color 0.12s, background 0.12s;
+}
+.mesas-admin__card:hover {
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+  border-color: color-mix(in srgb, var(--gm-accent) 40%, transparent);
+}
+.mesas-admin__card-acoes {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 4px;
+}
+.mesas-admin__card-botao {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 0;
+}
+.mesas-admin__card-botao--remover {
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border-color: color-mix(in srgb, var(--gm-red) 20%, transparent);
+  color: var(--gm-red);
+}
+
+/* ---- Janelas de criar, editar e remover ---- */
+.mesas-admin__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.mesas-admin__overlay--confirmar {
+  z-index: 9100;
+}
+.mesas-admin__janela {
+  background: var(--gm-card);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px;
+}
+.mesas-admin__janela--confirmar {
+  max-width: 400px;
+  box-shadow: none;
+}
+.mesas-admin__janela-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mesas-admin__fechar {
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 0;
+}
+.mesas-admin__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mesas-admin__campo-input[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--gm-red) 53%, transparent);
+}
+/* O número da mesa é a chave: na edição o campo fica travado e apagado. */
+.mesas-admin__campo-input:disabled {
+  opacity: 0.55;
+}
+.mesas-admin__botoes {
+  display: flex;
+  gap: 10px;
+}
+.mesas-admin__modal-botao {
+  padding: 12px;
+  border-radius: 10px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.mesas-admin__modal-botao:disabled {
+  cursor: not-allowed;
+}
+.mesas-admin__modal-botao--cancelar {
+  flex: 1;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.mesas-admin__modal-botao--confirmar {
+  flex: 2;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.mesas-admin__modal-botao--confirmar:disabled {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+.mesas-admin__modal-botao--remover {
+  flex: 2;
+  border: none;
+  background: var(--gm-red);
+  color: #fff;
+  font-weight: 700;
+}
+.mesas-admin__modal-botao--remover:disabled {
+  background: var(--gm-faint);
+}
+.mesas-admin__confirm-topo {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.mesas-admin__confirm-icone {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+  color: var(--gm-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

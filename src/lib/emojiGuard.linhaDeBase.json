@@ -17,7 +17,6 @@
   "components/desktop/views/ImpostosAdmin.jsx": 2,
   "components/desktop/views/impressao/LayoutComanda.jsx": 2,
   "components/desktop/views/impressao/PerfilImpressora.jsx": 2,
-  "components/desktop/views/mesas/MesasAdmin.jsx": 1,
   "components/desktop/views/notasFiscais/NotaAssistenteXml.jsx": 1,
   "components/desktop/views/notasFiscais/NotaDetalhe.jsx": 1,
   "components/desktop/views/notasFiscais/VinculaRow.jsx": 2,

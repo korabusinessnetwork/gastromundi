@@ -1,7 +1,4 @@
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
-import { LuPlus, LuSave, LuTriangleAlert } from "react-icons/lu";
+import { LuArmchair, LuPlus, LuSave, LuTriangleAlert } from "react-icons/lu";
 import CardMesaAdmin from "./CardMesaAdmin";
 import { CARD_W, CARD_H, CARD_GAP } from "@/features/mesas/regras/mapa";
 import { useMesasAdmin } from "@/features/mesas/hooks/useMesasAdmin";
@@ -19,40 +16,32 @@ export default function MesasAdmin({ sz }) {
 
   if (loading) {
     return (
-      <div className="mesas-admin__loading" style={{ color: varColor(C.muted), padding: "40px 0", textAlign: "center" }}>
-        Carregando…
-      </div>
+      <div className="mesas-admin__loading">Carregando…</div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: sz.pad }}>
+    <div
+      className="mesas-admin"
+      style={{ "--mesas-pad": `${sz.pad}px`, "--mesas-card-w": `${CARD_W}px`, "--mesas-card-h": `${CARD_H}px` }}
+    >
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div className="mesas-admin__cabecalho">
         <div>
-          <div className="mesas-admin__titulo" style={{ fontWeight: 700 }}>Mesas</div>
-          <div className="mesas-admin__subtitulo" style={{ color: varColor(C.muted), marginTop: 2 }}>
+          <div className="mesas-admin__titulo">Mesas</div>
+          <div className="mesas-admin__subtitulo">
             {mesas.length} mesa{mesas.length !== 1 ? "s" : ""} cadastrada{mesas.length !== 1 ? "s" : ""}
             {mesas.length > 0 && " · arraste os cards para reposicionar"}
             {ghostCount > 0 && ` · ${ghostCount} em pré-visualização, clique num card tracejado para criar`}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div className="mesas-admin__acoes">
           {posicoesDirty && (
             <button
               onClick={salvarLayout}
               disabled={salvandoLayout}
-              className="mesas-admin__botao-cabecalho"
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 18px", borderRadius: 10, border: "none",
-                background: salvandoLayout ? varColor(C.faint) : varColor(C.green),
-                color: "#fff", cursor: salvandoLayout ? "not-allowed" : "pointer",
-                fontWeight: 700, fontFamily: "inherit",
-                boxShadow: salvandoLayout ? "none" : `0 2px 10px ${alfa(C.green, "44")}`,
-                transition: "background 0.15s",
-              }}
+              className="mesas-admin__botao-cabecalho mesas-admin__botao-salvar"
             >
               <LuSave size={14} /> {salvandoLayout ? "Salvando…" : "Salvar layout"}
             </button>
@@ -76,14 +65,7 @@ export default function MesasAdmin({ sz }) {
           </div>
           <button
             onClick={abrirNovo}
-            className="mesas-admin__botao-cabecalho"
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: varColor(C.accent), border: "none", borderRadius: 10,
-              color: "#fff", cursor: "pointer", fontWeight: 700,
-              padding: "10px 16px", fontFamily: "inherit",
-              boxShadow: `0 2px 10px ${alfa(C.accent, "44")}`,
-            }}
+            className="mesas-admin__botao-cabecalho mesas-admin__botao-nova"
           >
             <LuPlus size={15} /> Nova Mesa
           </button>
@@ -92,27 +74,17 @@ export default function MesasAdmin({ sz }) {
 
       {/* Banner de erro */}
       {erro && (
-        <div className="mesas-admin__erro-texto" style={{
-          padding: "10px 14px", borderRadius: 8,
-          background: `${alfa(C.red, "12")}`, border: `1px solid ${alfa(C.red, "33")}`,
-          color: varColor(C.red),
-          display: "flex", gap: 8, alignItems: "center",
-        }}>
-          <LuTriangleAlert size={15} style={{ flexShrink: 0 }} /> {erro}
+        <div className="mesas-admin__erro-texto mesas-admin__erro" role="alert">
+          <LuTriangleAlert size={15} className="mesas-admin__erro-icone" /> {erro}
         </div>
       )}
 
       {/* Mapa de mesas */}
-      <div style={{
-        background: varColor(C.card), border: `1px solid var(${C.border})`,
-        borderRadius: 16, padding: sz.pad,
-        overflowX: "auto", overflowY: "auto",
-        maxHeight: "calc(100vh - 280px)",
-      }}>
+      <div className="mesas-admin__mapa">
         {mesas.length === 0 && ghostCount === 0 ? (
-          <div style={{ padding: "60px 24px", textAlign: "center", color: varColor(C.muted) }}>
-            <div className="mesas-admin__vazio-emoji" style={{ marginBottom: 12 }}>🪑</div>
-            <div className="mesas-admin__vazio-titulo" style={{ fontWeight: 700, color: varColor(C.text), marginBottom: 4 }}>
+          <div className="mesas-admin__vazio">
+            <LuArmchair className="mesas-admin__vazio-icone" aria-hidden="true" />
+            <div className="mesas-admin__vazio-titulo">
               Nenhuma mesa cadastrada
             </div>
             <div className="mesas-admin__vazio-texto">
@@ -124,12 +96,8 @@ export default function MesasAdmin({ sz }) {
             ref={containerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            style={{
-              position: "relative",
-              width: containerW,
-              height: containerH,
-              borderRadius: 8,
-            }}
+            className="mesas-admin__area"
+            style={{ "--mesas-area-w": `${containerW}px`, "--mesas-area-h": `${containerH}px` }}
           >
             {/* Grade de encaixe: um contorno por célula, do tamanho exato do
                 card. Antes era só um ponto no centro da célula — não dava para
@@ -139,12 +107,8 @@ export default function MesasAdmin({ sz }) {
             {Array.from({ length: gridRows }).map((_, linha) =>
               Array.from({ length: gridCols }).map((_, coluna) => {
                 const cx = coluna + 1, cy = linha + 1;
-                const estiloSlot = {
-                  left:  coluna * (CARD_W + CARD_GAP),
-                  top:   linha  * (CARD_H + CARD_GAP),
-                  width: CARD_W,
-                  height: CARD_H,
-                };
+                const x = coluna * (CARD_W + CARD_GAP);
+                const y = linha  * (CARD_H + CARD_GAP);
                 // Célula ocupada (mesa real ou fantasma da pré-visualização):
                 // slot só decorativo, sem clique. Célula livre — inclusive a
                 // coluna/linha-buffer do drop, que antes só exibia um card
@@ -157,7 +121,7 @@ export default function MesasAdmin({ sz }) {
                     <div
                       key={`slot-${coluna}-${linha}`}
                       className="mesas-admin__slot"
-                      style={estiloSlot}
+                      style={{ "--mesas-x": `${x}px`, "--mesas-y": `${y}px` }}
                     />
                   );
                 }
@@ -166,7 +130,7 @@ export default function MesasAdmin({ sz }) {
                     key={`slot-${coluna}-${linha}`}
                     type="button"
                     className="mesas-admin__slot mesas-admin__slot--livre"
-                    style={estiloSlot}
+                    style={{ "--mesas-x": `${x}px`, "--mesas-y": `${y}px` }}
                     onClick={() => abrirNovoEm({ posicao_x: cx, posicao_y: cy })}
                     onDragOver={handleDragOver}
                     title="Criar mesa aqui"
@@ -189,7 +153,7 @@ export default function MesasAdmin({ sz }) {
                   type="button"
                   onClick={() => abrirNovoEm(g)}
                   className="mesas-admin__ghost"
-                  style={{ left: gx, top: gy, width: CARD_W, height: CARD_H }}
+                  style={{ "--mesas-x": `${gx}px`, "--mesas-y": `${gy}px` }}
                 >
                   <LuPlus size={22} />
                   <span className="mesas-admin__ghost-texto">criar mesa</span>
@@ -203,15 +167,11 @@ export default function MesasAdmin({ sz }) {
               return (
                 <div
                   key={m.numero}
-                  style={{
-                    position: "absolute", left: x, top: y,
-                    opacity: dragging === m.numero ? 0.35 : 1,
-                    transition: dragging === m.numero ? "none" : "opacity 0.15s",
-                  }}
+                  className={`mesas-admin__posicao${dragging === m.numero ? " mesas-admin__posicao--arrastando" : ""}`}
+                  style={{ "--mesas-x": `${x}px`, "--mesas-y": `${y}px` }}
                 >
                   <CardMesaAdmin
                     mesa={m}
-                    w={CARD_W} h={CARD_H} sz={sz}
                     onEdit={() => abrirEditar(m)}
                     onDelete={() => setConfirmDelete(m)}
                     onDragStart={e => handleDragStart(e, m.numero)}
