@@ -364,6 +364,7 @@ Depois, os combos (40 para 0) e as janelas de categoria e de exclusão (30 para 
 Cadastro de Produtos inteira fica sem estilo inline.
 Depois, as abas Usuários (25), Meios de Pagamento (19) e Geral (16) de Configurações, já sem
 emoji: os ícones de cargo e o aviso viraram react-icons/lu.
+Depois, a área de Relatórios inteira (casca e cinco abas, 97 para 0), sem emoji (10 a menos).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

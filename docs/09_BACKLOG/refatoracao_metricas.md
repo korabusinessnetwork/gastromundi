@@ -73,6 +73,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-25 | 5.12 cadastro de produtos | 66 | 0 | 15 | 111 (0 / 0 / 111) | 665 | 16 | 0 (0 em features/) | 0 / 25 | 267 arquivos, 4.431 testes | 2.387 kB |
 | 2026-11-25 | 5.13 combos e janelas de produto | 66 | 0 | 15 | 111 (0 / 0 / 111) | 595 | 16 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.385 kB |
 | 2026-11-25 | 5.14 usuários, meios e geral (emoji: 118 para 112) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 535 | 16 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.383 kB |
+| 2026-11-25 | 5.15 relatórios (emoji: 112 para 102) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 438 | 16 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.379 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

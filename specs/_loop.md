@@ -1,3 +1,10 @@
+## Rodada 121, refatoração 5.15, área de Relatórios sem estilo inline e sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-15-relatorios.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 129 telas, 3
+  diferenças e 1 leve, todas emoji trocado por ícone. Sem migration. Estilo inline: 535 para
+  438. Emoji: 112 para 102.
+- Relatórios inteiro: casca e cinco abas com a estrutura comum `rel-*`.
 ## Rodada 120, refatoração 5.14, Usuários, Meios de Pagamento e Geral sem estilo inline e sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-14-configuracoes-usuarios-meios-geral.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
