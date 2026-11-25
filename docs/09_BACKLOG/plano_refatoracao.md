@@ -374,6 +374,7 @@ Depois, a Área Admin (grade, Fornecedores, Compras e a janela padrão, 38 para 
 Depois, Clientes (lista, cadastro, detalhe com fiado e edição, 36 para 0).
 Depois, as janelas da barra lateral (senha do Relatório, cancelar venda e plano, 36 para 0).
 Depois, Impostos (lista e janela fiscal, 23 para 0), sem o emoji do estado vazio.
+Depois, a abertura de caixa e o login (28 para 0), sem emoji.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

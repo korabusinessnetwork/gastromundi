@@ -1,3 +1,10 @@
+## Rodada 129, refatoração 5.23, abertura de caixa e login sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-23-abertura-e-login.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte verde; `npm run build`
+  limpo; lint 0 erros, 25 avisos). Roteiro: 185 telas, 2 diferenças (o banco emoji da
+  abertura virou ícone) e 2 leves (ruído em Reservas). Sem migration. Estilo inline: 162 para
+  134. Emoji: 97 para 96.
+- O roteiro passa a abrir telas por subdomínio (`host`), para a tela de endereço inexistente.
 ## Rodada 128, refatoração 5.22, Impostos sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-22-impostos.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
