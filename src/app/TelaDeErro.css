@@ -1,0 +1,31 @@
+/* Tela de erro geral (o React estourou). Fica de pé mesmo sem o tema do
+   estabelecimento carregado: por isso a fonte do sistema e o azul de reserva
+   quando --gm-primary ainda não existe. */
+.tela-de-erro {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+}
+.tela-de-erro__titulo {
+  font-size: 1.5rem;
+  margin: 0;
+}
+.tela-de-erro__texto {
+  margin: 0;
+  opacity: 0.8;
+}
+.tela-de-erro__botao {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  background: var(--gm-primary, #2563eb);
+  color: #fff;
+}

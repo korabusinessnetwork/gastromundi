@@ -10,3 +10,17 @@
   border-bottom: 1.5px solid;
   flex-shrink: 0;
 }
+
+/* Fase 5: o tom de cada aviso, que estava no JSX. */
+.assinatura-banner--aviso    { --banner-cor: var(--gm-accent); --banner-fundo: 8%;  --banner-borda: 27%; }
+.assinatura-banner--carencia { --banner-cor: var(--gm-warn);   --banner-fundo: 10%; --banner-borda: 33%; }
+.assinatura-banner--bloqueado{ --banner-cor: var(--gm-red);    --banner-fundo: 8%;  --banner-borda: 33%; }
+.assinatura-banner {
+  background: color-mix(in srgb, var(--banner-cor) var(--banner-fundo), transparent);
+  border-color: color-mix(in srgb, var(--banner-cor) var(--banner-borda), transparent);
+  color: var(--gm-text);
+}
+.assinatura-banner__icone {
+  color: var(--banner-cor);
+  flex-shrink: 0;
+}

@@ -1,7 +1,4 @@
 import { LuTriangleAlert, LuLogOut, LuHeadset } from "react-icons/lu";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { useSessao } from "@/context/AppContext";
 import "./AssinaturaBloqueada.css";
 
@@ -28,14 +25,14 @@ export default function AssinaturaBloqueada() {
   const contatoUrl = import.meta.env.VITE_CONTATO_URL || "";
 
   return (
-    <div className="assinatura-bloqueada" style={{ background: varColor(C.bg) }}>
-      <div className="assinatura-bloqueada__icone" style={{ background: `${alfa(C.red, "18")}`, border: `1.5px solid ${alfa(C.red, "44")}` }}>
-        <LuTriangleAlert size={32} color={varColor(C.red)} />
+    <div className="assinatura-bloqueada">
+      <div className="assinatura-bloqueada__icone">
+        <LuTriangleAlert size={32} />
       </div>
-      <div className="assinatura-bloqueada__titulo" style={{ color: varColor(C.text) }}>
+      <div className="assinatura-bloqueada__titulo">
         Sua mensalidade está atrasada
       </div>
-      <div className="assinatura-bloqueada__texto" style={{ color: varColor(C.muted) }}>
+      <div className="assinatura-bloqueada__texto">
         O acesso ao sistema fica suspenso até a renovação ser confirmada.
         Regularize o pagamento com o suporte para voltar a usar o sistema normalmente.
       </div>
@@ -47,7 +44,6 @@ export default function AssinaturaBloqueada() {
             href={contatoUrl}
             target="_blank"
             rel="noreferrer"
-            style={{ background: varColor(C.primary), color: varColor(C.bg) }}
           >
             <LuHeadset size={18} /> Falar com o suporte
           </a>
@@ -56,7 +52,6 @@ export default function AssinaturaBloqueada() {
           type="button"
           className="assinatura-bloqueada__botao"
           onClick={() => window.location.reload()}
-          style={{ border: `1.5px solid ${alfa(C.text, "33")}`, color: varColor(C.text) }}
         >
           Já paguei, verificar de novo
         </button>
@@ -64,14 +59,13 @@ export default function AssinaturaBloqueada() {
           type="button"
           className="assinatura-bloqueada__botao"
           onClick={() => { logout?.(); }}
-          style={{ border: `1.5px solid ${alfa(C.text, "33")}`, color: varColor(C.text) }}
         >
           <LuLogOut size={18} /> Sair
         </button>
       </div>
 
       {!contatoUrl ? (
-        <div className="assinatura-bloqueada__rodape" style={{ color: varColor(C.muted) }}>
+        <div className="assinatura-bloqueada__rodape">
           Fale com o suporte do seu estabelecimento para regularizar o pagamento.
         </div>
       ) : null}

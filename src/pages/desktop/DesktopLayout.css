@@ -21,3 +21,123 @@
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
 }
+
+/* ---- Fase 5: a casca do app, que estava no JSX ----
+   --desktop-sidebar-w (do `sz`) e --desktop-drawer-w (da largura da tela)
+   chegam por variável na raiz. */
+.desktop-layout {
+  display: flex;
+  height: 100dvh;
+  background: var(--gm-bg);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--gm-text);
+  overflow: hidden;
+}
+.desktop-layout__lateral {
+  position: relative;
+  flex-shrink: 0;
+}
+.desktop-layout__painel {
+  width: var(--desktop-sidebar-w);
+  overflow: hidden;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.desktop-layout__painel--recolhido {
+  width: 0;
+}
+.desktop-layout__recolher {
+  position: absolute;
+  right: -13px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 44px;
+  border-radius: 0 8px 8px 0;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-left: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+.desktop-layout__recolher:hover {
+  background: var(--gm-surface);
+  color: var(--gm-text);
+}
+/* Gaveta da barra lateral em tela estreita. */
+.desktop-layout__gaveta-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+  background: rgba(0, 0, 0, 0.6);
+}
+.desktop-layout__gaveta {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--desktop-drawer-w);
+  height: 100dvh;
+  z-index: 300;
+  overflow: hidden;
+}
+.desktop-layout__conteudo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+.desktop-layout__topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: env(safe-area-inset-top, 0px) 16px 0;
+  min-height: 52px;
+  flex-shrink: 0;
+  background: var(--gm-card);
+  border-bottom: 1px solid var(--gm-border);
+}
+.desktop-layout__menu-btn {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 6px 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.desktop-layout__name-tenant {
+  flex: 1;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+  overflow-wrap: break-word;
+}
+.desktop-layout__by-kora {
+  color: var(--gm-muted);
+  font-weight: 400;
+}
+.desktop-layout__status-badge {
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+.desktop-layout__status-badge--aberto {
+  background: color-mix(in srgb, var(--gm-green) 13%, transparent);
+  color: var(--gm-green);
+}
+.desktop-layout__status-badge--fechado {
+  background: color-mix(in srgb, var(--gm-red) 13%, transparent);
+  color: var(--gm-red);
+}
+.desktop-layout__principal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

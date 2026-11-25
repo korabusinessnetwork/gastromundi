@@ -66,3 +66,29 @@
   font-size: 13px;
   max-width: 420px;
 }
+
+/* Fase 5: cor que estava no JSX. */
+.assinatura-bloqueada {
+  background: var(--gm-bg);
+}
+.assinatura-bloqueada__icone {
+  background: color-mix(in srgb, var(--gm-red) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+  color: var(--gm-red);
+}
+.assinatura-bloqueada__titulo {
+  color: var(--gm-text);
+}
+.assinatura-bloqueada__texto,
+.assinatura-bloqueada__rodape {
+  color: var(--gm-muted);
+}
+.assinatura-bloqueada__botao {
+  border: 1.5px solid color-mix(in srgb, var(--gm-text) 20%, transparent);
+  color: var(--gm-text);
+}
+.assinatura-bloqueada__botao--primario {
+  background: var(--gm-primary);
+  color: var(--gm-bg);
+  border: none;
+}

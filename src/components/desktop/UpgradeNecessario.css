@@ -31,3 +31,19 @@
   max-width: 360px;
   line-height: 1.5;
 }
+
+/* Fase 5: cor que estava no JSX. */
+.upgrade-necessario {
+  background: var(--gm-bg);
+}
+.upgrade-necessario__icone {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  color: var(--gm-accent);
+}
+.upgrade-necessario__titulo {
+  color: var(--gm-text);
+}
+.upgrade-necessario__texto {
+  color: var(--gm-muted);
+}

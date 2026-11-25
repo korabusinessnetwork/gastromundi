@@ -1,9 +1,5 @@
 {
   "components/console/PlanosDashboard.jsx": 1,
-  "components/desktop/AssinaturaBanner.jsx": 3,
-  "components/desktop/AssinaturaBloqueada.jsx": 8,
-  "components/desktop/SemAcesso.jsx": 4,
-  "components/desktop/UpgradeNecessario.jsx": 4,
   "components/desktop/views/configuracoes/Avatar.jsx": 1,
   "components/desktop/views/configuracoes/CategoriasGrupoTab.jsx": 7,
   "components/desktop/views/configuracoes/DeliveryTab.jsx": 7,
@@ -24,10 +20,8 @@
   "components/desktop/views/ImportarExportarTab.jsx": 2,
   "components/desktop/views/impressao/PonteLocalConfig.jsx": 5,
   "components/shared/Notification.jsx": 1,
-  "main.jsx": 4,
   "pages/apex/demo/DemoRelatorios.jsx": 3,
   "pages/delivery/CardapioPage.jsx": 1,
   "pages/delivery/SacolaModal.jsx": 4,
-  "pages/desktop/DesktopLayout.jsx": 13,
   "pages/mobile/sheets/lancamento/CarrinhoSheet.jsx": 1
 }

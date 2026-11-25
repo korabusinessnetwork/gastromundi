@@ -14,9 +14,6 @@ import MovimentoCaixaModal from "@/components/modals/MovimentoCaixaModal";
 import { inicioSessao } from "@/components/modals/FechamentoModal";
 import { movimentosDaSessao, dinheiroDisponivel, ROTULO_TIPO } from "@/lib/caixaMovimentos";
 import { totalPorMetodo } from "@/utils/pagamentos";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import { LuChevronLeft, LuChevronRight } from "react-icons/lu";
@@ -71,23 +68,18 @@ export default function DesktopLayout() {
   const drawerWidth = Math.min(260, Math.max(200, Math.floor(width * 0.85)));
 
   return (
-    <div style={{
-      display: "flex", height: "100dvh",
-      background: varColor(C.bg), fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
-      overflow: "hidden",
-    }}>
+    <div
+      className="desktop-layout"
+      style={{ "--desktop-sidebar-w": `${sz.sidebarWidth}px`, "--desktop-drawer-w": `${drawerWidth}px` }}
+    >
       <Notification notif={notif} />
       <JarvasPanel />
 
       {/* ── Sidebar desktop (recolhível) ──────────────────────────── */}
       {!isMob && (
-        <div style={{ position: "relative", flexShrink: 0 }}>
+        <div className="desktop-layout__lateral">
           {/* Painel da sidebar com transição de largura */}
-          <div style={{
-            width: sidebarRecolhida ? 0 : sz.sidebarWidth,
-            overflow: "hidden",
-            transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
-          }}>
+          <div className={`desktop-layout__painel${sidebarRecolhida ? " desktop-layout__painel--recolhido" : ""}`}>
             <Sidebar
               caixaAberto={caixaAberto}
               onFechamento={() => setShowFechamento(true)}
@@ -101,23 +93,8 @@ export default function DesktopLayout() {
           <button
             onClick={() => setSidebarRecolhida(v => !v)}
             title={sidebarRecolhida ? "Expandir sidebar" : "Recolher sidebar"}
-            style={{
-              position: "absolute", right: -13, top: "50%",
-              transform: "translateY(-50%)",
-              width: 26, height: 44,
-              borderRadius: "0 8px 8px 0",
-              background: varColor(C.card),
-              border: `1px solid var(${C.border})`,
-              borderLeft: "none",
-              color: varColor(C.muted),
-              cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              zIndex: 20,
-              transition: "background 0.15s, color 0.15s",
-              padding: 0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = varColor(C.surface); e.currentTarget.style.color = varColor(C.text); }}
-            onMouseLeave={e => { e.currentTarget.style.background = varColor(C.card); e.currentTarget.style.color = varColor(C.muted); }}
+            aria-label={sidebarRecolhida ? "Expandir menu lateral" : "Recolher menu lateral"}
+            className="desktop-layout__recolher"
           >
             {sidebarRecolhida
               ? <LuChevronRight size={14} />
@@ -131,16 +108,9 @@ export default function DesktopLayout() {
         <>
           <div
             onClick={() => setMenuAberto(false)}
-            style={{
-              position: "fixed", inset: 0, zIndex: 299,
-              background: "rgba(0,0,0,0.6)",
-            }}
+            className="desktop-layout__gaveta-fundo"
           />
-          <div style={{
-            position: "fixed", left: 0, top: 0,
-            width: drawerWidth, height: "100dvh",
-            zIndex: 300, overflow: "hidden",
-          }}>
+          <div className="desktop-layout__gaveta">
             <Sidebar
               caixaAberto={caixaAberto}
               onFechamento={() => { setShowFechamento(true); setMenuAberto(false); }}
@@ -154,39 +124,25 @@ export default function DesktopLayout() {
       )}
 
       {/* ── Área de conteúdo ─────────────────────────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+      <div className="desktop-layout__conteudo">
 
         {/* Top bar mobile */}
         {isMob && (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: `env(safe-area-inset-top, 0px) 16px 0`,
-            minHeight: 52, flexShrink: 0,
-            background: varColor(C.card), borderBottom: `1px solid var(${C.border})`,
-          }}>
+          <div className="desktop-layout__topo">
             <button
               className="desktop-layout__menu-btn"
               onClick={() => setMenuAberto(true)}
-              style={{
-                background: "none", border: `1px solid var(${C.border})`,
-                borderRadius: 8, color: varColor(C.text), cursor: "pointer",
-                padding: "6px 10px", fontWeight: 700,
-                lineHeight: 1,
-              }}
+              aria-label="Abrir menu"
             >
               ☰
             </button>
-            <div className="desktop-layout__name-tenant" style={{ flex: 1, fontWeight: 900, letterSpacing: "-0.3px", overflowWrap: "break-word" }}>
+            <div className="desktop-layout__name-tenant">
               {nomeEstabelecimento.toUpperCase()}
               {/* Assinatura da plataforma — aparece embaixo da marca de todo
                   estabelecimento (white-label, decisão 017) */}
-              {marcaDoTenant && <span style={{ color: varColor(C.muted), fontWeight: 400 }}> by Kora</span>}
+              {marcaDoTenant && <span className="desktop-layout__by-kora"> by Kora</span>}
             </div>
-            <span className="desktop-layout__status-badge" style={{
-              fontWeight: 700, padding: "3px 8px", borderRadius: 10,
-              background: caixaAberto ? `${alfa(C.green, "22")}` : `${alfa(C.red, "22")}`,
-              color: caixaAberto ? varColor(C.green) : varColor(C.red),
-            }}>
+            <span className={`desktop-layout__status-badge desktop-layout__status-badge--${caixaAberto ? "aberto" : "fechado"}`}>
               {caixaAberto ? "● Aberto" : "● Fechado"}
             </span>
           </div>
@@ -194,7 +150,7 @@ export default function DesktopLayout() {
 
         <AssinaturaBanner />
 
-        <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <main className="desktop-layout__principal">
           <Outlet context={{ notify }} />
         </main>
       </div>

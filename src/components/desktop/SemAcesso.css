@@ -32,3 +32,19 @@
   max-width: 360px;
   line-height: 1.5;
 }
+
+/* Fase 5: cor que estava no JSX. */
+.sem-acesso {
+  background: var(--gm-bg);
+}
+.sem-acesso__icone {
+  background: color-mix(in srgb, var(--gm-muted) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-muted) 27%, transparent);
+  color: var(--gm-muted);
+}
+.sem-acesso__titulo {
+  color: var(--gm-text);
+}
+.sem-acesso__texto {
+  color: var(--gm-muted);
+}

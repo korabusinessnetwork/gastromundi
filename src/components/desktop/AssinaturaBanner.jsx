@@ -1,8 +1,5 @@
 import { useSessao } from "@/context/AppContext";
 import { LuCircleAlert, LuTriangleAlert } from "react-icons/lu";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { DIAS_AVISO_PRE_VENCIMENTO } from "@/lib/assinatura";
 import "./AssinaturaBanner.css";
 
@@ -26,8 +23,8 @@ export default function AssinaturaBanner() {
   if (status === "ativo") {
     if (diasParaVencer == null || diasParaVencer > DIAS_AVISO_PRE_VENCIMENTO) return null;
     return (
-      <div className="assinatura-banner assinatura-banner--aviso" style={{ background: `${alfa(C.accent, "14")}`, borderColor: `${alfa(C.accent, "44")}`, color: varColor(C.text) }}>
-        <LuCircleAlert size={16} color={varColor(C.accent)} />
+      <div className="assinatura-banner assinatura-banner--aviso">
+        <LuCircleAlert size={16} className="assinatura-banner__icone" />
         <span>
           {diasParaVencer === 0
             ? "Sua mensalidade vence hoje."
@@ -41,8 +38,8 @@ export default function AssinaturaBanner() {
     const diasAtraso = Math.abs(diasParaVencer ?? 0);
     const diasRestantes = Math.max(0, (carenciaDias ?? 0) - diasAtraso);
     return (
-      <div className="assinatura-banner assinatura-banner--carencia" style={{ background: `${alfa(C.warn, "1a")}`, borderColor: `${alfa(C.warn, "55")}`, color: varColor(C.text) }}>
-        <LuTriangleAlert size={16} color={varColor(C.warn)} />
+      <div className="assinatura-banner assinatura-banner--carencia">
+        <LuTriangleAlert size={16} className="assinatura-banner__icone" />
         <span>
           Sua mensalidade está atrasada. Regularize em até {diasRestantes} dia{diasRestantes === 1 ? "" : "s"} para não perder o acesso.
         </span>
@@ -52,8 +49,8 @@ export default function AssinaturaBanner() {
 
   if (status === "bloqueado") {
     return (
-      <div className="assinatura-banner assinatura-banner--bloqueado" style={{ background: `${alfa(C.red, "14")}`, borderColor: `${alfa(C.red, "55")}`, color: varColor(C.text) }}>
-        <LuTriangleAlert size={16} color={varColor(C.red)} />
+      <div className="assinatura-banner assinatura-banner--bloqueado">
+        <LuTriangleAlert size={16} className="assinatura-banner__icone" />
         <span>Sua mensalidade está atrasada. Regularize para continuar usando o sistema.</span>
       </div>
     );
