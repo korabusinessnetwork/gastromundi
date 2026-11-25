@@ -1,3 +1,9 @@
+## Rodada 122, refatoração 5.16, mapa de mesas e Reservas do PDV sem estilo inline e sem emoji, 2026-11-25
+- Spec: specs/refatoracao-5-16-mesas-pdv.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 133 telas,
+  0 diferença e 1 leve (borda da mesa aberta, arredondamento da transparência). Sem migration. Estilo inline: 438 para 400. Emoji: 102 para 100.
+- Cores de status da mesa viraram as classes `mesa-tom--*`, lidas pelo mapa e pelas Reservas.
 ## Rodada 121, refatoração 5.15, área de Relatórios sem estilo inline e sem emoji, 2026-11-25
 - Spec: specs/refatoracao-5-15-relatorios.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
