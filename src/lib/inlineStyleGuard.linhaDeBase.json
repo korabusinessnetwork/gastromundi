@@ -23,13 +23,11 @@
   "components/desktop/views/FinanceiroView.jsx": 7,
   "components/desktop/views/ImportarExportarTab.jsx": 2,
   "components/desktop/views/impressao/PonteLocalConfig.jsx": 5,
-  "components/modals/AberturaCaixaModal.jsx": 14,
   "components/shared/Notification.jsx": 1,
   "main.jsx": 4,
   "pages/apex/demo/DemoRelatorios.jsx": 3,
   "pages/delivery/CardapioPage.jsx": 1,
   "pages/delivery/SacolaModal.jsx": 4,
   "pages/desktop/DesktopLayout.jsx": 13,
-  "pages/LoginPage.jsx": 14,
   "pages/mobile/sheets/lancamento/CarrinhoSheet.jsx": 1
 }

@@ -29,7 +29,6 @@
   "components/desktop/views/produtos/ModalCategorias.jsx": 1,
   "components/desktop/views/ProdutosView.jsx": 3,
   "components/desktop/views/SubprodutosView.jsx": 3,
-  "components/modals/AberturaCaixaModal.jsx": 1,
   "components/modals/MovimentoCaixaModal.jsx": 1,
   "components/shared/Notification.jsx": 2,
   "constants/roles.js": 4,

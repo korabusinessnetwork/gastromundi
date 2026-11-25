@@ -243,3 +243,77 @@
   font-size: var(--fs-xs);
   line-height: var(--lh-xs);
 }
+
+/* ---- Fase 5: o que saiu do JSX do login ----
+   --login-pad e --login-max chegam por variável (vêm do `sz`). */
+.login-page__container {
+  max-width: var(--login-max);
+  padding: 0 var(--login-pad);
+}
+.login-page__error-message {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
+}
+.login-page__error-icone {
+  flex-shrink: 0;
+}
+.login-page__security {
+  background: color-mix(in srgb, var(--gm-blue) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-blue) 20%, transparent);
+}
+.login-page__loading {
+  background: var(--gm-bg);
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--gm-font-texto);
+  color: var(--gm-muted);
+}
+/* Endereço de estabelecimento que não existe. */
+.login-page__invalido {
+  background: var(--gm-bg);
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--gm-font-texto);
+  color: var(--gm-text);
+}
+.login-page__invalido-coluna {
+  width: 100%;
+  max-width: 440px;
+  padding: 0 var(--login-pad);
+  box-sizing: border-box;
+  text-align: center;
+}
+.login-page__invalido-card {
+  background: var(--gm-card);
+  border-radius: 20px;
+  padding: calc(var(--login-pad) + 12px);
+  border: 1px solid var(--gm-border);
+}
+.login-page__invalido-icone {
+  color: var(--gm-muted);
+}
+.login-page__error-title {
+  font-weight: 900;
+  margin-top: 12px;
+  font-family: var(--gm-font-titulo);
+}
+.login-page__error-text {
+  color: var(--gm-muted);
+  margin-top: 10px;
+}
+.login-page__error-endereco {
+  color: var(--gm-text);
+  word-break: break-all;
+}
+.login-page__error-caption {
+  color: var(--gm-muted);
+  margin-top: 14px;
+}
+.login-page__footer-text {
+  color: var(--gm-muted);
+  margin-top: 14px;
+}

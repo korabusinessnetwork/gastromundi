@@ -3,9 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor, gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
+import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { consoleAtivo } from "@/lib/consoleHost";
@@ -184,20 +182,20 @@ export default function LoginPage() {
   if (subdominioInvalido) {
     const endereco = typeof window !== "undefined" ? window.location.hostname : subdominioInvalido;
     return (
-      <div style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.text) }}>
-        <div style={{ width: "100%", maxWidth: 440, padding: `0 ${sz.pad}px`, boxSizing: "border-box", textAlign: "center" }}>
-          <div style={{ background: varColor(C.card), borderRadius: 20, padding: sz.pad + 12, border: `1px solid var(${C.border})` }}>
-            <LuSearchX size={40} style={{ color: varColor(C.muted) }} />
-            <div className="login-page__error-title" style={{ fontWeight: 900, marginTop: 12, fontFamily: "var(--gm-font-titulo)" }}>Endereço não encontrado</div>
-            <div className="login-page__error-text" style={{ color: varColor(C.muted), marginTop: 10 }}>
+      <div className="login-page__invalido" style={{ "--login-pad": `${sz.pad}px` }}>
+        <div className="login-page__invalido-coluna">
+          <div className="login-page__invalido-card">
+            <LuSearchX size={40} className="login-page__invalido-icone" />
+            <div className="login-page__error-title">Endereço não encontrado</div>
+            <div className="login-page__error-text">
               Não existe nenhum estabelecimento em<br />
-              <strong style={{ color: varColor(C.text), wordBreak: "break-all" }}>{endereco}</strong>
+              <strong className="login-page__error-endereco">{endereco}</strong>
             </div>
-            <div className="login-page__error-caption" style={{ color: varColor(C.muted), marginTop: 14 }}>
+            <div className="login-page__error-caption">
               Confira se o endereço foi digitado certo, o nome do estabelecimento vem antes do primeiro ponto. Se o erro continuar, fale com quem te passou o link.
             </div>
           </div>
-          <div className="login-page__footer-text" style={{ color: varColor(C.muted), marginTop: 14 }}>Kora</div>
+          <div className="login-page__footer-text">Kora</div>
         </div>
       </div>
     );
@@ -207,7 +205,7 @@ export default function LoginPage() {
   // (evita mostrar o visual de um estabelecimento que pode não ser o certo).
   if (checandoTenant) {
     return (
-      <div className="login-page__loading" style={{ background: varColor(C.bg), minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--gm-font-texto)", color: varColor(C.muted) }}>
+      <div className="login-page__loading">
         Carregando…
       </div>
     );
@@ -215,7 +213,10 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-page__container" style={{ maxWidth: sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 420, padding: `0 ${sz.pad}px` }}>
+      <div
+        className="login-page__container"
+        style={{ "--login-max": `${sz.checkoutResumo > 0 ? sz.checkoutResumo - 80 : 420}px`, "--login-pad": `${sz.pad}px` }}
+      >
         <div className="login-page__brand">
           {marca.logo ? (
             <img src={marca.logo} alt={marca.nome} className="login-page__brand-logo" />
@@ -263,8 +264,8 @@ export default function LoginPage() {
           )}
 
           {error && (
-            <div className="login-page__error-message" style={{ background: `${alfa(C.red, "15")}`, border: `1px solid ${alfa(C.red, "44")}` }}>
-              <LuTriangleAlert size={15} style={{ flexShrink: 0 }} /> {error}
+            <div className="login-page__error-message" role="alert">
+              <LuTriangleAlert size={15} className="login-page__error-icone" /> {error}
             </div>
           )}
 
@@ -273,7 +274,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <div className="login-page__security" style={{ background: `${alfa(C.blue, "11")}`, border: `1px solid ${alfa(C.blue, "33")}` }}>
+        <div className="login-page__security">
           <LuShieldAlert size={15} className="login-page__security-icon" />
           <div className="login-page__security-notice">
             Sessão expira após <strong>30 min</strong> de inatividade. Bloqueio após <strong>5 tentativas</strong>.
