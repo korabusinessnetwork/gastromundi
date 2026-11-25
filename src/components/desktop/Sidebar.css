@@ -403,3 +403,220 @@
   background: color-mix(in srgb, var(--gm-green) 6%, transparent);
   color: var(--gm-green);
 }
+
+/* ---- Fase 5: as janelas da barra lateral (senha do Relatório, cancelar
+   venda, trocar de plano), que saíram do JSX. Abrem num portal no `body`,
+   fora do contêiner do app, por isso declaram a fonte. ---- */
+.sidebar-janela__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.sidebar-janela__overlay--escuro {
+  background: rgba(0, 0, 0, 0.75);
+}
+.sidebar-janela__overlay--margem {
+  padding: 24px;
+}
+.sidebar-janela {
+  background: var(--gm-card);
+  border-radius: 20px;
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.sidebar-janela--senha {
+  padding: 32px;
+  width: 90%;
+  max-width: 400px;
+  gap: 20px;
+}
+.sidebar-janela--plano {
+  padding: 28px;
+  max-width: 400px;
+  gap: 16px;
+}
+.sidebar-janela--cancelar-venda {
+  padding: 24px;
+  max-width: 440px;
+  gap: 14px;
+  color: var(--gm-text);
+}
+.sidebar-janela__topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sidebar-janela__icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  color: var(--gm-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* O título herdava a cor do `body` (o portal fica fora do app) e saía quase
+   invisível no tema escuro. Agora declara a cor do texto. */
+.sidebar-janela__titulo {
+  font-weight: 800;
+  color: var(--gm-text);
+}
+.sidebar-janela__titulo--perigo {
+  font-weight: 900;
+  color: var(--gm-red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sidebar-janela__subtitulo {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+.sidebar-janela__subtitulo--afastado {
+  margin-top: 4px;
+}
+.sidebar-janela__aviso {
+  color: var(--gm-muted);
+  margin-top: 8px;
+}
+.sidebar-janela__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sidebar-janela__label {
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.sidebar-janela__label--icone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sidebar-janela__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-input-border);
+  background: var(--gm-input-bg);
+  color: var(--gm-text);
+}
+/* Na senha do Relatório os campos herdam a fonte e não têm contorno de foco
+   do navegador, como antes; em Cancelar venda ficam com o padrão. */
+.sidebar-janela--senha .sidebar-janela__input {
+  font-family: inherit;
+  outline: none;
+}
+.sidebar-janela__input[aria-invalid="true"] {
+  border-color: color-mix(in srgb, var(--gm-red) 53%, transparent);
+}
+.sidebar-janela__input--motivo,
+.sidebar-janela__input--senha-gerente {
+  padding: 10px 12px;
+}
+.sidebar-janela__input--motivo {
+  resize: none;
+  border-width: 1px;
+  font-family: inherit;
+}
+.sidebar-janela__input--senha-gerente[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+.sidebar-janela__alerta {
+  color: var(--gm-red);
+  font-weight: 600;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+.sidebar-janela__campo-erro {
+  color: var(--gm-red);
+  margin-top: 6px;
+  font-weight: 600;
+}
+.sidebar-janela__erro {
+  color: var(--gm-red);
+  font-weight: 600;
+}
+.sidebar-janela__botoes {
+  display: flex;
+  gap: 10px;
+}
+.sidebar-janela__btn {
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.sidebar-janela__btn--cancelar,
+.sidebar-janela__btn--confirmar {
+  font-family: inherit;
+}
+.sidebar-janela__btn--cancelar {
+  flex: 1;
+  border: 1px solid var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+  font-weight: 600;
+}
+.sidebar-janela__btn--confirmar {
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.sidebar-janela__botoes .sidebar-janela__btn--confirmar {
+  flex: 2;
+}
+.sidebar-janela__btn--confirmar:disabled {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+}
+/* Cancelar venda: Voltar e o botão vermelho. */
+.sidebar-janela__btn--voltar,
+.sidebar-janela__btn--perigo {
+  padding: 12px 0;
+}
+.sidebar-janela__btn--voltar {
+  flex: 1;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  font-weight: 700;
+}
+.sidebar-janela__btn--voltar:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.sidebar-janela__btn--perigo {
+  flex: 2;
+  background: var(--gm-red);
+  border: 1px solid var(--gm-red);
+  color: #fff;
+  font-weight: 800;
+}
+.sidebar-janela__btn--perigo:disabled {
+  cursor: default;
+}
+.sidebar-janela__btn--incompleto {
+  background: var(--gm-surface);
+  border-color: var(--gm-border);
+  color: var(--gm-muted);
+}
