@@ -82,6 +82,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-25 | 5.21 janelas da barra lateral | 66 | 0 | 15 | 111 (0 / 0 / 111) | 185 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.364 kB |
 | 2026-11-25 | 5.22 impostos (emoji: 98 para 97) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 162 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.364 kB |
 | 2026-11-25 | 5.23 abertura e login (emoji: 97 para 96) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 134 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.362 kB |
+| 2026-11-25 | 5.24 casca e telas de acesso | 66 | 0 | 15 | 111 (0 / 0 / 111) | 98 | 9 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.435 testes | 2.362 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

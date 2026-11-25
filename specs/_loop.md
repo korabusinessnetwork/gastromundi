@@ -1,3 +1,9 @@
+## Rodada 130, refatoração 5.24, casca do app e telas de acesso sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-24-casca-e-telas-de-acesso.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 190 telas, 0
+  diferença e 1 leve (ruído em Reservas). Sem migration. Estilo inline: 134 para 98.
+- A tela de erro geral saiu do `main.jsx` para `src/app/TelaDeErro.jsx`.
 ## Rodada 129, refatoração 5.23, abertura de caixa e login sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-23-abertura-e-login.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte verde; `npm run build`
