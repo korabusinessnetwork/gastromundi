@@ -109,3 +109,266 @@
   font-size: var(--fs-xs);  /* role: label */
   line-height: var(--lh-xs);
 }
+
+/* ── Cores, layout e estados que saíram do JSX (fase 5, 5.9) ──
+   O cabeçalho deste arquivo dizia que cor e layout ficavam inline "por
+   simplicidade"; agora moram aqui. A severidade do insight vira o tom
+   --jarvas-tom (info azul, warning âmbar, danger vermelho, como diz a spec).
+   Transparências (hex/255): 22→13%, 55→33%. */
+
+.jarvas-bell {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 400;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  transition: background 0.15s, color 0.15s;
+}
+.jarvas-bell--novos {   /* há insight não lido */
+  background: var(--gm-accent);
+  border-color: var(--gm-accent);
+  color: #fff;
+}
+.jarvas-bell__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--gm-red);
+  color: #fff;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jarvas-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 401;
+  background: rgba(0, 0, 0, 0.5);
+}
+.jarvas-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 402;
+  width: min(400px, 92vw);
+  height: 100dvh;
+  background: var(--gm-card);
+  border-left: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--gm-text);
+}
+
+.jarvas-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+.jarvas-header__icone { color: var(--gm-accent); }
+.jarvas-header__title {
+  flex: 1;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+.jarvas-header__subtitle {
+  color: var(--gm-muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+.jarvas-header__fechar {
+  background: none;
+  border: none;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.jarvas-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 0;
+  flex-shrink: 0;
+}
+.jarvas-tabs__button {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  background: none;
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+}
+.jarvas-tabs__button--ativa {
+  background: var(--gm-alow);
+  border-color: color-mix(in srgb, var(--gm-accent) 33%, transparent);
+  color: var(--gm-accent);
+}
+
+/* ── Conversa ── */
+
+.jarvas-chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+.jarvas-chat__empty {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 24px;
+}
+.jarvas-chat__help { color: var(--gm-muted); }
+.jarvas-chat__linha {
+  display: flex;
+  margin-bottom: 10px;
+}
+.jarvas-chat__linha--usuario { justify-content: flex-end; }
+.jarvas-chat__linha--jarvas { justify-content: flex-start; }
+.jarvas-message {
+  max-width: 85%;
+  padding: 9px 12px;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+}
+.jarvas-chat__linha--usuario .jarvas-message {
+  background: var(--gm-accent);
+  border: none;
+  color: #fff;
+}
+.jarvas-thinking {
+  color: var(--gm-muted);
+  padding: 4px 2px;
+}
+.jarvas-chat__envio {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
+/* Borda na classe: o foco segue src/styles/inputs.css, como nos outros campos. */
+.jarvas-input {
+  flex: 1;
+  background: var(--gm-input-bg);
+  border: 1px solid var(--gm-input-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: var(--gm-text);
+  outline: none;
+  font-family: inherit;
+}
+.jarvas-chat__enviar {
+  background: var(--gm-accent);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+.jarvas-chat__enviar:disabled {   /* sem texto ou esperando a resposta */
+  background: var(--gm-faint);
+  cursor: default;
+}
+
+/* ── Insights ── */
+
+.jarvas-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+.jarvas-list__loading,
+.jarvas-list__empty {
+  color: var(--gm-muted);
+  text-align: center;
+  padding: 24px;
+}
+.jarvas-insight--info { --jarvas-tom: var(--gm-blue); }
+.jarvas-insight--warning { --jarvas-tom: var(--gm-warn); }
+.jarvas-insight--danger { --jarvas-tom: var(--gm-red); }
+.jarvas-insight {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border);
+  border-left: 3px solid var(--jarvas-tom);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.jarvas-insight--lido { opacity: 0.75; }
+.jarvas-insight__topo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.jarvas-insight__badge {
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--jarvas-tom);
+  background: color-mix(in srgb, var(--jarvas-tom) 13%, transparent);
+  padding: 2px 7px;
+  border-radius: 8px;
+  letter-spacing: 0.4px;
+}
+.jarvas-insight__module,
+.jarvas-insight__time {
+  color: var(--gm-muted);
+}
+.jarvas-espaco { flex: 1; }
+.jarvas-insight__title {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.jarvas-insight__description {
+  color: var(--gm-muted);
+  margin-bottom: 10px;
+}
+.jarvas-insight__acoes {
+  display: flex;
+  gap: 8px;
+}
+.jarvas-insight__action-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gm-alow);
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 33%, transparent);
+  color: var(--gm-accent);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.jarvas-insight__icone-btn {
+  background: none;
+  border: 1px solid var(--gm-border);
+  color: var(--gm-muted);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+}

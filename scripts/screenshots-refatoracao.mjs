@@ -267,6 +267,55 @@ function roteiro(largura) {
       await page.getByPlaceholder("Buscar produto...").fill("Suco", { timeout: 3000 });
       await page.getByLabel("Entrada de Suco de laranja").fill("2", { timeout: 3000 });
     } });
+  // Fase 5: painel do Jarvas. Os insights entram só nestas telas (rota da
+  // própria tela), senão o sino mudaria em todas as outras fotos.
+  const responder = (corpo) => (route) => route.fulfill({ status: 200, contentType: "application/json",
+    headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) });
+  const comInsights = async (contexto) => {
+    await contexto.route(/\/rest\/v1\/jarvas_insights/, (route) => (route.request().method() === "GET"
+      ? responder([
+        { id: "ins-1", tipo: "alerta", severidade: "danger", visibilidade: "operacional", modulo: "estoque",
+          titulo: "Água sem gás acabou", descricao: "O saldo zerou às 14h e o produto continua no cardápio.",
+          acao: { tipo: "abrir_estoque", label: "Ver estoque" }, origem: "regra", status: "novo",
+          created_at: "2026-11-20T17:10:00.000Z" },
+        { id: "ins-2", tipo: "sugestao", severidade: "warning", visibilidade: "estrategico", modulo: "vendas",
+          titulo: "Terça rende menos que a média", descricao: "As vendas de terça ficaram 30% abaixo das outras tardes no último mês.",
+          acao: null, origem: "regra", status: "lido", created_at: "2026-11-19T12:00:00.000Z" },
+        { id: "ins-3", tipo: "insight", severidade: "info", visibilidade: "estrategico", modulo: "relatorio",
+          titulo: "Ticket médio subiu", descricao: "O ticket médio da semana passou de R$ 18 para R$ 20.",
+          acao: { tipo: "abrir_relatorio", label: "Abrir relatório" }, origem: "regra", status: "novo",
+          created_at: "2026-11-20T17:58:00.000Z" },
+      ])(route)
+      : route.fallback()));
+    await contexto.route(/\/functions\/v1\/jarvas-assistente/, (route) => (route.request().method() === "POST"
+      ? responder({ resposta: "Nos últimos 7 dias foram 24 vendas, R$ 485,50 no total." })(route)
+      : route.fallback()));
+  };
+  const abrirJarvas = (page) => page.getByTitle("Jarvas, insights e alertas").click({ timeout: 3000 });
+  telas.push({ nome: "app-jarvas-sino", perfil: "dono", caminho: "/app/pdv", preparar: comInsights });
+  telas.push({ nome: "app-jarvas-vazio", perfil: "dono", caminho: "/app/pdv", passo: abrirJarvas });
+  telas.push({ nome: "app-jarvas-insights", perfil: "dono", caminho: "/app/pdv", preparar: comInsights, passo: abrirJarvas });
+  telas.push({ nome: "app-jarvas-chat", perfil: "dono", caminho: "/app/pdv", preparar: comInsights,
+    passo: async (page) => {
+      await abrirJarvas(page);
+      await page.getByRole("button", { name: "Perguntar ao Jarvas" }).click({ timeout: 3000 });
+      await page.getByPlaceholder("Pergunte ao Jarvas…").fill("Como foram as vendas da semana?", { timeout: 3000 });
+      await page.keyboard.press("Enter");
+      await page.getByText("24 vendas", { exact: false }).waitFor({ timeout: 3000 });
+      await page.getByPlaceholder("Pergunte ao Jarvas…").fill("E o estoque?", { timeout: 3000 });
+    } });
+  // Fase 5: estados da barra lateral (caixa fechado, hover no subitem).
+  telas.push({ nome: "app-sidebar-caixa-fechado", perfil: "dono", caminho: "/app/pdv",
+    // Só a leitura da sessão de caixa; as outras chaves de config seguem pelo falso.
+    preparar: (contexto) => contexto.route(/\/rest\/v1\/config\?.*caixa_aberto/, (route) => (route.request().method() === "GET"
+      ? responder([
+        { key: "caixa_aberto", value: false },
+        { key: "fundo_atual", value: 0 },
+        { key: "meios_pagamento", value: ["dinheiro", "credito", "debito", "pix"] },
+      ])(route)
+      : route.fallback())) });
+  telas.push({ nome: "app-sidebar-hover", perfil: "dono", caminho: "/app/pdv",
+    passo: (page) => page.getByRole("button", { name: /Comandas fechadas/ }).first().hover({ timeout: 3000 }) });
   // Fase 5: os três modos da aba Vendas do relatório, com vendas no período.
   const modoVendas = (rotulo) => async (page) => {
     await page.getByRole("button", { name: "7 dias" }).click({ timeout: 3000 });

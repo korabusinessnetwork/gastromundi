@@ -4,9 +4,6 @@ import { useSessao } from "@/context/AppContext";
 import { assinarInsightsJarvas } from "@/features/jarvas/dados/insights";
 import { buscarInsights, atualizarStatusInsight } from "@/lib/jarvas";
 import { perguntarAoJarvas } from "@/lib/jarvasAssistente";
-import C from "@/constants/colors";
-import { alfa } from "@/constants/colorAlfa";
-import { varColor } from "@/lib/tema";
 import { novoUid } from "@/lib/uidLista";
 import { LuSparkles, LuX, LuCheck, LuTrash2, LuArrowRight, LuSend } from "react-icons/lu";
 import "./JarvasPanel.css";
@@ -19,7 +16,8 @@ import { ehGerencia } from "@/constants/roles";
  * info → azul · warning → âmbar · danger → vermelho.
  */
 
-const COR_SEVERIDADE = { info: varColor(C.blue), warning: varColor(C.warn), danger: varColor(C.red) };
+// A cor de cada severidade mora em JarvasPanel.css (jarvas-insight--<severidade>).
+const SEVERIDADES = ["info", "warning", "danger"];
 const LABEL_TIPO = { insight: "Insight", alerta: "Alerta", sugestao: "Sugestão" };
 const ROTA_ACAO = {
   abrir_estoque: "/app/estoque",
@@ -134,26 +132,11 @@ export default function JarvasPanel() {
       <button
         onClick={() => setAberto((v) => !v)}
         title="Jarvas, insights e alertas"
-        style={{
-          position: "fixed", right: 18, bottom: 18, zIndex: 400,
-          width: 52, height: 52, borderRadius: "50%",
-          background: naoLidos > 0 ? varColor(C.accent) : varColor(C.card),
-          border: `1px solid ${naoLidos > 0 ? varColor(C.accent) : varColor(C.border)}`,
-          color: naoLidos > 0 ? "#fff" : varColor(C.muted),
-          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 4px 18px rgba(0,0,0,0.45)",
-          transition: "background 0.15s, color 0.15s",
-        }}
+        className={`jarvas-bell${naoLidos > 0 ? " jarvas-bell--novos" : ""}`}
       >
         <LuSparkles size={22} />
         {naoLidos > 0 && (
-          <span className="jarvas-bell__badge" style={{
-            position: "absolute", top: -4, right: -4,
-            minWidth: 20, height: 20, padding: "0 5px",
-            borderRadius: 10, background: varColor(C.red), color: "#fff",
-            fontWeight: 800,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+          <span className="jarvas-bell__badge">
             {naoLidos > 99 ? "99+" : naoLidos}
           </span>
         )}
@@ -164,30 +147,21 @@ export default function JarvasPanel() {
         <>
           <div
             onClick={() => setAberto(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 401, background: "rgba(0,0,0,0.5)" }}
+            className="jarvas-fundo"
           />
-          <div style={{
-            position: "fixed", right: 0, top: 0, zIndex: 402,
-            width: "min(400px, 92vw)", height: "100dvh",
-            background: varColor(C.card), borderLeft: `1px solid var(${C.border})`,
-            display: "flex", flexDirection: "column",
-            fontFamily: "'Inter',system-ui,sans-serif", color: varColor(C.text),
-          }}>
+          <div className="jarvas-panel">
             {/* Cabeçalho */}
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "16px 18px", borderBottom: `1px solid var(${C.border})`, flexShrink: 0,
-            }}>
-              <LuSparkles size={18} color={varColor(C.accent)} />
-              <div style={{ flex: 1, fontWeight: 900, letterSpacing: "-0.3px" }} className="jarvas-header__title">
+            <div className="jarvas-header">
+              <LuSparkles size={18} className="jarvas-header__icone" />
+              <div className="jarvas-header__title">
                 Jarvas
-                <span style={{ color: varColor(C.muted), fontWeight: 400, marginLeft: 8 }} className="jarvas-header__subtitle">
+                <span className="jarvas-header__subtitle">
                   insights · alertas · sugestões
                 </span>
               </div>
               <button
                 onClick={() => setAberto(false)}
-                style={{ background: "none", border: "none", color: varColor(C.muted), cursor: "pointer", padding: 4 }}
+                className="jarvas-header__fechar"
               >
                 <LuX size={18} />
               </button>
@@ -195,19 +169,12 @@ export default function JarvasPanel() {
 
             {/* Abas (assistente só para gerência) */}
             {podeConversar && (
-              <div style={{ display: "flex", gap: 6, padding: "10px 14px 0", flexShrink: 0 }}>
+              <div className="jarvas-tabs">
                 {[["insights", "Insights"], ["chat", "Perguntar ao Jarvas"]].map(([id, label]) => (
                   <button
                     key={id}
                     onClick={() => setAba(id)}
-                    className="jarvas-tabs__button"
-                    style={{
-                      flex: 1, padding: "8px 10px", borderRadius: 8, cursor: "pointer",
-                      fontWeight: 700,
-                      background: aba === id ? varColor(C.alow) : "none",
-                      border: `1px solid ${aba === id ? `${alfa(C.accent, "55")}` : varColor(C.border)}`,
-                      color: aba === id ? varColor(C.accent) : varColor(C.muted),
-                    }}
+                    className={`jarvas-tabs__button${aba === id ? " jarvas-tabs__button--ativa" : ""}`}
                   >
                     {label}
                   </button>
@@ -218,36 +185,27 @@ export default function JarvasPanel() {
             {/* ── Aba: conversa ─────────────────────────────────── */}
             {podeConversar && aba === "chat" && (
               <>
-                <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+                <div className="jarvas-chat">
                   {mensagens.length === 0 && (
-                    <div className="jarvas-chat__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
+                    <div className="jarvas-chat__empty">
                       Pergunte sobre o negócio, vendas, estoque, caixa.<br />
                       Ex.: "Como foram as vendas esta semana?"<br />
-                      <span className="jarvas-chat__help" style={{ color: varColor(C.muted) }}>O Jarvas responde só com base nos seus dados reais.</span>
+                      <span className="jarvas-chat__help">O Jarvas responde só com base nos seus dados reais.</span>
                     </div>
                   )}
                   {mensagens.map((m) => (
-                    <div key={m.uid} style={{ display: "flex", justifyContent: m.papel === "usuario" ? "flex-end" : "flex-start", marginBottom: 10 }}>
-                      <div className="jarvas-message" style={{
-                        maxWidth: "85%", padding: "9px 12px", borderRadius: 12,
-                        whiteSpace: "pre-wrap",
-                        background: m.papel === "usuario" ? varColor(C.accent) : varColor(C.surface),
-                        border: m.papel === "usuario" ? "none" : `1px solid var(${C.border})`,
-                        color: m.papel === "usuario" ? "#fff" : varColor(C.text),
-                      }}>
+                    <div key={m.uid} className={`jarvas-chat__linha jarvas-chat__linha--${m.papel === "usuario" ? "usuario" : "jarvas"}`}>
+                      <div className="jarvas-message">
                         {m.texto}
                       </div>
                     </div>
                   ))}
                   {perguntando && (
-                    <div className="jarvas-thinking" style={{ color: varColor(C.muted), padding: "4px 2px" }}>Jarvas está analisando…</div>
+                    <div className="jarvas-thinking">Jarvas está analisando…</div>
                   )}
                   <div ref={fimChatRef} />
                 </div>
-                <div style={{
-                  display: "flex", gap: 8, padding: 12,
-                  borderTop: `1px solid var(${C.border})`, flexShrink: 0,
-                }}>
+                <div className="jarvas-chat__envio">
                   <input
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
@@ -255,21 +213,11 @@ export default function JarvasPanel() {
                     placeholder="Pergunte ao Jarvas…"
                     maxLength={1000}
                     className="jarvas-input"
-                    style={{
-                      flex: 1, background: "var(--gm-input-bg)", border: "1px solid var(--gm-input-border)",
-                      borderRadius: 10, padding: "10px 12px", color: varColor(C.text),
-                      outline: "none", fontFamily: "inherit",
-                    }}
                   />
                   <button
                     onClick={enviarPergunta}
                     disabled={perguntando || !texto.trim()}
-                    style={{
-                      background: texto.trim() && !perguntando ? varColor(C.accent) : varColor(C.faint),
-                      border: "none", borderRadius: 10, color: "#fff",
-                      padding: "0 14px", cursor: texto.trim() && !perguntando ? "pointer" : "default",
-                      display: "flex", alignItems: "center",
-                    }}
+                    className="jarvas-chat__enviar"
                   >
                     <LuSend size={16} />
                   </button>
@@ -279,59 +227,44 @@ export default function JarvasPanel() {
 
             {/* Lista */}
             {(aba === "insights" || !podeConversar) && (
-            <div style={{ flex: 1, overflowY: "auto", padding: 12 }}>
+            <div className="jarvas-list">
               {carregando && insights.length === 0 && (
-                <div className="jarvas-list__loading" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>Carregando…</div>
+                <div className="jarvas-list__loading">Carregando…</div>
               )}
               {!carregando && insights.length === 0 && (
-                <div className="jarvas-list__empty" style={{ color: varColor(C.muted), textAlign: "center", padding: 24 }}>
+                <div className="jarvas-list__empty">
                   Tudo em ordem por aqui. O Jarvas avisa quando algo merecer atenção.
                 </div>
               )}
               {insights.map((i) => {
-                const cor = COR_SEVERIDADE[i.severidade] ?? varColor(C.blue);
+                const severidade = SEVERIDADES.includes(i.severidade) ? i.severidade : "info";
                 return (
-                  <div key={i.id} style={{
-                    background: varColor(C.surface), border: `1px solid var(${C.border})`,
-                    borderLeft: `3px solid ${cor}`, borderRadius: 10,
-                    padding: "12px 14px", marginBottom: 10,
-                    opacity: i.status === "lido" ? 0.75 : 1,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <span className="jarvas-insight__badge" style={{
-                        fontWeight: 800, textTransform: "uppercase",
-                        color: cor, background: alfa(cor, "22"),
-                        padding: "2px 7px", borderRadius: 8, letterSpacing: "0.4px",
-                      }}>
+                  <div key={i.id} className={`jarvas-insight jarvas-insight--${severidade}${i.status === "lido" ? " jarvas-insight--lido" : ""}`}>
+                    <div className="jarvas-insight__topo">
+                      <span className="jarvas-insight__badge">
                         {LABEL_TIPO[i.tipo] ?? i.tipo}
                       </span>
-                      <span className="jarvas-insight__module" style={{ color: varColor(C.muted) }}>{i.modulo}</span>
-                      <span style={{ flex: 1 }} />
-                      <span className="jarvas-insight__time" style={{ color: varColor(C.muted) }}>{tempoRelativo(i.created_at)}</span>
+                      <span className="jarvas-insight__module">{i.modulo}</span>
+                      <span className="jarvas-espaco" />
+                      <span className="jarvas-insight__time">{tempoRelativo(i.created_at)}</span>
                     </div>
-                    <div className="jarvas-insight__title" style={{ fontWeight: 700, marginBottom: 4 }}>{i.titulo}</div>
-                    <div className="jarvas-insight__description" style={{ color: varColor(C.muted), marginBottom: 10 }}>{i.descricao}</div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="jarvas-insight__title">{i.titulo}</div>
+                    <div className="jarvas-insight__description">{i.descricao}</div>
+                    <div className="jarvas-insight__acoes">
                       {i.acao?.label && (
                         <button
                           onClick={() => executarAcao(i)}
                           className="jarvas-insight__action-button"
-                          style={{
-                            display: "flex", alignItems: "center", gap: 6,
-                            background: varColor(C.alow), border: `1px solid ${alfa(C.accent, "55")}`,
-                            color: varColor(C.accent), borderRadius: 8, padding: "6px 10px",
-                            fontWeight: 700, cursor: "pointer",
-                          }}
                         >
                           {i.acao.label} <LuArrowRight size={13} />
                         </button>
                       )}
-                      <span style={{ flex: 1 }} />
+                      <span className="jarvas-espaco" />
                       {i.status === "novo" && (
                         <button
                           onClick={() => mudarStatus(i.id, "lido")}
                           title="Marcar como lido"
-                          style={{ background: "none", border: `1px solid var(${C.border})`, color: varColor(C.muted), borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
+                          className="jarvas-insight__icone-btn"
                         >
                           <LuCheck size={14} />
                         </button>
@@ -339,7 +272,7 @@ export default function JarvasPanel() {
                       <button
                         onClick={() => mudarStatus(i.id, "descartado")}
                         title="Descartar"
-                        style={{ background: "none", border: `1px solid var(${C.border})`, color: varColor(C.muted), borderRadius: 8, padding: "6px 8px", cursor: "pointer" }}
+                        className="jarvas-insight__icone-btn"
                       >
                         <LuTrash2 size={14} />
                       </button>

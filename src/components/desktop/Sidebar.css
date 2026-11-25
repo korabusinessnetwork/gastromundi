@@ -192,3 +192,214 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+
+/* ── Cores, layout e estados que saíram do JSX (fase 5, 5.9) ──
+   Transparências de alfa(cor, hex), na mesma proporção (hex/255): 0f→6%,
+   12→7%, 22→13%, 33→20%, 55→33%. */
+
+.sidebar {
+  background: var(--gm-card);
+  border-right: 1px solid var(--gm-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.sidebar__fechar-linha {
+  padding: 10px 16px 0;
+  display: flex;
+  justify-content: flex-end;
+}
+.sidebar__btn-fechar {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 8px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-weight: 700;
+}
+
+.sidebar__usuario {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gm-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sidebar__usuario-dados {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar__usuario-nome {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar__usuario-linha {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.sidebar__usuario-handle { color: var(--gm-muted); }
+.sidebar__status-badge {
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.sidebar__status-badge--aberto {
+  background: color-mix(in srgb, var(--gm-green) 13%, transparent);
+  color: var(--gm-green);
+}
+.sidebar__status-badge--fechado {
+  background: color-mix(in srgb, var(--gm-red) 13%, transparent);
+  color: var(--gm-red);
+}
+.sidebar__usuario-acoes {
+  display: flex;
+  gap: 4px;
+}
+.sidebar__icone-btn {
+  background: none;
+  border: 1px solid var(--gm-border);
+  border-radius: 6px;
+  color: var(--gm-muted);
+  cursor: pointer;
+  padding: 5px 7px;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: 10px 0;
+  overflow-y: auto;
+}
+.sidebar__nav-item {
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.sidebar__nav-item--ativo {
+  background: var(--gm-alow);
+  border-left-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+.sidebar__nav-item--bloqueado {   /* módulo fora do plano: visível, com convite a upgrade */
+  opacity: 0.55;
+}
+.sidebar__nav-rotulo { flex: 1; }
+.sidebar__nav-plano { opacity: 0.8; }
+.sidebar__nav-cadeado { opacity: 0.6; }
+
+.sidebar__badge-contagem--alerta {
+  background: var(--gm-red);
+  color: #fff;
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-weight: 800;
+}
+.sidebar__badge-contagem--neutra {
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 700;
+  border: 1px solid var(--gm-border);
+}
+
+/* O hover era onMouseEnter/onMouseLeave. */
+.sidebar__subitem {
+  width: 100%;
+  padding: 9px 20px 9px 44px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--gm-muted);
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s;
+}
+.sidebar__subitem:hover { color: var(--gm-text); }
+
+.sidebar__rodape-nav {
+  border-top: 1px solid var(--gm-border);
+  padding: 8px 0;
+}
+
+.sidebar__caixa {
+  padding: 12px 16px;
+  border-top: 1px solid var(--gm-border);
+}
+.sidebar__caixa-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sidebar__aviso-comandas-abertas {
+  font-weight: 600;
+  color: var(--gm-red);
+  text-align: center;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--gm-red) 7%, transparent);
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+.sidebar__caixa-btn {
+  width: 100%;
+  padding: 11px 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.sidebar__caixa-btn--movimento {
+  border: 1px solid color-mix(in srgb, var(--gm-accent) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-accent) 6%, transparent);
+  color: var(--gm-accent);
+}
+.sidebar__caixa-btn--fechar {
+  border: 1px solid color-mix(in srgb, var(--gm-red) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 6%, transparent);
+  color: var(--gm-red);
+}
+/* Com comanda aberta o botão fica desabilitado (mesma condição do `disabled`). */
+.sidebar__caixa-btn--fechar:disabled {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.sidebar__caixa-btn--abrir {
+  border: 1px solid color-mix(in srgb, var(--gm-green) 33%, transparent);
+  background: color-mix(in srgb, var(--gm-green) 6%, transparent);
+  color: var(--gm-green);
+}
