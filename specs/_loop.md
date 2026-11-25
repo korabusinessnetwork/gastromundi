@@ -1,3 +1,10 @@
+## Rodada 115, refatoração 5.9, Jarvas e barra lateral sem estilo inline, 2026-11-25
+- Spec: specs/refatoracao-5-9-jarvas-e-sidebar.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 87 telas, 0
+  diferença. Sem migration. Estilo inline: 886 para 819.
+- Jarvas 35 para 0, com a severidade virando tom; barra lateral 32 para 0.
+- Roteiro ganhou sete telas, com insights e resposta do assistente só por rota da tela.
 ## Rodada 114, refatoração 5.8, Estoque e desconto sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-8-estoque-e-desconto.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 267 arquivos / 4431
