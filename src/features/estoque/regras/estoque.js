@@ -1,4 +1,4 @@
-import { registrarInsight, buscarInsights } from "./jarvas";
+import { registrarInsight, buscarInsights } from "@/lib/jarvas";
 
 /**
  * Estoque — F008: baixa automática + alertas de mínimo

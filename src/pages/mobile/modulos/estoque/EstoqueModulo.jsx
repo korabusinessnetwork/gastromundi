@@ -13,7 +13,7 @@ import {
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { labelEstoque, fmtQtd } from "@/utils/conversaoUnidades";
 import { normalizarTexto } from "@/lib/importacao/planilha";
-import { controlaEstoque, situacaoDoSaldo, MINIMO_PADRAO } from "@/lib/estoqueSituacao";
+import { controlaEstoque, situacaoDoSaldo, MINIMO_PADRAO } from "@/features/estoque/regras/estoqueSituacao";
 import { lerQuantidade } from "@/features/estoque/regras/quantidade";
 import "../modulos.css";
 import "./EstoqueModulo.css";
@@ -23,7 +23,7 @@ const MINIMO_FALLBACK = MINIMO_PADRAO; // mesmo mínimo do PDV e da EstoqueView
 /**
  * EstoqueModulo — tela "Estoque" do hub mobile (Palm).
  *
- * Dados: mesma fonte que a view desktop (src/components/desktop/views/EstoqueView.jsx) —
+ * Dados: mesma fonte que a view desktop (src/features/estoque/desktop/EstoqueView.jsx) —
  * `products` (nome, categoria, unidade_estoque, codigo_barras) + `estoque`
  * (produto_id → quantidade) + `estoqueMinimos` (produto_id → minimo), todos
  * já carregados pelo AppContext (bootstrap com `select` de campos específicos,
@@ -36,7 +36,7 @@ const MINIMO_FALLBACK = MINIMO_PADRAO; // mesmo mínimo do PDV e da EstoqueView
  */
 
 // A leitura de "controla estoque" (e a de ruptura/estoque baixo) mora em
-// src/lib/estoqueSituacao.js — PDV, Estoque desktop e este módulo usam a MESMA.
+// src/features/estoque/regras/estoqueSituacao.js — PDV, Estoque desktop e este módulo usam a MESMA.
 // Reexportado para não quebrar quem já importava daqui.
 export { controlaEstoque };
 

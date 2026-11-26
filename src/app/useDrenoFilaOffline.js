@@ -7,7 +7,7 @@ import { regravarComanda, atualizarComanda, excluirComanda } from "@/features/co
 import { emitirEvento } from "@/lib/jarvas";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
-import { gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
+import { gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/features/estoque/regras/estoque";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha } from "@/lib/observabilidade";
 import { separarCampos, COLUNAS_REPLAY_PENDING } from "@/lib/camposPermitidos";

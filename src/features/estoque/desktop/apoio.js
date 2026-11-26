@@ -1,7 +1,7 @@
-import { MINIMO_PADRAO } from "@/lib/estoqueSituacao";
+import { MINIMO_PADRAO } from "@/features/estoque/regras/estoqueSituacao";
 
 // Cores, colunas e leitura de número da tela de Estoque, usadas pela tela e pelo gancho.
-// A regra de "sem estoque"/"estoque baixo" mora em src/lib/estoqueSituacao.js —
+// A regra de "sem estoque"/"estoque baixo" mora em src/features/estoque/regras/estoqueSituacao.js —
 // o PDV lê a MESMA conta. Enquanto cada tela tinha a sua, o aviso do PDV
 // ("7 produtos sem estoque") contradizia esta aqui ("0 sem estoque").
 export const MINIMO_FALLBACK = MINIMO_PADRAO;

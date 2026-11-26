@@ -10,7 +10,7 @@ import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/co
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/lib/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";
-import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
+import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/features/estoque/regras/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
 import { itensNaoCancelados } from "@/lib/comandaItens";
 

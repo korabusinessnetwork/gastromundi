@@ -3,14 +3,14 @@ import {
 } from "@/utils/conversaoUnidades";
 import {
   controlaEstoque, situacaoDoSaldo
-} from "@/lib/estoqueSituacao";
+} from "@/features/estoque/regras/estoqueSituacao";
 import { LuPackage, LuTriangleAlert, LuCircleAlert, LuMinus, LuPlus, LuShoppingCart, LuBox, LuLock, LuLockOpen, LuChevronUp, LuChevronDown, LuChevronsUpDown, LuHourglass } from "react-icons/lu";
-import { MINIMO_FALLBACK, COLUNAS } from "./estoque/apoio";
+import { MINIMO_FALLBACK, COLUNAS } from "./apoio";
 import { useEstoque } from "@/features/estoque/hooks/useEstoque";
-import PopupAutorizacaoEstoque from "./estoque/PopupAutorizacaoEstoque";
+import PopupAutorizacaoEstoque from "./PopupAutorizacaoEstoque";
 // O teste da tela lê estes dois daqui desde antes da refatoração 3.
-export { lerQuantidade } from "./estoque/apoio";
-export { controlaEstoque } from "@/lib/estoqueSituacao";
+export { lerQuantidade } from "./apoio";
+export { controlaEstoque } from "@/features/estoque/regras/estoqueSituacao";
 import "./EstoqueView.css";
 
 export default function EstoqueView() {

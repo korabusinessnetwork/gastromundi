@@ -2,8 +2,8 @@ import { createPortal } from "react-dom";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuTriangleAlert, LuChevronDown, LuChevronUp, LuLock, LuSearch, LuX, LuLayoutGrid, LuList, LuReceipt, LuCalendarCheck } from "react-icons/lu";
-import { produtosVencendo } from "@/lib/validade";
-import { classificarEstoque } from "@/lib/estoqueSituacao";
+import { produtosVencendo } from "@/features/estoque/regras/validade";
+import { classificarEstoque } from "@/features/estoque/regras/estoqueSituacao";
 import { nomeTrava } from "@/lib/comandaLock";
 import ComandaGrid   from "./ComandaGrid";
 import CheckoutView  from "./CheckoutView";
@@ -64,7 +64,7 @@ export default function PDVView({ notify }) {
 
       {/* ── Alerta de estoque (mapa + lista; fora do painel enxuto) ─── */}
       {emPainel && !painelEnxuto && (() => {
-        // Mesma conta da tela de Estoque (src/lib/estoqueSituacao.js). Antes o
+        // Mesma conta da tela de Estoque (src/features/estoque/regras/estoqueSituacao.js). Antes o
         // PDV somava por conta própria — tratava prato sem controle de estoque
         // como zerado e ignorava o mínimo cadastrado — e as duas telas exibiam
         // números diferentes no mesmo instante.

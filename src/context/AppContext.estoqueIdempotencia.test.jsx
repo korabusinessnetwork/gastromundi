@@ -54,7 +54,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas com efeito colateral, sem relação com o defeito. `registrarInsight`
 // e `buscarInsights` entram porque a baixa de estoque gera alerta de mínimo
-// pelo Jarvas (src/lib/estoque.js).
+// pelo Jarvas (src/features/estoque/regras/estoque.js).
 vi.mock("@/lib/jarvas", () => ({
   emitirEvento: vi.fn(),
   registrarInsight: vi.fn(() => Promise.resolve({ error: null })),

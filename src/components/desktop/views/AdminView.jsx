@@ -9,7 +9,7 @@ import { getSizes } from "@/constants/sizes";
 import {
   LuArrowLeft
 } from "react-icons/lu";
-import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
+import NotasFiscaisTab from "@/features/estoque/desktop/NotasFiscaisTab";
 import ImpostosAdmin from "@/features/fiscal/desktop/ImpostosAdmin";
 // TD015: as linhas de ingrediente e de item de compra são adicionadas e removidas
 // do meio da lista, então precisam de identidade própria. Não confundir com o `uid`

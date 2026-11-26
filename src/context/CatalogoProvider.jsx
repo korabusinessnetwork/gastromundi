@@ -10,7 +10,7 @@ import {
 import { listarProdutosAtivos, criarProduto, atualizarProduto, excluirProduto } from "@/features/cardapio/dados/produtos";
 import { removerGrupoDaCategoria, definirGrupoDaCategoria } from "@/features/cardapio/dados/gruposCategoria";
 import { emitirEvento } from "@/lib/jarvas";
-import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/lib/estoque";
+import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/features/estoque/regras/estoque";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";
 
@@ -179,7 +179,7 @@ export function CatalogoProvider({ children }) {
   };
 
   // Baixa atômica no servidor (evita race condition entre dispositivos descontando ao mesmo tempo).
-  // Decisão de alerta de mínimo delegada a processarBaixaEstoque (src/lib/estoque.js) — testável isoladamente.
+  // Decisão de alerta de mínimo delegada a processarBaixaEstoque (src/features/estoque/regras/estoque.js) — testável isoladamente.
   const baixarEstoque = async (productId, qty) => {
     const anterior = Number(estoque[productId] ?? 0);
     setEstoqueLocal(prev => ({ ...prev, [productId]: Math.max(0, anterior - qty) })); // otimista

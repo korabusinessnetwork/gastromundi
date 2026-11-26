@@ -5,7 +5,7 @@ const { registrarInsight, buscarInsights } = vi.hoisted(() => ({
   buscarInsights: vi.fn(),
 }));
 
-vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
+vi.mock("@/lib/jarvas", () => ({ registrarInsight, buscarInsights }));
 
 import { verificarEstoqueMinimo, verificarOversell, gerarAlertaEstoque, gerarAlertaOversell, gerarAlertaBaixaFalhou, decidirAlertaDeLote, iniciarLoteDeBaixas, fecharLoteDeBaixas, LIMIAR_FALHA_SISTEMICA, processarBaixaEstoque, isRpcAusente } from "./estoque";
 

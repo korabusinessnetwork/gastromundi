@@ -610,7 +610,7 @@
 
 /* ── Estilo que saiu do JSX (fase 5, 5.8) ──
    A cor de cada saldo vinha de estoqueColor(); agora a linha (e o indicador)
-   recebe estoque-tom--<situação>, a mesma situação de src/lib/estoqueSituacao.js,
+   recebe estoque-tom--<situação>, a mesma situação de src/features/estoque/regras/estoqueSituacao.js,
    e tudo dentro dela lê --estoque-tom. Espaçamento de `sz` chega por variável
    na raiz da tela. Transparências (hex/255): 0c→5%, 10→6%, 12→7%, 18→9%,
    55→33%, 66→40%, 88→53%. */

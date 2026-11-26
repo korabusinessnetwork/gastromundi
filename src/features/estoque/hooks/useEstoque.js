@@ -9,7 +9,7 @@ import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { normalizarTexto } from "@/lib/importacao/planilha";
 import {
   classificarEstoque, MINIMO_PADRAO as MINIMO_FALLBACK,
-} from "@/lib/estoqueSituacao";
+} from "@/features/estoque/regras/estoqueSituacao";
 import { lerQuantidade } from "@/features/estoque/regras/quantidade";
 import { useEstadoAutorizacaoEstoque } from "./useEstadoAutorizacaoEstoque";
 
