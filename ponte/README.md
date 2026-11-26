@@ -224,6 +224,21 @@ Exemplos de `destino`:
 > Essas rotas só respondem em `localhost`. Ninguém no Wi-Fi consegue acionar
 > a impressora — o celular manda **pedido**, quem manda **imprimir** é o caixa.
 
+## Relação com o app (código compartilhado)
+
+A ponte **não importa nada do app** e o app não importa nada da ponte: ela é um programa à
+parte, em Node puro, empacotado num `.exe` que não leva a pasta `src/`. As duas pontas conversam
+só pela rede local (HTTP na porta 8123), com um contrato combinado dos dois lados:
+
+- **Tamanho mínimo do id do trabalho de impressão:** `ID_IMPRESSAO_MINIMO` em `servidor.js` e
+  `ID_MINIMO_CARACTERES` em `src/lib/ponte.js` (8 caracteres). É a única constante repetida; se
+  mudar de um lado, muda do outro.
+- **Formato dos pedidos e dos trabalhos de impressão:** descrito em
+  `docs/03_REGRAS_DE_NEGOCIO/PONTE.md`, e coberto pelos testes de `ponte/lib/` e de `src/lib/ponte.test.js`.
+
+Por isso a ponte **não é workspace npm** do app (refatoração 6.11): não há código duplicado entre
+os dois que justifique juntar as dependências.
+
 ## Para desenvolvedores
 
 - Zero dependências — só Node puro (`node:http`, `node:fs`, `node:net` etc.).
