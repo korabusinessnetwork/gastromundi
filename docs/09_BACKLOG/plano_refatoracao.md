@@ -377,6 +377,8 @@ Depois, Impostos (lista e janela fiscal, 23 para 0), sem o emoji do estado vazio
 Depois, a abertura de caixa e o login (28 para 0), sem emoji.
 Depois, a casca do app e as telas de acesso (layout, assinatura, sem acesso, fora do plano e a
 tela de erro, 36 para 0).
+Depois, as configurações restantes (unidades, radar, delivery, abas e componentes pequenos, 54
+para 0), sem emoji: a área de Configurações inteira fica sem estilo inline.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

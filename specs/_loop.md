@@ -1,3 +1,9 @@
+## Rodada 131, refatoração 5.25, configurações restantes sem estilo inline, 2026-11-26
+- Spec: specs/refatoracao-5-25-configuracoes-restantes.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 197 telas, 4
+  diferenças explicadas e 2 leves. Sem migration. Estilo inline: 98 para 50. Emoji: 96 para 94.
+- Corrige a regressão da 5.14 que colava os blocos do horário automático do Delivery.
 ## Rodada 130, refatoração 5.24, casca do app e telas de acesso sem estilo inline, 2026-11-25
 - Spec: specs/refatoracao-5-24-casca-e-telas-de-acesso.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
