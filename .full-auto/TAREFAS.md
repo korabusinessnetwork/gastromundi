@@ -17,7 +17,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T04 | 5.25 Configurações restantes: `UnidadesMedidaTab`, `CategoriasGrupoTab`, `DeliveryTab`, `ConfiguracoesView`, `PonteLocalConfig`, `ImportarExportarTab` e os componentes pequenos (`StrengthBar`, `Avatar`, `ErrBox`, `PermCheck`, `RoleBadge`, `ToggleChip`) | idem | ui | , |
 | [x] T05 | 5.26 Cozinha: `CozinhaView` (13, 1 emoji) | idem | ui | , |
 | [x] T06 | 5.27 Financeiro: `FinanceiroView`, `LancamentosList`, `NovoLancamentoModal`, `ResumoCards` | idem | ui | , |
-| [ ] T07 | 5.28 O que sobrar de estilo inline (estoque, demo, console, cardápio público, delivery, notificação, celular) | guard de estilo inline em zero, sem lista de exceções | ui | T01..T06 |
+| [x] T07 | 5.28 O que sobrar de estilo inline (estoque, demo, console, cardápio público, delivery, notificação, celular) | guard de estilo inline em zero, sem lista de exceções | ui | T01..T06 |
 | [ ] T08 | 5.z Emoji de código restante (fora o campo de emoji do produto) | guard de emoji só com o que é do campo do produto, listado arquivo a arquivo | ui | T07 |
 | [ ] T09 | 5.x Cores hexadecimais no JSX para `var(--gm-*)` | métrica "cor hexadecimal em JSX" em zero | ui | T07 |
 | [ ] T10 | Decisão 037, rodada própria: o campo de emoji do produto sai (escolha no cadastro e exibição no PDV, cozinha, cardápio, relatório) | guard de emoji em zero, sem migration (a coluna fica no banco, sem uso) | ui | T08 |

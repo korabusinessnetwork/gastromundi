@@ -8,3 +8,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T04 (5.25 configurações restantes): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 197 telas com 4 diferenças explicadas (uma é a correção da regressão do Delivery). Estilo inline 98 para 50.
 - 2026-11-26, T05 (5.26 cozinha): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 198 telas, só o emoji virou ícone. Estilo inline 50 para 37.
 - 2026-11-26, T06 (5.27 financeiro): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 202 telas sem diferença. Estilo inline 37 para 15.
+- 2026-11-26, T07 (5.28 estilo inline zerado): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 206 telas com 1 leve (foco). Estilo inline 15 para 0; guard sem linha de base, vermelho com um estilo de teste e verde sem ele.

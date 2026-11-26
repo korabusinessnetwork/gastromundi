@@ -1,3 +1,9 @@
+## Rodada 134, refatoração 5.28, estilo inline zerado e guard sem linha de base, 2026-11-26
+- Spec: specs/refatoracao-5-28-estilo-inline-zerado.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4434
+  testes, verde, um a menos porque os dois testes do guard viraram um; `npm run build` limpo;
+  lint 0 erros, 25 avisos). Roteiro: 206 telas, 0 diferença e 1 leve (borda de foco). Sem migration. Estilo inline: 15 para 0. Emoji: 93 para 91.
+- A fase 5 fecha a meta de estilo inline: de 1.526 para 0, e o guard passa a exigir zero.
 ## Rodada 133, refatoração 5.27, Financeiro sem estilo inline, 2026-11-26
 - Spec: specs/refatoracao-5-27-financeiro.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435

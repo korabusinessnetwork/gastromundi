@@ -7,6 +7,6 @@
 - início: 2026-11-25
 - base verificada: commit b87b0435 (rodada 5.21), suíte 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros e 25 avisos, estilo inline 185 em 36 arquivos, emoji 98 em 49
 - fase: 5
-- tarefa atual: T07
-- próximo passo: T07, rodada 5.28 o estilo inline que sobrou (estoque, demo, console, cardápio público, delivery, notificação, celular), até o guard zerar: roteiro de fotos primeiro, referência, conversão, comparação, registro, PR e merge
-- progresso: 6 de 24
+- tarefa atual: T08
+- próximo passo: T08, rodada 5.29 emoji de código restante (fora o campo de emoji do produto e seus reservas, que são da T10): roteiro de fotos primeiro, referência, conversão, comparação, registro, PR e merge
+- progresso: 7 de 24
