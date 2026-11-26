@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router-dom";
-import ProdutosView from "@/components/desktop/views/ProdutosView";
+import ProdutosView from "@/features/cardapio/desktop/ProdutosView";
 
 export default function ProdutosPage() {
   const { notify } = useOutletContext();

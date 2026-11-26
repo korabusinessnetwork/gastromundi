@@ -57,7 +57,7 @@ describe("salvar_combo, migration 20261123", () => {
   });
 
   it("a frase que o teste da tela dubla é a mesma que o banco levanta", () => {
-    const teste = readFileSync(join(RAIZ, "src/components/desktop/views/CombosView.test.jsx"), "utf8");
+    const teste = readFileSync(join(RAIZ, "src/features/cardapio/desktop/CombosView.test.jsx"), "utf8");
     const dublada = teste.match(/code: "P0002",\s*message: "([^"]+)"/)[1];
     expect(CORPO).toContain(`'${dublada}' USING ERRCODE = 'P0002'`);
   });

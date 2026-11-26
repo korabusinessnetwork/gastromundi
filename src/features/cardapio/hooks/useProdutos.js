@@ -5,7 +5,7 @@ import { listarUnidadesMedida } from "@/features/estoque/dados/unidadesMedida";
 import { logAction } from "@/lib/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
+import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { novoUid } from "@/lib/uidLista";
 import { EMPTY_COMPRA, EMPTY_FORM, CAT_SEM_CATEGORIA } from "@/features/cardapio/regras/produto";

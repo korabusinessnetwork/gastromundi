@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { montarItemCombo } from "@/lib/combos";
+import { montarItemCombo } from "@/features/cardapio/regras/combos";
 import "./ProductGrid.css";
 
 export default function ProductGrid({ products, combos = [], onAdd }) {

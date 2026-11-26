@@ -8,7 +8,7 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
 import { resumoErro } from "@/lib/observabilidade";
-import { mesmoItemDeVenda } from "@/lib/combos";
+import { mesmoItemDeVenda } from "@/features/cardapio/regras/combos";
 import { buscarClientePorId } from "@/features/clientes/dados/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";

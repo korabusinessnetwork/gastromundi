@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { CATS_FIXAS } from "@/lib/categoriasProduto";
+import { CATS_FIXAS } from "@/features/cardapio/regras/categoriasProduto";
 import { LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuTriangleAlert } from "react-icons/lu";
 import { CAT_SEM_CATEGORIA } from "./apoio";
 

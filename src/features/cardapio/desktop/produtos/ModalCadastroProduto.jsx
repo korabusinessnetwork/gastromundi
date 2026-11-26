@@ -1,5 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
+import { chaveCategoria, ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";
 import { fmtQtd } from "@/utils/conversaoUnidades";
 import { LuPencil, LuX as LuXIcon, LuRuler, LuTriangleAlert } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";

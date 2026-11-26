@@ -6,7 +6,7 @@ import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/features/pdv/regras/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
-import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
+import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/features/cardapio/regras/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/features/caixa/regras/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";

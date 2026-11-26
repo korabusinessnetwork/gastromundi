@@ -1,5 +1,5 @@
 import { logAction } from "@/lib/logger";
-import { mesmoItemDeVenda } from "@/lib/combos";
+import { mesmoItemDeVenda } from "@/features/cardapio/regras/combos";
 import { totalItensAtivos, itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 

@@ -25,7 +25,7 @@
 
 // Import relativo (não alias): este módulo é puro e roda também fora do
 // bundler do Vite — nos testes de nó e em quem consumir a lib direto.
-import { chaveCategoria } from "../categoriasProduto";
+import { chaveCategoria } from "@/features/cardapio/regras/categoriasProduto";
 
 /** Id do primeiro ponto — o que é sintetizado para quem já usava o sistema. */
 export const PONTO_PADRAO_ID = "p1";
