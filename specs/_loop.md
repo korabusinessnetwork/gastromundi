@@ -1,3 +1,11 @@
+## Rodada 160, fase F passada 2 e encerramento do plano de refatoração, 2026-11-26
+- Spec: specs/fase-f-passada-2-encerramento.md
+- Resultado: F.1 a F.4 sem achado na mesma passada; a fase F sai do laço. F.3 com
+  `npm run fluxos`: 13 fluxos críticos no navegador, computador e celular, 0 com falha; o fluxo de
+  NFC-e em homologação fica impedido por custo (certificado A1, pendência P2-06). Suíte 273
+  arquivos / 4465 testes, verde; build limpo (2.352 kB); lint 0 erros. Metas da seção 4 do plano
+  todas em "sim". Sem migration.
+- **O plano de refatoração (ADR-015) está encerrado.** Relatório em `.full-auto/RELATORIO-FINAL.md`.
 ## Rodada 159, fase F passada 1, achados e correções, 2026-11-26
 - Spec: specs/fase-f-correcoes-passada-1.md
 - Resultado: 3 achados, todos corrigidos (Supabase fora de dados/ zerado e cobrado pelo lint em todo

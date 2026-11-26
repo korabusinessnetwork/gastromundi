@@ -86,13 +86,13 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 | TD018 | Âmbar de status em `#f59e0b` literal **fora** do Console — mais de 30 ocorrências em `PDVView`, `CozinhaView`, `EstoqueView`, `NotasFiscaisTab`, `ImpostosAdmin`, `ImportarExportarTab`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js` e `crypto.js`, boa parte delas em `style=` inline no JSX | 🧹 Code Quality | Médio (cor que o tenant white-label não consegue trocar, decisão 017) | Médio (mexe em JSX, não só em CSS) | 🟡 Medium | Resolvido (2026-08-15) — varredura final app-wide: `PDVView/ComandaGrid` e `MesaMapView`, `CozinhaView`, `EstoqueView`, `AdminView`, `ConfiguracoesView`, `JarvasPanel`, `FechamentoModal`, `AssinaturaBanner`, `roles.js`, `ImportarExportarTab.css`, `DemoClientes.css` e `comprovante.css` passaram a usar `--gm-warn`; o comentário de `colorAlfa.js` foi corrigido. Resíduos declarados e justificados na seção abaixo |
 | TD019 | `npm test` em clone novo: 9 arquivos morrendo na importação por falta de `VITE_SUPABASE_*` (106 testes que nunca rodavam) e 4 asserções dependentes do fuso da máquina (passavam em UTC-3, quebravam em UTC) | 🧪 Testes | Alto (suíte não protegia o que dizia proteger) | Baixo | 🟠 High | Resolvido (2026-08-15) — `test.env` em `vitest.config.js` fixa `TZ` e injeta credenciais falsas; nenhuma linha de produção alterada; 207 arquivos / 3612 testes verdes |
 | TD020 | Venda no caixa não descontava estoque de produto sem linha em `estoque` — e `addProduct` nunca criava essa linha, então valia para **todo** produto cadastrado pelo app. A tela de Estoque mostrava saldo "0" indistinguível de produto que acabou | 🔒 Confiabilidade | Alto (inventário simplesmente não existia para o catálogo criado no app) | Baixo | 🔴 Critical | Resolvido (2026-08-15) — migration `20260919` faz a RPC criar a linha antes de descontar (+ backfill), `addProduct` cria a linha junto com o produto, o PDV parou de vetar pelo mapa local e "RPC sem linha de volta" virou falha (`estoque_sem_linha`) em produto e subproduto |
-| TD021 | As funções de alerta de estoque (`gerarAlertaOversell`, `gerarAlertaEstoque`, `registrarAlertaBaixaFalhou`, `gerarAlertaBaixaSistemica` em `src/lib/estoque.js`) recebem `usuario` e não gravam. O alerta não diz quem estava operando quando o estoque estourou ou a baixa falhou. Achado pelo lint da fase 0.2 do plano de refatoração; o parâmetro ficou com `eslint-disable` apontando para cá, sem mudar comportamento | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Aberto (2026-11-23) |
+| TD021 | As funções de alerta de estoque (`gerarAlertaOversell`, `gerarAlertaEstoque`, `registrarAlertaBaixaFalhou`, `gerarAlertaBaixaSistemica` em `src/features/estoque/regras/estoque.js`) recebem `usuario` e não gravam. O alerta não diz quem estava operando quando o estoque estourou ou a baixa falhou. Achado pelo lint da fase 0.2 do plano de refatoração; o parâmetro ficou com `eslint-disable` apontando para cá, sem mudar comportamento | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Aberto (2026-11-23) |
 | TD022 | Excluir uma unidade de medida procura os produtos pela **abreviação**, sem olhar o tipo. Se "un" existir como unidade de estoque e como unidade de compra, excluir a de compra também limpa a unidade de estoque dos produtos. Comportamento herdado das telas e mantido de propósito na RPC `excluir_unidade_medida` (tarefa 1.3), porque mudar é decisão de produto | 🏗️ Arquitetura | Médio | Baixo | 🟡 Medium | Aberto (2026-11-23) |
-| TD023 | Os botões de editar e remover do cartão de mesa (`mesas/CardMesaAdmin.jsx`) só aparecem com o mouse em cima. Em tela de toque o primeiro toque costuma simular a passagem do mouse, mas não é garantido, e a ação fica escondida para quem não sabe que ela existe. Achado na refatoração 3, ao escrever o teste da tela | 🎨 UX | Médio | Baixo | 🟡 Medium | Aberto (2026-11-24) |
-| TD024 | Na Cozinha do computador (`CozinhaView.jsx`), quando "Iniciar preparo" ou "Marcar pronto" falha, o erro só vai para o console: o cozinheiro não vê nada e acha que o toque não pegou. O módulo do celular mostra a mensagem e pede para tocar de novo. Achado na refatoração 4.8 | 🎨 UX | Médio | Baixo | 🟡 Medium | Aberto (2026-11-24) |
+| TD023 | Os botões de editar e remover do cartão de mesa (`src/features/mesas/desktop/CardMesaAdmin.jsx`) só aparecem com o mouse em cima. Em tela de toque o primeiro toque costuma simular a passagem do mouse, mas não é garantido, e a ação fica escondida para quem não sabe que ela existe. Achado na refatoração 3, ao escrever o teste da tela | 🎨 UX | Médio | Baixo | 🟡 Medium | Aberto (2026-11-24) |
+| TD024 | Na Cozinha do computador (`src/features/cozinha/desktop/CozinhaView.jsx`), quando "Iniciar preparo" ou "Marcar pronto" falha, o erro só vai para o console: o cozinheiro não vê nada e acha que o toque não pegou. O módulo do celular mostra a mensagem e pede para tocar de novo. Achado na refatoração 4.8 | 🎨 UX | Médio | Baixo | 🟡 Medium | Aberto (2026-11-24) |
 | TD025 | Duas regras de recorte de período que se dizem espelhadas e não são: `filtrarPorPeriodo` (lista de vendas dos Relatórios, `features/relatorios/regras/relatorio.js`) não limita o fim do período a "agora", e `intervaloPeriodo` (agregações, `utils/datas.js`) limita. Uma venda com horário no futuro (relógio errado) entra numa conta e fica fora da outra. Juntar muda resultado de relatório, então é decisão própria. Achado na refatoração 4.10 | 🏗️ Arquitetura | Baixo | Baixo | 🟢 Low | Aberto (2026-11-24) |
 | TD026 | As janelas do pagamento abertas por portal (desconto e acréscimo, e a de remover item, que usa as mesmas classes `checkout-view__modal-*`) aparecem com fonte serifada: o portal põe a janela direto no `body`, fora do contêiner que define a fonte do app, e o overlay `.checkout-view__overlay` não declara `font-family` (as outras janelas declaram). O título "Desconto / Acréscimo" também é `#fff` cravado, que some num tema claro. Visto nas fotos da refatoração 5.8, que manteve a tela idêntica de propósito. A refatoração 5.20 achou o mesmo nas janelas de detalhe e de edição do cliente (`.clientes-view__overlay`), e a 5.24 na tela cheia de mensalidade atrasada (`.assinatura-bloqueada`). A 5.25 viu o mesmo na janela de excluir unidade de medida (`.unidades-medida-tab__delete-overlay`), com o título apagado | 🎨 Visual | Baixo | Baixo | 🟢 Low | Aberto (2026-11-25) |
-| TD027 | A janela fiscal de Impostos (`impostos/ModalFiscal.jsx`) monta o formulário direto do que o banco devolve, e `observacao_fiscal` vem `null` quando não há observação: o `textarea` recebe `value={null}` e o React avisa no console. Não quebra a tela, mas é o sinal de campo controlado sem valor padrão. Visto nas fotos da refatoração 5.22 | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Aberto (2026-11-25) |
+| TD027 | A janela fiscal de Impostos (`src/features/fiscal/desktop/impostos/ModalFiscal.jsx`) monta o formulário direto do que o banco devolve, e `observacao_fiscal` vem `null` quando não há observação: o `textarea` recebe `value={null}` e o React avisa no console. Não quebra a tela, mas é o sinal de campo controlado sem valor padrão. Visto nas fotos da refatoração 5.22 | 🧹 Code Quality | Baixo | Baixo | 🟢 Low | Aberto (2026-11-25) |
 
 ### [TD018] Âmbar `#f59e0b` literal fora do Console
 
@@ -108,6 +108,8 @@ Débito técnico é inevitável em produtos que evoluem rápido. O risco está e
 
 - `AdminView.jsx` `COR_TIPO` (tipos de imposto) e `PDVView/index.jsx` `METODOS_COLOR` (métodos de pagamento): paletas categóricas 100% literais — regra (b) não se aplica.
 - `src/utils/crypto.js` rampa de força de senha: escala contínua fraco→forte, não um estado de aviso.
+
+**Resíduos resolvidos na refatoração (ADR-015):** as duas paletas eram JSX, e a rodada 5.31 (`3a1726ec`) zerou a cor hexadecimal no JSX, com um teste que segura a meta e os tokens novos `--gm-orange` e `--gm-violet`; a rampa de força da senha passou aos tokens do tema na 5.34 (`476274b7`).
 - `MesaMapView.jsx` status `aberta` (`#eab308`): precisa ser distinguível de `reservada` (`--gm-warn`) lado a lado no mapa, e o design system ainda não tem um segundo tom de atenção. Fechar isso é decisão de design system, não de varredura.
 
 ### [TD020] Baixa no caixa que não virava baixa no estoque
@@ -310,7 +312,7 @@ Fluxos cobertos:
 
 Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qty` **junto com o erro** — um saldo que nunca existiu no banco, com um teste que chegava a afirmá-lo (`// fallback calculado localmente`) — e chamava a RPC sem `try/catch`, diferente de `entradaEstoque` e `baixarEstoqueSubproduto`: uma RPC que *lançasse* subia a exceção até o `useFinalizarPagamento`, depois da venda já gravada.
 
-**Resolução:** `gerarAlertaBaixaFalhou` (`src/lib/estoque.js`) registra um insight `danger`/`operacional` no módulo de estoque, com o dedupe por `origem.chave` dos irmãos (`estoque:baixa-falhou:<produto|subproduto>:<id>`) e ação que leva ao estoque. O texto que o gestor lê é português de operação; a frase do Postgres fica em `origem.dados.erro`, para diagnóstico. `AppContext.baixarEstoque` e `baixarEstoqueSubproduto` disparam o alerta **depois** do desvio de `isErroDeRede` — sem internet a baixa vai para a fila e é reaplicada com o mesmo `opId`, e alertar ali ensinaria o gestor a ignorar o alerta. `processarBaixaEstoque` passou a devolver o saldo anterior no erro e a embrulhar a `chamarRpc`.
+**Resolução:** `gerarAlertaBaixaFalhou` (`src/features/estoque/regras/estoque.js`) registra um insight `danger`/`operacional` no módulo de estoque, com o dedupe por `origem.chave` dos irmãos (`estoque:baixa-falhou:<produto|subproduto>:<id>`) e ação que leva ao estoque. O texto que o gestor lê é português de operação; a frase do Postgres fica em `origem.dados.erro`, para diagnóstico. `AppContext.baixarEstoque` e `baixarEstoqueSubproduto` disparam o alerta **depois** do desvio de `isErroDeRede` — sem internet a baixa vai para a fila e é reaplicada com o mesmo `opId`, e alertar ali ensinaria o gestor a ignorar o alerta. `processarBaixaEstoque` passou a devolver o saldo anterior no erro e a embrulhar a `chamarRpc`.
 
 **Fechamento da parte que ficou pendente (2026-08-15):** a multiplicação entre itens na falha sistêmica foi resolvida. `decidirAlertaDeLote(itens, limiar = 3)` (pura, exportada) classifica as baixas recusadas da **mesma operação** em `nenhum` / `individual` / `sistemica`; `iniciarLoteDeBaixas()` + `fecharLoteDeBaixas()` acumulam as falhas em vez de alertá-las uma a uma. De 3 falhas para cima sai um único insight com a chave **fixa** `estoque:baixa-falhou:sistemica`, o que faz o dedupe já existente colapsar uma queda de RLS inteira num alerta aberto só. O texto diz o que de fato está acontecendo — não é problema de um produto, é o sistema que não está descontando — em vez de mandar "confira a contagem deste item", conselho errado nesse caso. Aplicado nos dois lugares onde as baixas acontecem em série: `useFinalizarPagamento` (a venda) e `drenarPendenciasOffline` (o reenvio da fila), sempre em `try/finally`.
 
@@ -352,6 +354,26 @@ Um andar abaixo, `processarBaixaEstoque` ainda devolvia `quantidadeAnterior - qt
 
 
 ---
+
+## Refatoração por domínio (ADR-015), encerrada em 2026-11-26
+
+A refatoração resolveu o débito estrutural que ela mesma mediu no levantamento de 2026-11-23 e que
+não tinha número próprio aqui; a medida final está na seção 4 do `plano_refatoracao.md`:
+
+| Débito | Antes | Depois | Referência |
+|---|---|---|---|
+| `AppContext.jsx` fazendo tudo | 2.194 linhas | 66 linhas, seis provedores | fase 2 |
+| Arquivos acima de 600 linhas | 22 | 0 | fase 3 |
+| Chamadas ao Supabase fora de `dados/` | 226 | 0, cobrado por lint em todo `src/` | fases 1 e F (`6c919cad`) |
+| Gravações em várias etapas pelo navegador | 3 | 0, uma função atômica cada | fase 1 |
+| Estilo inline | 1.526 | 0, cobrado por guarda | fase 5 (5.28) |
+| Cor hexadecimal no JSX | 23 | 0, cobrado por guarda | 5.31 (`3a1726ec`) |
+| Emoji no código | 118 | 0, cobrado por guarda | 5.33 (`33381edd`) |
+| Celular importando da árvore do computador | 1 | 0, cobrado por lint | fase 4 |
+| `components/desktop/views/` e regra de domínio em `src/lib/` | as telas do computador e as regras dos domínios | nenhum, 25 domínios em `src/features/` | fase 6 (`d989d969`) |
+
+Os itens TD021 a TD027, achados durante a refatoração, continuam abertos: ela manteve o
+comportamento de propósito, e cada um pede decisão própria.
 
 ## Template de Item de Débito Técnico
 

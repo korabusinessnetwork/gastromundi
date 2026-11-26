@@ -211,3 +211,8 @@ tela diria que está tudo bem justamente no caso mais grave.
 ### P2-05. Script `setup:git` do package.json aponta para arquivo que não existe
 - **O que:** `npm run setup:git` chama `scripts/setup-git.mjs`, que só existe no commit `601c49af` ("Guarda de branch por dev"), nunca mesclado na main. O script configuraria o `core.hooksPath` e uma guarda de branch por pessoa.
 - **Como:** decidir entre (a) mesclar aquele trabalho, (b) tirar o script do `package.json`, ou (c) trocar por um script que só faça `git config core.hooksPath .githooks`. Sem isso, `npm run setup:git` dá erro.
+
+### P2-06. Fluxo crítico 3 (venda com NFC-e em homologação) não pôde rodar
+- **O que:** a fase F.3 rodou 13 fluxos críticos no navegador, mas a venda com NFC-e em homologação depende do certificado A1 e do CSC do estabelecimento, que estão adiados por custo (decisão 026). Sem eles a função de borda responde "sem chave", como deve.
+- **Como:** quando decidir contratar o certificado, siga `docs/NFCE_CHECKLIST_GO_LIVE.md` (plugar a chave e testar em homologação). Custo: o certificado A1 é pago por ano à autoridade certificadora.
+- **Confirmar:** uma venda de teste em homologação volta autorizada, com o QR Code no cupom.

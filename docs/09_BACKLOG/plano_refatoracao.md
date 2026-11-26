@@ -57,20 +57,20 @@ Fica de fora, de propósito:
 
 Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" substitui as estimativas do levantamento, que contavam só a forma mais comum de cada padrão. A auditoria final (fase F) só fecha com todas em "sim".
 
-| Métrica | Hoje | Meta |
-|---|---|---|
-| Linhas do `AppContext.jsx` | 2.194 | arquivo removido, ou no máximo 150 linhas só compondo provedores |
-| Arquivos de código (sem teste) acima de 600 linhas | 22 | 0 |
-| Maior número de `useState` num único arquivo | 70 (`DeliveryView`) | no máximo 15 |
-| Chamadas ao Supabase fora das pastas `dados/` | 226 (64 em 14 telas, 51 no contexto, 111 em `lib/`) | 0, cobrado por regra de lint |
-| Gravações em várias etapas feitas pelo navegador | 3 conhecidas | 0 |
-| `style={{}}` que não seja só variável CSS | 1.526 | 0, cobrado por teste guard |
-| Cor hexadecimal escrita no JSX | 23 | 0 |
-| Tela de celular importando código de `components/desktop/` | 1 | 0, cobrado por regra de lint |
-| Erros de lint | 147 na primeira passada | 0 |
-| Testes | 242 arquivos, 4.273 testes, 91 s | igual ou maior, nenhum removido sem justificativa na spec |
-| Build | limpo, maior pacote JS com 2.387 kB (703 kB comprimido) | limpo, e o maior pacote não maior que a linha de base |
-| Screenshots do roteiro de telas | linha de base da tarefa 0.1 | sem diferença visual não explicada |
+| Métrica | Hoje | Meta | Final (2026-11-26) | Atingida |
+|---|---|---|---|---|
+| Linhas do `AppContext.jsx` | 2.194 | arquivo removido, ou no máximo 150 linhas só compondo provedores | 66 linhas, só compondo provedores | sim |
+| Arquivos de código (sem teste) acima de 600 linhas | 22 | 0 | 0 | sim |
+| Maior número de `useState` num único arquivo | 70 (`DeliveryView`) | no máximo 15 | 15 (`SubprodutosView`) | sim |
+| Chamadas ao Supabase fora das pastas `dados/` | 226 (64 em 14 telas, 51 no contexto, 111 em `lib/`) | 0, cobrado por regra de lint | 0, cobrado por lint em todo `src/` fora de `dados/` | sim |
+| Gravações em várias etapas feitas pelo navegador | 3 conhecidas | 0 | 0 (quatro funções atômicas, com a de subproduto) | sim |
+| `style={{}}` que não seja só variável CSS | 1.526 | 0, cobrado por teste guard | 0, cobrado pelo `inlineStyleGuard` sem linha de base | sim |
+| Cor hexadecimal escrita no JSX | 23 | 0 | 0, com teste | sim |
+| Tela de celular importando código de `components/desktop/` | 1 | 0, cobrado por regra de lint | 0, cobrado por lint | sim |
+| Erros de lint | 147 na primeira passada | 0 | 0 (25 avisos) | sim |
+| Testes | 242 arquivos, 4.273 testes, 91 s | igual ou maior, nenhum removido sem justificativa na spec | 273 arquivos, 4.465 testes; nenhum removido sem justificativa na spec | sim |
+| Build | limpo, maior pacote JS com 2.387 kB (703 kB comprimido) | limpo, e o maior pacote não maior que a linha de base | limpo, maior pacote com 2.352 kB | sim |
+| Screenshots do roteiro de telas | linha de base da tarefa 0.1 | sem diferença visual não explicada | 209 telas; toda diferença explicada na spec da rodada que a causou | sim |
 
 ---
 
@@ -429,7 +429,7 @@ para preservar o histórico: fiscal (os 17 arquivos `nfce*` e afins), delivery, 
 caixa, PDV, clientes, console, pautas e apex. Regras puras ficam em `regras/`, os
 testes andam junto com o arquivo.
 Feito: fiscal (6.1), com regras, dados e telas em `src/features/fiscal/` e as funções de borda
-da NFC-e apontando para lá. Delivery (6.2), com as duas fachadas na raiz da feature. Estoque (6.3), com a aba de notas de entrada. Caixa (6.4), com as três janelas do caixa. PDV (6.5), com as regras de comanda em `features/comandas/`. Clientes (6.6). Console (6.7). Pautas (6.8). Apex (6.9), só a lógica: as telas do site continuam em `pages/apex/`. Cardápio (6.9a). Configurações, impressão e mesas (6.9b). Área Admin (6.9c). Cozinha, financeiro e relatório (6.9d, 6.9e e 6.9g), numa rodada só: `components/desktop/views/` deixa de existir. Roteador por superfície (6.10) e READMEs da ponte e do bot (6.11). Domínios restantes de `src/lib/` (6.9h) e documentação final (6.12): a fase 6 fecha.
+da NFC-e apontando para lá. Delivery (6.2), com as duas fachadas na raiz da feature. Estoque (6.3), com a aba de notas de entrada. Caixa (6.4), com as três janelas do caixa. PDV (6.5), com as regras de comanda em `features/comandas/`. Clientes (6.6). Console (6.7). Pautas (6.8). Apex (6.9), só a lógica: as telas do site continuam em `pages/apex/`. Cardápio (6.9a). Configurações, impressão e mesas (6.9b). Área Admin (6.9c). Cozinha, financeiro e relatório (6.9d, 6.9e e 6.9g), numa rodada só: `components/desktop/views/` deixa de existir. Roteador por superfície (6.10) e READMEs da ponte e do bot (6.11). Domínios restantes de `src/lib/` (6.9h) e documentação final (6.12): a fase 6 fecha. Fase F em duas passadas (a primeira com três achados corrigidos, a segunda sem achado), com os 13 fluxos críticos de `npm run fluxos`. **Plano encerrado em 2026-11-26.**
 
 **6.9a a 6.9g (acrescentadas na execução, 2026-11-26):** a lista acima não cobre todas as telas de
 `components/desktop/views/`, e o "pronto quando" da fase exige a pasta vazia. Entram, depois da

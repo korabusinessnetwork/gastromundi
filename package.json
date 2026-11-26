@@ -11,6 +11,7 @@
     "setup:git": "node scripts/setup-git.mjs",
     "lint": "eslint .",
     "metricas": "node scripts/metricas-refatoracao.mjs",
+    "fluxos": "node scripts/fluxos-criticos.mjs",
     "tipos:banco": "node scripts/tipos-banco.mjs"
   },
   "dependencies": {
