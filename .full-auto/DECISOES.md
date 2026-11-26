@@ -161,3 +161,5 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - **D2-09. O que entra no lugar do emoji do produto.** Onde ele tinha lugar fixo no desenho (coluna, caixa, item de lista), um ícone neutro (`LuPackage`; `LuUtensils` no cartão do delivery sem foto) na cor do tema. Onde vinha antes do nome, nada. O valor no banco fica, sem uso; apagar a coluna é migration e fica com o dono (D2-04).
 
 - 2026-11-26, T11: a prova do white-label usa dois temas, o padrão e `scripts/telas/tema-prova.json`, sem cor em comum. Login e cardápio público sem estabelecimento ficam com o padrão de propósito: não há tenant para dar tema. A cor "Forte" da senha era ciano, que não é token; passou para `--gm-blue`.
+
+- 2026-11-26, fase 6: as rodadas de domínio esvaziam `src/lib/` e `components/desktop/views/` (o "pronto quando" do plano). Telas que já estão em `pages/` (celular, cardápio público) não mudam de lugar nessas rodadas; os guardas de SQL ficam juntos em `src/lib/`; uma aba cujo CSS mora no CSS de outra tela vai junto com essa tela (DeliveryTab fica com Configurações).

@@ -94,6 +94,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-26 | 5.33 emoji zerado (emoji: 17 para 0) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 268 arquivos, 4.444 testes | 2.358 kB |
 | 2026-11-26 | 5.34 prova do white-label (0 tela com cor do padrão no tema de outro) | 66 | 0 | 15 | 111 (0 / 0 / 111) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 | 2026-11-26 | 6.1 fiscal em features/ | 66 | 0 | 15 | 106 (0 / 0 / 106) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
+| 2026-11-26 | 6.2 delivery em features/ | 66 | 0 | 15 | 77 (0 / 0 / 77) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

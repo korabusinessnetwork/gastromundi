@@ -429,7 +429,7 @@ para preservar o histórico: fiscal (os 17 arquivos `nfce*` e afins), delivery, 
 caixa, PDV, clientes, console, pautas e apex. Regras puras ficam em `regras/`, os
 testes andam junto com o arquivo.
 Feito: fiscal (6.1), com regras, dados e telas em `src/features/fiscal/` e as funções de borda
-da NFC-e apontando para lá.
+da NFC-e apontando para lá. Delivery (6.2), com as duas fachadas na raiz da feature.
 
 **6.10 Roteador por superfície:** `src/app/rotas/` com um arquivo para cada superfície
 (apex, console, cardápio público, estabelecimento). O `routes/index.jsx` só escolhe qual

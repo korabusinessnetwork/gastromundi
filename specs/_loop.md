@@ -1,3 +1,8 @@
+## Rodada 142, refatoração 6.2, domínio delivery em src/features/delivery, 2026-11-26
+- Spec: specs/refatoracao-6-2-delivery-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 6 telas do domínio,
+  0 diferença. Sem migration. 35 arquivos movidos com `git mv`.
 ## Rodada 141, refatoração 6.1, domínio fiscal em src/features/fiscal, 2026-11-26
 - Spec: specs/refatoracao-6-1-fiscal-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
