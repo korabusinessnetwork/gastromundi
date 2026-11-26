@@ -10,3 +10,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T06 (5.27 financeiro): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 202 telas sem diferença. Estilo inline 37 para 15.
 - 2026-11-26, T07 (5.28 estilo inline zerado): `npx vitest run` 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros, roteiro 206 telas com 1 leve (foco). Estilo inline 15 para 0; guard sem linha de base, vermelho com um estilo de teste e verde sem ele.
 - 2026-11-26, T08 parte 1 (5.29 avisos, ícones e cupom): `npx vitest run` 268 arquivos e 4438 testes verdes, build limpo, lint 0 erros, roteiro 209 telas com diferenças só nos emojis trocados. Emoji 91 para 64.
+- 2026-11-26, T08 parte 2 (5.30 estados vazios): `npx vitest run` 268 arquivos e 4438 testes verdes, build limpo, lint 0 erros, roteiro 209 telas com 4 diferenças (emoji trocado). Emoji 64 para 40; o resto é do campo de emoji do produto (T10).

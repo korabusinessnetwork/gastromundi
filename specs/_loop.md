@@ -1,3 +1,9 @@
+## Rodada 136, refatoração 5.30, estados vazios, cardápio público e página da Kora sem emoji, 2026-11-26
+- Spec: specs/refatoracao-5-30-estados-vazios-sem-emoji.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4438
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 4
+  diferenças (emoji trocado) e 1 leve. Sem migration. Emoji: 64 para 40.
+- O que sobra de emoji é só o campo de emoji do produto (T10).
 ## Rodada 135, refatoração 5.29, avisos, ícones e cupom sem emoji, 2026-11-26
 - Spec: specs/refatoracao-5-29-avisos-icones-e-cupom-sem-emoji.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4438

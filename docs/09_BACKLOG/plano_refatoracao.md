@@ -385,6 +385,8 @@ Depois, os últimos oito arquivos (15 para 0): **estilo inline zerado**, e o `in
 exigir zero, sem linha de base (refatoração 5.28).
 Depois, o emoji de código: avisos de erro, ícones de mesa, lixeira e dinheiro, e o "📝" do cupom,
 que vira "Obs.:" (5.29, 91 para 64).
+Depois, os estados vazios, o cardápio público e a página da Kora (5.30, 64 para 40): o que sobra é
+só o campo de emoji do produto.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
