@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // A função testada aqui é pura, mas o módulo importa o client — sem
 // VITE_SUPABASE_* no ambiente de teste, supabase.js lançaria.
-vi.mock("./supabase", () => ({ supabase: {} }));
+vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 
 import { mensagemDaFalha } from "./pautasAuth";
 

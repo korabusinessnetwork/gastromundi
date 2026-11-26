@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
-import { emailDoSocio, slugDoSocio } from "./pautasHost";
+import { supabase } from "@/lib/supabase";
+import { emailDoSocio, slugDoSocio } from "../regras/pautasHost";
 import { esquecerTokenAuthLocal } from "@/utils/session";
 
 /**

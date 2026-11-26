@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // As funções puras testadas aqui não tocam o banco, mas o módulo importa o
 // client — sem VITE_SUPABASE_* no ambiente de teste, supabase.js lançaria.
-vi.mock("./supabase", () => ({ supabase: {} }));
+vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 
 import {
   STATUS_PAUTA,

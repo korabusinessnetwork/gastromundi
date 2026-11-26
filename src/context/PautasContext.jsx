@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { entrar as entrarNoAuth, sair as sairDoAuth, socioDaSessao, observarSessao } from "@/lib/pautasAuth";
+import { entrar as entrarNoAuth, sair as sairDoAuth, socioDaSessao, observarSessao } from "@/features/pautas/dados/pautasAuth";
 import {
   listarPessoas,
   listarPautas,
   criarPauta as criarNoBanco,
   atualizarPauta as atualizarNoBanco,
   atualizarStatus as atualizarStatusNoBanco,
-} from "@/lib/pautas";
+} from "@/features/pautas/dados/pautas";
 
 /**
  * Estado das Pautas da Kora — sessão do sócio, lista de sócios e lista de

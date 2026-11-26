@@ -1,9 +1,9 @@
 import { useMemo, useState, useEffect } from "react";
 import { LuPlus, LuLogOut, LuSearch, LuTriangleAlert, LuListChecks, LuRefreshCw } from "react-icons/lu";
 import { usePautas } from "@/context/PautasContext";
-import { STATUS_EM_ORDEM, rotuloStatus, filtrarPautas, agruparPorStatus } from "@/lib/pautas";
-import PautaCard from "@/components/pautas/PautaCard";
-import PautaForm from "@/components/pautas/PautaForm";
+import { STATUS_EM_ORDEM, rotuloStatus, filtrarPautas, agruparPorStatus } from "@/features/pautas/dados/pautas";
+import PautaCard from "@/features/pautas/desktop/PautaCard";
+import PautaForm from "@/features/pautas/desktop/PautaForm";
 import "./PautasPage.css";
 
 /**

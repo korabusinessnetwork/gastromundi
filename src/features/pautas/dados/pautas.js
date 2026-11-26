@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Pautas da Kora — ferramenta INTERNA dos sócios

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { LuX, LuTriangleAlert } from "react-icons/lu";
-import { validarPauta } from "@/lib/pautas";
+import { validarPauta } from "@/features/pautas/dados/pautas";
 import "./PautaForm.css";
 
 /**

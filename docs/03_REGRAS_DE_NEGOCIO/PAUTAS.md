@@ -67,12 +67,12 @@ um sócio seja um `INSERT`/`UPDATE`, sem migration nem deploy.
 |------|---------|-----------|
 | Login | `src/pages/pautas/PautasLoginPage.jsx` | Usuário + senha do sócio |
 | Lista | `src/pages/pautas/PautasPage.jsx` | Filtros (situação, pessoa, busca) e lista |
-| Card | `src/components/pautas/PautaCard.jsx` | Uma pauta, com os três botões de situação |
-| Formulário | `src/components/pautas/PautaForm.jsx` | Criar/editar |
+| Card | `src/features/pautas/desktop/PautaCard.jsx` | Uma pauta, com os três botões de situação |
+| Formulário | `src/features/pautas/desktop/PautaForm.jsx` | Criar/editar |
 
-Camada de dados em `src/lib/pautas.js`, sessão em `src/lib/pautasAuth.js`,
+Camada de dados em `src/features/pautas/dados/pautas.js`, sessão em `src/features/pautas/dados/pautasAuth.js`,
 estado em `src/context/PautasContext.jsx`, detecção de host em
-`src/lib/pautasHost.js`.
+`src/features/pautas/regras/pautasHost.js`.
 
 ## Por que é intuitiva (Princípio nº1)
 

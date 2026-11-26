@@ -8,7 +8,7 @@ import "@/styles/tema.css";
 import { registerSW } from "virtual:pwa-register";
 import { initObservabilidade } from "@/lib/observabilidade";
 import { instalarRecuperacaoDeploy } from "@/lib/recuperacaoDeploy";
-import { pautasAtivo, ehPautasHost } from "@/lib/pautasHost";
+import { pautasAtivo, ehPautasHost } from "@/features/pautas/regras/pautasHost";
 import TelaDeErro from "@/app/TelaDeErro";
 
 // Host das Pautas (ex.: pautas.kora.codes): superfície interna dos sócios da

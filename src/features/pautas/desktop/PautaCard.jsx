@@ -7,7 +7,7 @@ import {
   abreviacaoStatus,
   nomesDosEnvolvidos,
   indiceDeCorDaPessoa,
-} from "@/lib/pautas";
+} from "@/features/pautas/dados/pautas";
 import "./PautaCard.css";
 
 const DIA_E_MES = { day: "2-digit", month: "short" };
