@@ -48,4 +48,12 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T27 | Registrar a reavaliação do TanStack Query (decisão D1 do ADR-015) | decisão escrita no ADR e em `memory/decisions.md` | docs | T24 |
 | [x] T28 | Site da Kora e pautas no roteiro de fotos | telas novas fotografadas nas duas larguras | ui | T24 |
 | [x] T29 | Cenários de banco da fase 1 contra um Postgres local | cada cenário das specs 1.x rodado e com resultado | banco | T24 |
+| [ ] T30 | Integração do PR #32: trazer o código para a estrutura atual (merge com os conflitos resolvidos) | merge sem marcador de conflito, suíte e lint verdes | integracao | T29 |
+| [ ] T31 | #32, combos e grupos de escolha no padrão atual | guardas verdes, telas fotografadas, testes do domínio | integracao | T30 |
+| [ ] T32 | #32, integridade do histórico e precisão do dinheiro | idem | integracao | T30 |
+| [ ] T33 | #32, entregadores e fechamento do delivery | idem | integracao | T30 |
+| [ ] T34 | #32, vitrine, checkout, retirada e acompanhamento do pedido | idem | integracao | T30 |
+| [ ] T35 | #32, aceite automático, WhatsApp e venda do delivery | idem | integracao | T30 |
+| [ ] T36 | #32, feedback, clientes e relatórios | idem | integracao | T30 |
+| [ ] T37 | #32, impressão e o resto | idem; e a decisão do dono sobre as migrations antes de mesclar na main | integracao | T30 |
 
