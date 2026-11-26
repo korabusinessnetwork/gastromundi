@@ -32,7 +32,8 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
     setLancamentosFiado(l);
   };
 
-  useEffect(() => { carregar(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [cliente.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- o histórico recarrega quando troca o cliente aberto; `carregar` é recriada a cada renderização
+  useEffect(() => { carregar(); }, [cliente.id]);
 
   const saldoDevedor = calcularSaldoDevedor(lancamentosFiado);
   const contasEmAberto = contasDeFiadoEmAberto(lancamentosFiado);

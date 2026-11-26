@@ -184,7 +184,7 @@ export function usePonteLocal({ ativo, products, pending, addPending, updatePend
   // dependência: trocar a identidade delas reiniciaria o ciclo de 5s.
   const recalcularImpressaoParada = useCallback(() => {
     setImpressaoParada(lerImpressaoParada());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // Impressão que nem chegou à fila da Ponte (impressora não configurada,
   // Ponte fechada no meio do lançamento). Antes isso morria num console.error
@@ -194,7 +194,7 @@ export function usePonteLocal({ ativo, products, pending, addPending, updatePend
     if (!chave || dispensadasRef.current.has(chave)) return;
     falhasLocaisRef.current.set(chave, { chave, criadoEm: criadoEm ?? new Date().toISOString() });
     recalcularImpressaoParada();
-  }, [recalcularImpressaoParada]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recalcularImpressaoParada]);
 
   // Botão "Conferir de novo" da tela: vai LER a fila da Ponte outra vez.
   //
@@ -232,7 +232,7 @@ export function usePonteLocal({ ativo, products, pending, addPending, updatePend
       conferindoRef.current = false;
       setConferindo(false);
     }
-  }, [recalcularImpressaoParada]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [recalcularImpressaoParada]);
 
   useEffect(() => {
     if (!ativo) {

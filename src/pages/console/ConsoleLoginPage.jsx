@@ -56,6 +56,7 @@ export default function ConsoleLoginPage() {
     if (currentUser.role === "plataforma") { navigate("/console", { replace: true }); return; }
     logout();
     setError("Esta conta não tem acesso ao Console.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- decide o destino quando o login termina; `navigate` e `logout` não mudam o que decidir
   }, [currentUser]);
 
   // Recebe o evento porque quem dispara agora é o `submit` do formulário, e

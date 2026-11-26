@@ -116,7 +116,7 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
   const [destaque, setDestaque] = useState(null); // id do grupo a destacar
   const gruposRef = useRef({}); // grupoId → nó, para rolar até o pendente
 
-  const grupos = produto?.grupos ?? [];
+  const grupos = useMemo(() => produto?.grupos ?? [], [produto]);
 
   function alternar(grupo, comp) {
     setDestaque(null); // qualquer escolha limpa o destaque de erro

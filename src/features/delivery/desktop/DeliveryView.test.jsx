@@ -31,12 +31,8 @@ const { usePedidosDelivery, listarProdutosDelivery, carregarConfigDelivery } = v
   carregarConfigDelivery: vi.fn(),
 }));
 
-// Só o hook de pedidos é falso. O resto de @/utils/hooks passa real pelo
-// importOriginal() — a tela usa vários e nenhum precisa ser dublê aqui.
-vi.mock("@/utils/hooks", async (importOriginal) => ({
-  ...(await importOriginal()),
-  usePedidosDelivery,
-}));
+// Só o hook de pedidos é falso.
+vi.mock("@/features/delivery/hooks/usePedidosDelivery", () => ({ usePedidosDelivery }));
 
 const { avancarPedido, cancelarPedido } = vi.hoisted(() => ({
   avancarPedido: vi.fn(() => Promise.resolve({ error: null, proximo: "em_preparo" })),

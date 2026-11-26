@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { useSessao, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/features/auditoria/dados/logger";
-import { useResponsive, useMesas } from "@/utils/hooks";
+import { useResponsive } from "@/utils/hooks";
+import { useMesas } from "@/features/mesas/hooks/useMesas";
 import { getSizes } from "@/constants/sizes";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
@@ -331,7 +332,7 @@ export function usePdv({ notify }) {
       setBarcodeFeedback("notfound");
     }
     setTimeout(() => setBarcodeFeedback(null), 2500);
-  }, [products, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [products, mode]);
 
   useBarcodeScanner(handleBarcodeScan, FEATURE_BARCODE_SCANNER && mode === "pedido");
 

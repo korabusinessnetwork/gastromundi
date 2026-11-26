@@ -151,6 +151,7 @@ export default function LoginPage() {
     // (caixa, sem palm) segue o fluxo normal pro /app.
     if (isMobile && p.palm) { navigate("/palm", { replace: true }); return; }
     navigate(from, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- o redirecionamento acontece quando o login termina; depender de `navigate`, `from` ou `isMobile` redirecionaria de novo a cada mudança de tela
   }, [currentUser]);
 
   // O contador de tentativas não é desta aba: mora no navegador (localStorage),

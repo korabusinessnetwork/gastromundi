@@ -28,7 +28,7 @@ import {
   statusLabel,
   tempoDecorrido,
 } from "@/features/delivery/dados/deliveryPedidos";
-import { usePedidosDelivery } from "@/utils/hooks";
+import { usePedidosDelivery } from "@/features/delivery/hooks/usePedidosDelivery";
 import "../modulos.css";
 import "./DeliveryModulo.css";
 

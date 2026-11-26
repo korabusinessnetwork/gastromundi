@@ -94,6 +94,7 @@ export function SessaoProvider({ tenantIdRef, carregarRef, permsColunaIndisponiv
     if (restante === 0) { logoutRef.current?.(); return; }
     const t = setTimeout(() => logoutRef.current?.(), restante);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- o prazo da sessão recomeça só quando muda quem está logado, não a cada atualização dos dados do mesmo usuário
   }, [currentUser?.id]);
 
   // ── Restaura sessão do Supabase Auth ao carregar ─────────────
@@ -192,6 +193,7 @@ export function SessaoProvider({ tenantIdRef, carregarRef, permsColunaIndisponiv
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- a escuta da autenticação é montada uma vez; ela lê o estado atual pelas referências (`carregarRef`, `tenantIdRef`)
   }, []);
 
   // Busca nome, role e permissions do usuário pelo auth_id.
@@ -251,6 +253,7 @@ export function SessaoProvider({ tenantIdRef, carregarRef, permsColunaIndisponiv
       // nunca vencia numa aba aberta o dia inteiro.
       atualizarUsuarioSessao(updated);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reflete a lista de usuários recarregada no usuário logado; depender de `currentUser` faria o efeito rodar de novo a cada troca que ele mesmo faz
   }, [users]);
 
   // ── Fase 6 — camada de comercialização (ADR-007): aplica o tema do
@@ -289,6 +292,7 @@ export function SessaoProvider({ tenantIdRef, carregarRef, permsColunaIndisponiv
     // Cache por origem (anti-flash): a próxima abertura deste endereço
     // já pinta com esta marca antes do bootstrap (script do index.html).
     salvarBrandingCache({ nome, logo: logoUrlTenant(tenant.tema), variaveis });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- só o tema e o layout mudam a marca na tela; o resto do estabelecimento não pede repintar
   }, [tenant?.tema, varianteLayout]);
 
   // ── Timer dia/noite dos layouts adaptativos (marca, casa): arma um

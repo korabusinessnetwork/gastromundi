@@ -228,7 +228,6 @@ export function criarStorageIdb({
     for (const chave of chaves) {
       let noBanco = null;
       try {
-        // eslint-disable-next-line no-await-in-loop
         const bruto = await transacao("readonly", (s) => s.get(chave));
         noBanco = typeof bruto === "string" ? bruto : null;
       } catch (erro) {
@@ -250,7 +249,6 @@ export function criarStorageIdb({
       }
 
       if (juntado != null && juntado !== noBanco) {
-        // eslint-disable-next-line no-await-in-loop
         const confirmado = await gravar(chave, juntado);
         // O legado só some depois que o banco confirmou. Gravação que falha
         // deixa a fila antiga onde está, para a próxima subida tentar de novo.

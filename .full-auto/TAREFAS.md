@@ -43,3 +43,9 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T22 | 6.11 README de `ponte/` e `bot/` | READMEs existem e dizem o que é, como rodar, se compartilham código | docs | , |
 | [x] T23 | 6.12 Documentação final e ADR-015 aceito | docs de arquitetura descrevem o estado real | docs | T21 |
 | [x] T24 | Fase F, auditoria e correção em laço até zero achados | F.1 a F.4 com zero achados na mesma passada, relatório final | auditoria | T23 |
+| [ ] T25 | Ganchos de domínio de `utils/hooks.js` para o `hooks/` de cada feature (mesas, cozinha, delivery) | nenhum gancho de domínio em `utils/`, suíte verde, roteiro sem diferença | pastas | T24 |
+| [ ] T26 | Os 25 avisos de lint examinados (15 `eslint-disable` sem uso, 10 dependências de hook) | lint 0 erros e 0 avisos, ou cada aviso restante justificado | qualidade | T24 |
+| [ ] T27 | Registrar a reavaliação do TanStack Query (decisão D1 do ADR-015) | decisão escrita no ADR e em `memory/decisions.md` | docs | T24 |
+| [ ] T28 | Site da Kora e pautas no roteiro de fotos | telas novas fotografadas nas duas larguras | ui | T24 |
+| [ ] T29 | Cenários de banco da fase 1 contra um Postgres local | cada cenário das specs 1.x rodado e com resultado | banco | T24 |
+

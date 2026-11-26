@@ -9,7 +9,7 @@ import {
   LuTriangleAlert,
 } from "react-icons/lu";
 import { useSessao } from "@/context/AppContext";
-import { usePedidosCozinha } from "@/utils/hooks";
+import { usePedidosCozinha } from "@/features/cozinha/hooks/usePedidosCozinha";
 import {
   estaAtrasado,
   statusCozinha,

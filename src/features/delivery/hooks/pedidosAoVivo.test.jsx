@@ -31,7 +31,8 @@ vi.mock("@/lib/supabase", async () => {
 const listarPedidosDelivery = vi.hoisted(() => vi.fn());
 vi.mock("@/features/delivery/dados/deliveryPedidos", () => ({ listarPedidosDelivery }));
 
-import { usePedidosDelivery, usePedidosCozinha } from "./hooks";
+import { usePedidosDelivery } from "./usePedidosDelivery";
+import { usePedidosCozinha } from "@/features/cozinha/hooks/usePedidosCozinha";
 
 const supa = () => mockSupabase.atual;
 

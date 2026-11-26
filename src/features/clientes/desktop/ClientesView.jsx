@@ -64,7 +64,6 @@ export default function ClientesView() {
   useEffect(() => {
     const t = setTimeout(() => carregar(busca), 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca]);
 
   const abrirCadastro = () => {

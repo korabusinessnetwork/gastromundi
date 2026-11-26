@@ -184,7 +184,6 @@ describe("AppContext, o bloqueio de login vem do servidor (TD008)", () => {
 
     let r;
     for (let i = 0; i < 4; i++) {
-      // eslint-disable-next-line no-await-in-loop
       await act(async () => { r = await app.current.login("admin", "errada"); });
     }
     // Foi à rede de auth todas as vezes: sem resposta do servidor, ninguém é

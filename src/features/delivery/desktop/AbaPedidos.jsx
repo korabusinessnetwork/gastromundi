@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { usePedidosDelivery } from "@/utils/hooks";
+import { usePedidosDelivery } from "@/features/delivery/hooks/usePedidosDelivery";
 import { LuRefreshCw, LuBell, LuBellOff, LuHourglass, LuWifiOff, LuBike } from "react-icons/lu";
 import {
   statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido
@@ -73,6 +73,7 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     }
   }, [avisosLigados, aviso]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- o `tick` força o cálculo de tempos em tempos, para o "há X min" de cada cartão andar sem pedido novo
   const colunas = useMemo(() => agruparPorStatus(pedidos), [pedidos, tick]);
   const abertos = useMemo(
     () => pedidos.filter((p) => !ehTerminal(p?.status ?? "recebido")).length,

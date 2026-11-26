@@ -24,7 +24,7 @@ vi.mock("@/features/delivery/dados/deliveryPedidos", async (importOriginal) => (
   cancelarPedido,
 }));
 
-vi.mock("@/utils/hooks", () => ({ usePedidosDelivery }));
+vi.mock("@/features/delivery/hooks/usePedidosDelivery", () => ({ usePedidosDelivery }));
 
 import { setAppMock } from "@/test/mockApp";
 import DeliveryModulo from "./DeliveryModulo";

@@ -47,6 +47,7 @@ export default function ImpostosAdmin() {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- recarrega os dados fiscais quando muda a lista de itens; `carregarFiscal` é recriada a cada renderização
   useEffect(() => { carregarFiscal(); }, [itens]);
 
   const onSaved = (itemId, payload) => {

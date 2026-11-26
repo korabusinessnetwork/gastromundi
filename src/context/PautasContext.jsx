@@ -66,7 +66,6 @@ export function PautasProvider({ children }) {
   useEffect(() => {
     if (!slug) { setPessoas([]); setPautas([]); return; }
     recarregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const entrar = async (usuario, senha) => {

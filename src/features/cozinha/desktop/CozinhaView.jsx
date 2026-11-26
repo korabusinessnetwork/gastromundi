@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
-import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
+import { useResponsive } from "@/utils/hooks";
+import { usePedidosCozinha } from "@/features/cozinha/hooks/usePedidosCozinha";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/features/cozinha/dados/cozinha";
 import { enviarViaProducao } from "@/features/impressao/regras/despacho";
