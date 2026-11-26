@@ -305,7 +305,7 @@ function roteiro(largura) {
     const responder = (corpo) => (route) => (route.request().method() === "GET"
       ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
       : route.fallback());
-    await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema: {}, plano_codigo: "basico", created_at: "2026-01-01T00:00:00.000Z" }));
+    await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema: temaTenant ?? {}, plano_codigo: "basico", created_at: "2026-01-01T00:00:00.000Z" }));
     await contexto.route(/\/rest\/v1\/planos_modulos/, responder(modulos.map((modulo_codigo) => ({ modulo_codigo }))));
     if (assinatura) await contexto.route(/\/rest\/v1\/assinaturas/, responder(assinatura));
   };
@@ -1109,9 +1109,14 @@ function comparar(antes, depois) {
 const temaTenant = process.env.TEMA_TENANT ? JSON.parse(readFileSync(resolve(process.env.TEMA_TENANT), "utf8")) : null;
 
 async function instalarTemaTenant(contexto, tema) {
-  const responder = (corpo) => (route) => (route.request().method() === "GET"
-    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
-    : route.fallback());
+  // `.single()`/`.maybeSingle()` pedem um objeto; o console da plataforma
+  // lista os estabelecimentos e espera uma lista. Responde no formato pedido.
+  const responder = (corpo) => (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    const umSo = (route.request().headers().accept ?? "").includes("vnd.pgrst.object");
+    const linha = Array.isArray(corpo) || umSo ? corpo : [corpo];
+    return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(linha) });
+  };
   await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema, plano_codigo: "completo", created_at: "2026-01-01T00:00:00.000Z" }));
   await contexto.route(/\/rest\/v1\/planos_modulos/, responder(
     ["cardapio", "pdv", "caixa", "estoque", "pedidos", "mesas_comandas", "cozinha", "alertas", "financeiro",

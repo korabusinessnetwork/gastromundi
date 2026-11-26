@@ -55,3 +55,11 @@ describe("sanitizeInput", () => {
     expect(sanitizeInput(123)).toBe("123");
   });
 });
+
+describe("passwordStrength, cor da barra", () => {
+  it("usa as cores do tema do estabelecimento, nunca cor cravada", () => {
+    for (const pwd of ["ab", "abcd", "abcdef", "Abcdef1", "Abcdef1!xyz"]) {
+      expect(passwordStrength(pwd).color).toMatch(/^var\(--gm-[a-z]+\)$/);
+    }
+  });
+});

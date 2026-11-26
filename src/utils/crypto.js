@@ -69,12 +69,12 @@ export const sanitizeInput = (str, max = 60) =>
 
 /** Avalia a força de uma senha (0-4) */
 export const passwordStrength = (pwd) => {
-  if (!pwd || pwd.length < 4) return { level: 0, label: "Muito fraca",  color: "#ef4444"  };
-  if (pwd.length < 6)         return { level: 1, label: "Fraca",        color: "#f97316"  };
+  if (!pwd || pwd.length < 4) return { level: 0, label: "Muito fraca",  color: "var(--gm-red)" };
+  if (pwd.length < 6)         return { level: 1, label: "Fraca",        color: "var(--gm-orange)" };
   const has = (r) => r.test(pwd);
   const score = [has(/[A-Z]/), has(/[0-9]/), has(/[^A-Za-z0-9]/), pwd.length >= 10]
     .filter(Boolean).length;
-  if (score <= 1) return { level: 2, label: "Média",  color: "#f59e0b" };
-  if (score <= 2) return { level: 3, label: "Boa",    color: "#10b981" };
-  return              { level: 4, label: "Forte",  color: "#06b6d4" };
+  if (score <= 1) return { level: 2, label: "Média",  color: "var(--gm-warn)" };
+  if (score <= 2) return { level: 3, label: "Boa",    color: "var(--gm-green)" };
+  return              { level: 4, label: "Forte",  color: "var(--gm-blue)" };
 };

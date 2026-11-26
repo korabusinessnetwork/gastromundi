@@ -1,5 +1,6 @@
 import { renderizarRecibo, renderizarViaProducao, abrirJanelaImpressao } from "../renderizar";
 import { larguraEmPx } from "../largura";
+import { resolverCor } from "../../tema";
 
 /**
  * Driver "browser-raster" — F020 (decisão 025). DEFAULT, gratuito:
@@ -24,6 +25,10 @@ function variaveisCss(perfil) {
   const variaveis = {
     "--print-width": `${larguraEmPx(larguraMm)}px`,
     "--print-padding-h": `${larguraEmPx(margemMm)}px`,
+    // A janela de impressão e a prévia são documentos à parte, sem o tema
+    // do estabelecimento: as duas cores que o papel usa vão resolvidas.
+    "--gm-accent": resolverCor("--gm-accent"),
+    "--gm-warn": resolverCor("--gm-warn"),
   };
   if (perfil?.fonteBase) variaveis["--print-font-base"] = `${Number(perfil.fonteBase)}px`;
   return variaveis;
