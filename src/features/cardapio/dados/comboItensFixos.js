@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Itens FIXOS de um combo — o que vem junto sem o cliente escolher.

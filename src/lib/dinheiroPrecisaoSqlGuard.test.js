@@ -25,7 +25,7 @@ const MIGRATION = readFileSync(
 );
 const SCHEMA = readFileSync(join(RAIZ, "supabase", "schema.sql"), "utf8");
 const CHECKOUT = readFileSync(
-  join(RAIZ, "src", "components", "desktop", "views", "PDVView", "CheckoutView.jsx"),
+  join(RAIZ, "src", "features", "pdv", "desktop", "CheckoutView.jsx"),
   "utf8",
 );
 

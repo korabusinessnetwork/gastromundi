@@ -19,7 +19,7 @@
 // tenant_id tem DEFAULT public.tenant_atual_id() (migration 20260919) —
 // os inserts não precisam passá-lo.
 // ──────────────────────────────────────────────────────────────────
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 // ════════════════════════════════════════════════════════════════
 // FUNÇÕES PURAS (testadas) — nada de I/O aqui

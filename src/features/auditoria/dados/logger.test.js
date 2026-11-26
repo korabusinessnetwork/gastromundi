@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
 
 import { logAction } from "./logger";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /** Deixa a promise pendente rodar (o log é fire-and-forget). */
 const cederOTurno = () => new Promise((resolve) => setTimeout(resolve, 0));

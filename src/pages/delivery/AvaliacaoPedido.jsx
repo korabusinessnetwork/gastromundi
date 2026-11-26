@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { enviarAvaliacaoCliente, rotuloDaNota, LIMITE_TEXTO } from "@/lib/feedback";
+import { enviarAvaliacaoCliente, rotuloDaNota, LIMITE_TEXTO } from "@/features/feedback/dados/feedback";
 import "./AvaliacaoPedido.css";
 
 /**

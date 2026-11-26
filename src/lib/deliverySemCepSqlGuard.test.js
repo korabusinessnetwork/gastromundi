@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
-import { montarPayloadPedido } from "./delivery";
+import { montarPayloadPedido } from "@/features/delivery/delivery";
 
 /**
  * Guard de 20260929_delivery_sem_cep_e_meus_pedidos.sql.

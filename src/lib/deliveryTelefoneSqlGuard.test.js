@@ -9,7 +9,7 @@ vi.mock("./supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-const { montarPayloadPedido } = await import("./delivery");
+const { montarPayloadPedido } = await import("@/features/delivery/delivery");
 
 /**
  * Guard de 20260930_delivery_telefone_obrigatorio.sql.

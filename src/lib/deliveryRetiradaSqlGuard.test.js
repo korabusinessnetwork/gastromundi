@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
-import { montarPayloadPedido } from "./delivery";
+import { montarPayloadPedido } from "@/features/delivery/delivery";
 
 /**
  * Guard da retirada no local (20260928_delivery_retirada_no_local.sql).

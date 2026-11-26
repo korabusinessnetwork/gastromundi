@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // A camada fala com o Supabase; o client é mockado para o teste rodar sem env
 // e sem rede. `resolverOpcoes` é pura e não depende disso.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
@@ -20,7 +20,7 @@ import {
   MODELOS_GRUPO,
   REGRAS_PRECO,
 } from "./gruposEscolha";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /** Linha crua como o Supabase devolve (snake_case, itens aninhados). */
 function linha(over = {}) {

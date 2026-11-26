@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Camada de leitura do Supabase: o client é mockado para o teste rodar sem env
 // e sem rede.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
 
 import { buscarVendaCompleta } from "./vendasRepo";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 const CABECALHO = {
   id: "v-1",

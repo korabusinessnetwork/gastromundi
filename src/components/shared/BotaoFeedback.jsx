@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
 import { LuMessageSquare, LuX, LuCheck } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { enviarFeedbackEquipe, validarFeedbackEquipe, LIMITE_TEXTO } from "@/lib/feedback";
+import { enviarFeedbackEquipe, validarFeedbackEquipe, LIMITE_TEXTO } from "@/features/feedback/dados/feedback";
 import "./BotaoFeedback.css";
 
 /**

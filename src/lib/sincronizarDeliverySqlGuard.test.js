@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR } from "@/test/migracoes";
-import { produtoPublicavelNoDelivery, sanitizarConfig } from "./deliveryAdmin";
+import { produtoPublicavelNoDelivery, sanitizarConfig } from "@/features/delivery/deliveryAdmin";
 
 /**
  * Guard de 20261007_delivery_sincroniza_produto_novo.sql.

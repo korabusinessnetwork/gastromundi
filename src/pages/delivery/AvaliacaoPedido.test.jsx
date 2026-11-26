@@ -12,7 +12,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { enviarAvaliacaoCliente } = vi.hoisted(() => ({ enviarAvaliacaoCliente: vi.fn() }));
-vi.mock("@/lib/feedback", async (importOriginal) => ({
+vi.mock("@/features/feedback/dados/feedback", async (importOriginal) => ({
   ...(await importOriginal()),
   enviarAvaliacaoCliente,
 }));

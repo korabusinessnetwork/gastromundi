@@ -22,7 +22,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { MIGRATIONS_DIR } from "@/test/migracoes";
-import { precoDoGrupo } from "./combos";
+import { precoDoGrupo } from "@/features/cardapio/regras/combos";
 
 const MIGRACAO = "20261013_opcao_com_quantidade.sql";
 const sql = readFileSync(join(MIGRATIONS_DIR, MIGRACAO), "utf8");

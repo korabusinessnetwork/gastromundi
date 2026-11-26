@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR } from "@/test/migracoes";
-import { REGRAS_PRECO, regraValida } from "./gruposEscolha";
-import { precoDasEscolhas } from "./combos";
+import { REGRAS_PRECO, regraValida } from "@/features/cardapio/dados/gruposEscolha";
+import { precoDasEscolhas } from "@/features/cardapio/regras/combos";
 
 /**
  * Guard de 20261008_regra_preco_grupo.sql.

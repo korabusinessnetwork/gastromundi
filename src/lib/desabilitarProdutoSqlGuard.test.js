@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR } from "@/test/migracoes";
-import { sanitizarConfig } from "./deliveryAdmin";
+import { sanitizarConfig } from "@/features/delivery/deliveryAdmin";
 
 /**
  * Guard de 20261005_desabilitar_produto_espelho.sql.

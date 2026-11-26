@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
-import { instrucaoGrupo } from "./gruposEscolha";
-import { grupoSatisfeito, rotuloRegraGrupo } from "./delivery";
+import { instrucaoGrupo } from "@/features/cardapio/dados/gruposEscolha";
+import { grupoSatisfeito, rotuloRegraGrupo } from "@/features/delivery/delivery";
 
 /**
  * Guard de 20261004_escolhas_sem_limite.sql.

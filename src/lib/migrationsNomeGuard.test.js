@@ -29,9 +29,14 @@ const ULTIMO_PREFIXO_CONGELADO = "20260928";
 
 // Prefixos que já se repetiam nessa data, com quantos arquivos cada um tem.
 // Um arquivo a mais com qualquer um deles é colisão nova e reprova.
+// A integração do PR #32 (2026-11-26) trouxe migrations escritas em paralelo à
+// main com prefixos que a main já usava (20260918 a 20260928). Entram congeladas
+// como as demais: se já rodaram em produção, renomear faria o banco reaplicá-las.
 const REPETICOES_CONGELADAS = {
   20260703: 2, 20260724: 4, 20260725: 2, 20260726: 2, 20260728: 2,
-  20260731: 2, 20260732: 2, 20260919: 2, 20260920: 2, 20260925: 2,
+  20260731: 2, 20260732: 2, 20260918: 2, 20260919: 3, 20260920: 3,
+  20260921: 2, 20260922: 2, 20260923: 2, 20260924: 2, 20260925: 2,
+  20260927: 2, 20260928: 2,
 };
 
 function dataValida(prefixo) {

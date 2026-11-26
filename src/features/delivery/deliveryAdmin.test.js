@@ -25,7 +25,7 @@ import {
   subgrupoCriaCiclo,
   importarProdutosDelivery,
 } from "./deliveryAdmin";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 describe("produtosParaImportar", () => {
   // Todo produto de cardápio tem categoria de venda e preço — as fixtures

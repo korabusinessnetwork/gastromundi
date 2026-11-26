@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
 
 import { perguntarAoJarvas } from "./jarvasAssistente";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /** Resposta de `fetch` no mínimo que o módulo consome. */
 function resposta({ ok = true, json = {} } = {}) {

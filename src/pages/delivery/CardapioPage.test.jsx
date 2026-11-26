@@ -68,7 +68,7 @@ vi.mock("@/lib/tenantSlug", () => ({
   slugDaVitrine: () => ({ slug: SLUG, origem: "subdominio" }),
 }));
 
-import { idDoDispositivo } from "@/lib/deliveryDispositivo";
+import { idDoDispositivo } from "@/features/delivery/regras/deliveryDispositivo";
 import CardapioPage from "./CardapioPage";
 
 const CARDAPIO = {

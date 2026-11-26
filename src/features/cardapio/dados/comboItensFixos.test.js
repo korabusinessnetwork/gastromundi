@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // A camada fala com o Supabase; o client é mockado para o teste rodar sem
 // env e sem rede. As duas funções puras não dependem disso.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
@@ -14,7 +14,7 @@ import {
   resolverItensFixos,
   resumoItensFixos,
 } from "./comboItensFixos";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 const PRODUTOS = [
   { id: 1, name: "Batata frita", price: 12, emoji: "🍟" },

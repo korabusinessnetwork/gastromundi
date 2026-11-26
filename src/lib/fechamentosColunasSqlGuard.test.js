@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { esperadoEmCaixa, diferencaCaixa } from "./caixa";
+import { esperadoEmCaixa, diferencaCaixa } from "@/features/caixa/regras/caixa";
 
 /**
  * Guard das colunas geradas de `fechamentos` (A6).
@@ -16,7 +16,7 @@ import { esperadoEmCaixa, diferencaCaixa } from "./caixa";
  * número. Aí o relatório da tela e a consulta no banco contam histórias
  * diferentes sobre o mesmo dia de caixa. Não há Postgres no CI, então aqui
  * se garante o texto da migration, o espelho em `supabase/schema.sql`, e que
- * a regra escrita no SQL é a mesma que `src/lib/caixa.js` executa.
+ * a regra escrita no SQL é a mesma que `src/features/caixa/regras/caixa.js` executa.
  */
 
 const RAIZ = join(import.meta.dirname, "..", "..");

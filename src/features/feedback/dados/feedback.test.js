@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
@@ -19,7 +19,7 @@ import {
   rotuloDaNota,
   LIMITE_TEXTO,
 } from "./feedback";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 beforeEach(() => {
   vi.clearAllMocks();

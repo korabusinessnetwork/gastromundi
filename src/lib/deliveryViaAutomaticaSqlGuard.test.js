@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { MIGRATIONS_DIR, ultimaDefinicaoDe } from "@/test/migracoes";
-import { lancamentosDoPedido } from "./impressao/lancamentos";
-import { montarViaProducao } from "./impressao";
+import { lancamentosDoPedido } from "@/features/impressao/regras/lancamentos";
+import { montarViaProducao } from "@/features/impressao/dados/impressao";
 
 /**
  * Guard de 20261001_delivery_via_sai_sozinha.sql.

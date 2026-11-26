@@ -11,7 +11,7 @@
 // ele está sem exigir leitura; e "Pedir de novo" existe porque repetir o
 // último pedido é o motivo nº 1 de alguém abrir esta tela.
 // ──────────────────────────────────────────────────────────────────
-import { formatarPreco } from "@/lib/delivery";
+import { formatarPreco } from "@/features/delivery/delivery";
 import { useSairDoModal } from "./useSairDoModal";
 import "./MeusPedidos.css";
 
