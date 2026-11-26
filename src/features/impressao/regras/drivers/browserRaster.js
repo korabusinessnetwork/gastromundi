@@ -25,13 +25,25 @@ function variaveisCss(perfil) {
   const variaveis = {
     "--print-width": `${larguraEmPx(larguraMm)}px`,
     "--print-padding-h": `${larguraEmPx(margemMm)}px`,
-    // A janela de impressão e a prévia são documentos à parte, sem o tema
-    // do estabelecimento: as duas cores que o papel usa vão resolvidas.
-    "--gm-accent": resolverCor("--gm-accent"),
-    "--gm-warn": resolverCor("--gm-warn"),
   };
+  // A janela de impressão e a prévia são documentos à parte, sem o tema do
+  // estabelecimento: as duas cores que o papel usa vão resolvidas. O valor vem
+  // do tema gravado no banco e é escrito dentro de um <style>, então só passa o
+  // que tem forma de cor; o resto fica de fora e o CSS cai na cor reserva.
+  for (const token of ["--gm-accent", "--gm-warn"]) {
+    const cor = resolverCor(token);
+    if (ehCorSegura(cor)) variaveis[token] = cor;
+  }
   if (perfil?.fonteBase) variaveis["--print-font-base"] = `${Number(perfil.fonteBase)}px`;
   return variaveis;
+}
+
+// Hexadecimal, rgb/rgba/hsl/hsla só com número, vírgula, ponto, % e barra, ou
+// nome de cor. Nada que feche a tag de estilo ou abra outra.
+const COR_SEGURA = /^(#[0-9a-f]{3,8}|(rgb|rgba|hsl|hsla)\([0-9.,%\s/]+\)|[a-z]+)$/i;
+
+export function ehCorSegura(valor) {
+  return typeof valor === "string" && COR_SEGURA.test(valor.trim());
 }
 
 function injetarVariaveisCss(html, variaveis) {
