@@ -1,0 +1,37 @@
+#!/bin/sh
+# pre-push, regra do dono (2026-11-26): todo push leva a atualização das notas
+# de atualização publicadas em kora.codes/patchnotes.
+#
+# Recusa o push quando nenhum dos commits enviados mexe no arquivo das notas.
+# A regra existe escrita no CLAUDE.md, mas regra só escrita é quebrada no meio
+# de outra tarefa; este hook é o que cobra.
+#
+# Versionado em .githooks/ e ativado com `git config core.hooksPath .githooks`
+# (uma vez por máquina, como o post-commit).
+
+NOTAS="src/features/apex/regras/notasDeAtualizacao.js"
+ZERO="0000000000000000000000000000000000000000"
+falhou=0
+
+while read local_ref local_sha remote_ref remote_sha; do
+  # Apagar uma branch remota não envia commit nenhum.
+  [ "$local_sha" = "$ZERO" ] && continue
+
+  if [ "$remote_sha" = "$ZERO" ]; then
+    # Branch nova no remoto: os commits que o remoto ainda não tem.
+    commits=$(git rev-list "$local_sha" --not --remotes)
+  else
+    commits=$(git rev-list "$remote_sha..$local_sha")
+  fi
+  [ -z "$commits" ] && continue
+
+  if ! git diff-tree --no-commit-id --name-only -r $commits -- "$NOTAS" | grep -q .; then
+    echo "" >&2
+    echo "Push recusado para $remote_ref: nenhum commit enviado atualiza as notas de atualização." >&2
+    echo "Regra do dono: todo push atualiza $NOTAS (kora.codes/patchnotes)." >&2
+    echo "Escreva o que mudou para quem usa o sistema, commite junto e tente de novo." >&2
+    falhou=1
+  fi
+done
+
+exit $falhou

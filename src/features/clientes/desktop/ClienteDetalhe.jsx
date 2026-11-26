@@ -8,6 +8,7 @@ import {
 } from "@/features/clientes/dados/clientes";
 import { formatarTelefone } from "@/lib/telefone";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
+import { rotuloDiaBR } from "@/utils/datas";
 
 export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerDocumento, onClose, onEditar, onExcluido }) {
   const [vendas, setVendas] = useState([]);
@@ -181,7 +182,7 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
                         <div>
                           <div className="cliente-detalhe__conta-descricao">{l.descricao ?? "Fiado"}</div>
                           <div className="cliente-detalhe__conta-venc">
-                            Venc. {l.vencimento ? new Date(l.vencimento).toLocaleDateString("pt-BR") : "—"}
+                            Venc. {rotuloDiaBR(l.vencimento)}
                             {l.status === "vencido" && <span className="cliente-detalhe__conta-vencida"> · Vencido</span>}
                           </div>
                         </div>

@@ -69,6 +69,20 @@ Decisão 037 (`memory/decisions.md`): os emojis do código saíram junto com a f
 refatoração, e o emoji que o estabelecimento escolhia para cada produto saiu nas rodadas 5.32 e
 5.33 (a coluna `emoji` ainda existe no banco, sem uso; apagá-la é migration e fica com o dono).
 
+## Regra absoluta de entrega, todo push atualiza as notas de atualização
+
+**Pedido do dono (2026-11-26): "toda vez que for feito um push pro git deve ser atualizado no
+patch notes também".** As notas ficam em `src/features/apex/regras/notasDeAtualizacao.js` e
+aparecem em `kora.codes/patchnotes` (página `src/pages/apex/ApexNotasPage.jsx`). Todo push leva,
+nos commits enviados, a atualização desse arquivo: um item novo no bloco do dia (ou um bloco novo,
+com a data no topo da lista) dizendo o que mudou para quem usa o sistema, em português do dia a
+dia, sem nome de arquivo nem termo técnico. Mudança só por dentro entra como `interno`, em uma
+linha.
+
+**`.githooks/pre-push` cobra:** recusa o push quando nenhum commit enviado mexe no arquivo das
+notas. Ative uma vez por máquina com `git config core.hooksPath .githooks`. Consequência prática:
+uma rodada sobe num push só, no fim, com a nota junto; commit no meio da rodada fica local.
+
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 
 - **`memory/`** — identidade, decisões, padrões, aprendizados e restrições do projeto. Consultar antes de decisões de produto/arquitetura.

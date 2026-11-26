@@ -19,6 +19,8 @@ const DemoPage = lazy(() => import("@/pages/apex/demo/DemoPage"));
 // opera o PDV nunca baixa esse código.
 const ApexEntrarPage = lazy(() => import("@/pages/apex/ApexEntrarPage"));
 const ApexCriarContaPage = lazy(() => import("@/pages/apex/ApexCriarContaPage"));
+// Novidades do sistema (kora.codes/patchnotes): o que mudou em cada atualização.
+const ApexNotasPage = lazy(() => import("@/pages/apex/ApexNotasPage"));
 
 // Vitrine pública de delivery (cardápio online, anon por slug) — lazy: só
 // quem abre /cardapio baixa esse código; o operador do PDV nunca carrega.
@@ -111,6 +113,15 @@ const rotasApp = [
     path: "/criar-conta",
     element: ehApexInstitucional()
       ? <Suspense fallback={<CarregandoApex />}><ApexCriarContaPage /></Suspense>
+      : <Navigate to="/login" replace />,
+  },
+
+  // Novidades do sistema (apex): o que mudou em cada atualização, publicado
+  // a cada rodada entregue. Fora do apex, comportamento de sempre.
+  {
+    path: "/patchnotes",
+    element: ehApexInstitucional()
+      ? <Suspense fallback={<CarregandoApex />}><ApexNotasPage /></Suspense>
       : <Navigate to="/login" replace />,
   },
 

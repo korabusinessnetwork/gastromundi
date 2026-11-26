@@ -6,7 +6,13 @@ export const uid   = () => Date.now().toString(36) + Math.random().toString(36).
 
 export const fmtR  = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
-export const fmtDt = (d) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—";
+// A data da compra é gravada como "AAAA-MM-DD". `new Date()` leria isso como
+// meia-noite UTC, que no Brasil ainda é o dia anterior: a compra do dia 20
+// aparecia como 19. O dia é montado direto do texto, sem passar pelo fuso.
+export const fmtDt = (d) => {
+  const [ano, mes, dia] = /^(\d{4})-(\d{2})-(\d{2})/.exec(d ?? "")?.slice(1) ?? [];
+  return ano ? `${dia}/${mes}/${ano.slice(2)}` : "—";
+};
 
 export const STATUS_COMPRA = {
   // A cor de cada status fica no CSS: `compras-tab__status--<status>`.

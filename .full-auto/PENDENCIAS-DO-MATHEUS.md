@@ -194,7 +194,7 @@ tela diria que está tudo bem justamente no caso mais grave.
 - **Como:** instalar a skill `ciclo` nas skills da conta, ou ignorar se o ciclo manual servir.
 - **Confirmar:** em uma sessão nova, `/ciclo` aparece na lista de skills.
 
-### P2-02. Datas exibidas um dia antes (defeito antigo, achado nas fotos)
+### P2-02. Datas exibidas um dia antes (RESOLVIDA em 2026-11-26, a pedido do dono)
 - **O que:** a data da compra (Área Admin) e o vencimento do fiado (detalhe do cliente) aparecem um dia antes, porque `new Date("AAAA-MM-DD")` é lido como UTC. Registrado nas specs 5.19 e 5.20.
 - **Como:** iniciar a tarefa sugerida "Corrigir data da compra um dia antes" e pedir para incluir o vencimento em `ClienteDetalhe.jsx`, ou pedir a correção numa rodada da fase F.
 
@@ -202,3 +202,8 @@ tela diria que está tudo bem justamente no caso mais grave.
 - **O que:** desde as rodadas 5.32 e 5.33 (decisão 037) nada lê nem grava o emoji do produto. A coluna continua no banco com os valores antigos.
 - **Como:** se quiser limpar, uma migration `alter table products drop column emoji;` (e conferir `supabase/schema.sql`). Não é urgente: a coluna parada não afeta nada.
 - **Confirmar:** a suíte continua verde e o PDV abre normalmente depois de aplicar.
+
+### P2-04. Ativar o gancho das notas de atualização na sua máquina
+- **O que:** o `.githooks/pre-push` recusa push sem atualização das notas (`kora.codes/patchnotes`). Ele só vale numa máquina onde a pasta `.githooks/` está ativada.
+- **Como:** na pasta do projeto, rode uma vez `git config core.hooksPath .githooks`. Se você já fez isso para o `post-commit` do Obsidian, não precisa de nada.
+- **Confirmar:** um push sem mexer em `src/features/apex/regras/notasDeAtualizacao.js` mostra "Push recusado".

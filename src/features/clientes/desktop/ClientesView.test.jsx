@@ -86,6 +86,27 @@ describe("ClientesView", () => {
     expect(eqCalls.some((c) => c.args[0] === "id" && c.args[1] === "l1")).toBe(true);
   });
 
+  it("mostra o vencimento do fiado no mesmo dia que está gravado", async () => {
+    // O vencimento é gravado como "AAAA-MM-DD". Lido com new Date(), vira
+    // meia-noite UTC, que no Brasil ainda é o dia anterior: o 01/08 aparecia 31/07.
+    const user = userEvent.setup();
+    mockSupabase.current.setTableResult("clientes", {
+      data: [{ id: "c1", nome: "João Silva", telefone: "11977776666", endereco: null, observacoes: null }],
+      error: null,
+    });
+    mockSupabase.current.setTableResult("vendas", { data: [], error: null });
+    mockSupabase.current.setTableResult("lancamentos", {
+      data: [{ id: "l1", valor: 30, status: "previsto", vencimento: "2026-08-01", descricao: "Fiado, comanda 5" }],
+      error: null,
+    });
+
+    renderWithProviders(<ClientesView />);
+    await waitFor(() => expect(screen.getByText("João Silva")).toBeInTheDocument());
+    await user.click(screen.getByText("João Silva"));
+
+    await waitFor(() => expect(screen.getByText(/Venc\. 01\/08\/2026/)).toBeInTheDocument());
+  });
+
   it("edita um cliente pelo detalhe: adiciona CPF e salva (atualizarCliente)", async () => {
     const user = userEvent.setup();
     mockSupabase.current.setTableResult("clientes", {

@@ -15,6 +15,7 @@ export default function ApexRodape() {
         <KoraMonograma className="apex-rodape__monograma" haste="var(--kora-nevoa)" />
         <span className="apex-rodape__wordmark">KORA</span>
       </div>
+      <a href="/patchnotes" className="apex-rodape__link">Novidades do sistema</a>
       <span className="apex-rodape__copyright">
         © {ano} KORA Sistemas · O PDV que se adapta a você
       </span>
