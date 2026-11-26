@@ -110,3 +110,26 @@
   font-size: var(--fs-base);  /* role: body (era hardcoded 14px, ambíguo) */
   line-height: var(--lh-base);
 }
+
+/* ---- Fase 5: o que saiu do JSX do Financeiro ----
+   --fin-pad, --fin-pad-sm e --fin-gap chegam na raiz (vêm do `sz`); os cartões
+   de resumo e a lista de lançamentos, que ficam dentro dela, herdam. */
+.financeiro-view {
+  background: var(--gm-bg);
+}
+.financeiro-view__header {
+  padding: calc(var(--fin-pad) - 4px) var(--fin-pad);
+}
+.financeiro-view__titulo {
+  font-weight: 800;
+}
+.financeiro-view__subtitulo {
+  color: var(--gm-muted);
+}
+.financeiro-view__toolbar {
+  padding: var(--fin-pad-sm) var(--fin-pad) 0;
+}
+.financeiro-view__aviso,
+.financeiro-view__erro {
+  margin: var(--fin-pad-sm) var(--fin-pad) 0;
+}

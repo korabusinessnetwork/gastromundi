@@ -1,11 +1,8 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import { LuCheck, LuChevronDown } from "react-icons/lu";
 import { contaEmAberto } from "@/lib/financeiro";
 import "./LancamentosList.css";
 
-const STATUS_COLOR = { recebido: varColor(C.green), pago: varColor(C.green), previsto: varColor(C.blue), vencido: varColor(C.red) };
+// A cor de cada status fica no CSS: `lancamentos-list__badge-status--<status>`.
 const STATUS_LABEL = { recebido: "Recebido", pago: "Pago", previsto: "Previsto", vencido: "Vencido" };
 const TIPO_LABEL = { receita: "Receita", despesa: "Despesa" };
 
@@ -17,12 +14,12 @@ export default function LancamentosList({
   lancamentos, loading, erro,
   filtroTipo, setFiltroTipo,
   filtroStatus, setFiltroStatus,
-  onBaixar, sz,
+  onBaixar,
 }) {
   return (
-    <div className="lancamentos-list" style={{ padding: `0 ${sz.pad}px ${sz.pad}px` }}>
+    <div className="lancamentos-list">
       {/* Filtros */}
-      <div className="lancamentos-list__filtros" style={{ marginBottom: sz.gap }}>
+      <div className="lancamentos-list__filtros">
         <div className="lancamentos-list__campo">
           <select aria-label="Filtrar por tipo" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className="lancamentos-list__select">
             <option value="todos">Todos os tipos</option>
@@ -56,29 +53,26 @@ export default function LancamentosList({
           <div className="lancamentos-list__scroll">
           <table className="lancamentos-list__tabela">
             <thead>
-              <tr style={{ borderBottom: `1px solid var(${C.border})` }}>
+              <tr className="lancamentos-list__linha">
                 <th className="lancamentos-list__th">Competência</th>
                 <th className="lancamentos-list__th">Tipo</th>
                 <th className="lancamentos-list__th">Categoria</th>
                 <th className="lancamentos-list__th">Descrição</th>
-                <th className="lancamentos-list__th" style={{ textAlign: "right" }}>Valor</th>
+                <th className="lancamentos-list__th lancamentos-list__th--direita">Valor</th>
                 <th className="lancamentos-list__th">Status</th>
                 <th className="lancamentos-list__th"></th>
               </tr>
             </thead>
             <tbody>
               {lancamentos.map((l) => (
-                <tr key={l.id} style={{ borderBottom: `1px solid var(${C.border})` }}>
+                <tr key={l.id} className="lancamentos-list__linha">
                   <td className="lancamentos-list__td">{l.competencia}</td>
                   <td className="lancamentos-list__td">{TIPO_LABEL[l.tipo] ?? l.tipo}</td>
                   <td className="lancamentos-list__td">{l.categoria}</td>
                   <td className="lancamentos-list__td">{l.descricao ?? "—"}</td>
-                  <td className="lancamentos-list__td" style={{ textAlign: "right", fontWeight: 700 }}>{fmtR(l.valor)}</td>
+                  <td className="lancamentos-list__td lancamentos-list__td--valor">{fmtR(l.valor)}</td>
                   <td className="lancamentos-list__td">
-                    <span className="lancamentos-list__badge-status" style={{
-                      color: STATUS_COLOR[l.status] ?? varColor(C.muted),
-                      background: alfa(STATUS_COLOR[l.status] ?? varColor(C.muted), "22"),
-                    }}>
+                    <span className={`lancamentos-list__badge-status lancamentos-list__badge-status--${STATUS_LABEL[l.status] ? l.status : "outro"}`}>
                       {STATUS_LABEL[l.status] ?? l.status}
                     </span>
                   </td>

@@ -30,3 +30,24 @@
   font-size: var(--fs-sm);
   line-height: var(--lh-sm);
 }
+
+/* Fase 5: colunas, espaço e cor que estavam no JSX. As medidas vêm da raiz
+   do Financeiro (--fin-*); o número de colunas, por --resumo-cols. */
+.resumo-cards {
+  grid-template-columns: repeat(var(--resumo-cols), 1fr);
+  gap: var(--fin-gap);
+  padding: var(--fin-pad) var(--fin-pad) var(--fin-pad-sm);
+}
+.resumo-cards__card {
+  padding: calc(var(--fin-pad-sm) + 2px) calc(var(--fin-pad) - 4px);
+}
+.resumo-cards__card--verde    { --resumo-cor: var(--gm-green); }
+.resumo-cards__card--vermelho { --resumo-cor: var(--gm-red); }
+.resumo-cards__card--azul     { --resumo-cor: var(--gm-blue); }
+.resumo-cards__icone,
+.resumo-cards__valor {
+  color: var(--resumo-cor);
+}
+.resumo-cards__texto {
+  min-width: 0;
+}

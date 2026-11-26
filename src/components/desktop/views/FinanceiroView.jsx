@@ -6,8 +6,6 @@ import { round2 } from "@/lib/vendas";
 import { diaLocalISO, rotuloDiaBR } from "@/utils/datas";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { LuPlus } from "react-icons/lu";
 import { intervaloDoMes } from "@/lib/periodos";
 import ResumoCards from "./financeiro/ResumoCards";
@@ -141,12 +139,15 @@ export default function FinanceiroView() {
   const naoLido = erroCarregar && !loading;
 
   return (
-    <div className="financeiro-view" style={{ background: varColor(C.bg) }}>
+    <div
+      className="financeiro-view"
+      style={{ "--fin-pad": `${sz.pad}px`, "--fin-pad-sm": `${sz.padSm}px`, "--fin-gap": `${sz.gap}px` }}
+    >
       {/* Header */}
-      <div className="financeiro-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
+      <div className="financeiro-view__header">
         <div>
-          <div className="financeiro-view__titulo" style={{ fontWeight: 800 }}>Financeiro</div>
-          <div className="financeiro-view__subtitulo" style={{ color: varColor(C.muted) }}>Lançamentos, contas e fluxo de caixa</div>
+          <div className="financeiro-view__titulo">Financeiro</div>
+          <div className="financeiro-view__subtitulo">Lançamentos, contas e fluxo de caixa</div>
         </div>
         <div className="financeiro-view__acoes">
           <button
@@ -158,12 +159,12 @@ export default function FinanceiroView() {
         </div>
       </div>
 
-      <div className="financeiro-view__toolbar" style={{ padding: `${sz.padSm}px ${sz.pad}px 0` }}>
+      <div className="financeiro-view__toolbar">
         <PeriodoSelector periodo={periodo} onChange={setPeriodo} />
       </div>
 
       {aviso && (
-        <div className="financeiro-view__aviso" role="status" style={{ margin: `${sz.padSm}px ${sz.pad}px 0` }}>
+        <div className="financeiro-view__aviso" role="status">
           {aviso}
         </div>
       )}
@@ -171,7 +172,7 @@ export default function FinanceiroView() {
       {/* Leitura falhou: mostrar os cards zerados seria mentir sobre o
           caixa. No lugar deles, o motivo e o botão de tentar de novo. */}
       {naoLido ? (
-        <div className="financeiro-view__erro" role="alert" style={{ margin: `${sz.padSm}px ${sz.pad}px 0` }}>
+        <div className="financeiro-view__erro" role="alert">
           <div className="financeiro-view__erro-texto">
             Não foi possível carregar o financeiro. Os valores desta tela não estão disponíveis agora.
           </div>
@@ -188,7 +189,6 @@ export default function FinanceiroView() {
         filtroTipo={filtroTipo} setFiltroTipo={setFiltroTipo}
         filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
         onBaixar={handleBaixar}
-        sz={sz}
       />
 
       {showNovo && (

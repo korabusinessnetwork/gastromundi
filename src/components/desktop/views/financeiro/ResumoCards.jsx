@@ -1,5 +1,3 @@
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { LuTrendingUp, LuTrendingDown, LuWallet, LuClock, LuPiggyBank } from "react-icons/lu";
 import "./ResumoCards.css";
 
@@ -9,10 +7,10 @@ function fmtR(v) {
 
 export default function ResumoCards({ fluxo, lucro, width, sz }) {
   const cards = [
-    { label: "Entradas realizadas", value: fmtR(fluxo.realizado.entradas), color: varColor(C.green), Icon: LuTrendingUp },
-    { label: "Saídas realizadas",   value: fmtR(fluxo.realizado.saidas),   color: varColor(C.red),   Icon: LuTrendingDown },
-    { label: "Saldo",               value: fmtR(fluxo.realizado.saldo),    color: fluxo.realizado.saldo >= 0 ? varColor(C.green) : varColor(C.red), Icon: LuWallet },
-    { label: "Previsto (a receber / a pagar)", value: `${fmtR(fluxo.previsto.entradas)} / ${fmtR(fluxo.previsto.saidas)}`, color: varColor(C.blue), Icon: LuClock },
+    { label: "Entradas realizadas", value: fmtR(fluxo.realizado.entradas), tom: "verde", Icon: LuTrendingUp },
+    { label: "Saídas realizadas",   value: fmtR(fluxo.realizado.saidas),   tom: "vermelho", Icon: LuTrendingDown },
+    { label: "Saldo",               value: fmtR(fluxo.realizado.saldo),    tom: fluxo.realizado.saldo >= 0 ? "verde" : "vermelho", Icon: LuWallet },
+    { label: "Previsto (a receber / a pagar)", value: `${fmtR(fluxo.previsto.entradas)} / ${fmtR(fluxo.previsto.saidas)}`, tom: "azul", Icon: LuClock },
   ];
 
   // Leva 15.6 — lucro = entradas − custo das fichas técnicas − saídas pagas.
@@ -24,21 +22,18 @@ export default function ResumoCards({ fluxo, lucro, width, sz }) {
         ? `Lucro (parcial, ${lucro.unidadesSemFicha} ${lucro.unidadesSemFicha === 1 ? "item vendido sem ficha técnica" : "itens vendidos sem ficha técnica"})`
         : "Lucro (vendas − custo das fichas − saídas pagas)",
       value: fmtR(lucro.valor),
-      color: lucro.valor >= 0 ? varColor(C.green) : varColor(C.red),
+      tom: lucro.valor >= 0 ? "verde" : "vermelho",
       Icon: LuPiggyBank,
     });
   }
 
   return (
-    <div className="resumo-cards" style={{
-      gridTemplateColumns: width < 600 ? "1fr" : width < 1024 ? "1fr 1fr" : `repeat(${cards.length}, 1fr)`,
-      gap: sz.gap, padding: `${sz.pad}px ${sz.pad}px ${sz.padSm}px`,
-    }}>
+    <div className="resumo-cards" style={{ "--resumo-cols": width < 600 ? 1 : width < 1024 ? 2 : cards.length }}>
       {cards.map((c) => (
-        <div key={c.label} className="resumo-cards__card" style={{ padding: `${sz.padSm + 2}px ${sz.pad - 4}px` }}>
-          <c.Icon size={sz.fontXl - 4} color={c.color} />
-          <div style={{ minWidth: 0 }}>
-            <div className="resumo-cards__valor" style={{ color: c.color }}>{c.value}</div>
+        <div key={c.label} className={`resumo-cards__card resumo-cards__card--${c.tom}`}>
+          <c.Icon size={sz.fontXl - 4} className="resumo-cards__icone" />
+          <div className="resumo-cards__texto">
+            <div className="resumo-cards__valor">{c.value}</div>
             <div className="resumo-cards__label">{c.label}</div>
           </div>
         </div>

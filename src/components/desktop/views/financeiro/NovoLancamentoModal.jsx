@@ -1,7 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
 import { criarLancamento } from "@/lib/financeiro";
 // O dia UTC vira às 21h de Brasília: quem lançava depois disso via o campo já
 // preenchido com a data de amanhã e gravava a competência no mês errado.
@@ -64,12 +62,7 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
             <button
               key={id}
               onClick={() => handleTipo(id)}
-              className="novo-lancamento__tipo-btn"
-              style={{
-                borderColor: tipo === id ? varColor(C.accent) : varColor(C.border),
-                background: tipo === id ? "var(--gm-alow)" : "none",
-                color: tipo === id ? varColor(C.accent) : varColor(C.muted),
-              }}
+              className={`novo-lancamento__tipo-btn${tipo === id ? " novo-lancamento__tipo-btn--ativo" : ""}`}
             >
               {label}
             </button>
@@ -94,11 +87,11 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
         </div>
 
         <div className="novo-lancamento__linha-dupla">
-          <div style={{ flex: 1 }}>
+          <div className="novo-lancamento__metade">
             <label htmlFor="fin-competencia" className="novo-lancamento__label">Competência</label>
             <input id="fin-competencia" type="date" value={competencia} onChange={(e) => setCompetencia(e.target.value)} className="novo-lancamento__input" />
           </div>
-          <div style={{ flex: 1 }}>
+          <div className="novo-lancamento__metade">
             <label htmlFor="fin-vencimento" className="novo-lancamento__label">Vencimento</label>
             <input id="fin-vencimento" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} className="novo-lancamento__input" />
           </div>
@@ -121,7 +114,6 @@ export default function NovoLancamentoModal({ usuario, onCreated, onClose }) {
             onClick={handleSalvar}
             disabled={salvando}
             className="novo-lancamento__btn-salvar"
-            style={{ background: salvando ? varColor(C.faint) : varColor(C.accent), cursor: salvando ? "not-allowed" : "pointer" }}
           >
             {salvando ? "Salvando..." : "Salvar Lançamento"}
           </button>

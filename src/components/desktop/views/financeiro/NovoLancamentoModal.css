@@ -114,3 +114,26 @@
   font-family: inherit;
   font-size: 14px;
 }
+
+/* Fase 5: tipo escolhido e Salvar travado, que estavam no JSX. */
+.novo-lancamento__tipo-btn {
+  border-color: var(--gm-border);
+  background: none;
+  color: var(--gm-muted);
+}
+.novo-lancamento__tipo-btn--ativo {
+  border-color: var(--gm-accent);
+  background: var(--gm-alow);
+  color: var(--gm-accent);
+}
+.novo-lancamento__metade {
+  flex: 1;
+}
+.novo-lancamento__btn-salvar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.novo-lancamento__btn-salvar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

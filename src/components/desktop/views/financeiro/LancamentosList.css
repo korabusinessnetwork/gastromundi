@@ -117,3 +117,30 @@
   font-family: inherit;
   white-space: nowrap;
 }
+
+/* Fase 5: espaço, linha e cor de status que estavam no JSX. */
+.lancamentos-list {
+  padding: 0 var(--fin-pad) var(--fin-pad);
+}
+.lancamentos-list__filtros {
+  margin-bottom: var(--fin-gap);
+}
+.lancamentos-list__linha {
+  border-bottom: 1px solid var(--gm-border);
+}
+.lancamentos-list__th--direita {
+  text-align: right;
+}
+.lancamentos-list__td--valor {
+  text-align: right;
+  font-weight: 700;
+}
+.lancamentos-list__badge-status {
+  --status-cor: var(--gm-muted);
+  color: var(--status-cor);
+  background: color-mix(in srgb, var(--status-cor) 13%, transparent);
+}
+.lancamentos-list__badge-status--recebido,
+.lancamentos-list__badge-status--pago     { --status-cor: var(--gm-green); }
+.lancamentos-list__badge-status--previsto { --status-cor: var(--gm-blue); }
+.lancamentos-list__badge-status--vencido  { --status-cor: var(--gm-red); }
