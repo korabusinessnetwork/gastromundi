@@ -41,6 +41,10 @@ export default defineConfig(({ mode }) => {
           // Bundle principal tem ~1,9 MB — acima do limite default de 2 MiB
           // do precache quando crescer; folga para não quebrar build futura.
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+          // Arquivos de `public/relatorios/` (os PDFs da página de novidades) são
+          // arquivo, não tela: sem isto, quem tem o app instalado e abre o link
+          // recebe a página do app no lugar do PDF.
+          navigateFallbackDenylist: [/^\/relatorios\//],
           runtimeCaching: [
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

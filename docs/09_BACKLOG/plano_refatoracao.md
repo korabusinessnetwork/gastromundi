@@ -67,7 +67,7 @@ Medidas por `npm run metricas` (tarefa 0.1) em 2026-11-23. A coluna "Hoje" subst
 | `style={{}}` que não seja só variável CSS | 1.526 | 0, cobrado por teste guard | 0, cobrado pelo `inlineStyleGuard` sem linha de base | sim |
 | Cor hexadecimal escrita no JSX | 23 | 0 | 0, com teste | sim |
 | Tela de celular importando código de `components/desktop/` | 1 | 0, cobrado por regra de lint | 0, cobrado por lint | sim |
-| Erros de lint | 147 na primeira passada | 0 | 0 (25 avisos) | sim |
+| Erros de lint | 147 na primeira passada | 0 | 0, e 0 avisos | sim |
 | Testes | 242 arquivos, 4.273 testes, 91 s | igual ou maior, nenhum removido sem justificativa na spec | 273 arquivos, 4.465 testes; nenhum removido sem justificativa na spec | sim |
 | Build | limpo, maior pacote JS com 2.387 kB (703 kB comprimido) | limpo, e o maior pacote não maior que a linha de base | limpo, maior pacote com 2.352 kB | sim |
 | Screenshots do roteiro de telas | linha de base da tarefa 0.1 | sem diferença visual não explicada | 209 telas; toda diferença explicada na spec da rodada que a causou | sim |

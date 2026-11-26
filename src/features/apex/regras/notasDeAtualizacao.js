@@ -8,6 +8,8 @@
 //
 // tipo de cada item: "novo" (algo que não existia), "corrigido" (algo que
 // estava errado) ou "melhoria" (algo que existia e ficou melhor).
+// `anexo` (opcional): { href, rotulo }, um arquivo em `public/relatorios/` que a
+// página oferece para baixar ao lado do item.
 
 export const TIPOS_DE_NOTA = {
   novo: "Novo",
@@ -21,6 +23,7 @@ export const NOTAS_DE_ATUALIZACAO = [
     data: "2026-11-26",
     titulo: "Cores do seu estabelecimento em todo lugar e datas no dia certo",
     itens: [
+      { tipo: "novo", texto: "Relatório completo da reorganização do sistema, de 23 a 26 de novembro: o que mudou para quem usa, o que mudou por dentro e como cada etapa foi conferida.", anexo: { href: "/relatorios/reorganizacao-2026-11.pdf", rotulo: "Baixar o relatório (PDF)" } },
       { tipo: "novo", texto: "Página de novidades do sistema, em kora.codes/patchnotes, com tudo o que muda a cada atualização. O link fica no rodapé do site." },
       { tipo: "corrigido", texto: "No PDV do celular, a busca de produto passou a ignorar acento, como no resto do sistema: digitar \"cafe\" encontra \"Café\"." },
       { tipo: "corrigido", texto: "A data da compra, na Área Admin, aparecia um dia antes do escolhido. Agora mostra o dia certo." },

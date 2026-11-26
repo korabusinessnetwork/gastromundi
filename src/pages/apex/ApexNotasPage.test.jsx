@@ -26,4 +26,14 @@ describe("ApexNotasPage, novidades do sistema", () => {
     expect(saidas.length).toBeGreaterThan(0);
     for (const link of saidas) expect(link).toHaveAttribute("href", "/");
   });
+
+  it("item com anexo mostra o link para baixar o arquivo", () => {
+    render(<ApexNotasPage />);
+    const comAnexo = NOTAS_DE_ATUALIZACAO.flatMap((n) => n.itens).filter((i) => i.anexo);
+    expect(comAnexo.length).toBeGreaterThan(0);
+    for (const item of comAnexo) {
+      expect(screen.getByRole("link", { name: item.anexo.rotulo })).toHaveAttribute("href", item.anexo.href);
+    }
+  });
 });
+

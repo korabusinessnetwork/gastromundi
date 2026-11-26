@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { NOTAS_DE_ATUALIZACAO, TIPOS_DE_NOTA, dataPorExtenso } from "./notasDeAtualizacao";
 
 describe("notas de atualização", () => {
@@ -32,3 +34,14 @@ describe("dataPorExtenso", () => {
     expect(dataPorExtenso("2026-13-01")).toBe("");
   });
 });
+
+describe("anexos das notas", () => {
+  it("todo anexo aponta para um arquivo que existe em public/", () => {
+    for (const item of NOTAS_DE_ATUALIZACAO.flatMap((n) => n.itens).filter((i) => i.anexo)) {
+      expect(item.anexo.href).toMatch(/^\/relatorios\/[a-z0-9-]+\.pdf$/);
+      expect(item.anexo.rotulo.trim()).not.toBe("");
+      expect(existsSync(join(process.cwd(), "public", item.anexo.href))).toBe(true);
+    }
+  });
+});
+

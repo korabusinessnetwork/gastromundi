@@ -1,3 +1,7 @@
+## Rodada 162, relatório da reorganização em PDF na página de novidades, 2026-11-26
+- Spec: specs/relatorio-da-reorganizacao.md
+- Resultado: 4 de 4 critérios em sim. PDF de 6 páginas em `public/relatorios/`, link de download na
+  página de novidades, service worker sem interceptar `/relatorios/`. Sem migration.
 ## Rodada 161, pendências finais do plano de refatoração, 2026-11-26
 - Spec: specs/refatoracao-pendencias-finais.md
 - Resultado: 6 de 6 critérios em sim, sem crítico nem importante. Ganchos de domínio fora de

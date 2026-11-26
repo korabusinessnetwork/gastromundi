@@ -96,6 +96,23 @@
   color: color-mix(in srgb, var(--tom) 80%, #000);
 }
 
+.apex-notas__anexo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin-top: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--kora-roxo);
+  border-radius: 10px;
+  color: var(--kora-roxo);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.apex-notas__anexo:hover { background: color-mix(in srgb, var(--kora-roxo) 8%, #fff); }
+
 .apex-notas__tipo--novo { --tom: var(--kora-roxo); }
 .apex-notas__tipo--melhoria { --tom: var(--kora-info); }
 .apex-notas__tipo--corrigido { --tom: var(--kora-sucesso); }

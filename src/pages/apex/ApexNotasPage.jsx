@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { LuSparkles, LuWrench, LuTrendingUp, LuLayers } from "react-icons/lu";
+import { LuSparkles, LuWrench, LuTrendingUp, LuLayers, LuFileDown } from "react-icons/lu";
 import KoraMonograma from "./KoraMonograma";
 import ApexRodape from "./ApexRodape";
 import { NOTAS_DE_ATUALIZACAO, TIPOS_DE_NOTA, dataPorExtenso } from "@/features/apex/regras/notasDeAtualizacao";
@@ -55,7 +55,14 @@ export default function ApexNotasPage() {
                         <span className={`apex-notas__tipo apex-notas__tipo--${item.tipo}`}>
                           <Icone size={14} aria-hidden="true" /> {TIPOS_DE_NOTA[item.tipo]}
                         </span>
-                        <span className="apex-notas__texto">{item.texto}</span>
+                        <span className="apex-notas__texto">
+                          {item.texto}
+                          {item.anexo && (
+                            <a className="apex-notas__anexo" href={item.anexo.href} download>
+                              <LuFileDown size={16} aria-hidden="true" />{item.anexo.rotulo}
+                            </a>
+                          )}
+                        </span>
                       </li>
                     );
                   })}

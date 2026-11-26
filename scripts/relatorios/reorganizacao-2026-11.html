@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Relatório da reorganização do sistema KORA</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root {
+    --roxo: #473CA8; --tinta: #1B1930; --grafite: #3F3E52; --nevoa: #77768A;
+    --linha: #E6E5EE; --fundo: #F8F8FB; --verde: #19B575; --azul: #4A87DB;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Inter", "Segoe UI", system-ui, sans-serif; color: var(--grafite); font-size: 10.5pt; line-height: 1.5; }
+  h1, h2, h3 { color: var(--tinta); line-height: 1.25; }
+  h1 { font-size: 26pt; margin: 0 0 6mm; }
+  h2 { font-size: 15pt; margin: 9mm 0 3mm; padding-bottom: 2mm; border-bottom: 2px solid var(--linha); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 5mm 0 1.5mm; break-after: avoid; }
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1mm; }
+  .capa { height: 255mm; display: flex; flex-direction: column; justify-content: center; break-after: page; }
+  .capa .marca { font-weight: 700; letter-spacing: 3px; color: var(--roxo); font-size: 13pt; margin-bottom: 14mm; }
+  .capa .sub { font-size: 13pt; color: var(--nevoa); max-width: 150mm; }
+  .capa .datas { margin-top: 18mm; font-size: 11pt; color: var(--tinta); }
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 4mm 0 5mm; }
+  .numero { background: var(--fundo); border: 1px solid var(--linha); border-radius: 3mm; padding: 3mm; }
+  .numero b { display: block; font-size: 17pt; color: var(--roxo); }
+  .numero span { font-size: 8.5pt; color: var(--nevoa); }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.5pt; break-inside: auto; }
+  th { text-align: left; background: var(--fundo); color: var(--tinta); font-weight: 600; }
+  th, td { border-bottom: 1px solid var(--linha); padding: 2mm 2.5mm; vertical-align: top; }
+  tr { break-inside: avoid; }
+  .etapa { border-left: 3px solid var(--roxo); padding: 1mm 0 1mm 4mm; margin: 4mm 0; break-inside: avoid; }
+  .etapa .quando { font-size: 8.5pt; color: var(--nevoa); text-transform: uppercase; letter-spacing: 0.5px; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 600; border-radius: 10px; padding: 0.3mm 2.2mm; margin-right: 1.5mm; }
+  .tag--corrigido { background: #E2F5EF; color: #1E7A66; }
+  .tag--melhoria { background: #E6EEFA; color: #2D5FA8; }
+  .tag--novo { background: #ECEAF8; color: var(--roxo); }
+  .nota { font-size: 9pt; color: var(--nevoa); }
+  .rodape { margin-top: 10mm; font-size: 8.5pt; color: var(--nevoa); border-top: 1px solid var(--linha); padding-top: 3mm; }
+</style>
+</head>
+<body>
+
+<section class="capa">
+  <div class="marca">KORA</div>
+  <h1>Relatório da reorganização do sistema</h1>
+  <p class="sub">Tudo o que foi feito, da primeira à última etapa: o que mudou para quem usa o sistema no
+  dia a dia, o que mudou por dentro e como cada passo foi conferido.</p>
+  <p class="datas">De 23 a 26 de novembro de 2026<br>92 rodadas de trabalho, 186 entregas registradas</p>
+</section>
+
+<h2>Resumo</h2>
+<p>O sistema foi reorganizado por inteiro, sem trocar de tecnologia e sem parar a operação. O objetivo era
+deixar cada parte mais fácil de manter e de evoluir, com três cuidados: nada que o estabelecimento usa
+podia mudar sem querer, nada podia ficar pela metade, e cada etapa precisava ser provada antes de seguir.</p>
+<p>Para quem usa, o resultado aparece em telas mais rápidas no caixa, em salvamentos que acontecem por
+inteiro ou não acontecem, em computador e celular com as mesmas regras, nas cores do estabelecimento em
+todo lugar (inclusive no cupom), em ícones no lugar de emoji e numa série de correções. Por dentro, o
+sistema passou a ser organizado por assunto, com regras que impedem a bagunça de voltar.</p>
+
+<div class="numeros">
+  <div class="numero"><b>92</b><span>rodadas de trabalho</span></div>
+  <div class="numero"><b>4.465</b><span>testes automáticos, todos passando</span></div>
+  <div class="numero"><b>225</b><span>telas conferidas por foto a cada etapa</span></div>
+  <div class="numero"><b>13</b><span>caminhos de uso testados de ponta a ponta</span></div>
+</div>
+
+<h2>Antes e depois</h2>
+<table>
+  <tr><th>O que foi medido</th><th>No começo (23/11)</th><th>No fim (26/11)</th></tr>
+  <tr><td>Tamanho do "centro" do sistema, que redesenhava a tela inteira a cada mudança</td><td>2.194 linhas</td><td>66 linhas, divididas em seis partes independentes</td></tr>
+  <tr><td>Telas grandes demais (acima de 600 linhas)</td><td>22</td><td>0</td></tr>
+  <tr><td>Lugares onde a tela falava direto com o banco de dados</td><td>226</td><td>0, e uma regra impede que volte</td></tr>
+  <tr><td>Salvamentos feitos em várias etapas soltas, que podiam ficar pela metade</td><td>3</td><td>0, cada um virou um salvamento único</td></tr>
+  <tr><td>Estilos escritos direto na tela, que não seguiam as cores do estabelecimento</td><td>1.526</td><td>0, e um teste impede que volte</td></tr>
+  <tr><td>Cores fixas no código</td><td>23</td><td>0</td></tr>
+  <tr><td>Emojis no sistema</td><td>118</td><td>0</td></tr>
+  <tr><td>Avisos e erros do verificador de código</td><td>147 erros</td><td>0 erros e 0 avisos</td></tr>
+  <tr><td>Testes automáticos</td><td>4.273</td><td>4.465, nenhum removido sem motivo registrado</td></tr>
+  <tr><td>Telas fotografadas e comparadas a cada etapa</td><td>44</td><td>225, no computador e no celular</td></tr>
+  <tr><td>Tamanho do maior arquivo baixado pelo navegador</td><td>2.387 kB</td><td>2.352 kB</td></tr>
+</table>
+
+<h2>As etapas, uma a uma</h2>
+
+<div class="etapa">
+  <div class="quando">Etapa 0, 23 de novembro</div>
+  <h3>Linha de base e ferramentas de conferência</h3>
+  <p>Antes de mexer em qualquer coisa, o sistema foi medido e ganhou as ferramentas que provam cada passo:
+  um roteiro que fotografa as telas contra um banco de demonstração e compara as fotos de antes e de
+  depois, um script que mede os números da tabela acima e os tipos do banco gerados automaticamente.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 1, 23 de novembro</div>
+  <h3>Salvamentos que nunca ficam pela metade</h3>
+  <p>Salvar um combo, importar uma nota fiscal de compra, excluir uma unidade de medida e salvar um
+  subproduto passaram a acontecer de uma vez só, dentro do banco. Se algo falha no meio, nada fica
+  gravado pela metade, e dá para tentar de novo sem duplicar. Nenhuma tela fala mais com o banco direto:
+  tudo passa por uma camada de dados única por assunto.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 2, 23 de novembro</div>
+  <h3>Um caixa mais leve</h3>
+  <p>O "centro" do sistema, que guardava tudo junto e redesenhava a tela inteira a cada mudança, foi
+  dividido em seis partes (sessão, funcionamento sem internet, configuração, cardápio, comandas e caixa).
+  Cada tela só se atualiza quando muda a informação que ela mostra, o que deixou o PDV mais leve no meio
+  da venda.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 3, 23 e 24 de novembro</div>
+  <h3>Telas grandes quebradas em partes</h3>
+  <p>As 22 telas grandes demais (a maior, do Delivery, tinha 70 estados diferentes) foram quebradas em
+  partes menores, uma por arquivo, com a lógica separada da tela. Nenhuma tela mudou de aparência.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 4, 24 de novembro</div>
+  <h3>Computador e celular com as mesmas regras</h3>
+  <p>PDV, Delivery, Estoque, Clientes, Financeiro, Relatórios, Cozinha, Cardápio e Configurações passaram
+  a usar as mesmas regras no computador e no celular. No caminho, apareceram e foram corrigidas diferenças
+  que o usuário sentia (lista na próxima seção).</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 5, 24 a 26 de novembro</div>
+  <h3>Tudo nas cores do estabelecimento, sem emoji</h3>
+  <p>Os 1.526 estilos escritos direto nas telas saíram para arquivos de estilo que seguem as cores de cada
+  estabelecimento. As cores fixas e os 118 emojis também saíram; no lugar dos emojis entraram ícones que
+  seguem o tema e aparecem iguais em qualquer aparelho e na impressora térmica. No fim, todas as telas
+  foram fotografadas com o tema de outro estabelecimento para provar que nenhuma cor padrão escapava.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa 6, 26 de novembro</div>
+  <h3>Organização por assunto</h3>
+  <p>O código passou a ser organizado por assunto: nota fiscal, delivery, estoque, caixa, PDV, clientes,
+  Console da plataforma, cardápio, configurações, impressão, mesas, Área Admin, cozinha, financeiro,
+  relatórios, Jarvas, importação de planilha, assinatura, ponte e login, entre outros (25 no total). Cada
+  tipo de acesso (site da Kora, Console, cardápio público e estabelecimento) ganhou o próprio mapa de
+  telas. A documentação técnica passou a descrever o sistema como ele está.</p>
+</div>
+
+<div class="etapa">
+  <div class="quando">Etapa final, 26 de novembro</div>
+  <h3>Revisão final de qualidade e segurança</h3>
+  <p>A revisão final mediu de novo todos os números, releu os critérios das 88 especificações para conferir
+  que nenhuma etapa desfez a anterior, rodou os caminhos mais usados de ponta a ponta no navegador e
+  revisou a segurança de tudo o que mudou. A primeira passada encontrou três pontos, todos corrigidos; a
+  segunda passada não encontrou nada.</p>
+</div>
+
+<h2>O que quem usa o sistema percebe</h2>
+<table>
+  <tr><th style="width: 24mm">Tipo</th><th>Mudança</th></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>Salvar combo, importar nota de compra, excluir unidade de medida e salvar subproduto acontecem por inteiro ou não acontecem; depois de uma falha dá para tentar de novo.</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>O PDV ficou mais leve: cada tela só se atualiza quando muda a informação que ela mostra.</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>A busca por nome ignora acento em todo o sistema, inclusive no PDV do celular: "cafe" encontra "Café".</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>Ícones que seguem as cores do estabelecimento no lugar dos emojis, nas telas, nos avisos e no cupom.</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>A prévia do cupom, a impressão pelo navegador, o aviso "sem valor fiscal" e a barra de força da senha seguem as cores do estabelecimento.</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>Adicionar e remover unidade de medida fica só com o administrador, e a composição dos combos só com a gerência.</td></tr>
+  <tr><td><span class="tag tag--corrigido">Corrigido</span></td><td>A data da compra (Área Admin) e o vencimento do fiado (detalhe do cliente) apareciam um dia antes; agora mostram o dia certo.</td></tr>
+  <tr><td><span class="tag tag--corrigido">Corrigido</span></td><td>A observação do item no cupom saía como um quadrado na impressora térmica; agora sai como "Obs.:".</td></tr>
+  <tr><td><span class="tag tag--corrigido">Corrigido</span></td><td>O Financeiro do celular mostra as contas vencidas; a Cozinha do computador volta a mostrar "Iniciar Preparo" para pedido sem etapa.</td></tr>
+  <tr><td><span class="tag tag--corrigido">Corrigido</span></td><td>No Estoque, saldo negativo aparece como em falta; no celular, contagem negativa não grava mais zero.</td></tr>
+  <tr><td><span class="tag tag--corrigido">Corrigido</span></td><td>O troco em dinheiro sai sempre em centavos exatos; importar a mesma nota de novo depois de uma falha funciona; salvar subproduto não duplica.</td></tr>
+  <tr><td><span class="tag tag--melhoria">Melhoria</span></td><td>Reforçamos a segurança da impressão pelo navegador e a proteção dos dados entre estabelecimentos.</td></tr>
+  <tr><td><span class="tag tag--novo">Novo</span></td><td>A página de novidades do sistema, em kora.codes/patchnotes, com tudo o que muda a cada atualização.</td></tr>
+</table>
+
+<h2>Como cada passo foi conferido</h2>
+<ul>
+  <li><b>Testes automáticos:</b> 4.465 testes, rodados antes de cada entrega. As correções de defeito nasceram de um teste que falhava antes e passa depois.</li>
+  <li><b>Fotos das telas:</b> 225 telas, no computador e no celular, fotografadas e comparadas com a versão anterior a cada etapa. Toda diferença foi explicada; diferença sem explicação parava a etapa.</li>
+  <li><b>Caminhos de ponta a ponta:</b> 13 caminhos rodados no navegador: abrir e fechar o caixa, vender em dinheiro, vender no celular, lançar pelo celular do garçom, vender sem internet e ver a venda subir uma vez só, pedido pelo cardápio público e aceite no delivery, importar nota, salvar combo, excluir unidade e cadastrar estabelecimento e trocar plano no Console.</li>
+  <li><b>Banco de dados:</b> os quatro salvamentos que acontecem de uma vez só foram testados num banco montado do zero, com as mesmas regras de acesso de produção: quem pode e quem não pode, um estabelecimento sem enxergar o outro, falha no meio desfazendo tudo. 58 conferências, nenhuma falha.</li>
+  <li><b>Segurança:</b> revisão de tudo o que mudou desde o começo. Nenhuma regra de acesso do banco foi afrouxada.</li>
+</ul>
+
+<h2>Pedidos feitos no caminho</h2>
+<ul>
+  <li>O sistema não tem emoji (regra registrada e cobrada por teste).</li>
+  <li>Correção da data da compra e do vencimento do fiado.</li>
+  <li>A página de novidades em kora.codes/patchnotes, com o histórico desde agosto, e a regra de que toda atualização entra nela.</li>
+  <li>A conclusão do que tinha ficado para trás no plano.</li>
+</ul>
+
+<h2>O que fica para decisão</h2>
+<table>
+  <tr><th>Item</th><th>Por que espera</th></tr>
+  <tr><td>Emissão de NFC-e em homologação</td><td>Depende do certificado digital A1 do estabelecimento, que tem custo anual.</td></tr>
+  <tr><td>Remover a coluna antiga de emoji dos produtos</td><td>É uma mudança no banco de produção; a coluna parada não afeta nada.</td></tr>
+  <tr><td>Melhorias pequenas anotadas durante o trabalho</td><td>Fonte diferente em algumas janelas, e um aviso de erro que a cozinha ainda não vê. Cada uma pede uma rodada própria.</td></tr>
+</table>
+
+<p class="rodape">KORA, relatório da reorganização do sistema, de 23 a 26 de novembro de 2026. As novidades de
+cada atualização ficam em kora.codes/patchnotes.</p>
+
+</body>
+</html>
