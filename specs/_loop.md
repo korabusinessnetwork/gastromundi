@@ -1,3 +1,8 @@
+## Rodada 147, refatoração 6.7, console da plataforma em src/features/console, 2026-11-26
+- Spec: specs/refatoracao-6-7-console-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 10 telas, 0
+  diferença. Sem migration. 44 arquivos movidos com `git mv`; `src/components/console/` some.
 ## Rodada 146, refatoração 6.6, domínio clientes em src/features/clientes, 2026-11-26
 - Spec: specs/refatoracao-6-6-clientes-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
