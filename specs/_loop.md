@@ -1,3 +1,9 @@
+## Rodada 145, refatoração 6.5, PDV e regras de comanda em src/features, 2026-11-26
+- Spec: specs/refatoracao-6-5-pdv-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 0 diferença
+  e 1 leve (ruído nas Reservas). Sem migration. 57 arquivos movidos com `git mv`.
+- O guarda do pagamento acompanha a tela do PDV no caminho novo.
 ## Rodada 144, refatoração 6.4, domínio caixa em src/features/caixa, 2026-11-26
 - Spec: specs/refatoracao-6-4-caixa-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

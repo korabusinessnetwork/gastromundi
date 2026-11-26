@@ -28,7 +28,8 @@ Fica fora: `uidLista.js`, que é utilidade técnica de lista editável, sem regr
 
 ## Diferenças
 
-COMPARACAO
+Roteiro completo, 209 telas, contra a 6.4: nenhuma diferença e 1 mudança leve de 0,000% nas
+Reservas do PDV, o mesmo ruído de captura que já apareceu na 5.34 (a tela não mudou de código).
 
 ## Critérios de aceite
 
