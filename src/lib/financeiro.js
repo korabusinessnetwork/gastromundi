@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import { emitirEvento } from "./jarvas";
-import { round2 } from "./vendas";
+import { round2 } from "../features/caixa/regras/vendas";
 
 /**
  * Financeiro — fase 1 (docs/03_REGRAS_DE_NEGOCIO/FINANCEIRO.md).

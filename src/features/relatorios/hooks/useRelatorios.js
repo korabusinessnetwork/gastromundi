@@ -4,8 +4,8 @@ import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOpe
 import {
   calcularVariacaoPercentual,
 } from "@/lib/relatorios";
-import { ticketMedio } from "@/lib/vendas";
-import { esperadoEmCaixa, diferencaCaixa } from "@/lib/caixa";
+import { ticketMedio } from "@/features/caixa/regras/vendas";
+import { esperadoEmCaixa, diferencaCaixa } from "@/features/caixa/regras/caixa";
 import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
 import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
 import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";

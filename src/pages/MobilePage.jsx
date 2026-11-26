@@ -43,7 +43,7 @@ import TelaModulo from "./mobile/pagina/TelaModulo";
 import { TOTAL_COMANDAS, PAGE, MODULOS_MAIS, formatHoraCurta } from "./mobile/pagina/apoio";
 import { useMobilePage } from "@/pages/mobile/hooks/useMobilePage";
 import "./MobilePage.css";
-import { ticketMedio } from "@/lib/vendas";
+import { ticketMedio } from "@/features/caixa/regras/vendas";
 import { nomeBateComBusca } from "@/lib/busca";
 
 export default function MobilePage() {

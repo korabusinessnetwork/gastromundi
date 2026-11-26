@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
-import { montarVendaLegada } from "./vendas";
+import { supabase } from "@/lib/supabase";
+import { montarVendaLegada } from "../regras/vendas";
 
 /**
  * Leitura de uma venda COMPLETA (cabeçalho + itens + pagamentos) das tabelas

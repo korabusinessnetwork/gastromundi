@@ -6,7 +6,7 @@ import { useSessao } from "./SessaoContext";
 import { gravarConfig } from "./gravarConfig";
 import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/features/caixa/dados/vendas";
 import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
-import { lerValor, validarMovimento } from "@/lib/caixaMovimentos";
+import { lerValor, validarMovimento } from "@/features/caixa/regras/caixaMovimentos";
 import { emitirEvento } from "@/lib/jarvas";
 import { logAction } from "@/lib/logger";
 import { isErroDeRede } from "@/lib/offline/rede";

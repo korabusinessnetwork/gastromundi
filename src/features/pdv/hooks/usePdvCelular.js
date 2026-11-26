@@ -26,7 +26,7 @@ import {
 } from "react-icons/lu";
 import { useSessao, useOffline, useConfig, useCatalogo, useCaixa } from "@/context/AppContext";
 import { useFinalizarPagamento } from "./useFinalizarPagamento";
-import { round2 } from "@/lib/vendas";
+import { round2 } from "@/features/caixa/regras/vendas";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import {
   buscarConfigImpressao, montarComprovantePagamento

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSessao, useCaixa } from "@/context/AppContext";
 import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
 import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
-import { round2 } from "@/lib/vendas";
+import { round2 } from "@/features/caixa/regras/vendas";
 import { diaLocalISO, rotuloDiaBR } from "@/utils/datas";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";

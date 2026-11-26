@@ -3,7 +3,7 @@ import { LuArrowLeft, LuChartBar, LuMonitor, LuTrendingDown, LuTrendingUp } from
 import {
   buscarRelatorioVendas, calcularPeriodo, calcularPeriodoAnterior, calcularVariacaoPercentual,
 } from "@/lib/relatorios";
-import { ticketMedio } from "@/lib/vendas";
+import { ticketMedio } from "@/features/caixa/regras/vendas";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
 import "./RelatoriosModulo.css";

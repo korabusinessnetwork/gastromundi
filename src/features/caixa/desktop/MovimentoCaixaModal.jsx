@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LuBanknote } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { verificarSenhaUsuario } from "@/lib/adminAuth";
-import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/lib/caixaMovimentos";
+import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/features/caixa/regras/caixaMovimentos";
 import "./MovimentoCaixaModal.css";
 
 const fmtR = (v) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;

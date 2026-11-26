@@ -25,7 +25,7 @@ import {
 import { buscarBootstrapTenant } from "@/lib/tenant";
 import { sincronizarStatusAssinatura } from "@/lib/assinatura";
 import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
-import { montarVendaLegada } from "@/lib/vendas";
+import { montarVendaLegada } from "@/features/caixa/regras/vendas";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { setTenantObservabilidade } from "@/lib/observabilidade";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";

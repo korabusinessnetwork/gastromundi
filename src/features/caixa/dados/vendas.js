@@ -2,7 +2,7 @@
 // Devolvem o `{ data, error }` do Supabase sem interpretar.
 
 import { supabase } from "@/lib/supabase";
-import { persistirVendaNormalizada } from "@/lib/vendas";
+import { persistirVendaNormalizada } from "@/features/caixa/regras/vendas";
 
 /** Cabeçalho das vendas desde `desdeIso`, mais recentes primeiro. */
 export function listarVendasDesde(colunas, desdeIso) {
@@ -25,7 +25,7 @@ export function listarVendasLegadasDesde(desdeIso) {
   return supabase.from("sales").select("id,data,at").gte("at", desdeIso).order("at", { ascending: false });
 }
 
-/** Grava venda, itens e pagamentos nas tabelas normalizadas (ver `src/lib/vendas.js`). */
+/** Grava venda, itens e pagamentos nas tabelas normalizadas (ver `src/features/caixa/regras/vendas.js`). */
 export function gravarVendaNormalizada(venda, opcoes) {
   return persistirVendaNormalizada(supabase, venda, opcoes);
 }

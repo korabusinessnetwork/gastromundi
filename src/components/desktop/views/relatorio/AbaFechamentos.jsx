@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { diferencaCaixa, situacaoCaixa } from "@/lib/caixa";
+import { diferencaCaixa, situacaoCaixa } from "@/features/caixa/regras/caixa";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import {

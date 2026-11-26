@@ -4,7 +4,7 @@ import { registrarInsight, buscarInsights } from "./jarvas";
 // Brasília a chave já virava para amanhã e o mesmo alerta era registrado duas
 // vezes na mesma noite de operação — justo no horário de pico.
 import { hojeLocalISO } from "@/utils/datas";
-import { esperadoEmCaixa, diferencaCaixa } from "./caixa";
+import { esperadoEmCaixa, diferencaCaixa } from "../features/caixa/regras/caixa";
 import { ehGerencia } from "@/constants/roles";
 
 /**

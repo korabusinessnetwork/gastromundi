@@ -25,7 +25,7 @@ import { join } from "path";
  *   (h) o cabeçalho avisa que a execução é manual e que RLS precisa ser
  *       conferida no painel;
  *   (i) o cliente JS não desmente o banco — os tipos, o nome da tabela e as
- *       colunas usadas em `src/lib/caixaMovimentos.js` e no `AppContext` são
+ *       colunas usadas em `src/features/caixa/regras/caixaMovimentos.js` e no `AppContext` são
  *       exatamente os que a migration cria, e a leitura especifica colunas em
  *       vez de `select *` (tabela de caixa é tabela sensível).
  */
@@ -148,7 +148,7 @@ describe("caixa_movimentos, o cliente JS não desmente o banco (F005)", () => {
   const lerFonte = (caminho) => readFileSync(join(RAIZ, caminho), "utf8").replace(/\r/g, "");
 
   it("os dois tipos da lib são os dois tipos do CHECK", () => {
-    const lib = lerFonte("src/lib/caixaMovimentos.js");
+    const lib = lerFonte("src/features/caixa/regras/caixaMovimentos.js");
     expect(lib).toMatch(/ROTULO_TIPO = \{ sangria: "Sangria", suprimento: "Suprimento" \}/);
     // Se um tipo novo aparecer na lib sem CHECK correspondente, o insert
     // estoura no balcão em vez de na revisão.

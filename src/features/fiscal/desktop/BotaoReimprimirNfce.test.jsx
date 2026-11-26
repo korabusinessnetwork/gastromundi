@@ -10,7 +10,7 @@ vi.mock("@/features/fiscal/dados/nfceEmitidasRepo", () => ({
 // vendasRepo puxa o supabase.js real (que exige .env.local no import) — mockar
 // para a suíte rodar sem ambiente. Só é chamado na carga sob demanda da venda.
 const buscarVendaCompleta = vi.fn().mockResolvedValue({ data: null, error: null });
-vi.mock("@/lib/vendasRepo", () => ({
+vi.mock("@/features/caixa/dados/vendasRepo", () => ({
   buscarVendaCompleta: (...a) => buscarVendaCompleta(...a),
 }));
 

@@ -14,7 +14,7 @@ import { round2 } from "./vendas";
  * conta para chegar no valor esperado. Sem round-trip, sem duplicar fórmula.
  *
  * Dinheiro em `numeric` + `round2`, como o resto da camada de caixa
- * (`vendas.total`, `lancamentos.valor`, `src/lib/caixa.js`) — ver o cabeçalho
+ * (`vendas.total`, `lancamentos.valor`, `src/features/caixa/regras/caixa.js`) — ver o cabeçalho
  * de `supabase/migrations/20260916_caixa_movimentos.sql`.
  */
 

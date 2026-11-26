@@ -8,7 +8,7 @@ import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
-import { round2 } from "@/lib/vendas";
+import { round2 } from "@/features/caixa/regras/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";
 import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/features/estoque/regras/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";

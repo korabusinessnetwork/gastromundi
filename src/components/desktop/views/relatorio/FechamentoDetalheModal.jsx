@@ -1,6 +1,6 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { rotuloMetodo } from "@/utils/pagamentos";
-import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
+import { esperadoEmCaixa, diferencaCaixa, situacaoCaixa, ROTULO_SITUACAO } from "@/features/caixa/regras/caixa";
 import { createPortal } from "react-dom";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";

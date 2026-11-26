@@ -8,7 +8,7 @@ import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrend
 import {
   calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual, calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
 } from "@/lib/relatorios";
-import { ticketMedio } from "@/lib/vendas";
+import { ticketMedio } from "@/features/caixa/regras/vendas";
 import "./DesempenhoReport.css";
 
 const PERIODOS = [

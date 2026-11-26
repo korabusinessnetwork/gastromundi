@@ -47,7 +47,7 @@ vi.mock("@/lib/tenant", () => ({
   moduloHabilitado: () => true,
   addonHabilitado: () => false,
 }));
-vi.mock("@/lib/vendas", async (importOriginal) => ({
+vi.mock("@/features/caixa/regras/vendas", async (importOriginal) => ({
   ...(await importOriginal()),
   persistirVendaNormalizada: mockPersistir,
 }));

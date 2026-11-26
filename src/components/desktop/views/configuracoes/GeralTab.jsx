@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useConfig } from "@/context/AppContext";
-import { LIMITE_SANGRIA_PADRAO } from "@/lib/caixaMovimentos";
+import { LIMITE_SANGRIA_PADRAO } from "@/features/caixa/regras/caixaMovimentos";
 
 export default function GeralTab({ sz }) {
   const { taxaServico, setTaxaServico, diasAlertaValidade, setDiasAlertaValidade, limiteSangria, setLimiteSangria } = useConfig();

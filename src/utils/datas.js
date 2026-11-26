@@ -1,4 +1,4 @@
-import { ticketMedio } from "@/lib/vendas";
+import { ticketMedio } from "@/features/caixa/regras/vendas";
 // Utilidades de data com fuso local — B2 (relatórios dia a dia).
 //
 // As vendas gravam `at` em ISO8601 UTC. Agrupar por dia usando o dia UTC

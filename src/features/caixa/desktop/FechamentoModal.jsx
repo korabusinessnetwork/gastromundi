@@ -1,9 +1,9 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState, useMemo } from "react";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
-import { round2 } from "@/lib/vendas";
-import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/lib/caixa";
-import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/lib/caixaMovimentos";
+import { round2 } from "@/features/caixa/regras/vendas";
+import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/features/caixa/regras/caixa";
+import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/features/caixa/regras/caixaMovimentos";
 import { LuLock, LuBanknote, LuPencil, LuTriangleAlert } from "react-icons/lu";
 import { useConfig, useCaixa } from "@/context/AppContext";
 import "./FechamentoModal.css";

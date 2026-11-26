@@ -3,7 +3,7 @@ import { ConfigContext } from "./ConfigContext";
 import { gravarConfig } from "./gravarConfig";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
 import { METODOS_TEF_PADRAO } from "@/lib/tef";
-import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido } from "@/lib/caixaMovimentos";
+import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido } from "@/features/caixa/regras/caixaMovimentos";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { METODOS_PADRAO } from "@/features/pdv/regras/pagamento";
 
