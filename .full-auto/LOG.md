@@ -33,3 +33,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T22 (6.11 READMEs da ponte e do bot): leitura dos dois READMEs conferida contra os imports reais de `ponte/` e `bot/`.
 - 2026-11-26, T20h (6.9h domínios restantes de src/lib em features/): `npm test` 273 arquivos e 4462 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 1 leve (ruído nas Reservas). 33 arquivos com `git mv`.
 - 2026-11-26, T23 (6.12 documentação final): arquitetura, CLAUDE.md, patterns e ADR-015 conferidos contra o código (package.json, src/, nomes de evento).
+- 2026-11-26, T24 passada 1: F.1 (Supabase fora de dados/ 10 para 0), F.2 (subagente, 88 specs, sem regressão), F.4 (migrations e cor da impressão) com 3 achados corrigidos; `npm test` 273 arquivos e 4465 testes verdes, build limpo, lint 0 erros, roteiro 209 telas sem diferença. F.3 pendente.

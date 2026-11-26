@@ -1,3 +1,10 @@
+## Rodada 159, fase F passada 1, achados e correções, 2026-11-26
+- Spec: specs/fase-f-correcoes-passada-1.md
+- Resultado: 3 achados, todos corrigidos (Supabase fora de dados/ zerado e cobrado pelo lint em todo
+  src/; cor do tema filtrada no HTML da impressão; achados da F.2, sem regressão, só documentação e
+  quatro lacunas antigas de unificação). Suíte 273 arquivos / 4465 testes, verde; build limpo; lint
+  0 erros. Roteiro: 209 telas, 0 diferença. Sem migration.
+- A fase F volta para a F.1. Falta a F.3 (fluxos críticos rodando de verdade) nesta passada.
 ## Rodada 158, refatoração 6.12, documentação final e ADR-015 implementado, 2026-11-26
 - Spec: specs/refatoracao-6-12-documentacao-final.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante. Só documentação. A fase 6 fecha:

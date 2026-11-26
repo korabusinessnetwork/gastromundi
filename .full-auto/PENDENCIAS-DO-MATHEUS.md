@@ -207,3 +207,7 @@ tela diria que está tudo bem justamente no caso mais grave.
 - **O que:** o `.githooks/pre-push` recusa push sem atualização das notas (`kora.codes/patchnotes`). Ele só vale numa máquina onde a pasta `.githooks/` está ativada.
 - **Como:** na pasta do projeto, rode uma vez `git config core.hooksPath .githooks`. Se você já fez isso para o `post-commit` do Obsidian, não precisa de nada.
 - **Confirmar:** um push sem mexer em `src/features/apex/regras/notasDeAtualizacao.js` mostra "Push recusado".
+
+### P2-05. Script `setup:git` do package.json aponta para arquivo que não existe
+- **O que:** `npm run setup:git` chama `scripts/setup-git.mjs`, que só existe no commit `601c49af` ("Guarda de branch por dev"), nunca mesclado na main. O script configuraria o `core.hooksPath` e uma guarda de branch por pessoa.
+- **Como:** decidir entre (a) mesclar aquele trabalho, (b) tirar o script do `package.json`, ou (c) trocar por um script que só faça `git config core.hooksPath .githooks`. Sem isso, `npm run setup:git` dá erro.
