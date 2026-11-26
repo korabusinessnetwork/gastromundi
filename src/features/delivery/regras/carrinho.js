@@ -1,3 +1,7 @@
+import { formatarReais as formatarPreco } from "@/lib/dinheiro";
+import { precoDoGrupo } from "@/features/cardapio/regras/combos";
+
+export { formatarPreco };
 
 // CEP, dinheiro na tela, carrinho, regras de complementos e a revisão da sacola contra o cardápio.
 // ── CEP ────────────────────────────────────────────────────────────
@@ -21,15 +25,6 @@ export function cepCompleto(bruto) {
 
 // ── Dinheiro (exibição) ────────────────────────────────────────────
 
-/**
- * Formata um valor em reais para exibição (ex.: 12.5 → "R$ 12,50").
- * Só para MOSTRAR — nunca é o valor que vale (o servidor recalcula).
- * @param {number} valor
- */
-export function formatarPreco(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
 
 /**
  * Lê o que o cliente DIGITOU num campo de dinheiro. O teclado brasileiro
@@ -52,15 +47,117 @@ export function valorDigitado(texto) {
   return Number.isFinite(n) ? n : null;
 }
 
+// ── Data de nascimento (cadastro do cliente) ───────────────────────
+
+/**
+ * A data de nascimento é OPCIONAL e existe para o futuro (aniversário do
+ * cliente), não para barrar a compra de hoje. Por isso esta função não
+ * diz "inválido": ela diz se dá para APROVEITAR o que foi digitado. Data
+ * vazia, pela metade, no futuro ou de idade impossível simplesmente não
+ * é aproveitada, e o pedido segue igual.
+ *
+ * Recebe o formato do <input type="date"> ("AAAA-MM-DD"), que é o mesmo
+ * que o Postgres aceita — o campo não é digitado à mão em pt-BR.
+ *
+ * @param {string} texto
+ * @returns {string|null} a data pronta para gravar, ou null
+ */
+/**
+ * Monta "AAAA-MM-DD" a partir de dia, mês e ano digitados em campos
+ * separados. Só monta quando os TRÊS estão preenchidos; incompleto
+ * devolve "" para `dataNascimentoUtil` recusar depois.
+ *
+ * Existe porque o `<input type="date">` era péssimo para data de
+ * nascimento: o calendário abre no mês atual e chegar a 1962 é uma
+ * viagem de centenas de cliques. Três campos deixam o ano ser digitado.
+ *
+ * Não valida o dia contra o mês nem o ano contra o futuro — isso é de
+ * `dataNascimentoUtil`, que continua sendo a única regra.
+ *
+ * @param {string|number} dia
+ * @param {string|number} mes  1 a 12
+ * @param {string|number} ano  4 dígitos
+ * @returns {string} "AAAA-MM-DD", ou "" quando falta alguma parte
+ */
+export function montarDataISO(dia, mes, ano) {
+  const d = String(dia ?? "").trim();
+  const m = String(mes ?? "").trim();
+  const a = String(ano ?? "").trim();
+  if (!d || !m || !a) return "";
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(a)) return "";
+  return `${a}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+/**
+ * Desmonta "AAAA-MM-DD" nos três campos da tela. O inverso de
+ * `montarDataISO`, para reabrir o formulário com o que já foi digitado.
+ *
+ * @param {string} iso
+ * @returns {{dia: string, mes: string, ano: string}} partes vazias quando não dá
+ */
+export function separarDataISO(iso) {
+  const bruto = String(iso ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return { dia: "", mes: "", ano: "" };
+  const [ano, mes, dia] = bruto.split("-");
+  // Sem zero à esquerda: o campo é digitado por gente, e "07" num input
+  // numérico é o tipo de detalhe que faz a pessoa apagar e redigitar.
+  return { dia: String(Number(dia)), mes: String(Number(mes)), ano };
+}
+
+export function dataNascimentoUtil(texto) {
+  const bruto = String(texto ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(bruto)) return null;
+  // Tudo em UTC e comparado como TEXTO. Data de nascimento é dia de
+  // calendário, não instante: montar Date no fuso local faz "hoje" virar
+  // "amanhã" (ou ontem) conforme a hora e onde a pessoa está, e o campo
+  // recusaria uma data perfeitamente boa dependendo do relógio.
+  const d = new Date(`${bruto}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  // "2026-02-31" o Date aceita e rola para março: comparar de volta é o
+  // que pega dia que não existe no mês.
+  if (d.toISOString().slice(0, 10) !== bruto) return null;
+  const hoje = new Date();
+  const hojeISO = hoje.toISOString().slice(0, 10);
+  if (bruto > hojeISO) return null;
+  // Texto ISO compara na ordem certa por ser sempre AAAA-MM-DD.
+  const limiteISO = `${hoje.getUTCFullYear() - 120}${hojeISO.slice(4)}`;
+  if (bruto < limiteISO) return null;
+  return bruto;
+}
+
 // ── Carrinho (cálculo só para exibição) ────────────────────────────
+
+/**
+ * Quanto as opções escolhidas acrescentam, RESPEITANDO A REGRA DE CADA
+ * GRUPO. Grupos diferentes sempre se somam entre si; dentro do grupo, é
+ * a regra dele que decide (ver `precoDoGrupo`, a mesma conta do PDV).
+ *
+ * Um grupo de complemento do delivery não tem regra e cai em 'soma' —
+ * que é exatamente o que ele sempre fez. O que muda é o grupo de
+ * escolha vindo do cadastro do produto, onde "escolha 4 sabores" cobra
+ * a pizza mais cara em vez de quatro pizzas.
+ *
+ * @param {Array<{preco?: number, qtd?: number, grupoId?: string, regra?: string}>} complementos
+ */
+export function precoDosComplementos(complementos) {
+  const porGrupo = new Map();
+  for (const c of complementos ?? []) {
+    // Sem grupo é 'soma', e somar é associativo: um balde só dá o mesmo.
+    const chave = c?.grupoId ?? "__sem_grupo__";
+    if (!porGrupo.has(chave)) porGrupo.set(chave, { regra: c?.regra, itens: [] });
+    porGrupo.get(chave).itens.push({ preco: c?.preco, qtd: c?.qtd });
+  }
+  let total = 0;
+  for (const { regra, itens } of porGrupo.values()) total += precoDoGrupo(itens, regra);
+  return total;
+}
 
 /**
  * Soma dos complementos escolhidos de um item do carrinho.
  * @param {{complementosEscolhidos?: Array<{preco?: number}>}} item
  */
 export function somaComplementos(item) {
-  const lista = item?.complementosEscolhidos ?? [];
-  return lista.reduce((acc, c) => acc + (Number(c?.preco) || 0), 0);
+  return precoDosComplementos(item?.complementosEscolhidos);
 }
 
 /** Preço unitário (base + complementos) de um item do carrinho. */
@@ -113,6 +210,31 @@ export function grupoSatisfeito(grupo, qtdEscolhida) {
 }
 
 /**
+ * Quantas UNIDADES foram escolhidas num grupo.
+ *
+ * A vitrine passou a guardar quantas de cada opção (`{ opcaoId: qtd }`),
+ * porque "2 de calabresa e 1 de portuguesa" é um pedido de três fatias e
+ * não de duas opções — é assim que o PDV já contava, e era só a vitrine
+ * que insistia em contar opções distintas.
+ *
+ * A forma antiga (lista de ids) continua valendo: uma sacola guardada no
+ * sessionStorage antes desta versão cai aqui, e ali cada id vale 1.
+ *
+ * @param {Record<string, number>|Array<string>|null|undefined} escolha
+ * @returns {number}
+ */
+export function unidadesDoGrupo(escolha) {
+  if (Array.isArray(escolha)) return escolha.length;
+  if (escolha && typeof escolha === "object") {
+    return Object.values(escolha).reduce(
+      (total, n) => total + Math.max(0, Number(n) || 0),
+      0
+    );
+  }
+  return 0;
+}
+
+/**
  * Achata a árvore de grupos (raiz → subgrupos → ...) numa lista plana, em
  * ordem de exibição (pré-ordem/DFS). Cada subgrupo é um grupo NORMAL com id
  * único, então achatar preserva o espaço de seleção plano (grupoId → ids).
@@ -144,7 +266,7 @@ export function achatarGrupos(grupos) {
  */
 export function grupoArvoreSatisfeita(grupo, selecoesPorGrupo) {
   if (!grupo) return true;
-  const proprio = grupoSatisfeito(grupo, (selecoesPorGrupo?.[grupo.id] ?? []).length);
+  const proprio = grupoSatisfeito(grupo, unidadesDoGrupo(selecoesPorGrupo?.[grupo.id]));
   if (!proprio) return false;
   return (grupo.subgrupos ?? []).every((sub) =>
     grupoArvoreSatisfeita(sub, selecoesPorGrupo)
@@ -222,6 +344,59 @@ export function rotuloRegraGrupo(grupo) {
 }
 
 /**
+ * O mesmo selo do grupo, agora sabendo quanto já foi escolhido. É a
+ * diferença entre um cartaz parado ("Escolha 3") e alguém dizendo o que
+ * falta enquanto a pessoa escolhe ("Faltam 2", "✓ pronto").
+ *
+ * No teto, a frase é a resposta à única pergunta que o cliente está
+ * fazendo ali ("por que não entra mais?"), então ela tem prioridade sobre
+ * o "pronto": o grupo completo já se anuncia pelo botão de adicionar.
+ *
+ * @param {{min?: number, max?: number, itens?: Array}} grupo
+ * @param {number} unidades quantas unidades já foram escolhidas no grupo
+ * @returns {string}
+ */
+export function rotuloProgressoGrupo(grupo, unidades) {
+  if (grupoImpossivel(grupo)) return "Indisponível no momento";
+  const min = Math.max(0, Number(grupo?.min) || 0);
+  const maxRaw = Number(grupo?.max);
+  const max = Number.isFinite(maxRaw) && maxRaw > 0 ? maxRaw : 0; // 0 = sem limite
+  const u = Math.max(0, Number(unidades) || 0);
+
+  // Escolha única troca sozinha (tocar em outra substitui), então o teto
+  // nunca vira um beco ali e a frase de "tire uma" não faz sentido.
+  if (max > 1 && u >= max) return `Máximo ${max}, tire uma para trocar`;
+  if (min > 0 && u < min) {
+    if (u === 0) return rotuloRegraGrupo(grupo);
+    const faltam = min - u;
+    return faltam === 1 ? "Falta 1" : `Faltam ${faltam}`;
+  }
+  if (min > 0) return "✓ pronto";
+  return rotuloRegraGrupo(grupo);
+}
+
+/**
+ * Casa o texto digitado na busca com o nome da opção, ignorando acento e
+ * caixa: quem procura "acai" tem de achar "Açaí". Busca vazia casa com
+ * tudo, porque campo em branco não é filtro.
+ *
+ * @param {string} nome
+ * @param {string} termo
+ * @returns {boolean}
+ */
+export function combinaComBusca(nome, termo) {
+  const limpar = (t) =>
+    String(t ?? "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // remove acentos
+      .toLowerCase()
+      .trim();
+  const busca = limpar(termo);
+  if (!busca) return true;
+  return limpar(nome).includes(busca);
+}
+
+/**
  * Primeiro grupo ainda não satisfeito — usado para GUIAR o cliente até o
  * campo que falta (prevenção/condução de erro > mensagem seca).
  * @param {{grupos?: Array<{id: string}>}} produto
@@ -233,8 +408,7 @@ export function primeiroGrupoPendente(produto, selecoesPorGrupo) {
   // tela, então rolamos para o PRIMEIRO campo que falta (pai antes dos
   // filhos), incluindo subgrupos em qualquer profundidade.
   for (const g of achatarGrupos(produto?.grupos ?? [])) {
-    const qtd = (selecoesPorGrupo?.[g.id] ?? []).length;
-    if (!grupoSatisfeito(g, qtd)) return g.id;
+    if (!grupoSatisfeito(g, unidadesDoGrupo(selecoesPorGrupo?.[g.id]))) return g.id;
   }
   return null;
 }
@@ -326,6 +500,10 @@ export function revisarSacola(itens, cardapio) {
     const precoMudou = centavos(atual.preco) !== centavos(item?.preco);
     return {
       ...item,
+      // O emoji vem do cardápio de AGORA, não da sacola: assim a sacola
+      // guardada de ontem também mostra o ícone, e ele acompanha o produto
+      // se o dono trocar o emoji no cadastro.
+      emoji: atual.emoji ?? item?.emoji ?? null,
       preco: Number(atual.preco) || 0,
       complementosEscolhidos: complementosAtuais,
       situacao: precoMudou || complementoMudouPreco ? "preco" : "ok",

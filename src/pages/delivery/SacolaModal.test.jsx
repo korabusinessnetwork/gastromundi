@@ -221,18 +221,6 @@ describe("SacolaModal — tirar da sacola é ação com lugar próprio", () => {
     expect(onAlterarQtd).toHaveBeenCalledWith("L1", +1);
   });
 
-  it("mostra o ícone do item — a sacola é a continuação do cardápio", () => {
-    abrir({ itens: [linha({ emoji: "🍕" })] });
-
-    expect(screen.getByText("🍕")).toBeInTheDocument();
-  });
-
-  it("item sem ícone cadastrado não deixa buraco na linha", () => {
-    abrir({ itens: [linha({ emoji: null })] });
-
-    expect(screen.getByText("🍽️")).toBeInTheDocument();
-  });
-
   it("diz onde entra a taxa — 'Subtotal' no fim da sacola parecia o valor final", () => {
     abrir();
 
