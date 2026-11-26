@@ -1,3 +1,8 @@
+## Rodada 149, refatoração 6.9, lógica da apex em src/features/apex, 2026-11-26
+- Spec: specs/refatoracao-6-9-apex-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 6 telas de login, 0
+  diferença; o site não tem foto. Sem migration. 6 arquivos movidos com `git mv`.
 ## Rodada 148, refatoração 6.8, pautas em src/features/pautas, 2026-11-26
 - Spec: specs/refatoracao-6-8-pautas-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

@@ -101,6 +101,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-26 | 6.6 clientes em features/ | 66 | 0 | 15 | 66 (0 / 0 / 66) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 | 2026-11-26 | 6.7 console em features/ | 66 | 0 | 15 | 53 (0 / 0 / 53) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 | 2026-11-26 | 6.8 pautas em features/ | 66 | 0 | 15 | 48 (0 / 0 / 48) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
+| 2026-11-26 | 6.9 apex em features/ | 66 | 0 | 15 | 46 (0 / 0 / 46) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;
