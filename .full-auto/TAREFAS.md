@@ -27,7 +27,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T14 | 6.3 estoque | idem | pastas | T13 |
 | [x] T15 | 6.4 caixa | idem | pastas | T14 |
 | [x] T16 | 6.5 PDV | idem | pastas | T15 |
-| [ ] T17 | 6.6 clientes | idem | pastas | T16 |
+| [x] T17 | 6.6 clientes | idem | pastas | T16 |
 | [ ] T18 | 6.7 console | idem | pastas | T17 |
 | [ ] T19 | 6.8 pautas | idem | pastas | T18 |
 | [ ] T20 | 6.9 apex | idem | pastas | T19 |

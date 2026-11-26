@@ -1,3 +1,8 @@
+## Rodada 146, refatoração 6.6, domínio clientes em src/features/clientes, 2026-11-26
+- Spec: specs/refatoracao-6-6-clientes-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 14 telas do domínio,
+  0 diferença. Sem migration. 7 arquivos movidos com `git mv`.
 ## Rodada 145, refatoração 6.5, PDV e regras de comanda em src/features, 2026-11-26
 - Spec: specs/refatoracao-6-5-pdv-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
