@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Jarvas — camada transversal de IA (fase 1: infraestrutura).

@@ -1,4 +1,4 @@
-import { registrarInsight, buscarInsights } from "@/lib/jarvas";
+import { registrarInsight, buscarInsights } from "@/features/jarvas/dados/jarvas";
 
 /**
  * Estoque — F008: baixa automática + alertas de mínimo
@@ -8,7 +8,7 @@ import { registrarInsight, buscarInsights } from "@/lib/jarvas";
  * reposição é sempre confirmada por humano (docs/03_REGRAS_DE_NEGOCIO/
  * JARVAS.md, decisão 010).
  *
- * Complementar à regra periódica em src/lib/jarvasEngine.js
+ * Complementar à regra periódica em src/features/jarvas/dados/jarvasEngine.js
  * (regraEstoque, que varre todos os produtos a cada 6h e agrega vários
  * itens num único insight): este alerta é imediato, por produto, e
  * dispara no instante em que a baixa de uma venda cruza o mínimo —

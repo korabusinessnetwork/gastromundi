@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { buscarAssinaturaAtual, calcularStatusAssinatura, calcularDiasParaVencimento } from "./assinatura";
+import { buscarAssinaturaAtual, calcularStatusAssinatura, calcularDiasParaVencimento } from "@/features/assinatura/dados/assinatura";
 
 /**
  * Tenant — Fases 1 e 2 da camada de comercialização

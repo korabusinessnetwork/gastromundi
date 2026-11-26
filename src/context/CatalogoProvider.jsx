@@ -9,7 +9,7 @@ import {
 } from "@/features/estoque/dados/saldos";
 import { listarProdutosAtivos, criarProduto, atualizarProduto, excluirProduto } from "@/features/cardapio/dados/produtos";
 import { removerGrupoDaCategoria, definirGrupoDaCategoria } from "@/features/cardapio/dados/gruposCategoria";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/features/estoque/regras/estoque";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";

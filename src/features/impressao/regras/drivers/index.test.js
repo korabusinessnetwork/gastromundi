@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   enviarImpressaoPonte: vi.fn(async () => ({ data: { id: "abc", estado: "na_fila" }, error: null })),
 }));
 

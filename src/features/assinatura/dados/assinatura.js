@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Assinatura — Fase 4 da camada de comercialização

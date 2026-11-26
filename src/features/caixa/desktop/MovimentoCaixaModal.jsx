@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LuBanknote } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
-import { verificarSenhaUsuario } from "@/lib/adminAuth";
+import { verificarSenhaUsuario } from "@/features/sessao/dados/adminAuth";
 import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/features/caixa/regras/caixaMovimentos";
 import "./MovimentoCaixaModal.css";
 

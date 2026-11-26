@@ -34,7 +34,7 @@ const { authMock } = vi.hoisted(() => ({
     deletarAuthUsuario: null,
   },
 }));
-vi.mock("@/lib/adminAuth", () => {
+vi.mock("@/features/sessao/dados/adminAuth", () => {
   authMock.criarAuthUsuario = vi.fn(() => Promise.resolve({ error: null }));
   authMock.atualizarSenhaAuth = vi.fn(() => Promise.resolve({ error: null }));
   authMock.deletarAuthUsuario = vi.fn(() => Promise.resolve({ error: null }));
@@ -42,7 +42,7 @@ vi.mock("@/lib/adminAuth", () => {
 });
 
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import { UsuariosTab } from "./ConfiguracoesView";

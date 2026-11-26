@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const emitirEvento = vi.fn();
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
 
 import { isPagamentoCartao, processarPagamentoTef, metodoUsaTef, podeUsarTef, METODOS_TEF_PADRAO } from "./tef";
 

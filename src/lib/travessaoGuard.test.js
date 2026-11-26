@@ -30,7 +30,7 @@ import { parse } from "@babel/parser";
  *      Mensalidade". Trocar ali produziria uma instrução falsa, porque a tela
  *      continua mostrando o travessão naquela célula.
  *
- * E uma exceção nomeada, que não é forma e sim origem: `src/lib/assinatura.js`
+ * E uma exceção nomeada, que não é forma e sim origem: `src/features/assinatura/dados/assinatura.js`
  * duplica byte a byte uma frase que o BANCO levanta (`RAISE EXCEPTION` na
  * `20260913`), e existe outro guard para as duas nunca divergirem. Trocar só do
  * lado do JS faria o usuário ler duas frases diferentes para a mesma recusa.
@@ -45,7 +45,7 @@ const RAIZ = join(__dirname, "..");
 const IGNORAR = [/\.test\.(jsx|js)$/, /[/\\]test[/\\]/];
 
 /** A exceção nomeada, com o porquê ao lado dela no próprio arquivo. */
-const EXCECOES = new Set(["lib/assinatura.js"]);
+const EXCECOES = new Set(["features/assinatura/dados/assinatura.js"]);
 
 function arquivos(dir, saida = []) {
   for (const nome of readdirSync(dir)) {

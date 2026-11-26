@@ -26,15 +26,15 @@ vi.mock("@/lib/supabase", async () => {
 // `valorDigitado` (o parser de dinheiro) e `rotuloCompetencia` ficam REAIS —
 // são a regra sob teste. Só a escrita no banco é dublada.
 const { mockRenovar } = vi.hoisted(() => ({ mockRenovar: vi.fn() }));
-vi.mock("@/lib/assinatura", async () => {
-  const real = await vi.importActual("@/lib/assinatura");
+vi.mock("@/features/assinatura/dados/assinatura", async () => {
+  const real = await vi.importActual("@/features/assinatura/dados/assinatura");
   return { ...real, confirmarRenovacaoAssinatura: mockRenovar };
 });
 
 import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
 // `rotuloCompetencia` mudou de casa para `@/lib/assinatura` (S1-3): a aba do
 // estabelecimento usa o mesmo rótulo de mês e não importa nada do Console.
-import { rotuloCompetencia } from "@/lib/assinatura";
+import { rotuloCompetencia } from "@/features/assinatura/dados/assinatura";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 
 const COM_PRECO = {

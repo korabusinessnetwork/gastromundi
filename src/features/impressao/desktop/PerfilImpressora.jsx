@@ -4,12 +4,12 @@ import { varColor } from "@/lib/tema";
 import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO } from "@/features/impressao/dados/impressao";
 import { gerarHtmlComPerfil } from "@/features/impressao/regras/drivers/browserRaster";
 import { imprimirDocumento, OPCOES_DRIVER } from "@/features/impressao/regras/drivers";
-import { listarImpressorasPonte } from "@/lib/ponte";
+import { listarImpressorasPonte } from "@/features/ponte/dados/ponte";
 // Endereço de onde o dono baixa a Ponte KORA — o programa que faz a térmica
 // imprimir. Vem do ambiente e é compartilhado com a aba "Pedidos sem
 // Internet", que pede o mesmo arquivo; vazio quando o build não recebeu
 // endereço válido, e aí o botão nem existe.
-import { ENDERECO_DOWNLOAD_PONTE } from "@/lib/ponteDownload";
+import { ENDERECO_DOWNLOAD_PONTE } from "@/features/ponte/regras/ponteDownload";
 import { LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter, LuDownload } from "react-icons/lu";
 import "./PerfilImpressora.css";
 

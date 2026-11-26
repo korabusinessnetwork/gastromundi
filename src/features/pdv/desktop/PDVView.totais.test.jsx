@@ -31,11 +31,11 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({
   useTravaComanda: () => ({ bloqueio: null }),
 }));
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 vi.mock("@/features/impressao/regras/despacho", () => ({

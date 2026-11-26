@@ -5,8 +5,8 @@ import { getSizes } from "@/constants/sizes";
 import {
   compraParaEstoque, getUnidadesCompra, fmtQtd
 } from "@/utils/conversaoUnidades";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
-import { normalizarTexto } from "@/lib/importacao/planilha";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
+import { normalizarTexto } from "@/features/importacao/regras/planilha";
 import {
   classificarEstoque, MINIMO_PADRAO as MINIMO_FALLBACK,
 } from "@/features/estoque/regras/estoqueSituacao";

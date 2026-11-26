@@ -55,12 +55,12 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 // Folhas com efeito colateral, sem relação com o defeito. `registrarInsight`
 // e `buscarInsights` entram porque a baixa de estoque gera alerta de mínimo
 // pelo Jarvas (src/features/estoque/regras/estoque.js).
-vi.mock("@/lib/jarvas", () => ({
+vi.mock("@/features/jarvas/dados/jarvas", () => ({
   emitirEvento: vi.fn(),
   registrarInsight: vi.fn(() => Promise.resolve({ error: null })),
   buscarInsights: vi.fn(() => Promise.resolve({ data: [], error: null })),
 }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
@@ -76,7 +76,7 @@ vi.mock("@/lib/tenant", () => ({
   addonHabilitado: () => false,
 }));
 
-import { emitirEvento, registrarInsight } from "@/lib/jarvas";
+import { emitirEvento, registrarInsight } from "@/features/jarvas/dados/jarvas";
 import { reportarFalha } from "@/lib/observabilidade";
 import { AppProvider, aplicarNumeroRemoto } from "./AppContext";
 import { useContextoCompleto } from "@/test/contextoCompleto";

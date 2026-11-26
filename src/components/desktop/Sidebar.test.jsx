@@ -8,7 +8,7 @@ vi.mock("@/context/AppContext", async () => {
   return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaUsuario: vi.fn(() => Promise.resolve({ ok: false, erro: null })),
   verificarSenhaAdmin:   vi.fn(() => Promise.resolve({ ok: false, erro: null })),
 }));
@@ -94,7 +94,7 @@ describe("Sidebar, cancelar venda fechada", () => {
   }
 
   it("com a senha de gerente, cancela a venda com o motivo informado", async () => {
-    const { verificarSenhaAdmin } = await import("@/lib/adminAuth");
+    const { verificarSenhaAdmin } = await import("@/features/sessao/dados/adminAuth");
     verificarSenhaAdmin.mockResolvedValueOnce({ ok: true, erro: null });
     const cancelarVendaFechada = vi.fn(() => Promise.resolve({ error: null }));
     const user = userEvent.setup();

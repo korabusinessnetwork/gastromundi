@@ -21,7 +21,7 @@ const {
   vincularPonte: vi.fn(),
 }));
 
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   pingPonte, buscarInfoPonte, enviarSnapshotPonte, buscarFilaImpressaoPonte,
   buscarPedidosPonte, confirmarPedidosPonte, vincularPonte,
   montarEnderecoPalm: () => null,

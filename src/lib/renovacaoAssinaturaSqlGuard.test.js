@@ -312,7 +312,7 @@ describe("Assinatura, guard da renovação exclusiva da plataforma (R7L5)", () =
   });
 
   it("o cliente JS não continua documentando que gerente/admin renova", () => {
-    const lib = readFileSync(join(__dirname, "assinatura.js"), "utf8");
+    const lib = readFileSync(join(__dirname, "../features/assinatura/dados/assinatura.js"), "utf8");
 
     // O docblock é o que o próximo dev lê antes de construir a tela de
     // renovação: se ele disser gerente/admin, a tela nasce chamando uma

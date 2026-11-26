@@ -8,7 +8,7 @@ import {
 } from "@/features/sessao/dados/usuarios";
 import { moduloHabilitado, addonHabilitado } from "@/lib/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
-import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/lib/loginTentativas";
+import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/features/sessao/dados/loginTentativas";
 import { ehConsoleHost } from "@/features/console/regras/consoleHost";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";

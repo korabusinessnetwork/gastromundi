@@ -85,7 +85,7 @@ function resumirChave(chave) {
 }
 
 // "imp-" + 14 caracteres = 18: acima do mínimo que a Ponte honra
-// (ID_MINIMO_CARACTERES = 8, em src/lib/ponte.js) e longe do corte de 64.
+// (ID_MINIMO_CARACTERES = 8, em src/features/ponte/dados/ponte.js) e longe do corte de 64.
 function idDaImpressao(chaveDaAcao, pontoId) {
   return `imp-${resumirChave(`${chaveDaAcao}|${pontoId}`)}`;
 }

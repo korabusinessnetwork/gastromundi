@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 const { baixarConta } = vi.hoisted(() => ({ baixarConta: vi.fn() }));
 // Só a gravação é dublê; a regra de "conta em aberto" (contaEmAberto) é a real.
@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: mockSupabase.current };
 });
 
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import {
   validarCadastroCliente,
   cadastrarCliente,

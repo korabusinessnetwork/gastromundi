@@ -234,7 +234,7 @@ describe("a migração não abre porta lateral", () => {
 
 describe("o cliente JS não desmente o banco", () => {
   // Sem tirar o CR, âncora com "\n" nunca casa em arquivo salvo no Windows.
-  const cliente = readFileSync(join(__dirname, "assinatura.js"), "utf8").replace(/\r/g, "");
+  const cliente = readFileSync(join(__dirname, "../features/assinatura/dados/assinatura.js"), "utf8").replace(/\r/g, "");
 
   it("chama a RPC com os três parâmetros e sem estabelecimento", () => {
     expect(cliente).toMatch(/supabase\.rpc\("estornar_pagamento_assinatura"/);

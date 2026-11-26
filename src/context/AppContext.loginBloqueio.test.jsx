@@ -12,7 +12,7 @@
 // Este arquivo cobre a fiação: quem `login` consulta, em que ordem, e o que
 // acontece quando o banco não responde. A regra do contador em si (5 falhas,
 // janela de 15 min, 2 min de bloqueio) mora no SQL; o cliente das RPCs tem
-// testes próprios em `src/lib/loginTentativas.test.js`.
+// testes próprios em `src/features/sessao/dados/loginTentativas.test.js`.
 //
 // A URL deste arquivo é um subdomínio VÁLIDO de propósito: sem isso o login
 // para antes de chegar às RPCs, que é justamente o cenário do arquivo vizinho
@@ -39,8 +39,8 @@ const mockSupabase = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas com efeito colateral, sem relação com o que está sendo medido.
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),

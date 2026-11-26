@@ -20,7 +20,7 @@ vi.mock("@/features/impressao/dados/impressao", () => ({
 // import resolver, e cada teste decide o que ela responde.
 let respostaImpressoras = { data: { impressoras: [] }, error: null };
 const listarImpressorasPonteMock = vi.fn(() => Promise.resolve(respostaImpressoras));
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   listarImpressorasPonte: (...args) => listarImpressorasPonteMock(...args),
 }));
 
@@ -114,7 +114,7 @@ describe("PontosImpressao, aviso de ponto ainda não salvo", () => {
 
 describe("PontosImpressao, Ponte fechada x Ponte com erro", () => {
   it("Ponte fechada mostra a orientação de abrir o KoraPonte.exe", async () => {
-    // `erroAmigavelPonte` (src/lib/ponte.js) já traduziu o erro de rede para
+    // `erroAmigavelPonte` (src/features/ponte/dados/ponte.js) já traduziu o erro de rede para
     // português e marcou `foraDoAr`. A tela tem que ramificar por essa marca:
     // farejar "failed to fetch" na mensagem nunca acertaria.
     const fora = new Error("A Ponte KORA não está rodando neste computador. Abra a Ponte e tente imprimir de novo.");

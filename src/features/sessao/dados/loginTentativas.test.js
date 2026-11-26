@@ -22,7 +22,7 @@ const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }));
 
 vi.mock("@/lib/supabase", () => ({ supabase: { rpc: mockRpc } }));
 
-import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/lib/loginTentativas";
+import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/features/sessao/dados/loginTentativas";
 
 const CHAVE = "admin@casa_coffee.local";
 

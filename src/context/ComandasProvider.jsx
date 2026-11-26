@@ -10,7 +10,7 @@ import {
 import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 import { LOCK_TTL_MS } from "@/features/comandas/regras/comandaLock";
 import { separarCampos, COLUNAS_ESCRITA_PENDING } from "@/lib/camposPermitidos";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";
 

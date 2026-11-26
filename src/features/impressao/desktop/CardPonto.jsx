@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { listarImpressorasPonte } from "@/lib/ponte";
+import { listarImpressorasPonte } from "@/features/ponte/dados/ponte";
 import {
   LuCircleCheck, LuCircleAlert, LuLoader, LuRefreshCw, LuPrinter, LuTrash2
 } from "react-icons/lu";

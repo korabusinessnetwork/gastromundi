@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Jarvas/Event Bus — só observabilidade, isolado.
 const emitirEvento = vi.fn();
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
 
 // supabase.auth.getSession — por padrão com token (caixa logado). Testes
 // que precisam de "sem sessão" sobrescrevem via getSessionMock.

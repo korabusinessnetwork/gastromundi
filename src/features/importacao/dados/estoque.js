@@ -8,7 +8,7 @@
 // ──────────────────────────────────────────────────────────────────
 
 import { supabase } from "@/lib/supabase";
-import { TAMANHO_LOTE, MINIMO_PADRAO, planejarImportacaoEstoque, paraLinhasExportEstoque } from "./plano";
+import { TAMANHO_LOTE, MINIMO_PADRAO, planejarImportacaoEstoque, paraLinhasExportEstoque } from "../regras/plano";
 
 export { MINIMO_PADRAO, planejarImportacaoEstoque, paraLinhasExportEstoque };
 

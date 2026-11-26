@@ -26,12 +26,12 @@ vi.mock("@/context/AppContext", async () => {
   return { ...ganchosDoMock, AppProvider: ({ children }) => children };
 });
 
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 
 import { setAppMock } from "@/test/mockApp";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import EstoqueView, { lerQuantidade, controlaEstoque } from "./EstoqueView";
 
 const CAFE = { id: 1, name: "Café", category: "Insumo", price: 12, unidade_estoque: "kg" };
@@ -321,7 +321,7 @@ describe("EstoqueView, entrada zerada pela conversão", () => {
  * "Sem estoque" mostrava o cardápio inteiro, a coluna de saldo ficava vermelha
  * de ponta a ponta e o insumo que acabou de verdade se perdia no meio.
  *
- * A regra correta já existia no Jarvas (`regraEstoque` em src/lib/jarvasEngine.js):
+ * A regra correta já existia no Jarvas (`regraEstoque` em src/features/jarvas/dados/jarvasEngine.js):
  * sem linha na tabela, o produto não controla estoque. Agora a tela usa a mesma.
  */
 describe("EstoqueView, produto que não controla estoque", () => {

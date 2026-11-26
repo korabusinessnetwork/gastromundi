@@ -31,8 +31,8 @@ const mockSupabase = vi.hoisted(() => ({
 const fila = vi.hoisted(() => ({ ops: [], assinantes: new Set() }));
 
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),

@@ -64,7 +64,7 @@ const AUTOSTART = process.argv.includes(ARG_AUTOSTART);
 const PORTA = Number(process.env.KORA_PONTE_PORTA) || 8123;
 const INTERVALO_IMPRESSAO_MS = 3000; // de quanto em quanto a fila é olhada
 // Tamanho mínimo do `id` que o caixa manda em POST /imprimir — é contrato com
-// o app (ID_MINIMO_CARACTERES, em src/lib/ponte.js). Id menor do que isso não
+// o app (ID_MINIMO_CARACTERES, em src/features/ponte/dados/ponte.js). Id menor do que isso não
 // é aceito calado: engolir o id e sortear outro desliga em silêncio a
 // proteção que impede a mesma comanda de sair duas vezes.
 const ID_IMPRESSAO_MINIMO = 8;

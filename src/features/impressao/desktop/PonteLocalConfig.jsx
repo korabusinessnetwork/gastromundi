@@ -12,10 +12,10 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { useSessao, useOffline, useConfig } from "@/context/AppContext";
-import { pingPonte, buscarInfoPonte, montarEnderecoPalm } from "@/lib/ponte";
+import { pingPonte, buscarInfoPonte, montarEnderecoPalm } from "@/features/ponte/dados/ponte";
 // Endereço de onde o dono baixa a Ponte — o mesmo arquivo que a tela de
 // impressão oferece. Vazio quando o build não recebeu endereço válido.
-import { ENDERECO_DOWNLOAD_PONTE } from "@/lib/ponteDownload";
+import { ENDERECO_DOWNLOAD_PONTE } from "@/features/ponte/regras/ponteDownload";
 import { LuDownload } from "react-icons/lu";
 import "./PonteLocalConfig.css";
 

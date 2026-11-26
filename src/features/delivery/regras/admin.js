@@ -1,4 +1,4 @@
-import { normalizarTexto } from "@/lib/importacao/planilha";
+import { normalizarTexto } from "@/features/importacao/regras/planilha";
 import { ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";
 import { normalizarHorario } from "@/features/delivery/regras/deliveryHorario";
 

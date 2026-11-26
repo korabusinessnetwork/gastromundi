@@ -1,4 +1,4 @@
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 
 /**
  * TEF (pagamento por maquininha/terminal) — add-on pago transversal

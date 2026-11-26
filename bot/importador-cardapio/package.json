@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Bot standalone (fora do app) que importa cardapio (produtos) de planilhas CSV/XLSX para o KORA, vigiando uma pasta. Reusa a MESMA validacao e idempotencia do sistema (src/lib/importacao).",
+  "description": "Bot standalone (fora do app) que importa cardapio (produtos) de planilhas CSV/XLSX para o KORA, vigiando uma pasta. Reusa a MESMA validacao e idempotencia do sistema (src/features/importacao).",
   "bin": {
     "importador-cardapio": "src/index.js"
   },

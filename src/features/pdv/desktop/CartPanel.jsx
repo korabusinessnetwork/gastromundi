@@ -5,7 +5,7 @@ import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";

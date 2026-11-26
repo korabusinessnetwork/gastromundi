@@ -12,25 +12,25 @@ import {
   gerarModeloCSV,
   gerarModeloClientesCSV,
   gerarModeloEstoqueCSV,
-} from "@/lib/importacao/planilha";
+} from "@/features/importacao/regras/planilha";
 import {
   planejarImportacaoProdutos,
   aplicarImportacaoProdutos,
   buscarProdutosParaMigracao,
-} from "@/lib/importacao/produtos";
+} from "@/features/importacao/dados/produtos";
 import {
   planejarImportacaoClientes,
   aplicarImportacaoClientes,
   buscarClientesParaMigracao,
-} from "@/lib/importacao/clientes";
+} from "@/features/importacao/dados/clientes";
 import {
   planejarImportacaoEstoque,
   aplicarImportacaoEstoque,
   buscarEstoqueParaMigracao,
   paraLinhasExportEstoque,
-} from "@/lib/importacao/estoque";
-import { xlsxParaCSV } from "@/lib/importacao/xlsxEntrada";
-import { extrairProdutosDoTextoPdf } from "@/lib/importacao/pdfCardapio";
+} from "@/features/importacao/dados/estoque";
+import { xlsxParaCSV } from "@/features/importacao/regras/xlsxEntrada";
+import { extrairProdutosDoTextoPdf } from "@/features/importacao/regras/pdfCardapio";
 import { LuDownload, LuUpload, LuTriangleAlert, LuCircleCheck } from "react-icons/lu";
 
 /**
@@ -283,7 +283,7 @@ export default function ImportarExportarTab() {
       const buffer = await arquivo.arrayBuffer();
 
       if (formato === "pdf") {
-        const { pdfParaLinhas } = await import("@/lib/importacao/pdfExtrator"); // lazy: pdfjs é pesado
+        const { pdfParaLinhas } = await import("@/features/importacao/regras/pdfExtrator"); // lazy: pdfjs é pesado
         const linhas = await pdfParaLinhas(buffer);
         const { produtos, avisos } = extrairProdutosDoTextoPdf(linhas);
         if (produtos.length === 0) {
@@ -324,10 +324,10 @@ export default function ImportarExportarTab() {
       const buffer = await ctx.arquivo.arrayBuffer();
       let produtos, avisos;
       if (motor === "ocr") {
-        const { pdfParaProdutosOCR } = await import("@/lib/importacao/ocrTesseract");
+        const { pdfParaProdutosOCR } = await import("@/features/importacao/regras/ocrTesseract");
         ({ produtos, avisos } = await pdfParaProdutosOCR(buffer, onProg));
       } else {
-        const { lerCardapioComIA } = await import("@/lib/importacao/iaCardapio");
+        const { lerCardapioComIA } = await import("@/features/importacao/dados/iaCardapio");
         ({ produtos, avisos } = await lerCardapioComIA(buffer, onProg));
       }
       await irParaPreviewComTexto(ctx.cfg.montarCSV(produtos), avisos, ctx.cfg, ctx.nome, ctx.tipo);

@@ -9,7 +9,7 @@
  * na mesma chamada de suporte).
  *
  * Reuso real: validação e planejamento vêm dos MESMOS módulos puros do
- * front (src/lib/importacao/planilha.js e plano.js, empacotados no
+ * front (src/features/importacao/regras/planilha.js e plano.js, empacotados no
  * deploy) — as regras de parsing/idempotência existem num lugar só.
  *
  * Autorização (dois perfis, nunca anônimo):
@@ -39,14 +39,14 @@ import {
   validarPlanilhaProdutos,
   validarPlanilhaClientes,
   validarPlanilhaEstoque,
-} from "../../../src/lib/importacao/planilha.js";
+} from "../../../src/features/importacao/regras/planilha.js";
 import {
   planejarImportacaoProdutos,
   paraPayloadProduto,
   planejarImportacaoClientes,
   paraPayloadCliente,
   planejarImportacaoEstoque,
-} from "../../../src/lib/importacao/plano.js";
+} from "../../../src/features/importacao/regras/plano.js";
 
 import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
 

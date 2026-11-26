@@ -5,7 +5,7 @@ import {
 import { useSessao } from "@/context/AppContext";
 import {
   listarPagamentosAssinatura, resumirPagamentos, resumirPlanoDoTenant, rotuloCompetencia,
-} from "@/lib/assinatura";
+} from "@/features/assinatura/dados/assinatura";
 import { buscarPlanoDoTenant } from "@/lib/tenant";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { ROTULOS_MODULO } from "@/constants/modulos";

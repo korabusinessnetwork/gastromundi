@@ -33,8 +33,8 @@ const { mockSupabase, mockBootstrapTenant } = vi.hoisted(() => ({
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas com efeito colateral, sem relação com a chave da Ponte.
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
@@ -56,7 +56,7 @@ vi.mock("@/lib/tenant", async () => {
 // para provar o recado ponta a ponta. O único dublê é o programa da Ponte, que
 // mora em localhost:8123 e não tem nada a ver com falta de internet no
 // provedor — sem ele o teste bateria numa porta que ninguém atende.
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   pingPonte: vi.fn(() => Promise.resolve({ data: null, error: new Error("ponte fora do ar") })),
   buscarInfoPonte: vi.fn(() => Promise.resolve({ data: null, error: null })),
   montarEnderecoPalm: vi.fn(() => null),

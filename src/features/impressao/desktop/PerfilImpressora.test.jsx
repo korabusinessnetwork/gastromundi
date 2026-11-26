@@ -19,7 +19,7 @@ vi.mock("@/features/impressao/dados/impressao", async () => {
   const real = await vi.importActual("@/features/impressao/dados/impressao");
   return { ...real, buscarConfigImpressao: mockBuscarConfig, salvarConfigImpressao: vi.fn() };
 });
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   listarImpressorasPonte: vi.fn(() => Promise.resolve({ data: [], error: null })),
 }));
 

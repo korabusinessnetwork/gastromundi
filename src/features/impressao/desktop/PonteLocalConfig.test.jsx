@@ -16,7 +16,7 @@ vi.mock("@/context/AppContext", () => {
   const gancho = mockUseApp;
   return { useSessao: gancho, useOffline: gancho, useConfig: gancho, useCatalogo: gancho, useComandas: gancho, useCaixa: gancho };
 });
-vi.mock("@/lib/ponte", () => ({
+vi.mock("@/features/ponte/dados/ponte", () => ({
   pingPonte: mockPingPonte,
   buscarInfoPonte: vi.fn(() => Promise.resolve({ data: null, error: null })),
   montarEnderecoPalm: () => null,

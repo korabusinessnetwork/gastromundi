@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Cliente do assistente conversacional do Jarvas (fase 5).

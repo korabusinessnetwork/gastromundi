@@ -11,7 +11,7 @@ const logActionMock = vi.fn();
 vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
 
 const emitirEventoMock = vi.fn();
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: (...args) => emitirEventoMock(...args) }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: (...args) => emitirEventoMock(...args) }));
 
 import { setAppMock } from "@/test/mockApp";
 import { useCancelarComanda } from "./useCancelarComanda";

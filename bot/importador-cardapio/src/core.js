@@ -3,7 +3,7 @@
 //
 // REUSO, sem copia: a validacao linha a linha, o dedupe, os limites, a
 // protecao contra CSV injection e a idempotencia sao EXATAMENTE os mesmos
-// do app web — importados de src/lib/importacao. O bot so troca o
+// do app web — importados de src/features/importacao. O bot so troca o
 // "transporte" (le do disco, grava com o SEU client autenticado). Assim
 // bot e app nunca divergem de regra.
 //
@@ -16,8 +16,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { decodificarArquivo, validarPlanilhaProdutos } from "../../../src/lib/importacao/planilha.js";
-import { TAMANHO_LOTE, planejarImportacaoProdutos, paraPayloadProduto } from "../../../src/lib/importacao/plano.js";
+import { decodificarArquivo, validarPlanilhaProdutos } from "../../../src/features/importacao/regras/planilha.js";
+import { TAMANHO_LOTE, planejarImportacaoProdutos, paraPayloadProduto } from "../../../src/features/importacao/regras/plano.js";
 
 const EXT_CSV = [".csv", ".txt"];
 const EXT_XLSX = [".xlsx", ".xls"];
@@ -44,7 +44,7 @@ export function formatoDoArquivo(nome) {
 export async function lerComoCSV(caminho) {
   const buffer = await readFile(caminho);
   if (formatoDoArquivo(caminho) === "xlsx") {
-    const { xlsxParaCSV } = await import("../../../src/lib/importacao/xlsxEntrada.js");
+    const { xlsxParaCSV } = await import("../../../src/features/importacao/regras/xlsxEntrada.js");
     return xlsxParaCSV(buffer);
   }
   return decodificarArquivo(buffer);

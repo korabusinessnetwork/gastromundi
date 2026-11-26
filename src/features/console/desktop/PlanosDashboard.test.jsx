@@ -39,8 +39,8 @@ const { mockRenovar, mockListarPagamentos } = vi.hoisted(() => ({
   mockRenovar: vi.fn(),
   mockListarPagamentos: vi.fn(),
 }));
-vi.mock("@/lib/assinatura", async () => {
-  const real = await vi.importActual("@/lib/assinatura");
+vi.mock("@/features/assinatura/dados/assinatura", async () => {
+  const real = await vi.importActual("@/features/assinatura/dados/assinatura");
   return {
     ...real,
     confirmarRenovacaoAssinatura: mockRenovar,

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuBanknote } from "react-icons/lu";
-import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/lib/assinatura";
+import { confirmarRenovacaoAssinatura, rotuloCompetencia } from "@/features/assinatura/dados/assinatura";
 import { mensagemDeErroDoConsole } from "@/features/console/console";
 import { valorDigitado } from "@/features/delivery/delivery";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";

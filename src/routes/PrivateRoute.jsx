@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useSessao } from "@/context/AppContext";
-import { assinaturaPermiteOperacao } from "@/lib/assinatura";
-import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
+import { assinaturaPermiteOperacao } from "@/features/assinatura/dados/assinatura";
+import { rotaInicialPermitida } from "@/features/sessao/regras/navegacaoInicial";
 import UpgradeNecessario from "@/components/desktop/UpgradeNecessario";
 import AssinaturaBloqueada from "@/components/desktop/AssinaturaBloqueada";
 import SemAcesso from "@/components/desktop/SemAcesso";

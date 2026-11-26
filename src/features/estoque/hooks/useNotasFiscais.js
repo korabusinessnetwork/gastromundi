@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { importarNotaFiscal, listarNotasEntrada, buscarNotaPorChave, listarItensDaNota } from "@/features/estoque/dados/notasEntrada";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { parseNFe } from "@/utils/parseNFe";
 // O dia UTC vira às 21h de Brasília: a nota lançada à noite nascia com a data
 // de emissão de amanhã e a entrada de estoque caía no dia seguinte.

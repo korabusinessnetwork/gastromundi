@@ -15,11 +15,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaUsuario: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 
-import { verificarSenhaUsuario } from "@/lib/adminAuth";
+import { verificarSenhaUsuario } from "@/features/sessao/dados/adminAuth";
 import MovimentoCaixaModal from "./MovimentoCaixaModal";
 
 const campoValor  = () => document.querySelector(".movimento-caixa__input");

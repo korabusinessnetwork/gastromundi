@@ -16,8 +16,8 @@
 // ──────────────────────────────────────────────────────────────────
 
 import { supabase } from "@/lib/supabase";
-import { pdfParaImagens } from "./pdfExtrator";
-import { normalizarItensIA } from "./pdfCardapio";
+import { pdfParaImagens } from "../regras/pdfExtrator";
+import { normalizarItensIA } from "../regras/pdfCardapio";
 
 // Envio para IA é caro (tokens/quota): tratamos poucas páginas por vez.
 const MAX_PAGINAS_IA = 8;

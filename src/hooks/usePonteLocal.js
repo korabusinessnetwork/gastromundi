@@ -20,12 +20,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   pingPonte, buscarInfoPonte, enviarSnapshotPonte, buscarFilaImpressaoPonte,
   buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm, vincularPonte,
-} from "@/lib/ponte";
+} from "@/features/ponte/dados/ponte";
 import { imprimirLancamento } from "@/features/impressao/regras/despacho";
 import { chaveLancamento, registroLancamentos } from "@/features/impressao/regras/lancamentos";
 import {
   assinaturaComandasAbertas, encaixarPedidoDoPalm, pedidoJaGravado, resumirComandasAbertas,
-} from "@/lib/ponteComandas";
+} from "@/features/ponte/regras/ponteComandas";
 
 const INTERVALO_MS = 5000;
 const SNAPSHOT_MIN_MS = 60 * 1000; // catálogo reenviado no máximo a cada 60s

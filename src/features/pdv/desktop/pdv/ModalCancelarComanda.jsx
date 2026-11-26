@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { LuX, LuEye, LuEyeOff, LuTriangleAlert } from "react-icons/lu";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 

@@ -1,6 +1,6 @@
 // Testes puros do nucleo do bot (node:test, sem dependencia externa —
 // core.js so importa a lib pura de importacao). As regras pesadas de
-// validacao/idempotencia ja tem teste no app (src/lib/importacao/*.test.js);
+// validacao/idempotencia ja tem teste no app (src/features/importacao/*.test.js);
 // aqui cobrimos os helpers proprios do bot.
 //
 // Rodar:  node --test   (dentro de bot/importador-cardapio)

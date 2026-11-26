@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { montarVendaFiscal } from "../regras/nfceVenda";
 
 /**

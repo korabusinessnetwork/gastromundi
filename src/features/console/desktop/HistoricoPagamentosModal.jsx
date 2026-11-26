@@ -5,7 +5,7 @@ import {
 } from "react-icons/lu";
 import {
   listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
-} from "@/lib/assinatura";
+} from "@/features/assinatura/dados/assinatura";
 import { mensagemDeErroDoConsole } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";

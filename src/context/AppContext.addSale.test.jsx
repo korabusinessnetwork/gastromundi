@@ -40,8 +40,8 @@ const mockPersistir = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 
 // Folhas que fazem efeito colateral e não têm nada a ver com o defeito.
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
-vi.mock("@/lib/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
@@ -61,7 +61,7 @@ vi.mock("@/features/caixa/regras/vendas", async (importOriginal) => ({
   persistirVendaNormalizada: mockPersistir,
 }));
 
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { reportarFalha } from "@/lib/observabilidade";
 import { AppProvider } from "./AppContext";
 import { useContextoCompleto } from "@/test/contextoCompleto";

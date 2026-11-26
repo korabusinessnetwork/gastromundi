@@ -6,7 +6,7 @@ planilha lá e o bot importa sozinho, movendo o arquivo para `processados/`
 (ou `erros/`) e escrevendo um log do que entrou.
 
 Por baixo, o bot **reusa exatamente a mesma validação e idempotência do app
-web** (`src/lib/importacao`): mesma tolerância a Excel BR (acento/`;`/`R$`),
+web** (`src/features/importacao`): mesma tolerância a Excel BR (acento/`;`/`R$`),
 mesmo dedupe, mesma proteção contra CSV injection e o mesmo "rodar 2x não
 duplica". Ele só troca o transporte — lê do disco e grava com o próprio login.
 
@@ -90,7 +90,7 @@ npm test
 
 Cobre os helpers próprios do bot (`node --test`, sem dependência externa). As
 regras pesadas de validação/idempotência já são testadas no app, em
-`src/lib/importacao/*.test.js`, e são **as mesmas** aqui (reuso, não cópia).
+`src/features/importacao/*.test.js`, e são **as mesmas** aqui (reuso, não cópia).
 
 ## O que este bot NÃO faz (por enquanto)
 

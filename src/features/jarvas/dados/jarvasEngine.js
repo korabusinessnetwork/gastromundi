@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 import { registrarInsight, buscarInsights } from "./jarvas";
 // As chaves de deduplicação são "o dia de hoje". Com o dia UTC, às 21h de
 // Brasília a chave já virava para amanhã e o mesmo alerta era registrado duas

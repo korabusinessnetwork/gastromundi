@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 import { setAppMock } from "@/test/mockApp";
 import CozinhaModulo from "./CozinhaModulo";

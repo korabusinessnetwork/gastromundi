@@ -231,7 +231,7 @@ parte, em Node puro, empacotado num `.exe` que não leva a pasta `src/`. As duas
 só pela rede local (HTTP na porta 8123), com um contrato combinado dos dois lados:
 
 - **Tamanho mínimo do id do trabalho de impressão:** `ID_IMPRESSAO_MINIMO` em `servidor.js` e
-  `ID_MINIMO_CARACTERES` em `src/lib/ponte.js` (8 caracteres). É a única constante repetida; se
+  `ID_MINIMO_CARACTERES` em `src/features/ponte/dados/ponte.js` (8 caracteres). É a única constante repetida; se
   mudar de um lado, muda do outro.
 - **Formato dos pedidos e dos trabalhos de impressão:** descrito em
   `docs/03_REGRAS_DE_NEGOCIO/PONTE.md`, e coberto pelos testes de `ponte/lib/` e de `src/lib/ponte.test.js`.

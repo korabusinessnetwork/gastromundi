@@ -25,7 +25,16 @@ while read local_ref local_sha remote_ref remote_sha; do
   fi
   [ -z "$commits" ] && continue
 
-  if ! git diff-tree --no-commit-id --name-only -r $commits -- "$NOTAS" | grep -q .; then
+  # Commit por commit: com vários commits de uma vez, o diff-tree compara as
+  # árvores entre si, e não cada commit com o anterior.
+  tocou=0
+  for c in $commits; do
+    if git diff-tree --no-commit-id --name-only -r "$c" -- "$NOTAS" | grep -q .; then
+      tocou=1
+      break
+    fi
+  done
+  if [ "$tocou" -eq 0 ]; then
     echo "" >&2
     echo "Push recusado para $remote_ref: nenhum commit enviado atualiza as notas de atualização." >&2
     echo "Regra do dono: todo push atualiza $NOTAS (kora.codes/patchnotes)." >&2

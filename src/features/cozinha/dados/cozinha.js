@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { logAction } from "@/lib/logger";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 
 /**
  * Cozinha / KDS (F007) — docs/03_REGRAS_DE_NEGOCIO/COZINHA.md.

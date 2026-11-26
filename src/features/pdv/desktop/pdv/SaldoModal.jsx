@@ -4,7 +4,7 @@ import { useResponsive } from "@/utils/hooks";
 import { totalPorMetodo, rotuloMetodo } from "@/utils/pagamentos";
 import { getSizes } from "@/constants/sizes";
 import { LuLock, LuX, LuChartBar, LuEye, LuEyeOff } from "react-icons/lu";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { listarCancelamentosDeComandaDesde } from "@/features/auditoria/dados/logsOperador";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";

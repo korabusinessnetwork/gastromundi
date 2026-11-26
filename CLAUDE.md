@@ -37,7 +37,7 @@ Duas formas continuam permitidas, porque não são pontuação:
    Trocar ali produziria uma instrução falsa, porque a célula continua mostrando o
    travessão.
 
-**Uma exceção nomeada, por origem e não por forma:** `src/lib/assinatura.js` duplica
+**Uma exceção nomeada, por origem e não por forma:** `src/features/assinatura/dados/assinatura.js` duplica
 byte a byte uma frase que o BANCO levanta, e outro guard existe para as duas nunca
 divergirem. Mudar só o lado do JS faria o usuário ler duas frases diferentes para a
 mesma recusa. Há mais 21 mensagens de erro com travessão em `RAISE EXCEPTION` de

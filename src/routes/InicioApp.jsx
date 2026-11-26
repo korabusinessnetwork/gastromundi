@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useSessao } from "@/context/AppContext";
-import { rotaInicialPermitida } from "@/lib/navegacaoInicial";
+import { rotaInicialPermitida } from "@/features/sessao/regras/navegacaoInicial";
 import SemAcesso from "@/components/desktop/SemAcesso";
 
 /**

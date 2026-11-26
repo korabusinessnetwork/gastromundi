@@ -1,4 +1,4 @@
-import { normalizarTexto } from "@/lib/importacao/planilha";
+import { normalizarTexto } from "@/features/importacao/regras/planilha";
 
 // Busca por nome, igual em todas as telas: sem diferença de acento, maiúscula ou
 // espaço sobrando. "cafe" acha "Café", como já achava no Estoque e na

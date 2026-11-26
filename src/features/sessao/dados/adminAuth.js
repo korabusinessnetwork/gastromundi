@@ -2,7 +2,7 @@
  * Helpers para verificação de senha admin e gestão de usuários.
  * Substitui o antigo padrão de hash SHA-256 no cliente.
  */
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-user`;
 

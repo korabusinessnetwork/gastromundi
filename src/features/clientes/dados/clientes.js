@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { baixarConta, contaEmAberto } from "@/features/financeiro/dados/financeiro";
 import { apenasDigitos, validarDocumento } from "@/lib/documento";
 import { telefoneValido, apenasDigitosTelefone } from "@/lib/telefone";

@@ -20,7 +20,7 @@ const { supabaseMock, setLancamentosResult } = vi.hoisted(() => {
 });
 
 vi.mock("./jarvas", () => ({ registrarInsight, buscarInsights }));
-vi.mock("./supabase", () => ({ supabase: supabaseMock }));
+vi.mock("@/lib/supabase", () => ({ supabase: supabaseMock }));
 
 import {
   regraEstoque,

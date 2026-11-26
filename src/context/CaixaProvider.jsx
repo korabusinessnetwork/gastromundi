@@ -7,7 +7,7 @@ import { gravarConfig } from "./gravarConfig";
 import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/features/caixa/dados/vendas";
 import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
 import { lerValor, validarMovimento } from "@/features/caixa/regras/caixaMovimentos";
-import { emitirEvento } from "@/lib/jarvas";
+import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { logAction } from "@/lib/logger";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";

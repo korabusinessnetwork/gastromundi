@@ -12,7 +12,7 @@ import {
 } from "react-icons/lu";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { labelEstoque, fmtQtd } from "@/utils/conversaoUnidades";
-import { normalizarTexto } from "@/lib/importacao/planilha";
+import { normalizarTexto } from "@/features/importacao/regras/planilha";
 import { controlaEstoque, situacaoDoSaldo, MINIMO_PADRAO } from "@/features/estoque/regras/estoqueSituacao";
 import { lerQuantidade } from "@/features/estoque/regras/quantidade";
 import "../modulos.css";

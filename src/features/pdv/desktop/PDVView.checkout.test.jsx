@@ -29,11 +29,11 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({
   useTravaComanda: () => ({ bloqueio: null }),
 }));
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 vi.mock("@/features/impressao/regras/despacho", () => ({
@@ -205,7 +205,7 @@ describe("CheckoutView, desconto com senha de gerente", () => {
   });
 
   it("senha recusada não aplica o desconto e diz o motivo", async () => {
-    const { verificarSenhaAdmin } = await import("@/lib/adminAuth");
+    const { verificarSenhaAdmin } = await import("@/features/sessao/dados/adminAuth");
     verificarSenhaAdmin.mockResolvedValueOnce({ ok: false, erro: null });
     await irParaOCheckout([CERVEJA_3, BATATA], 68.3);
 

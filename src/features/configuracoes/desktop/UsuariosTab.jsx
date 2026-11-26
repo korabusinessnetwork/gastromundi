@@ -2,7 +2,7 @@ import { useState } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useSessao } from "@/context/AppContext";
 import { passwordStrength, sanitizeInput } from "@/utils";
-import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/lib/adminAuth";
+import { criarAuthUsuario, atualizarSenhaAuth, deletarAuthUsuario } from "@/features/sessao/dados/adminAuth";
 import { getPermissions, PERMISSION_KEYS, PERMISSION_LABELS, PERMISSION_DESCRICOES, mesclarPermissoes, calcularOverride, ehGerencia } from "@/constants/roles";
 import { LuEye, LuEyeOff, LuCrown, LuBriefcase, LuMonitor, LuUtensils } from "react-icons/lu";
 import PermCheck from "./PermCheck";

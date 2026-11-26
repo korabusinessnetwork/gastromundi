@@ -1,6 +1,6 @@
 import { useSessao } from "@/context/AppContext";
 import { LuCircleAlert, LuTriangleAlert } from "react-icons/lu";
-import { DIAS_AVISO_PRE_VENCIMENTO } from "@/lib/assinatura";
+import { DIAS_AVISO_PRE_VENCIMENTO } from "@/features/assinatura/dados/assinatura";
 import "./AssinaturaBanner.css";
 
 /**

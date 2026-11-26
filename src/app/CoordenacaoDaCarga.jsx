@@ -23,8 +23,8 @@ import {
   listarUsuariosAtivos, listarPermissoesDosCargos
 } from "@/features/sessao/dados/usuarios";
 import { buscarBootstrapTenant } from "@/lib/tenant";
-import { sincronizarStatusAssinatura } from "@/lib/assinatura";
-import { executarAnaliseJarvas } from "@/lib/jarvasEngine";
+import { sincronizarStatusAssinatura } from "@/features/assinatura/dados/assinatura";
+import { executarAnaliseJarvas } from "@/features/jarvas/dados/jarvasEngine";
 import { montarVendaLegada } from "@/features/caixa/regras/vendas";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { setTenantObservabilidade } from "@/lib/observabilidade";

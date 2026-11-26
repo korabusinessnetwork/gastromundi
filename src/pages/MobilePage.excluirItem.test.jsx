@@ -27,7 +27,7 @@ vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({
   useTravaComanda: () => ({ bloqueio: null }),
 }));
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 

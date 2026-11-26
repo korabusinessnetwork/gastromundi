@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
-import { verificarSenhaUsuario, verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaUsuario, verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { getSizes } from "@/constants/sizes";
 import { useResponsive } from "@/utils/hooks";
 import MODULOS from "@/constants/modulos";

@@ -17,15 +17,15 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
-vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({ useTravaComanda: () => ({ bloqueio: null }) }));
-vi.mock("@/lib/adminAuth", () => ({
+vi.mock("@/features/sessao/dados/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
 vi.mock("@/features/impressao/regras/despacho", () => ({ imprimirLancamento: vi.fn(() => Promise.resolve({ ok: true })) }));
 
 import { setAppMock } from "@/test/mockApp";
-import { verificarSenhaAdmin } from "@/lib/adminAuth";
+import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import PDVView from "./index";
 
 let notify, updatePending, removePending;

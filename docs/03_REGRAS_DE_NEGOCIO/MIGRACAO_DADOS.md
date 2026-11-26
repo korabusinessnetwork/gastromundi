@@ -38,7 +38,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
   mais seguro e o único que é **self-service** (o cliente migra sozinho —
   escala de vendas sem escalar suporte).
 - Parsing e validação do arquivo: **client-side**, em funções puras
-  (`src/lib/importacao/…`), que nascem com testes unitários (padrão do repo).
+  (`src/features/importacao/…`), que nascem com testes unitários (padrão do repo).
 - Gravação em lote: upsert em blocos (ex.: 200 linhas por chamada) com
   progresso visível.
 
@@ -54,7 +54,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 
 ### Fase 1 — MVP (o que resolve migração já) — ✅ IMPLEMENTADA
 
-> Código: núcleo puro em `src/lib/importacao/` (`planilha.js` + `produtos.js`,
+> Código: núcleo puro em `src/features/importacao/` (`planilha.js` + `produtos.js`,
 > com testes co-localizados) e tela em
 > `src/features/configuracoes/desktop/ImportarExportarTab.jsx`
 > (aba "Importar / Exportar" das Configurações, só admin). Import de
@@ -78,7 +78,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 
 ### Fase 2 — abrangência — ✅ IMPLEMENTADA (clientes + estoque)
 
-> Código: `src/lib/importacao/clientes.js` e `src/lib/importacao/estoque.js`
+> Código: `src/features/importacao/dados/clientes.js` e `src/features/importacao/dados/estoque.js`
 > (com testes co-localizados), validadores em `planilha.js`
 > (`validarPlanilhaClientes` / `validarPlanilhaEstoque`) e o MESMO wizard da
 > Fase 1 generalizado pros 3 tipos (`ImportarExportarTab.jsx`).
@@ -124,7 +124,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 - **Deploy**: `supabase functions deploy importar-dados --no-verify-jwt`
   (JWT verificado dentro da função, mesmo padrão da
   `provisionar-estabelecimento`). Precisa do CLI, pois a função importa os
-  módulos de `src/lib/importacao/` no bundle — não dá pra colar no editor
+  módulos de `src/features/importacao/` no bundle — não dá pra colar no editor
   do painel.
 
 ### Fora de escopo (não gastar energia agora)
