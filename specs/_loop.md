@@ -1,3 +1,12 @@
+## Rodada 156, refatoração 6.11, READMEs da ponte e do bot, 2026-11-26
+- Spec: specs/refatoracao-6-11-readme-ponte-e-bot.md
+- Resultado: 3 de 3 critérios em sim, sem crítico nem importante. Só documentação. Nenhum dos
+  dois vira workspace npm: a ponte não divide código com o app, o bot reusa por import direto.
+## Rodada 155, refatoração 6.10, roteador por superfície em src/app/rotas, 2026-11-26
+- Spec: specs/refatoracao-6-10-roteador-por-superficie.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 273 arquivos / 4462
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 0 diferença e 2 leves (ruído nas Reservas). Sem
+  migration. `routes/index.jsx` de 294 para 22 linhas; teste novo de `escolherRotas`.
 ## Rodada 154, refatoração 6.9d, 6.9e e 6.9g, cozinha, financeiro e relatório em features/, 2026-11-26
 - Spec: specs/refatoracao-6-9deg-cozinha-financeiro-relatorio.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456

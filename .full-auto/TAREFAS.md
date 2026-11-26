@@ -38,7 +38,8 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T20e | 6.9e financeiro | idem | pastas | T20 |
 | [x] T20f | 6.9f mesas | idem | pastas | T20 |
 | [x] T20g | 6.9g relatório | idem | pastas | T20 |
-| [ ] T21 | 6.10 Roteador por superfície em `src/app/rotas/` | `routes/index.jsx` só escolhe a superfície, suíte verde | pastas | T20 |
-| [ ] T22 | 6.11 README de `ponte/` e `bot/` | READMEs existem e dizem o que é, como rodar, se compartilham código | docs | , |
+| [ ] T20h | 6.9h domínios restantes de `src/lib/` (Jarvas, importação, assinatura, ponte, sessão) | `src/lib/` só com utilidade técnica, suíte verde | pastas | T20g |
+| [x] T21 | 6.10 Roteador por superfície em `src/app/rotas/` | `routes/index.jsx` só escolhe a superfície, suíte verde | pastas | T20 |
+| [x] T22 | 6.11 README de `ponte/` e `bot/` | READMEs existem e dizem o que é, como rodar, se compartilham código | docs | , |
 | [ ] T23 | 6.12 Documentação final e ADR-015 aceito | docs de arquitetura descrevem o estado real | docs | T21 |
 | [ ] T24 | Fase F, auditoria e correção em laço até zero achados | F.1 a F.4 com zero achados na mesma passada, relatório final | auditoria | T23 |

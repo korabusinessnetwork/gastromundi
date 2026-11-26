@@ -30,7 +30,9 @@ e as 12 telas, na mesma ordem.
 
 ## Diferenças
 
-DIFERENCAS
+Roteiro completo, 209 telas, contra a main: nenhuma diferença e 2 mudanças leves de 0,000% nas
+Reservas do PDV, o mesmo ruído de captura das rodadas anteriores. O roteiro passa por todas as
+superfícies (login, app do computador, Palm, Console, cardápio público).
 
 ## Critérios de aceite
 
@@ -44,5 +46,5 @@ DIFERENCAS
 ## Revisão
 
 - Spec: 4 de 4 em sim. Suíte 273 arquivos e 4462 testes, verde; build limpo; lint 0 erros e 25
-  avisos. Chamadas ao Supabase fora de `dados/`: FORA_DE_DADOS.
+  avisos. Chamadas ao Supabase fora de `dados/`: 35.
 - Qualidade: nenhum crítico ou importante.
