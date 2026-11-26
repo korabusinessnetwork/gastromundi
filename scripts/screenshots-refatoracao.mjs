@@ -1018,6 +1018,9 @@ async function capturar(pasta, ref) {
         });
         await contexto.clock.setFixedTime(AGORA);
         await instalarSupabaseFalso(contexto, origem);
+        // TEMA_TENANT=<arquivo.json>: toda tela roda com um estabelecimento que
+        // tem esse tema (e todos os módulos), para a prova do white-label.
+        if (temaTenant) await instalarTemaTenant(contexto, temaTenant);
         // Rota própria da tela, registrada depois do falso para ter precedência.
         if (tela.preparar) await tela.preparar(contexto);
         if (tela.perfil) {
@@ -1098,12 +1101,61 @@ function comparar(antes, depois) {
   process.exitCode = mudaram ? 1 : 0;
 }
 
+// ── Prova do white-label (tarefa 5.y) ─────────────────────────────
+// Com TEMA_TENANT, o estabelecimento das telas ganha o tema do arquivo. O
+// comando `prova-tema` procura, nas fotos, pixels com as cores EXATAS do tema
+// padrão (os valores --gm-* de src/styles/tema.css): se o tema do tenant troca
+// todas, sobrar uma é cor cravada que o estabelecimento não consegue trocar.
+const temaTenant = process.env.TEMA_TENANT ? JSON.parse(readFileSync(resolve(process.env.TEMA_TENANT), "utf8")) : null;
+
+async function instalarTemaTenant(contexto, tema) {
+  const responder = (corpo) => (route) => (route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
+    : route.fallback());
+  await contexto.route(/\/rest\/v1\/tenants/, responder({ id: "tenant-demo", nome: "Demo", slug: "demo", tema, plano_codigo: "completo", created_at: "2026-01-01T00:00:00.000Z" }));
+  await contexto.route(/\/rest\/v1\/planos_modulos/, responder(
+    ["cardapio", "pdv", "caixa", "estoque", "pedidos", "mesas_comandas", "cozinha", "alertas", "financeiro",
+      "clientes", "relatorios", "jarvas", "multiloja", "fiscal_integracoes", "delivery"].map((modulo_codigo) => ({ modulo_codigo }))));
+}
+
+function coresPadraoDoTema() {
+  const css = readFileSync(join(RAIZ, "src/styles/tema.css"), "utf8");
+  const raiz = css.slice(css.indexOf(":root {"), css.indexOf("}", css.indexOf(":root {")));
+  const cores = {};
+  for (const [, nome, hex] of raiz.matchAll(/(--gm-[\w-]+):\s*#([0-9a-fA-F]{6})\s*;/g)) {
+    cores[hex.toLowerCase()] = nome;
+  }
+  return cores;
+}
+
+function provaTema(pasta, minimo = 30) {
+  const padrao = coresPadraoDoTema();
+  let comResto = 0;
+  for (const nome of readdirSync(pasta).filter((n) => n.endsWith(".png")).sort()) {
+    const png = PNG.sync.read(readFileSync(join(pasta, nome)));
+    const contagem = {};
+    for (let i = 0; i < png.data.length; i += 4) {
+      const hex = [png.data[i], png.data[i + 1], png.data[i + 2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+      if (padrao[hex]) contagem[hex] = (contagem[hex] ?? 0) + 1;
+    }
+    const achados = Object.entries(contagem).filter(([, n]) => n >= minimo);
+    if (achados.length) {
+      comResto++;
+      console.log(`${nome}: ${achados.map(([hex, n]) => `${padrao[hex]} #${hex} (${n} px)`).join(", ")}`);
+    }
+  }
+  console.log(`\n${comResto} tela(s) com cor do tema padrão (mínimo de ${minimo} pixels).`);
+  process.exitCode = comResto ? 1 : 0;
+}
+
 const [comando, ...resto] = process.argv.slice(2);
 if (comando === "capturar" && resto[0]) {
   const i = resto.indexOf("--ref");
   await capturar(resolve(resto[0]), i >= 0 ? resto[i + 1] : null);
 } else if (comando === "comparar" && resto[0] && resto[1]) {
   comparar(resolve(resto[0]), resolve(resto[1]));
+} else if (comando === "prova-tema" && resto[0]) {
+  provaTema(resolve(resto[0]));
 } else {
   console.log("Uso:\n  node scripts/screenshots-refatoracao.mjs capturar <pasta> [--ref <commit>]\n" +
     "  node scripts/screenshots-refatoracao.mjs comparar <pastaAntes> <pastaDepois>");

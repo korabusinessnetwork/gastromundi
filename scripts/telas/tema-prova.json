@@ -1,0 +1,17 @@
+{
+  "accent": "#e11d48",
+  "alow": "rgba(225, 29, 72, 0.13)",
+  "bg": "#0b1d14",
+  "card": "#12261c",
+  "surface": "#183024",
+  "border": "#2c4a3a",
+  "green": "#22c55e",
+  "red": "#f43f5e",
+  "blue": "#0ea5e9",
+  "warn": "#eab308",
+  "orange": "#fb923c",
+  "violet": "#a855f7",
+  "text": "#f0fdf4",
+  "muted": "#9cb8a8",
+  "faint": "#2f4a3c"
+}
