@@ -14,3 +14,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T09 (5.31 cores fixas): `npx vitest run` 268 arquivos e 4439 testes verdes, build limpo, lint 0 erros, roteiro 209 telas sem diferença. Cor hexadecimal em JSX 8 para 0, com teste.
 - 2026-11-26, T10 parte 1 (5.32 emoji do produto, computador): `npx vitest run` 268 arquivos e 4444 testes verdes, build limpo, lint 0 erros, roteiro 209 telas com diferenças só onde havia emoji. Emoji 40 para 17.
 - 2026-11-26, T10 (5.32 e 5.33 emoji do produto): `npx vitest run` 268 arquivos e 4444 testes verdes, build limpo, lint 0 erros, roteiro 209 telas com diferenças só onde havia emoji. Emoji 40 para 0; emojiGuard exige zero (vermelho com um emoji de teste).
+- 2026-11-26, T11 (5.34 prova do white-label): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 209 telas sem diferença; `prova-tema` com o tema de prova: 0 tela do estabelecimento com cor do padrão.

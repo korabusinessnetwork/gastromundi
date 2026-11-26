@@ -1,3 +1,11 @@
+## Rodada 140, refatoração 5.34, prova do white-label no roteiro, fase 5 pronta, 2026-11-26
+- Spec: specs/refatoracao-5-34-prova-white-label.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde, 3 novos; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas,
+  0 diferença e 2 leves (ruído). Sem migration.
+- Prova de tema: 15 telas com cor do padrão na primeira volta, 0 depois (sobram login e
+  cardápio sem estabelecimento, que não têm tema). Corrigidos a prévia do cupom, o aviso sem
+  valor fiscal e a barra de força da senha.
 ## Rodada 139, refatoração 5.33, emoji do produto fora do resto do sistema, guard de emoji em zero, 2026-11-26
 - Spec: specs/refatoracao-5-33-emoji-do-produto-resto.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4444

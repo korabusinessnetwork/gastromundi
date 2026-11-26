@@ -33,7 +33,9 @@ computador e no celular. Sem estabelecimento não há tema para aplicar.
 
 ## Diferenças
 
-Contra o código da 5.33, sem tema de prova: ver a seção de comparação abaixo.
+Contra o código da 5.33, sem tema de prova: 209 telas, nenhuma diferença e 2 mudanças leves de
+0,000% nas Reservas do PDV, tela que esta rodada não toca (ruído de captura). No tema padrão as
+cores resolvidas são as mesmas de antes, por isso a prévia do cupom não muda.
 
 ## Critérios de aceite
 
@@ -43,3 +45,11 @@ Contra o código da 5.33, sem tema de prova: ver a seção de comparação abaix
 | 2 | Cada vazamento corrigido tem teste que falha sem a correção | testes do driver e da senha |
 | 3 | Sem tema de prova, o visual padrão não muda além do esperado | `comparar` |
 | 4 | Suíte verde, build limpo, lint 0 erros, sem travessão em texto novo | comandos |
+
+## Revisão
+
+- Spec: 4 de 4 em sim. Prova com tema: 0 tela do estabelecimento com cor do padrão (as 8 que
+  sobram são login e cardápio sem estabelecimento). Suíte 269 arquivos e 4446 testes, verde;
+  build limpo; lint 0 erros e 25 avisos.
+- Qualidade: nenhum crítico ou importante. Menor: a cor "Forte" da senha passou de ciano para
+  o azul do tema, porque ciano não é token; anotado em `.full-auto/DECISOES.md`.

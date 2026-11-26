@@ -159,3 +159,5 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - **D2-07. Observação no cupom: "Obs.:".** O "📝" vira a palavra "Obs.:", a mesma que a sacola do cardápio já usa. Na térmica o emoji saía como um quadrado.
 - **D2-08. T08 em duas rodadas.** Avisos, ícones e cupom (5.29); estados vazios, cardápio público e página da Kora (5.30). O emoji do campo do produto e seus reservas ficam na T10.
 - **D2-09. O que entra no lugar do emoji do produto.** Onde ele tinha lugar fixo no desenho (coluna, caixa, item de lista), um ícone neutro (`LuPackage`; `LuUtensils` no cartão do delivery sem foto) na cor do tema. Onde vinha antes do nome, nada. O valor no banco fica, sem uso; apagar a coluna é migration e fica com o dono (D2-04).
+
+- 2026-11-26, T11: a prova do white-label usa dois temas, o padrão e `scripts/telas/tema-prova.json`, sem cor em comum. Login e cardápio público sem estabelecimento ficam com o padrão de propósito: não há tenant para dar tema. A cor "Forte" da senha era ciano, que não é token; passou para `--gm-blue`.
