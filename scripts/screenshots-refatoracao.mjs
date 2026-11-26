@@ -55,6 +55,32 @@ const abaDoPalm = (rotulo) => (page) =>
 
 // Cada item: nome do arquivo, perfil logado (null = sem sessão), caminho, e
 // opcionalmente um passo depois de carregar.
+// Um sócio logado nas pautas, com três pautas, uma em cada situação. A sessão é a
+// do supabase-js no navegador, com o e-mail `<sócio>@pautas.local` que as pautas
+// reconhecem; as listas respondem pela rota da própria tela.
+async function comSocioDasPautas(contexto) {
+  const { chave, valor } = sessaoNoNavegador("dono");
+  const sessao = JSON.parse(valor);
+  sessao.user = { ...sessao.user, email: "matheus@pautas.local" };
+  await contexto.addInitScript(([k, v]) => { globalThis.localStorage.setItem(k, v); }, [chave, JSON.stringify(sessao)]);
+  const responder = (corpo) => (route) => (route.request().method() === "GET"
+    ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(corpo) })
+    : route.fallback());
+  await contexto.route(/\/rest\/v1\/pautas_pessoas/, responder([
+    { slug: "matheus", nome: "Matheus", ativo: true, ordem: 1 }, { slug: "bruna", nome: "Bruna", ativo: true, ordem: 2 },
+  ]));
+  const pauta = (id, titulo, status, dias) => ({
+    id, titulo, intuito: "Combinar o próximo passo", contexto: null, envolvidos: ["matheus", "bruna"], status,
+    criada_por: "matheus", atualizada_por: "matheus", created_at: `2026-11-${20 - dias}T12:00:00.000Z`,
+    updated_at: `2026-11-${20 - dias}T12:00:00.000Z`, finalizada_em: status === "finalizado" ? "2026-11-19T12:00:00.000Z" : null,
+  });
+  await contexto.route(/\/rest\/v1\/pautas\?/, responder([
+    pauta("p1", "Revisar o cardápio de dezembro", "pendente", 1),
+    pauta("p2", "Fechar o fornecedor de bebidas", "em_progresso", 3),
+    pauta("p3", "Treinar a equipe nova no PDV", "finalizado", 6),
+  ]));
+}
+
 function roteiro(largura) {
   const telas = [
     { nome: "login", perfil: null, caminho: "/login" },
@@ -68,6 +94,16 @@ function roteiro(largura) {
       } },
     { nome: "login-endereco-invalido", perfil: null, caminho: "/login", host: "nada.loja.localhost" },
     { nome: "cardapio-publico", perfil: null, caminho: "/cardapio?loja=demo" },
+    // Site da Kora (domínio da plataforma) e pautas (subdomínio próprio).
+    { nome: "apex-vitrine", perfil: null, caminho: "/", host: "localhost" },
+    { nome: "apex-entrar", perfil: null, caminho: "/entrar", host: "localhost" },
+    { nome: "apex-criar-conta", perfil: null, caminho: "/criar-conta", host: "localhost" },
+    { nome: "apex-novidades", perfil: null, caminho: "/patchnotes", host: "localhost" },
+    { nome: "apex-demo", perfil: null, caminho: "/demo", host: "localhost" },
+    { nome: "pautas-login", perfil: null, caminho: "/", host: "pautas.localhost" },
+    { nome: "pautas-quadro", perfil: null, caminho: "/", host: "pautas.localhost", preparar: comSocioDasPautas },
+    { nome: "pautas-nova", perfil: null, caminho: "/", host: "pautas.localhost", preparar: comSocioDasPautas,
+      passo: (page) => page.getByRole("button", { name: /Nova pauta/ }).first().click({ timeout: 3000 }) },
     { nome: "console", perfil: "plataforma", caminho: "/console" },
     // Fase 5: aba de planos do Console. (A sacola do cardápio público não entra:
     // o estabelecimento de demonstração não tem delivery configurado.)
@@ -974,6 +1010,10 @@ function roteiro(largura) {
 async function subirApp(raizApp) {
   process.env.VITE_SUPABASE_URL = URL_FALSA;
   process.env.VITE_SUPABASE_ANON_KEY = "chave-anon-falsa";
+  // O site da Kora abre em `localhost` e as pautas em `pautas.localhost`. As
+  // telas de sempre continuam em 127.0.0.1, que não é o domínio da plataforma.
+  process.env.VITE_ROOT_DOMAIN = "localhost";
+  process.env.VITE_PAUTAS_SUBDOMAIN = "pautas";
   const { createServer } = await import(join(RAIZ, "node_modules/vite/dist/node/index.js"));
   const servidor = await createServer({
     root: raizApp, configFile: join(raizApp, "vite.config.js"),

@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "metricas": "node scripts/metricas-refatoracao.mjs",
     "fluxos": "node scripts/fluxos-criticos.mjs",
+    "cenarios-banco": "sh scripts/cenarios-banco/rodar.sh",
     "tipos:banco": "node scripts/tipos-banco.mjs"
   },
   "dependencies": {

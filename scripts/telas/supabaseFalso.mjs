@@ -426,7 +426,9 @@ export async function instalarSupabaseFalso(contexto, origemApp) {
     if (url.startsWith(origemApp) || url.startsWith("data:") || url.startsWith("blob:")) return route.continue();
     // Subdomínio de estabelecimento simulado (*.localhost) na mesma porta do app.
     const alvo = new URL(url);
-    if (alvo.hostname.endsWith(".localhost") && alvo.port === new URL(origemApp).port) return route.continue();
+    // `localhost` puro é o site da Kora no roteiro (VITE_ROOT_DOMAIN=localhost).
+    const local = alvo.hostname === "localhost" || alvo.hostname.endsWith(".localhost");
+    if (local && alvo.port === new URL(origemApp).port) return route.continue();
     return route.abort();
   });
   // Realtime: o canal abre e fica mudo, como um estabelecimento sem movimento.
