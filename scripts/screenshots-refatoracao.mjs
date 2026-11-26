@@ -69,6 +69,10 @@ function roteiro(largura) {
     { nome: "login-endereco-invalido", perfil: null, caminho: "/login", host: "nada.loja.localhost" },
     { nome: "cardapio-publico", perfil: null, caminho: "/cardapio?loja=demo" },
     { nome: "console", perfil: "plataforma", caminho: "/console" },
+    // Fase 5: aba de planos do Console. (A sacola do cardápio público não entra:
+    // o estabelecimento de demonstração não tem delivery configurado.)
+    { nome: "console-planos", perfil: "plataforma", caminho: "/console",
+      passo: (page) => page.getByRole("button", { name: /Planos/ }).first().click({ timeout: 3000 }) },
   ];
   for (const aba of ["Pedido", "Comandas", "Painel", "Mais"]) {
     telas.push({ nome: `palm-${paraArquivo(aba)}`, perfil: "dono", caminho: "/palm", passo: abaDoPalm(aba) });
@@ -535,6 +539,16 @@ function roteiro(largura) {
     await page.locator('input[type="password"]').fill("1234", { timeout: 3000 });
     await page.keyboard.press("Enter");
   };
+  // Fase 5: a janela de senha que libera a entrada de estoque, vazia e com erro.
+  const abrirLiberarEntrada = (page) => page.getByRole("button", { name: /Liberar Entrada/ }).click({ timeout: 3000 });
+  telas.push({ nome: "app-estoque-autorizacao", perfil: "dono", caminho: "/app/estoque", passo: abrirLiberarEntrada });
+  telas.push({ nome: "app-estoque-autorizacao-erro", perfil: "dono", caminho: "/app/estoque",
+    passo: async (page) => {
+      await abrirLiberarEntrada(page);
+      await page.locator('input[type="password"]').fill("errada", { timeout: 3000 });
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(400);
+    } });
   telas.push({ nome: "app-estoque-hover", perfil: "dono", caminho: "/app/estoque",
     passo: (page) => page.locator(".estoque-view__tr", { hasText: "Coxinha" }).hover({ timeout: 3000 }) });
   telas.push({ nome: "app-estoque-liberado", perfil: "dono", caminho: "/app/estoque",
