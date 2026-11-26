@@ -4,23 +4,18 @@ import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/lib/cozinha";
 import { enviarViaProducao } from "@/lib/impressao/despacho";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
-import { LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
+import { LuArmchair, LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
 import { itensNaoCancelados } from "@/lib/comandaItens";
 
 
-// AMBER ("em preparo") é o âmbar de ATENÇÃO do design system — token
-// --gm-warn, sobrescrevível pelo tenant como as demais cores da coluna
-// (decisão 017, TD018). Antes era o hex cravado, fora do white-label.
-const AMBER = varColor(C.warn);
+// A cor de cada coluna fica no CSS (`cozinha-view__coluna--<status>`), com os
+// tokens --gm-* que o tenant sobrescreve (decisão 017, TD018).
 const COLUNAS = [
-  { status: "aguardando", titulo: "Aguardando", cor: "var(--gm-blue)" },
-  { status: "em_preparo", titulo: "Em Preparo", cor: AMBER },
-  { status: "pronto",     titulo: "Pronto",      cor: "var(--gm-green)" },
+  { status: "aguardando", titulo: "Aguardando" },
+  { status: "em_preparo", titulo: "Em Preparo" },
+  { status: "pronto",     titulo: "Pronto" },
 ];
 
 /**
@@ -77,13 +72,16 @@ export default function CozinhaView() {
   };
 
   return (
-    <div className="cozinha-view" style={{ background: varColor(C.bg) }}>
+    <div
+      className="cozinha-view"
+      style={{ "--cozinha-pad": `${sz.pad}px`, "--cozinha-gap": `${sz.gap}px` }}
+    >
       {/* Header */}
-      <div className="cozinha-view__header" style={{ padding: `${sz.pad - 4}px ${sz.pad}px` }}>
-        <LuChefHat size={sz.fontLg} color={varColor(C.accent)} />
+      <div className="cozinha-view__header">
+        <LuChefHat size={sz.fontLg} className="cozinha-view__header-icone" />
         <div>
-          <div className="cozinha-view__header-titulo" style={{ fontWeight: 800 }}>Cozinha</div>
-          <div className="cozinha-view__subtitulo" style={{ color: varColor(C.muted) }}>Painel de preparo em tempo real</div>
+          <div className="cozinha-view__header-titulo">Cozinha</div>
+          <div className="cozinha-view__subtitulo">Painel de preparo em tempo real</div>
         </div>
       </div>
 
@@ -101,18 +99,18 @@ export default function CozinhaView() {
       )}
 
       {/* Colunas */}
-      <div className="cozinha-view__colunas" style={{ gap: sz.gap, padding: sz.pad }}>
+      <div className="cozinha-view__colunas">
         {COLUNAS.map((coluna) => {
           const pedidosColuna = pedidos
             .filter((p) => statusCozinha(p) === coluna.status)
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
           return (
-            <div key={coluna.status} className="cozinha-view__coluna">
+            <div key={coluna.status} className={`cozinha-view__coluna cozinha-view__coluna--${coluna.status}`}>
               {/* Cabeçalho da coluna */}
               <div className="cozinha-view__coluna-header">
-                <span className="cozinha-view__coluna-bolinha" style={{ background: coluna.cor }} />
-                <span className="cozinha-view__coluna-titulo" style={{ fontWeight: 800 }}>{coluna.titulo}</span>
+                <span className="cozinha-view__coluna-bolinha" />
+                <span className="cozinha-view__coluna-titulo">{coluna.titulo}</span>
                 <span className="cozinha-view__coluna-contador">{pedidosColuna.length}</span>
               </div>
 
@@ -152,15 +150,12 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
   const itensAtivos = itensNaoCancelados(pedido.items);
 
   return (
-    <div className="pedido-card" style={{
-      border: `1.5px solid ${atrasado ? varColor(C.red) : varColor(C.border)}`,
-      boxShadow: atrasado ? `0 0 0 1px ${alfa(C.red, "33")}` : "none",
-    }}>
+    <div className={`pedido-card${atrasado ? " pedido-card--atrasado" : ""}`}>
       {/* Cabeçalho do card */}
       <div className="pedido-card__topo">
-        <span className="pedido-card__comanda" style={{ fontWeight: 800 }}>{fmtComanda(pedido.comanda)}</span>
-        {pedido.mesa && <span className="pedido-card__mesa">🪑 {pedido.mesa}</span>}
-        <span className="pedido-card__tempo" style={{ color: atrasado ? varColor(C.red) : varColor(C.muted) }}>
+        <span className="pedido-card__comanda">{fmtComanda(pedido.comanda)}</span>
+        {pedido.mesa && <span className="pedido-card__mesa"><LuArmchair size={12} aria-hidden="true" className="pedido-card__mesa-icone" /> {pedido.mesa}</span>}
+        <span className="pedido-card__tempo">
           {atrasado ? <LuTriangleAlert size={12} /> : <LuClock size={12} />}
           {formatarTempoDecorrido(minutos)}
         </span>
@@ -178,7 +173,7 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
       <div className="pedido-card__itens">
         {itensAtivos.map((item, idx) => (
           <div key={item.uid ?? idx} className="pedido-card__item">
-            <span style={{ fontWeight: 700 }}>{item.qty ?? 1}x</span> {item.name}
+            <span className="pedido-card__item-qtd">{item.qty ?? 1}x</span> {item.name}
             {Array.isArray(item.obs) && item.obs.length > 0 && (
               <div className="pedido-card__item-obs">
                 {item.obs.join(" · ")}
@@ -193,11 +188,7 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
         <button
           onClick={onIniciarPreparo}
           disabled={processando}
-          className="pedido-card__btn-acao"
-          style={{
-            background: processando ? varColor(C.faint) : varColor(C.accent),
-            cursor: processando ? "not-allowed" : "pointer",
-          }}
+          className="pedido-card__btn-acao pedido-card__btn-acao--iniciar"
         >
           <LuPlay size={13} /> {processando ? "Iniciando..." : "Iniciar Preparo"}
         </button>
@@ -206,11 +197,7 @@ function PedidoCard({ pedido, processando, onIniciarPreparo, onMarcarPronto, onI
         <button
           onClick={onMarcarPronto}
           disabled={processando}
-          className="pedido-card__btn-acao"
-          style={{
-            background: processando ? varColor(C.faint) : varColor(C.green),
-            cursor: processando ? "not-allowed" : "pointer",
-          }}
+          className="pedido-card__btn-acao pedido-card__btn-acao--pronto"
         >
           <LuCheck size={13} /> {processando ? "Salvando..." : "Marcar Pronto"}
         </button>

@@ -229,3 +229,70 @@
   font-size: var(--fs-base);   /* role: corpo/botão (era sz.fontSm + 1) */
   line-height: var(--lh-base);
 }
+
+/* ---- Fase 5: cor, espaço e estado que saíram do JSX ----
+   --cozinha-pad e --cozinha-gap chegam na raiz (vêm do `sz`). */
+.cozinha-view {
+  background: var(--gm-bg);
+}
+.cozinha-view__header {
+  padding: calc(var(--cozinha-pad) - 4px) var(--cozinha-pad);
+}
+.cozinha-view__header-icone {
+  color: var(--gm-accent);
+}
+.cozinha-view__header-titulo {
+  font-weight: 800;
+}
+.cozinha-view__subtitulo {
+  color: var(--gm-muted);
+}
+.cozinha-view__colunas {
+  gap: var(--cozinha-gap);
+  padding: var(--cozinha-pad);
+}
+/* Cor de cada coluna: "em preparo" usa o âmbar de atenção (--gm-warn). */
+.cozinha-view__coluna--aguardando { --coluna-cor: var(--gm-blue); }
+.cozinha-view__coluna--em_preparo { --coluna-cor: var(--gm-warn); }
+.cozinha-view__coluna--pronto     { --coluna-cor: var(--gm-green); }
+.cozinha-view__coluna-bolinha {
+  background: var(--coluna-cor);
+}
+.cozinha-view__coluna-titulo {
+  font-weight: 800;
+}
+.pedido-card {
+  border: 1.5px solid var(--gm-border);
+}
+.pedido-card--atrasado {
+  border-color: var(--gm-red);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gm-red) 20%, transparent);
+}
+.pedido-card__comanda {
+  font-weight: 800;
+}
+.pedido-card__mesa-icone {
+  vertical-align: -2px;
+}
+.pedido-card__tempo {
+  color: var(--gm-muted);
+}
+.pedido-card--atrasado .pedido-card__tempo {
+  color: var(--gm-red);
+}
+.pedido-card__item-qtd {
+  font-weight: 700;
+}
+.pedido-card__btn-acao {
+  cursor: pointer;
+}
+.pedido-card__btn-acao--iniciar {
+  background: var(--gm-accent);
+}
+.pedido-card__btn-acao--pronto {
+  background: var(--gm-green);
+}
+.pedido-card__btn-acao:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

@@ -1,6 +1,5 @@
 {
   "components/console/PlanosDashboard.jsx": 1,
-  "components/desktop/views/CozinhaView.jsx": 13,
   "components/desktop/views/delivery/ModalProduto.jsx": 1,
   "components/desktop/views/estoque/PopupAutorizacaoEstoque.jsx": 3,
   "components/desktop/views/financeiro/LancamentosList.jsx": 7,
