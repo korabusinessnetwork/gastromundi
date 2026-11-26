@@ -1,3 +1,9 @@
+## Rodada 132, refatoração 5.26, Cozinha sem estilo inline, 2026-11-26
+- Spec: specs/refatoracao-5-26-cozinha.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 198 telas, 0
+  diferença e 3 leves (a cadeira emoji virou ícone; ruído em Reservas). Sem migration.
+  Estilo inline: 50 para 37. Emoji: 94 para 93.
 ## Rodada 131, refatoração 5.25, configurações restantes sem estilo inline, 2026-11-26
 - Spec: specs/refatoracao-5-25-configuracoes-restantes.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
