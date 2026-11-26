@@ -7,6 +7,6 @@
 - início: 2026-11-25
 - base verificada: commit b87b0435 (rodada 5.21), suíte 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros e 25 avisos, estilo inline 185 em 36 arquivos, emoji 98 em 49
 - fase: 6
-- tarefa atual: T15
-- próximo passo: T15, rodada 6.4: mover o domínio caixa para `src/features/caixa/` com `git mv` (script em scratchpad/mover.py, recriar se sumir), testes junto, suíte verde
-- progresso: 14 de 31
+- tarefa atual: T16
+- próximo passo: T16, rodada 6.5: mover o domínio PDV (PDVView, tef.js, comandas) para `src/features/pdv/` com `git mv` (script em scratchpad/mover.py, recriar se sumir)
+- progresso: 15 de 31

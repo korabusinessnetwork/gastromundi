@@ -1,3 +1,8 @@
+## Rodada 144, refatoração 6.4, domínio caixa em src/features/caixa, 2026-11-26
+- Spec: specs/refatoracao-6-4-caixa-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 21 telas do domínio,
+  0 diferença. Sem migration. 16 arquivos movidos com `git mv`; `src/components/modals/` some.
 ## Rodada 143, refatoração 6.3, domínio estoque em src/features/estoque, 2026-11-26
 - Spec: specs/refatoracao-6-3-estoque-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

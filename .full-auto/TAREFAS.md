@@ -25,7 +25,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T12 | 6.1 Mover fiscal para `src/features/fiscal/` | domínio movido com `git mv`, testes junto, suíte verde | pastas | T11 |
 | [x] T13 | 6.2 delivery | idem | pastas | T12 |
 | [x] T14 | 6.3 estoque | idem | pastas | T13 |
-| [ ] T15 | 6.4 caixa | idem | pastas | T14 |
+| [x] T15 | 6.4 caixa | idem | pastas | T14 |
 | [ ] T16 | 6.5 PDV | idem | pastas | T15 |
 | [ ] T17 | 6.6 clientes | idem | pastas | T16 |
 | [ ] T18 | 6.7 console | idem | pastas | T17 |
