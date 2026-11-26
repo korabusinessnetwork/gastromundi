@@ -17,3 +17,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T11 (5.34 prova do white-label): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 209 telas sem diferença; `prova-tema` com o tema de prova: 0 tela do estabelecimento com cor do padrão.
 - 2026-11-26, T12 (6.1 fiscal em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 31 telas do domínio sem diferença, caminhos das funções de borda conferidos. 76 arquivos com `git mv`.
 - 2026-11-26, T13 (6.2 delivery em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 6 telas do domínio sem diferença. 35 arquivos com `git mv`.
+- 2026-11-26, T14 (6.3 estoque em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 34 telas do domínio sem diferença. 21 arquivos com `git mv`.

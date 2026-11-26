@@ -1,3 +1,11 @@
+## Rodada 143, refatoração 6.3, domínio estoque em src/features/estoque, 2026-11-26
+- Spec: specs/refatoracao-6-3-estoque-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 34 telas do domínio,
+  0 diferença. Sem migration. 21 arquivos movidos com `git mv`.
+- O plano listava nove domínios, mas o "pronto quando" exige `components/desktop/views/` vazio:
+  entram as rodadas 6.9a a 6.9g (cardápio, configurações, Área Admin, cozinha, financeiro, mesas
+  e relatório).
 ## Rodada 142, refatoração 6.2, domínio delivery em src/features/delivery, 2026-11-26
 - Spec: specs/refatoracao-6-2-delivery-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

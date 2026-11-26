@@ -163,3 +163,5 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - 2026-11-26, T11: a prova do white-label usa dois temas, o padrão e `scripts/telas/tema-prova.json`, sem cor em comum. Login e cardápio público sem estabelecimento ficam com o padrão de propósito: não há tenant para dar tema. A cor "Forte" da senha era ciano, que não é token; passou para `--gm-blue`.
 
 - 2026-11-26, fase 6: as rodadas de domínio esvaziam `src/lib/` e `components/desktop/views/` (o "pronto quando" do plano). Telas que já estão em `pages/` (celular, cardápio público) não mudam de lugar nessas rodadas; os guardas de SQL ficam juntos em `src/lib/`; uma aba cujo CSS mora no CSS de outra tela vai junto com essa tela (DeliveryTab fica com Configurações).
+
+- 2026-11-26, fase 6: o plano lista nove domínios, mas o "pronto quando" exige `components/desktop/views/` vazio. Acrescentadas T20a a T20g (cardápio, configurações, Área Admin, cozinha, financeiro, mesas, relatório), antes do roteador. É a leitura mais simples que cumpre o critério do próprio plano.
