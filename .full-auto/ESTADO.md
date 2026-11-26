@@ -7,6 +7,6 @@
 - início: 2026-11-25
 - base verificada: commit b87b0435 (rodada 5.21), suíte 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros e 25 avisos, estilo inline 185 em 36 arquivos, emoji 98 em 49
 - fase: 5
-- tarefa atual: T09
-- próximo passo: T09, rodada 5.31 cores hexadecimais no JSX (8) para var(--gm-*); depois T10 (campo de emoji do produto, 45 arquivos, provavelmente em duas rodadas): roteiro de fotos primeiro, referência, conversão, comparação, registro, PR e merge
-- progresso: 8 de 24
+- tarefa atual: T10
+- próximo passo: T10, rodada 5.32 o campo de emoji do produto sai (decisão 037): escolha no delivery, exibição no computador, celular, cardápio público, impressão e dados de exemplo; sem migration: roteiro de fotos primeiro, referência, conversão, comparação, registro, PR e merge
+- progresso: 9 de 24

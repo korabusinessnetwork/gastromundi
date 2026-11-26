@@ -1,3 +1,9 @@
+## Rodada 137, refatoração 5.31, JSX sem cor hexadecimal (5.x), 2026-11-26
+- Spec: specs/refatoracao-5-31-cores-fixas.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4439
+  testes, verde, um novo no guard; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro:
+  209 telas, 0 diferença. Sem migration. Cor hexadecimal em JSX: 8 para 0.
+- Tokens novos `--gm-orange` e `--gm-violet`, que o tenant pode sobrescrever.
 ## Rodada 136, refatoração 5.30, estados vazios, cardápio público e página da Kora sem emoji, 2026-11-26
 - Spec: specs/refatoracao-5-30-estados-vazios-sem-emoji.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4438
