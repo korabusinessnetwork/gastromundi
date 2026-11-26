@@ -1,3 +1,8 @@
+## Rodada 148, refatoração 6.8, pautas em src/features/pautas, 2026-11-26
+- Spec: specs/refatoracao-6-8-pautas-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: sem tela de pautas; o
+  build resolve as telas no lugar novo. Sem migration. 10 arquivos movidos com `git mv`.
 ## Rodada 147, refatoração 6.7, console da plataforma em src/features/console, 2026-11-26
 - Spec: specs/refatoracao-6-7-console-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

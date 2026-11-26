@@ -22,3 +22,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T16 (6.5 PDV e comandas em features/): `npm test` 269 arquivos e 4446 testes verdes (com os de componente do PDV), build limpo, lint 0 erros, roteiro completo 209 telas sem diferença. 57 arquivos com `git mv`.
 - 2026-11-26, T17 (6.6 clientes em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 14 telas do domínio sem diferença. 7 arquivos com `git mv`.
 - 2026-11-26, T18 (6.7 console em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 10 telas sem diferença. 44 arquivos com `git mv`.
+- 2026-11-26, T19 (6.8 pautas em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo (resolve as telas de pautas pelo import dinâmico), lint 0 erros; sem foto de pautas no roteiro. 10 arquivos com `git mv`.
