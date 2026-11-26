@@ -26,7 +26,7 @@ export const NOTAS_DE_ATUALIZACAO = [
       { tipo: "corrigido", texto: "O vencimento do fiado, no detalhe do cliente, também aparecia um dia antes. Corrigido." },
       { tipo: "melhoria", texto: "A prévia do cupom em Configurações, Impressão, e a impressão pelo navegador usam as cores do seu estabelecimento." },
       { tipo: "melhoria", texto: "O aviso \"sem valor fiscal\" do cupom e a barra de força da senha seguem as cores do seu estabelecimento." },
-      { tipo: "interno", texto: "Organização do sistema por assunto (nota fiscal, delivery, estoque, caixa, PDV, clientes, Console, cardápio, Configurações, impressão, mesas e Área Admin), sem mudança nas telas." },
+      { tipo: "interno", texto: "Organização do sistema por assunto (nota fiscal, delivery, estoque, caixa, PDV, clientes, Console, cardápio, Configurações, impressão, mesas, Área Admin, cozinha, financeiro e relatório), sem mudança nas telas." },
     ],
   },
   {

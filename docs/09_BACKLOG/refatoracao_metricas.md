@@ -105,6 +105,7 @@ saem de `npm test` e `npm run build`. O plano e as metas estão em
 | 2026-11-26 | 6.9a telas do cardápio em features/ | 66 | 0 | 15 | 46 (0 / 0 / 46) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 | 2026-11-26 | 6.9b configurações, impressão e mesas em features/ | 66 | 0 | 15 | 44 (0 / 0 / 44) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 269 arquivos, 4.446 testes | 2.357 kB |
 | 2026-11-26 | 6.9c Área Admin em features/ | 66 | 0 | 15 | 44 (0 / 0 / 44) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 272 arquivos, 4.456 testes | 2.357 kB |
+| 2026-11-26 | 6.9d, 6.9e e 6.9g cozinha, financeiro e relatório em features/ | 66 | 0 | 15 | 35 (0 / 0 / 35) | 0 | 0 | 0 (0 em features/) | 0 / 25 | 272 arquivos, 4.456 testes | 2.357 kB |
 
 A partir da linha 3.1 e 3.3, estilo inline e cor hexadecimal foram remedidos: até a 2.10 a
 tabela repetia os valores da partida. O estilo inline real era 1.505 já no fim da fase 2;

@@ -1,3 +1,8 @@
+## Rodada 154, refatoração 6.9d, 6.9e e 6.9g, cozinha, financeiro e relatório em features/, 2026-11-26
+- Spec: specs/refatoracao-6-9deg-cozinha-financeiro-relatorio.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 0 diferença e 1 leve (ruído nas Reservas). Sem
+  migration. 44 arquivos movidos com `git mv`.
 ## Rodada 153, refatoração 6.9c, Área Admin em features/, 2026-11-26
 - Spec: specs/refatoracao-6-9c-admin-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456

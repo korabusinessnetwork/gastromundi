@@ -34,10 +34,10 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T20a | 6.9a cardápio (produtos, subprodutos, combos) | idem | pastas | T20 |
 | [x] T20b | 6.9b configurações (abas e impressão) | idem | pastas | T20 |
 | [x] T20c | 6.9c Área Admin | idem | pastas | T20 |
-| [ ] T20d | 6.9d cozinha | idem | pastas | T20 |
-| [ ] T20e | 6.9e financeiro | idem | pastas | T20 |
+| [x] T20d | 6.9d cozinha | idem | pastas | T20 |
+| [x] T20e | 6.9e financeiro | idem | pastas | T20 |
 | [x] T20f | 6.9f mesas | idem | pastas | T20 |
-| [ ] T20g | 6.9g relatório | idem | pastas | T20 |
+| [x] T20g | 6.9g relatório | idem | pastas | T20 |
 | [ ] T21 | 6.10 Roteador por superfície em `src/app/rotas/` | `routes/index.jsx` só escolhe a superfície, suíte verde | pastas | T20 |
 | [ ] T22 | 6.11 README de `ponte/` e `bot/` | READMEs existem e dizem o que é, como rodar, se compartilham código | docs | , |
 | [ ] T23 | 6.12 Documentação final e ADR-015 aceito | docs de arquitetura descrevem o estado real | docs | T21 |

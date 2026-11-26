@@ -167,3 +167,5 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - 2026-11-26, fase 6: o plano lista nove domínios, mas o "pronto quando" exige `components/desktop/views/` vazio. Acrescentadas T20a a T20g (cardápio, configurações, Área Admin, cozinha, financeiro, mesas, relatório), antes do roteador. É a leitura mais simples que cumpre o critério do próprio plano.
 
 - 2026-11-26, regra do push com notas: o hook confere os commits de cada push. Por isso a rodada sobe num push só, no fim, com a nota junto; o nome na tela é "Novidades do sistema" (Princípio nº 1), no endereço `/patchnotes` pedido.
+
+- 2026-11-26, T20d, T20e e T20g numa rodada só: domínios pequenos, só mudança de lugar, e cada mesclagem sobe produção; três deploys sem mudança visível não valem. Comparação completa das 209 telas no lugar da comparação por domínio.
