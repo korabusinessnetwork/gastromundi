@@ -9,4 +9,4 @@
 - fase: 6
 - tarefa atual: T20c
 - próximo passo: T20c, rodada 6.9c: mover a Área Admin (AdminView, admin/) para `src/features/admin/desktop/` (scripts em scratchpad: mover.py e registrar.py); depois T20d cozinha, T20e financeiro, T20g relatório
-- progresso: 23 de 31
+- progresso: 24 de 31
