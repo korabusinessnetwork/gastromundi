@@ -71,7 +71,7 @@ Pré-requisito de tudo: hoje não existe `tenant_id` em lugar nenhum (ADR-004: s
 - `src/constants/addons.js` (novo) — códigos de add-on (`NFE`, `TEF`).
 - `src/lib/tenant.js`: `buscarAddonsAtivos(tenantId)`, `addonHabilitado(addonsAtivos, addon)` (pura — fonte única, equivalente a `moduloHabilitado` mas sem depender de plano); `buscarBootstrapTenant()` agora também retorna `addonsAtivos`.
 - `AppContext.jsx`: `addonHabilitado(addon)` exposto via `useApp()`.
-- `src/lib/fiscal.js` (novo) — `emitirDocumentoFiscal(venda, opts)`: **stub**, registra um evento (`fiscal.documento_simulado`) via o Event Bus do Jarvas em vez de chamar um provedor. O comentário no código marca exatamente onde o provedor real (Focus NFe, PlugNotas etc.) entra depois — mesma assinatura, sem mexer em quem chama.
+- `src/features/fiscal/dados/fiscal.js` (novo) — `emitirDocumentoFiscal(venda, opts)`: **stub**, registra um evento (`fiscal.documento_simulado`) via o Event Bus do Jarvas em vez de chamar um provedor. O comentário no código marca exatamente onde o provedor real (Focus NFe, PlugNotas etc.) entra depois — mesma assinatura, sem mexer em quem chama.
 - `src/lib/tef.js` (novo) — `processarPagamentoTef(pagamento, opts)`: **stub** análogo (evento `tef.pagamento_simulado`), mais `isPagamentoCartao(metodo)` (pura) para restringir TEF a crédito/débito. Mesmo comentário de ponto de extensão para o provedor real (SiTef, PayGo etc.).
 - `src/components/desktop/views/PDVView/useFinalizarPagamento.js`: depois da venda gravada, dois blocos fire-and-forget novos (mesmo padrão do bloco do Financeiro já existente) — só executam se `addonHabilitado('nfe')`/`addonHabilitado('tef')`; sem o add-on, nenhum dos dois módulos sequer é chamado.
 

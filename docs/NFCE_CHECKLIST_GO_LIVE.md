@@ -152,11 +152,11 @@ Fazer **uma venda de teste** e acompanhar cada serviço:
 
 ## Onde está cada peça no código
 
-- **Núcleos puros:** `src/lib/nfce*.js` (montagem/validação de XML, SOAP, assinatura, desfechos) — testáveis, sem segredo.
+- **Núcleos puros:** `src/features/fiscal/regras/nfce*.js` (montagem/validação de XML, SOAP, assinatura, desfechos) — testáveis, sem segredo.
 - **Assinatura/transmissão (Edge):** `supabase/functions/_shared/nfceTransmissao.ts` (único lugar com `node-forge` + chave privada).
 - **Edge Functions:** `supabase/functions/{emitir,reenviar,cancelar,inutilizar}-nfce/`.
-- **Front:** `src/lib/fiscal.js` (chamadas às Edge), `src/components/fiscal/` (PainelFiscal, CancelarNfce, InutilizarNumeracao, histórico).
-- **Config do tenant:** `src/lib/fiscalConfigRepo.js` + `src/lib/validarConfigFiscal.js` (allow-list de escrita, sem segredo).
+- **Front:** `src/features/fiscal/dados/fiscal.js` (chamadas às Edge), `src/features/fiscal/desktop/` (PainelFiscal, CancelarNfce, InutilizarNumeracao, histórico).
+- **Config do tenant:** `src/features/fiscal/dados/fiscalConfigRepo.js` + `src/features/fiscal/regras/validarConfigFiscal.js` (allow-list de escrita, sem segredo).
 
 ---
 

@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * NFC-e (modelo 65) — leitura das notas emitidas (Leva 9). Acesso de LEITURA

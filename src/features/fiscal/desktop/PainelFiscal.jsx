@@ -5,8 +5,8 @@ import {
   LuShieldCheck, LuLockKeyhole, LuLoaderCircle, LuTriangleAlert,
   LuRotateCw, LuCircleCheck, LuSave,
 } from "react-icons/lu";
-import { buscarConfigFiscal, salvarConfigFiscal } from "@/lib/fiscalConfigRepo";
-import { validarConfigFiscal } from "@/lib/validarConfigFiscal";
+import { buscarConfigFiscal, salvarConfigFiscal } from "@/features/fiscal/dados/fiscalConfigRepo";
+import { validarConfigFiscal } from "@/features/fiscal/regras/validarConfigFiscal";
 import InutilizarNumeracao from "./InutilizarNumeracao";
 import "./PainelFiscal.css";
 

@@ -5,7 +5,7 @@ import "./CupomNfce.css";
 /**
  * <CupomNfce> — DANFE NFC-e (o cupom do consumidor), Leva 4.
  *
- * Renderiza a ESTRUTURA já montada por `montarDanfeNfce` (src/lib/nfceDanfe.js).
+ * Renderiza a ESTRUTURA já montada por `montarDanfeNfce` (src/features/fiscal/regras/nfceDanfe.js).
  * Toda a lógica do cupom (totais, formatação, tarjas, estado pendente) vive
  * na função pura e testada; aqui é só apresentação — CSS separado do JSX
  * (decisão 018), num layout de cupom térmico estreito.

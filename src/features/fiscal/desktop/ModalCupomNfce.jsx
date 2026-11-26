@@ -1,9 +1,9 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useMemo } from "react";
 import { LuPrinter, LuX, LuLoaderCircle, LuTriangleAlert, LuClock } from "react-icons/lu";
-import { montarDanfeNfce } from "@/lib/nfceDanfe";
-import { montarVendaFiscal } from "@/lib/nfceVenda";
-import { mensagemDesfechoNfce } from "@/lib/nfceMensagem";
+import { montarDanfeNfce } from "@/features/fiscal/regras/nfceDanfe";
+import { montarVendaFiscal } from "@/features/fiscal/regras/nfceVenda";
+import { mensagemDesfechoNfce } from "@/features/fiscal/regras/nfceMensagem";
 import CupomNfce from "./CupomNfce";
 import "./ModalCupomNfce.css";
 

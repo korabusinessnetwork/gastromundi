@@ -18,7 +18,7 @@ const h = vi.hoisted(() => {
   };
 });
 
-vi.mock("./supabase", () => ({ supabase: { from: h.fromMock } }));
+vi.mock("@/lib/supabase", () => ({ supabase: { from: h.fromMock } }));
 
 import { buscarConfigFiscal, salvarConfigFiscal } from "./fiscalConfigRepo";
 

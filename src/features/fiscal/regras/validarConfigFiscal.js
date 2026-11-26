@@ -11,7 +11,7 @@
  * que vai em claro no QR Code — não é segredo.
  */
 
-import { validarCnpj } from "./documento";
+import { validarCnpj } from "@/lib/documento";
 
 // `validarCnpj` foi centralizado em ./documento (reúso entre o CPF/CNPJ do
 // cadastro de clientes e esta validação fiscal). Reexportado aqui por

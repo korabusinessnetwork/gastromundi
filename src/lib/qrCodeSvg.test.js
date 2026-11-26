@@ -3,7 +3,7 @@ import { montarSvgQrCode, svgSeguro } from "./qrCodeSvg";
 
 /**
  * O SVG deste módulo é o ÚNICO `dangerouslySetInnerHTML` do app
- * (`src/components/fiscal/CupomNfce.jsx`). Hoje ele é seguro porque a lib
+ * (`src/features/fiscal/desktop/CupomNfce.jsx`). Hoje ele é seguro porque a lib
  * `qrcode` desenha só `path` e nunca ecoa o texto de entrada no markup.
  *
  * "Hoje" é a palavra que incomoda: isso é propriedade da biblioteca, não

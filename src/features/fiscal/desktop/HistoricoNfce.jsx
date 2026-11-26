@@ -3,8 +3,8 @@ import {
   LuReceipt, LuSearch, LuCircleCheck, LuClock, LuCircleX, LuBan,
   LuLoaderCircle, LuTriangleAlert, LuRotateCw, LuInbox,
 } from "react-icons/lu";
-import { listarNfceEmitidas } from "@/lib/nfceEmitidasRepo";
-import { buscarEmitenteFiscal } from "@/lib/fiscal";
+import { listarNfceEmitidas } from "@/features/fiscal/dados/nfceEmitidasRepo";
+import { buscarEmitenteFiscal } from "@/features/fiscal/dados/fiscal";
 import { contarPendenciasFiscais, assinarFilaOffline } from "@/lib/offline/filaApp";
 import BotaoReimprimirNfce from "./BotaoReimprimirNfce";
 import CancelarNfce from "./CancelarNfce";

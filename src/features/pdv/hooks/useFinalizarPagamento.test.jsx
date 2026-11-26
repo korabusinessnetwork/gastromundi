@@ -29,7 +29,7 @@ const criarLancamentoMock = vi.fn(() => Promise.resolve({ data: { id: "lanc-1" }
 vi.mock("@/lib/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));
 
 const emitirDocumentoFiscalMock = vi.fn(() => Promise.resolve({ status: "stub", vendaId: "v1" }));
-vi.mock("@/lib/fiscal", () => ({ emitirDocumentoFiscal: (...args) => emitirDocumentoFiscalMock(...args) }));
+vi.mock("@/features/fiscal/dados/fiscal", () => ({ emitirDocumentoFiscal: (...args) => emitirDocumentoFiscalMock(...args) }));
 
 const processarPagamentoTefMock = vi.fn(() => Promise.resolve({ status: "stub", metodo: "credito" }));
 vi.mock("@/lib/tef", async () => {

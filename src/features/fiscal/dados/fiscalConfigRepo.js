@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * NFC-e (modelo 65) — LEITURA e ESCRITA da configuração fiscal do tenant

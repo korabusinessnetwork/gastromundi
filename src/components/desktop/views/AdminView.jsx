@@ -10,7 +10,7 @@ import {
   LuArrowLeft
 } from "react-icons/lu";
 import NotasFiscaisTab from "@/components/desktop/views/NotasFiscaisTab";
-import ImpostosAdmin from "@/components/desktop/views/ImpostosAdmin";
+import ImpostosAdmin from "@/features/fiscal/desktop/ImpostosAdmin";
 // TD015: as linhas de ingrediente e de item de compra são adicionadas e removidas
 // do meio da lista, então precisam de identidade própria. Não confundir com o `uid`
 // local deste arquivo, que é id de entidade (a ficha, a compra) e vai para o banco.

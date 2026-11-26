@@ -27,8 +27,8 @@ import {
   interpretarRetornoEvento,
   montarEnvelopeInutilizacao,
   interpretarRetornoInutilizacao,
-} from "../../../src/lib/nfceSoap.js";
-import { assinarInfNfe, assinarInfEvento, assinarInfInut } from "../../../src/lib/nfceAssinatura.js";
+} from "../../../src/features/fiscal/regras/nfceSoap.js";
+import { assinarInfNfe, assinarInfEvento, assinarInfInut } from "../../../src/features/fiscal/regras/nfceAssinatura.js";
 
 // Timeout curto da chamada à SEFAZ (Leva 14). Parametrizável: em produção a
 // SEFAZ-RS costuma responder em poucos segundos; passar disso é sinal de

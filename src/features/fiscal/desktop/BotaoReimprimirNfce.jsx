@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuPrinter, LuClock, LuCircleX, LuLoaderCircle } from "react-icons/lu";
-import { buscarNfcePorVenda } from "@/lib/nfceEmitidasRepo";
+import { buscarNfcePorVenda } from "@/features/fiscal/dados/nfceEmitidasRepo";
 import { buscarVendaCompleta } from "@/lib/vendasRepo";
-import { podeReimprimir, montarResultadoReimpressao, descreverEstadoReimpressao } from "@/lib/nfceReimpressao";
+import { podeReimprimir, montarResultadoReimpressao, descreverEstadoReimpressao } from "@/features/fiscal/regras/nfceReimpressao";
 import ModalCupomNfce from "./ModalCupomNfce";
 import "./BotaoReimprimirNfce.css";
 

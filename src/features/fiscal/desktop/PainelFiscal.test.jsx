@@ -6,13 +6,13 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 // A validação (validarConfigFiscal) roda DE VERDADE — é pura.
 const buscarConfigFiscal = vi.fn().mockResolvedValue({ data: null, error: null });
 const salvarConfigFiscal = vi.fn().mockResolvedValue({ data: {}, error: null });
-vi.mock("@/lib/fiscalConfigRepo", () => ({
+vi.mock("@/features/fiscal/dados/fiscalConfigRepo", () => ({
   buscarConfigFiscal: (...a) => buscarConfigFiscal(...a),
   salvarConfigFiscal: (...a) => salvarConfigFiscal(...a),
 }));
 // PainelFiscal embute <InutilizarNumeracao>, que importa @/lib/fiscal (→ supabase).
 // Mockamos para a suíte seguir hermética (sem .env.local).
-vi.mock("@/lib/fiscal", () => ({
+vi.mock("@/features/fiscal/dados/fiscal", () => ({
   inutilizarNumeracao: vi.fn().mockResolvedValue({ status: "inutilizada" }),
 }));
 

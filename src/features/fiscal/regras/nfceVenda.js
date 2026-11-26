@@ -19,8 +19,8 @@
  * — é só transformação de formato da venda.
  */
 
-import { apenasDigitos } from "./documento";
-import { itensNaoCancelados } from "./comandaItens";
+import { apenasDigitos } from "@/lib/documento";
+import { itensNaoCancelados } from "@/lib/comandaItens";
 
 // Método de pagamento do PDV → tPag da SEFAZ (NFC-e). O que não casar cai
 // em "99" (Outros) — nunca esconde nem perde um pagamento.

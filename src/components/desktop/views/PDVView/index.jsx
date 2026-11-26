@@ -10,7 +10,7 @@ import CheckoutView  from "./CheckoutView";
 import ClienteComandaModal from "./ClienteComandaModal";
 import MesaMapView   from "./MesaMapView";
 import MesaReservasView from "./MesaReservasView";
-import ModalCupomNfce from "@/components/fiscal/ModalCupomNfce";
+import ModalCupomNfce from "@/features/fiscal/desktop/ModalCupomNfce";
 import SaldoModal from "./pdv/SaldoModal";
 import { usePdv } from "@/features/pdv/hooks/usePdv";
 import CabecalhoPdv from "./pdv/CabecalhoPdv";

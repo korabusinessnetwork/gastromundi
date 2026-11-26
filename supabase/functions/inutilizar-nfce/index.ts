@@ -27,8 +27,8 @@ import { decidirAcesso, mensagemRecusa, PAPEIS_ADMIN, registrarFalhaInterna } fr
 import {
   montarXmlInutilizacao,
   decidirDesfechoInutilizacao,
-} from "../../../src/lib/nfceInutilizacao.js";
-import { codigoUf } from "../../../src/lib/nfce.js";
+} from "../../../src/features/fiscal/regras/nfceInutilizacao.js";
+import { codigoUf } from "../../../src/features/fiscal/regras/nfce.js";
 
 import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
 

@@ -1,4 +1,4 @@
-import HistoricoNfce from "@/components/fiscal/HistoricoNfce";
+import HistoricoNfce from "@/features/fiscal/desktop/HistoricoNfce";
 
 /**
  * Página de gestão — histórico das NFC-e emitidas (Leva 12). Consulta do

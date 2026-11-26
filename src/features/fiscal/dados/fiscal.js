@@ -1,6 +1,6 @@
-import { supabase } from "./supabase";
-import { emitirEvento } from "./jarvas";
-import { montarVendaFiscal } from "./nfceVenda";
+import { supabase } from "@/lib/supabase";
+import { emitirEvento } from "@/lib/jarvas";
+import { montarVendaFiscal } from "../regras/nfceVenda";
 
 /**
  * Fiscal (NFC-e modelo 65) — add-on pago transversal (decisão 019, F019).

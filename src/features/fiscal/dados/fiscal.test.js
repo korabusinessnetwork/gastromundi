@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Jarvas/Event Bus — só observabilidade, isolado.
 const emitirEvento = vi.fn();
-vi.mock("./jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
+vi.mock("@/lib/jarvas", () => ({ emitirEvento: (...args) => emitirEvento(...args) }));
 
 // supabase.auth.getSession — por padrão com token (caixa logado). Testes
 // que precisam de "sem sessão" sobrescrevem via getSessionMock.
 const getSessionMock = vi.fn(() =>
   Promise.resolve({ data: { session: { access_token: "tok-123" } } }),
 );
-vi.mock("./supabase", () => ({
+vi.mock("@/lib/supabase", () => ({
   supabase: { auth: { getSession: (...a) => getSessionMock(...a) } },
 }));
 

@@ -3,12 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 
 const listarNfceEmitidas = vi.fn();
-vi.mock("@/lib/nfceEmitidasRepo", () => ({
+vi.mock("@/features/fiscal/dados/nfceEmitidasRepo", () => ({
   listarNfceEmitidas: (...a) => listarNfceEmitidas(...a),
   buscarNfcePorVenda: vi.fn().mockResolvedValue({ data: null, error: null }),
 }));
 
-vi.mock("@/lib/fiscal", () => ({
+vi.mock("@/features/fiscal/dados/fiscal", () => ({
   buscarEmitenteFiscal: vi.fn().mockResolvedValue(null),
 }));
 

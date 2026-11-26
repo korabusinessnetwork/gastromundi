@@ -26,7 +26,7 @@ import {
   montarXmlEventoCancelamento,
   dentroDoPrazoCancelamento,
   decidirDesfechoCancelamento,
-} from "../../../src/lib/nfceEventoCancelamento.js";
+} from "../../../src/features/fiscal/regras/nfceEventoCancelamento.js";
 
 import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
 

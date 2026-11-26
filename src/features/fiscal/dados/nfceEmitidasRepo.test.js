@@ -21,7 +21,7 @@ const { fromMock, setResposta, getChamadas } = vi.hoisted(() => {
   };
 });
 
-vi.mock("./supabase", () => ({ supabase: { from: fromMock } }));
+vi.mock("@/lib/supabase", () => ({ supabase: { from: fromMock } }));
 
 import { listarNfceEmitidas } from "./nfceEmitidasRepo";
 

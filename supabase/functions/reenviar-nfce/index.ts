@@ -34,7 +34,7 @@ import {
   PAPEIS_FISCAL_EMISSAO,
   registrarFalhaInterna,
 } from "../_shared/guardaEntrada.ts";
-import { decidirDesfechoReenvio } from "../../../src/lib/decidirDesfechoReenvio.js";
+import { decidirDesfechoReenvio } from "../../../src/features/fiscal/regras/decidirDesfechoReenvio.js";
 
 import { lerOrigensPermitidas, montarCorsHeaders } from "../_shared/cors.ts";
 

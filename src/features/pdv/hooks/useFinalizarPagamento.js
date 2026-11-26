@@ -2,8 +2,8 @@ import { limparReservaMesa } from "@/features/mesas/dados/mesas";
 import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
-import { emitirDocumentoFiscal } from "@/lib/fiscal";
-import { destDoCliente } from "@/lib/nfceVenda";
+import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
+import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
@@ -32,7 +32,7 @@ const isFiado = (metodo) => String(metodo ?? "").trim().toLowerCase() === "fiado
  * viram conta a receber ('previsto', vencimento em 30 dias).
  *
  * Add-ons pagos (Fase 3 da camada de comercialização, decisão 019):
- * NF-e (`@/lib/fiscal`) e TEF (`@/lib/tef`) são chamados aqui, também
+ * NF-e (`@/features/fiscal/dados/fiscal`) e TEF (`@/lib/tef`) são chamados aqui, também
  * fire-and-forget, só quando `addonHabilitado('nfe'|'tef')` — sem o
  * add-on ativo, nenhum dos dois módulos roda e o pagamento é idêntico
  * a antes desta fase existir. Hoje ambos são STUBS (nenhum provedor

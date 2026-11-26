@@ -6,7 +6,7 @@ import {
 import { regravarComanda, atualizarComanda, excluirComanda } from "@/features/comandas/dados/comandas";
 import { emitirEvento } from "@/lib/jarvas";
 import { criarLancamento } from "@/lib/financeiro";
-import { emitirDocumentoFiscal } from "@/lib/fiscal";
+import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/lib/estoque";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha } from "@/lib/observabilidade";

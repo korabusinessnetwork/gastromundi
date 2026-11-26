@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { LuX, LuFileText } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
-import { destDoCliente } from "@/lib/nfceVenda";
+import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";
 import CampoDocumento from "@/components/shared/CampoDocumento";
 import "./ModalCpfNota.css";
 
