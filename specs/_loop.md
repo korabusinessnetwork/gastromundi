@@ -1,3 +1,10 @@
+## Rodada 152, correção das datas um dia antes e página de novidades, 2026-11-26
+- Spec: specs/correcao-datas-e-pagina-de-novidades.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 36 telas, só as datas
+  mudam, para o dia gravado. Sem migration.
+- Pedidos do dono no meio da fase 6. Fecha a pendência P2-02. Nasce a regra de que todo push
+  atualiza as notas de `kora.codes/patchnotes`, cobrada por `.githooks/pre-push`.
 ## Rodada 151, refatoração 6.9b, configurações, impressão e mesas em features/, 2026-11-26
 - Spec: specs/refatoracao-6-9b-configuracoes-impressao-mesas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

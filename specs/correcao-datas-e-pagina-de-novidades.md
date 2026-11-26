@@ -45,3 +45,18 @@ vale depois de `git config core.hooksPath .githooks` (o mesmo passo do `post-com
 | 2 | `/patchnotes` mostra as notas no site da Kora, legível no computador e no celular | teste de componente e fotos nas duas larguras |
 | 3 | Push sem nota é recusado | repositório de teste com o hook |
 | 4 | Suíte verde, build limpo, lint 0 erros, sem travessão nem emoji em texto novo | comandos e guardas |
+
+## Diferenças
+
+36 telas da Área Admin e de Clientes contra a main: nenhuma diferença acima de 0,1% e 7 leves, todas
+nas datas. As compras de demonstração gravadas em 19/11, 15/11 e 02/11 apareciam como 18, 14 e
+01, e agora aparecem no dia gravado; o fiado com vencimento em 20/12 aparecia como 19/12 e agora
+aparece como 20/12 (conferido lado a lado). A página de novidades não tem foto no roteiro (só abre
+no site da Kora); foi fotografada à parte, no computador e no celular, com a prévia do site ligada.
+
+## Revisão
+
+- Spec: 4 de 4 em sim. Suíte 272 arquivos e 4456 testes, verde; build limpo; lint 0 erros e 25
+  avisos. Notas: 21 blocos, de 1º de agosto a 26 de novembro de 2026.
+- Qualidade: nenhum crítico ou importante. O histórico das notas foi escrito a partir do
+  `_loop.md` e do git; as rodadas só de organização interna viraram um item "Por dentro" por dia.

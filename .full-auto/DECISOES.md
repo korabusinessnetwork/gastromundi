@@ -165,3 +165,5 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - 2026-11-26, fase 6: as rodadas de domínio esvaziam `src/lib/` e `components/desktop/views/` (o "pronto quando" do plano). Telas que já estão em `pages/` (celular, cardápio público) não mudam de lugar nessas rodadas; os guardas de SQL ficam juntos em `src/lib/`; uma aba cujo CSS mora no CSS de outra tela vai junto com essa tela (DeliveryTab fica com Configurações).
 
 - 2026-11-26, fase 6: o plano lista nove domínios, mas o "pronto quando" exige `components/desktop/views/` vazio. Acrescentadas T20a a T20g (cardápio, configurações, Área Admin, cozinha, financeiro, mesas, relatório), antes do roteador. É a leitura mais simples que cumpre o critério do próprio plano.
+
+- 2026-11-26, regra do push com notas: o hook confere os commits de cada push. Por isso a rodada sobe num push só, no fim, com a nota junto; o nome na tela é "Novidades do sistema" (Princípio nº 1), no endereço `/patchnotes` pedido.
