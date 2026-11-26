@@ -180,3 +180,12 @@
   padding: calc(var(--pg-pad) - 2px) var(--pg-pad-sm);
   gap: max(0px, calc(var(--pg-gap) - 8px));
 }
+
+/* Produto com seleção: o preço é o mínimo (o item escolhido pode acrescer).
+   "a partir de" avisa que o valor pode subir, menor e sem o peso do preço
+   cheio, para não parecer o preço final. */
+.produto-card__preco--apartir {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+}

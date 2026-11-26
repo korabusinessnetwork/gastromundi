@@ -6,7 +6,7 @@ import CartPanel     from "../CartPanel";
 // Área do pedido: produtos, carrinho e as ações da comanda aberta.
 export default function AreaPedido({ tela }) {
   const {
-    selected, setSelected, cartItems, salvando, abaAtiva, setAbaAtiva, combos, currentUser,
+    selected, setSelected, cartItems, salvando, abaAtiva, setAbaAtiva, combos, gruposPorProduto, currentUser,
     products, updatePending, isMob, handleAddProduct, handleChangeQty, handleChangeObs,
     handleLancar, handleFinalizar, notify,
   } = tela;
@@ -33,7 +33,7 @@ export default function AreaPedido({ tela }) {
             {/* Produtos */}
             {(!isMob || abaAtiva === "produtos") && (
               <div className="pdv__produtos-area">
-                <ProductGrid products={products} combos={combos} onAdd={handleAddProduct} />
+                <ProductGrid products={products} combos={combos} gruposPorProduto={gruposPorProduto} onAdd={handleAddProduct} />
               </div>
             )}
 

@@ -22,7 +22,19 @@ export function registrarMovimento(linha) {
   return supabase.from("caixa_movimentos").insert(linha).select("id,tipo,valor,motivo,autor,autorizado_por,created_at").single();
 }
 
-/** Lançamentos financeiros gerados por uma venda, apagados quando ela é cancelada. */
-export function excluirLancamentosDaVenda(vendaId) {
-  return supabase.from("lancamentos").delete().eq("venda_id", vendaId);
+/**
+ * Lançamentos financeiros gerados por uma venda cancelada viram cancelados em
+ * vez de sumir (migration 20261009): um fiado desfeito continua aparecendo no
+ * Financeiro como desfeito, sem buraco sem nome no histórico do cliente.
+ */
+export function cancelarLancamentosDaVenda(vendaId, { canceladoPor, canceladoEm, motivo }) {
+  return supabase
+    .from("lancamentos")
+    .update({
+      status: "cancelado",
+      cancelado_por: canceladoPor,
+      cancelado_em: canceladoEm,
+      motivo_cancelamento: motivo,
+    })
+    .eq("venda_id", vendaId);
 }

@@ -23,7 +23,10 @@ const MIGRATION = readFileSync(
   join(RAIZ, "supabase", "migrations", "20260922_gravar_itens_comanda.sql"),
   "utf8",
 );
-const APP_CONTEXT = readFileSync(join(RAIZ, "src", "context", "AppContext.jsx"), "utf8");
+// Desde a refatoração, a chamada mora na camada de dados das comandas e a
+// volta ao caminho antigo no provider que grava a comanda.
+const DADOS = readFileSync(join(RAIZ, "src", "features", "comandas", "dados", "comandas.js"), "utf8");
+const PROVIDER = readFileSync(join(RAIZ, "src", "context", "ComandasProvider.jsx"), "utf8");
 
 /** Só o SQL que roda — o cabeçalho cita palavras-chave em prosa. */
 const SQL = MIGRATION.split("\n")
@@ -106,14 +109,14 @@ describe("migration 20260922 — gravar_itens_comanda", () => {
 
 describe("encaixe entre o app e a função", () => {
   it("o app chama exatamente o nome que a migration cria", () => {
-    expect(APP_CONTEXT).toMatch(/supabase\.rpc\("gravar_itens_comanda"/);
+    expect(DADOS).toMatch(/supabase\.rpc\("gravar_itens_comanda"/);
   });
 
   it("os parâmetros da chamada são os mesmos que a função declara", () => {
     const declarados = [...SQL.matchAll(/^\s*(p_[a-z_]+)\s+(?:text|jsonb|numeric)/gm)].map((m) => m[1]);
     expect(new Set(declarados)).toEqual(new Set(["p_id", "p_items", "p_base_uids", "p_total"]));
 
-    const chamada = APP_CONTEXT.match(/supabase\.rpc\("gravar_itens_comanda",\s*\{([\s\S]*?)\}\)/)[1];
+    const chamada = DADOS.match(/supabase\.rpc\("gravar_itens_comanda",\s*\{([\s\S]*?)\}\)/)[1];
     const enviados = [...chamada.matchAll(/(p_[a-z_]+):/g)].map((m) => m[1]);
     expect(new Set(enviados)).toEqual(new Set(declarados));
   });
@@ -122,7 +125,7 @@ describe("encaixe entre o app e a função", () => {
     // As migrations são rodadas à mão: o front-end pode chegar à produção
     // antes desta. Sem o fail-open, todo lançamento quebraria até alguém
     // abrir o SQL Editor.
-    expect(APP_CONTEXT).toMatch(/"PGRST202"/);
-    expect(APP_CONTEXT).toMatch(/"42883"/);
+    expect(PROVIDER).toMatch(/"PGRST202"/);
+    expect(PROVIDER).toMatch(/"42883"/);
   });
 });

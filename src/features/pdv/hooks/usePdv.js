@@ -8,6 +8,8 @@ import { getSizes } from "@/constants/sizes";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
+import { carregarTodosGrupos } from "@/features/cardapio/dados/gruposEscolha";
+import { carregarTodosItensFixos, resolverItensFixos } from "@/features/cardapio/dados/comboItensFixos";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/features/cardapio/regras/combos";
 import { buscarClientePorId } from "@/features/clientes/dados/clientes";
@@ -121,16 +123,33 @@ export function usePdv({ notify }) {
   // Carrega uma vez por entrada na tela; a receita (subprodutos com
   // controla_estoque) viaja junto no item do carrinho para a baixa de
   // estoque dos componentes na finalização.
+  //
+  // Junto vêm os grupos de escolha (combo flexível e produto com seleção) e
+  // os itens fixos de cada combo, que abrem o seletor antes do carrinho.
   const [combos, setCombos] = useState([]);
+  const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
     let ativo = true;
-    listarCombosParaVenda()
-      .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
-        if (ativo) setCombos(data ?? []);
-      });
+    Promise.all([
+      listarCombosParaVenda(),
+      carregarTodosGrupos(),
+      carregarTodosItensFixos(),
+    ]).then(([combosRes, gruposRes, fixosRes]) => {
+      if (!ativo) return;
+      if (combosRes.error) console.error("[pdv] erro ao carregar combos:", resumoErro(combosRes.error));
+      if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", resumoErro(gruposRes.error));
+      if (fixosRes.error) console.error("[pdv] erro ao carregar itens fixos dos combos:", resumoErro(fixosRes.error));
+      const porCombo = gruposRes.porCombo ?? {};
+      const fixosPorCombo = fixosRes.porCombo ?? {};
+      setCombos((combosRes.data ?? []).map(c => ({
+        ...c,
+        grupos: porCombo[c.id] ?? [],
+        escolhasFixas: resolverItensFixos(fixosPorCombo[c.id] ?? [], products),
+      })));
+      setGruposPorProduto(gruposRes.porProduto ?? {});
+    });
     return () => { ativo = false; };
-  }, []);
+  }, [products]);
 
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda
@@ -573,7 +592,7 @@ export function usePdv({ notify }) {
     abaAtiva, setAbaAtiva, toast, setToast, alertaAberto, setAlertaAberto, cupomNfce,
     setCupomNfce, alertaValidadeAberto, setAlertaValidadeAberto, buscaComanda, setBuscaComanda,
     barcodeInputOpen, setBarcodeInputOpen, barcodeValue, setBarcodeValue, barcodeFeedback,
-    setBarcodeFeedback, combos, setCombos, currentUser, users, bootstrapLoading, metodosCustom,
+    setBarcodeFeedback, combos, setCombos, gruposPorProduto, currentUser, users, bootstrapLoading, metodosCustom,
     diasAlertaValidade, products, estoque, estoqueMinimos, pending, addPending, updatePending,
     removePending, lancadas, addLancada, caixaAberto, sales, finalizarPagamento, cancelarComanda,
     width, mesas, mesasLoading, atualizarStatusMesa, showNova, setShowNova, nomeComanda,

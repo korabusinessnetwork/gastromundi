@@ -1,21 +1,63 @@
 import { useState, useRef } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { montarItemCombo } from "@/features/cardapio/regras/combos";
+import { montarItemCombo, montarItemProdutoEscolhas } from "@/features/cardapio/regras/combos";
+import { formatarReais } from "@/lib/dinheiro";
+import SeletorEscolhas from "./SeletorEscolhas";
 import "./ProductGrid.css";
 
-export default function ProductGrid({ products, combos = [], onAdd }) {
+const CAT_COMBOS = "Combos";
+
+export default function ProductGrid({ products, combos = [], gruposPorProduto = {}, onAdd }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const categorias = ["Todos", ...new Set(products.map(p => p.category))];
+  // Produto desabilitado no cadastro não é oferecido aqui. O catálogo traz os
+  // desabilitados junto de propósito (senão eles sumiriam da tela de cadastro
+  // e não haveria como religá-los), então o corte é aqui, na tela que vende.
+  const vendaveis = products.filter(p => p.active !== false);
+  // Combo avulso (sem produto principal) não tem categoria de produto onde
+  // morar: aparece primeiro em "Todos" e é a única coisa na aba "Combos".
+  const avulsos = combos.filter(c => c.item_principal_id == null);
+  const categorias = ["Todos", ...new Set(vendaveis.map(p => p.category)), ...(avulsos.length ? [CAT_COMBOS] : [])];
   const [catAtiva, setCatAtiva] = useState("Todos");
+
+  // Item com grupos de escolha (combo flexível ou produto com seleção) abre
+  // o seletor antes de ir ao carrinho; sem grupos, vai direto.
+  const [seletor, setSeletor] = useState(null);
+
+  const clicarProduto = (produto) => {
+    const grupos = gruposPorProduto[produto.id] ?? [];
+    if (grupos.length === 0) { onAdd(produto); return; }
+    setSeletor({ tipo: "produto", produto, grupos, titulo: produto.name, precoBase: Number(produto.price) || 0 });
+  };
+
+  // `produto` é o principal do combo, quando existe: dá a categoria para o
+  // carrinho agrupar o combo com ela.
+  const clicarCombo = (combo, produto) => {
+    const grupos = combo.grupos ?? [];
+    if (grupos.length === 0) {
+      const item = montarItemCombo(combo);
+      if (item) onAdd({ ...item, category: produto?.category });
+      return;
+    }
+    setSeletor({ tipo: "combo", combo, produto, grupos, titulo: combo.nome, precoBase: Number(combo.preco_total) || 0, escolhasFixas: combo.escolhasFixas ?? [] });
+  };
+
+  const confirmarEscolhas = (escolhas) => {
+    if (!seletor) return;
+    const item = seletor.tipo === "combo"
+      ? { ...montarItemCombo(seletor.combo, escolhas), category: seletor.produto?.category }
+      : montarItemProdutoEscolhas(seletor.produto, escolhas);
+    if (item) onAdd(item);
+    setSeletor(null);
+  };
 
   // Estabelecimento recém-criado abre o PDV com o cardápio vazio. "Nenhum
   // produto nesta categoria" mentiria — não existe categoria nenhuma — e não
   // diz o que fazer. Aqui os dois vazios são coisas diferentes: catálogo
   // vazio manda a pessoa para a tela de cadastro; categoria vazia é só um
   // filtro sem resultado.
-  const catalogoVazio = products.length === 0;
+  const catalogoVazio = vendaveis.length === 0 && combos.length === 0;
 
   // Arrastar-para-rolar a barra de categorias: quando há categorias demais
   // elas transbordam e somem à direita (ex. nomes longos). No mouse não dá
@@ -44,15 +86,16 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
   const selecionarCat = (cat) => { if (!arrasto.current.moveu) setCatAtiva(cat); };
 
   const filtrados = catAtiva === "Todos"
-    ? products
-    : products.filter(p => p.category === catAtiva);
+    ? vendaveis
+    : vendaveis.filter(p => p.category === catAtiva);
 
   // B4 — combos entram na grade junto do produto principal, na mesma
   // categoria (o operador acha o combo onde procuraria o produto):
   // modo "combo" vira um card extra ao lado; modo "substituir" toma o
   // lugar do card do principal enquanto o combo estiver ativo.
   const cards = [];
-  for (const produto of filtrados) {
+  if (catAtiva === "Todos" || catAtiva === CAT_COMBOS) for (const combo of avulsos) cards.push({ tipo: "combo", combo });
+  if (catAtiva !== CAT_COMBOS) for (const produto of filtrados) {
     const doProduto = combos.filter(c => String(c.item_principal_id) === String(produto.id));
     const substituto = doProduto.find(c => c.modo === "substituir");
     if (!substituto) cards.push({ tipo: "produto", produto });
@@ -99,9 +142,14 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
         className="produto-grid__lista"
       >
         {cards.map(card => card.tipo === "produto" ? (
-          <ProdutoCard key={card.produto.id} product={card.produto} onAdd={onAdd} />
+          <ProdutoCard
+            key={card.produto.id}
+            product={card.produto}
+            temEscolhas={(gruposPorProduto[card.produto.id]?.length ?? 0) > 0}
+            onSelecionar={clicarProduto}
+          />
         ) : (
-          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onAdd={onAdd} />
+          <ComboCard key={`combo-${card.combo.id}`} combo={card.combo} produto={card.produto} onSelecionar={clicarCombo} />
         ))}
         {cards.length === 0 && (
           <div className="produto-grid__vazio">
@@ -119,16 +167,29 @@ export default function ProductGrid({ products, combos = [], onAdd }) {
           </div>
         )}
       </div>
+
+      {/* Seletor de escolhas (combo flexível / produto com seleção) */}
+      {seletor && (
+        <SeletorEscolhas
+          titulo={seletor.titulo}
+          precoBase={seletor.precoBase}
+          grupos={seletor.grupos}
+          products={products}
+          escolhasFixas={seletor.escolhasFixas ?? []}
+          onConfirmar={confirmarEscolhas}
+          onClose={() => setSeletor(null)}
+        />
+      )}
     </div>
   );
 }
 
-function ProdutoCard({ product, onAdd }) {
+function ProdutoCard({ product, temEscolhas, onSelecionar }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
     setPressed(true);
-    onAdd(product);
+    onSelecionar(product);
     setTimeout(() => setPressed(false), 150);
   };
 
@@ -140,22 +201,25 @@ function ProdutoCard({ product, onAdd }) {
       <div className="produto-card__nome">
         {product.name}
       </div>
-      <div className="produto-card__preco">
-        R$ {Number(product.price).toFixed(2)}
-      </div>
+      {temEscolhas ? (
+        <div className="produto-card__preco produto-card__preco--apartir">
+          a partir de {formatarReais(Number(product.price))}
+        </div>
+      ) : (
+        <div className="produto-card__preco">
+          {formatarReais(Number(product.price))}
+        </div>
+      )}
     </button>
   );
 }
 
-function ComboCard({ combo, produto, onAdd }) {
+function ComboCard({ combo, produto, onSelecionar }) {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = () => {
-    const item = montarItemCombo(combo);
-    if (!item) return;
     setPressed(true);
-    // Categoria do principal para o carrinho agrupar o combo com ela
-    onAdd({ ...item, category: produto?.category });
+    onSelecionar(combo, produto);
     setTimeout(() => setPressed(false), 150);
   };
 
@@ -167,7 +231,10 @@ function ComboCard({ combo, produto, onAdd }) {
   const subs = (combo.combo_subprodutos ?? [])
     .filter(cs => cs?.subprodutos?.nome)
     .map(cs => (Number(cs.quantidade ?? 1) > 1 ? `${cs.quantidade}× ${cs.subprodutos.nome}` : cs.subprodutos.nome));
-  const itens = [...produtosAdd, ...subs];
+  // Combo flexível: os grupos de escolha ("Hambúrguer + Refrigerante"), o
+  // operador vê o que o cliente vai montar.
+  const grupos = (combo.grupos ?? []).filter(g => g?.nome).map(g => g.nome);
+  const itens = [...produtosAdd, ...subs, ...grupos];
 
   return (
     <button
@@ -184,7 +251,7 @@ function ComboCard({ combo, produto, onAdd }) {
         </div>
       )}
       <div className="produto-card__preco">
-        R$ {Number(combo.preco_total ?? 0).toFixed(2)}
+        {formatarReais(Number(combo.preco_total ?? 0))}
       </div>
     </button>
   );

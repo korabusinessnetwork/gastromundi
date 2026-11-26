@@ -17,7 +17,7 @@ import {
 } from "@/features/caixa/dados/vendas";
 import { listarFechamentos, listarMovimentosRecentes } from "@/features/caixa/dados/caixa";
 import { listarComandas } from "@/features/comandas/dados/comandas";
-import { listarProdutosAtivos } from "@/features/cardapio/dados/produtos";
+import { listarProdutos } from "@/features/cardapio/dados/produtos";
 import { listarGruposCategoria, listarCategoriaGrupos } from "@/features/cardapio/dados/gruposCategoria";
 import {
   listarUsuariosAtivos, listarPermissoesDosCargos
@@ -264,7 +264,7 @@ export function CoordenacaoDaCarga({ children, tenantIdRef, lockIndisponivelRef,
         { data: rolePermsData },
         { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
-        listarProdutosAtivos(),
+        listarProdutos(),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),

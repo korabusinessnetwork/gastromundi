@@ -4,8 +4,14 @@
 
 import { supabase } from "@/lib/supabase";
 
-export function listarProdutosAtivos() {
-  return supabase.from("products").select("*").eq("active", true).order("id");
+/**
+ * Todos os produtos, desabilitados inclusive: o desabilitado precisa continuar
+ * chegando ao cadastro, senão some dele e não há como reativá-lo. Quem decide
+ * o que não oferecer para venda são as telas de venda, filtrando
+ * `active !== false`.
+ */
+export function listarProdutos() {
+  return supabase.from("products").select("*").order("id");
 }
 
 export function criarProduto(campos) {

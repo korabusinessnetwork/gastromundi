@@ -5,7 +5,7 @@ import { useOffline } from "./OfflineContext";
 import { useSessao } from "./SessaoContext";
 import { gravarConfig } from "./gravarConfig";
 import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/features/caixa/dados/vendas";
-import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
+import { gravarFechamento, registrarMovimento, cancelarLancamentosDaVenda } from "@/features/caixa/dados/caixa";
 import { lerValor, validarMovimento } from "@/features/caixa/regras/caixaMovimentos";
 import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { logAction } from "@/features/auditoria/dados/logger";
@@ -116,15 +116,21 @@ export function CaixaProvider({ children }) {
 
   // Leva 15.3 — cancela uma venda já fechada (comanda fechada).
   //
-  // TD009 (etapa 3): cancelar virou MARCA em `vendas`, não remoção.
-  // Antes o cancelamento marcava `data.cancelada` no blob de `sales` e
-  // APAGAVA as linhas relacionais: o blob guardava a auditoria e apagar as
-  // linhas tirava a venda dos relatórios sem precisar de migration. Sem o
-  // blob, apagar as linhas apagaria a venda cancelada do banco inteiro.
-  // Agora as quatro colunas de `vendas` (migration 20260920) guardam o
-  // estado, e itens e pagamentos ficam de pé como trilha de auditoria.
-  // Lançamentos financeiros continuam removidos: receita cancelada não é
-  // receita.
+  // Cancelar é MARCAR, nunca apagar (TD009 etapa 3 + migração 20261009).
+  // Antes esta função apagava venda_pagamentos, venda_itens, vendas e o
+  // lançamento financeiro: o blob em `sales` guardava a auditoria, e apagar
+  // as linhas tirava a venda dos relatórios sem precisar de migration. Sem
+  // o blob, apagar apagaria a venda cancelada do banco inteiro.
+  //
+  // Hoje as quatro colunas de `vendas` (20260920) guardam o estado, e itens
+  // e pagamentos ficam de pé como trilha. O LANÇAMENTO também deixou de ser
+  // apagado (20261009): um fiado desfeito precisa continuar aparecendo no
+  // Financeiro como desfeito, senão o histórico do cliente fica com um
+  // buraco sem nome. Uma venda que existiu e foi cancelada é informação,
+  // quanto, de quem, por quem e por quê, não sujeira a limpar.
+  //
+  // O banco passou a recusar DELETE nessas tabelas (policy RESTRICTIVE), de
+  // modo que voltar ao caminho antigo não passa nem por engano.
   const cancelarVendaFechada = async (vendaId, motivo) => {
     const alvo = sales.find(s => s && s.id === vendaId);
     if (!alvo) return { error: { code: "venda_nao_encontrada", message: "Venda não encontrada." } };
@@ -164,7 +170,9 @@ export function CaixaProvider({ children }) {
       return { error: { code: "no_rows_updated", message: "Nenhuma linha atualizada, venda inexistente ou sem permissão." } };
     }
 
-    const { error: eLanc } = await excluirLancamentosDaVenda(vendaId);
+    // O lançamento vira cancelado em vez de sumir: a conta a receber de um
+    // fiado desfeito precisa continuar aparecendo no Financeiro como desfeita.
+    const { error: eLanc } = await cancelarLancamentosDaVenda(vendaId, { canceladoPor: canceladaPor, canceladoEm: canceladaEm, motivo });
     if (eLanc) console.error("cancelarVendaFechada lancamentos:", eLanc);
 
     setSalesLocal(prev => prev.map(s => (s && s.id === vendaId ? cancelada : s)));
