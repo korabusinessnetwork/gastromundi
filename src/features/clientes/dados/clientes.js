@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { emitirEvento } from "@/lib/jarvas";
-import { baixarConta, contaEmAberto } from "@/lib/financeiro";
+import { baixarConta, contaEmAberto } from "@/features/financeiro/dados/financeiro";
 import { apenasDigitos, validarDocumento } from "@/lib/documento";
 import { telefoneValido, apenasDigitosTelefone } from "@/lib/telefone";
 
@@ -9,7 +9,7 @@ import { telefoneValido, apenasDigitosTelefone } from "@/lib/telefone";
  *
  * Cadastro, histórico de compras e fiado. O fiado JÁ é um lançamento
  * do Financeiro (public.lancamentos, origem='venda' — ver
- * src/lib/financeiro.js) — este módulo só filtra/soma por cliente e
+ * src/features/financeiro/dados/financeiro.js) — este módulo só filtra/soma por cliente e
  * reaproveita `baixarConta` para a baixa, sem criar um segundo
  * sistema de fiado.
  *

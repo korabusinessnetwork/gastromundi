@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSessao, useCaixa } from "@/context/AppContext";
-import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/lib/financeiro";
-import { buscarFichasTecnicas, calcularCustoVendas } from "@/lib/relatorios";
+import { listarLancamentos, baixarConta, processarVencidos, calcularFluxoCaixa } from "@/features/financeiro/dados/financeiro";
+import { buscarFichasTecnicas, calcularCustoVendas } from "@/features/relatorios/dados/relatorios";
 import { round2 } from "@/features/caixa/regras/vendas";
 import { diaLocalISO, rotuloDiaBR } from "@/utils/datas";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuPlus } from "react-icons/lu";
 import { intervaloDoMes } from "@/lib/periodos";
-import ResumoCards from "./financeiro/ResumoCards";
-import LancamentosList from "./financeiro/LancamentosList";
-import PeriodoSelector from "./financeiro/PeriodoSelector";
-import NovoLancamentoModal from "./financeiro/NovoLancamentoModal";
+import ResumoCards from "./ResumoCards";
+import LancamentosList from "./LancamentosList";
+import PeriodoSelector from "./PeriodoSelector";
+import NovoLancamentoModal from "./NovoLancamentoModal";
 import "./FinanceiroView.css";
 
 /**

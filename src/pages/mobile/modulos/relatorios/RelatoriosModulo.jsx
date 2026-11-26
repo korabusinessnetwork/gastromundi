@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LuArrowLeft, LuChartBar, LuMonitor, LuTrendingDown, LuTrendingUp } from "react-icons/lu";
 import {
   buscarRelatorioVendas, calcularPeriodo, calcularPeriodoAnterior, calcularVariacaoPercentual,
-} from "@/lib/relatorios";
+} from "@/features/relatorios/dados/relatorios";
 import { ticketMedio } from "@/features/caixa/regras/vendas";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
@@ -15,7 +15,7 @@ import "./RelatoriosModulo.css";
  * por ficha técnica, sem período customizado — isso continua no
  * DesempenhoReport do computador. Aqui é só o número do dia/semana/mês e o
  * top de produtos, para o dono conferir andando pelo salão. Somente
- * leitura, tudo vem da RPC relatorio_vendas via src/lib/relatorios.js —
+ * leitura, tudo vem da RPC relatorio_vendas via src/features/relatorios/dados/relatorios.js —
  * esta tela não agrega nada por conta própria.
  */
 

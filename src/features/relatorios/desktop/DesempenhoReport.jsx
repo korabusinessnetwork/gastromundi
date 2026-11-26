@@ -7,7 +7,7 @@ import { rotuloMetodo } from "@/utils/pagamentos";
 import { LuBanknote, LuReceipt, LuChartBar, LuCircleAlert, LuTrendingUp, LuTrendingDown, LuChevronDown, LuCalendar, LuHourglass } from "react-icons/lu";
 import {
   calcularPeriodo, calcularPeriodoComparacao, rotuloComparacao, calcularVariacaoPercentual, calcularMargemProdutos, buscarRelatorioVendas, buscarFichasTecnicas,
-} from "@/lib/relatorios";
+} from "@/features/relatorios/dados/relatorios";
 import { ticketMedio } from "@/features/caixa/regras/vendas";
 import "./DesempenhoReport.css";
 

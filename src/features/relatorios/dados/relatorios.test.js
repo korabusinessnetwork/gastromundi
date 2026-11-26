@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   mockSupabase.current = createMockSupabase();
   return { supabase: mockSupabase.current };

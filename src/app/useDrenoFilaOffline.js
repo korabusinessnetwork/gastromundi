@@ -5,7 +5,7 @@ import {
 } from "@/features/caixa/dados/vendas";
 import { regravarComanda, atualizarComanda, excluirComanda } from "@/features/comandas/dados/comandas";
 import { emitirEvento } from "@/lib/jarvas";
-import { criarLancamento } from "@/lib/financeiro";
+import { criarLancamento } from "@/features/financeiro/dados/financeiro";
 import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { gerarAlertaBaixaFalhou, iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/features/estoque/regras/estoque";
 import { isErroDeRede } from "@/lib/offline/rede";

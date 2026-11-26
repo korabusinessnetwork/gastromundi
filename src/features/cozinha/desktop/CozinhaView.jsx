@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/lib/cozinha";
+import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/features/cozinha/dados/cozinha";
 import { enviarViaProducao } from "@/features/impressao/regras/despacho";
 import { LuArmchair, LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
@@ -21,7 +21,7 @@ const COLUNAS = [
 /**
  * Cozinha / KDS (F007) — docs/03_REGRAS_DE_NEGOCIO/COZINHA.md.
  * Painel em tempo real, organizado por status de preparo. O "pedido"
- * aqui é a comanda em `pending` (ver src/lib/cozinha.js).
+ * aqui é a comanda em `pending` (ver src/features/cozinha/dados/cozinha.js).
  */
 export default function CozinhaView() {
   const { currentUser } = useSessao();

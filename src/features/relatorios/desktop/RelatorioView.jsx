@@ -6,12 +6,12 @@ import Empty from "./Empty";
 import FechamentoDetalheModal from "./FechamentoDetalheModal";
 import { PERIODOS } from "./apoio";
 import { useRelatorios } from "@/features/relatorios/hooks/useRelatorios";
-import AbaVendas from "././AbaVendas";
-import AbaCancelamentos from "././AbaCancelamentos";
-import AbaFechamentos from "././AbaFechamentos";
-import AbaLogs from "././AbaLogs";
-import AbaCredenciais from "././AbaCredenciais";
-import AbaAdmin from "././AbaAdmin";
+import AbaVendas from "./AbaVendas";
+import AbaCancelamentos from "./AbaCancelamentos";
+import AbaFechamentos from "./AbaFechamentos";
+import AbaLogs from "./AbaLogs";
+import AbaCredenciais from "./AbaCredenciais";
+import AbaAdmin from "./AbaAdmin";
 import "./RelatorioView.css";
 
 export default function RelatorioView() {

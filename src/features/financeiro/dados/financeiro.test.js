@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("./supabase", () => ({ supabase: {} }));
-vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ supabase: {} }));
+vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 import { calcularFluxoCaixa, marcarVencidos, contaEmAberto, criarLancamento, resumirContasEmAberto } from "./financeiro";
 

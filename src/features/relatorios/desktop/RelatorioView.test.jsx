@@ -24,7 +24,7 @@ vi.mock("@/lib/supabase", async () => {
 // estabelecimento (`opts.empresa`) — sem capturá-lo, o nome impresso no
 // arquivo exportado fica fora do alcance do teste.
 const { exportado } = vi.hoisted(() => ({ exportado: { pdf: [], xlsx: [] } }));
-vi.mock("@/lib/exportReport", () => ({
+vi.mock("@/features/relatorios/regras/exportReport", () => ({
   exportToPDF: (titulo, headers, rows, periodo, opts) => exportado.pdf.push({ titulo, headers, rows, opts }),
   exportToXLSX: (titulo, headers, rows, periodo, opts) => exportado.xlsx.push({ titulo, headers, rows, opts }),
 }));

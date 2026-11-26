@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 const { buscarRelatorioVendas } = vi.hoisted(() => ({ buscarRelatorioVendas: vi.fn() }));
-vi.mock("@/lib/relatorios", async (importOriginal) => ({
+vi.mock("@/features/relatorios/dados/relatorios", async (importOriginal) => ({
   ...(await importOriginal()),
   buscarRelatorioVendas,
 }));

@@ -3,12 +3,12 @@ import { normalizarPagamentos, totalPorMetodo, rotuloMetodo } from "@/utils/paga
 import { agruparVendasPorDia, rotuloDiaBR, intervaloPeriodo, agruparVendasPorOperador } from "@/utils/datas";
 import {
   calcularVariacaoPercentual,
-} from "@/lib/relatorios";
+} from "@/features/relatorios/dados/relatorios";
 import { ticketMedio } from "@/features/caixa/regras/vendas";
 import { esperadoEmCaixa, diferencaCaixa } from "@/features/caixa/regras/caixa";
 import { useSessao, useConfig, useComandas, useCaixa } from "@/context/AppContext";
 import { listarLogsOperador } from "@/features/auditoria/dados/logsOperador";
-import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/lib/exportReport";
+import { exportToPDF as exportToPDFBase, exportToXLSX as exportToXLSXBase } from "@/features/relatorios/regras/exportReport";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { nomeExibicaoTenant, marcaComAssinatura } from "@/lib/tema";

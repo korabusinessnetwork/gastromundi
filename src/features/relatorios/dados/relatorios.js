@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Relatórios — F011 (docs/03_REGRAS_DE_NEGOCIO/RELATORIOS.md).

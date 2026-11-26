@@ -26,7 +26,7 @@ const logActionMock = vi.fn();
 vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
 
 const criarLancamentoMock = vi.fn(() => Promise.resolve({ data: { id: "lanc-1" }, error: null }));
-vi.mock("@/lib/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));
+vi.mock("@/features/financeiro/dados/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));
 
 const emitirDocumentoFiscalMock = vi.fn(() => Promise.resolve({ status: "stub", vendaId: "v1" }));
 vi.mock("@/features/fiscal/dados/fiscal", () => ({ emitirDocumentoFiscal: (...args) => emitirDocumentoFiscalMock(...args) }));

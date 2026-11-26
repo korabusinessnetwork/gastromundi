@@ -1,5 +1,5 @@
 import { LuCheck, LuChevronDown } from "react-icons/lu";
-import { contaEmAberto } from "@/lib/financeiro";
+import { contaEmAberto } from "@/features/financeiro/dados/financeiro";
 import "./LancamentosList.css";
 
 // A cor de cada status fica no CSS: `lancamentos-list__badge-status--<status>`.

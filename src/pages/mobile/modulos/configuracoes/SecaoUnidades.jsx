@@ -7,8 +7,8 @@ import "./SecaoUnidades.css";
 /**
  * SecaoUnidades — aba "Unidades de Medida" das Configurações, versão Palm.
  *
- * Espelha `UnidadesMedidaTab` do desktop (src/components/desktop/views/
- * ConfiguracoesView.jsx, ~linha 948): mesmas 3 categorias de unidade
+ * Espelha `UnidadesMedidaTab` do desktop (src/features/configuracoes/desktop/
+ * UnidadesMedidaTab.jsx): mesmas 3 categorias de unidade
  * (estoque/compra/consumo), mesmo formulário de adição (abreviação + nome)
  * e mesma checagem de quantos produtos usam a unidade antes de excluir.
  *

@@ -1,6 +1,6 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useState } from "react";
-import { criarLancamento } from "@/lib/financeiro";
+import { criarLancamento } from "@/features/financeiro/dados/financeiro";
 // O dia UTC vira às 21h de Brasília: quem lançava depois disso via o campo já
 // preenchido com a data de amanhã e gravava a competência no mês errado.
 import { hojeLocalISO } from "@/utils/datas";

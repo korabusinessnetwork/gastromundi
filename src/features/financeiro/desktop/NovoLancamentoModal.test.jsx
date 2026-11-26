@@ -2,12 +2,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 
-vi.mock("@/lib/financeiro", () => ({
+vi.mock("@/features/financeiro/dados/financeiro", () => ({
   criarLancamento: vi.fn(() => Promise.resolve({ data: {}, error: null })),
 }));
 
 import NovoLancamentoModal from "./NovoLancamentoModal";
-import { criarLancamento } from "@/lib/financeiro";
+import { criarLancamento } from "@/features/financeiro/dados/financeiro";
 
 // 2026-07-16T00:30:00Z = 15/07 às 21h30 em São Paulo — o dia UTC já virou,
 // o dia do restaurante não.

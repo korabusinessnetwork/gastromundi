@@ -199,7 +199,7 @@ export function useMesas() {
 
 /**
  * usePedidosCozinha — busca as comandas com itens lançados (o "pedido"
- * desta base, ver src/lib/cozinha.js) e sincroniza via realtime.
+ * desta base, ver src/features/cozinha/dados/cozinha.js) e sincroniza via realtime.
  * Usado pelo KDS (F007 — docs/03_REGRAS_DE_NEGOCIO/COZINHA.md).
  *
  * Expõe `erro` de propósito: se a busca falha, uma cozinha cheia vê a mesma

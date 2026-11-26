@@ -4,7 +4,7 @@ vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 const { baixarConta } = vi.hoisted(() => ({ baixarConta: vi.fn() }));
 // Só a gravação é dublê; a regra de "conta em aberto" (contaEmAberto) é a real.
-vi.mock("@/lib/financeiro", async (importOriginal) => ({ ...(await importOriginal()), baixarConta }));
+vi.mock("@/features/financeiro/dados/financeiro", async (importOriginal) => ({ ...(await importOriginal()), baixarConta }));
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
 vi.mock("@/lib/supabase", async () => {

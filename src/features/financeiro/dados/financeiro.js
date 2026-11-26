@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
-import { emitirEvento } from "./jarvas";
+import { supabase } from "@/lib/supabase";
+import { emitirEvento } from "@/lib/jarvas";
 import { round2 } from "@/features/caixa/regras/vendas";
 
 /**
