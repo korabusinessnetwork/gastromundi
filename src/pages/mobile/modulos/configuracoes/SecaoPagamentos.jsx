@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { LuWallet, LuPlus, LuTrash2, LuCircleCheck } from "react-icons/lu";
 import { useSessao, useConfig } from "@/context/AppContext";
-import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
+import { METODOS_TEF_PADRAO, podeUsarTef } from "@/features/pdv/regras/tef";
 import "./SecaoPagamentos.css";
 import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 

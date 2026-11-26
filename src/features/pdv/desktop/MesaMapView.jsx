@@ -1,7 +1,7 @@
 import { LuArmchair } from "react-icons/lu";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { totalItensAtivos } from "@/lib/comandaItens";
+import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 import "./MesaMapView.css";
 
 /**

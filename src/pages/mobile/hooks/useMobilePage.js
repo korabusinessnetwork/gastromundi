@@ -20,10 +20,10 @@ import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } 
 import { logAction } from "@/lib/logger";
 import {
   adicionarEspera
-} from "@/lib/pedidosEmEspera";
+} from "@/features/comandas/regras/pedidosEmEspera";
 import { useTravaComanda } from "@/hooks/useTravaComanda";
-import { travadaPorOutro, nomeTrava } from "@/lib/comandaLock";
-import { totalItensAtivos } from "@/lib/comandaItens";
+import { travadaPorOutro, nomeTrava } from "@/features/comandas/regras/comandaLock";
+import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 
 
 import { PAGE } from "@/pages/mobile/pagina/apoio";

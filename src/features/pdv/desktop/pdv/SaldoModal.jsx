@@ -6,8 +6,8 @@ import { getSizes } from "@/constants/sizes";
 import { LuLock, LuX, LuChartBar, LuEye, LuEyeOff } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { listarCancelamentosDeComandaDesde } from "@/features/auditoria/dados/logsOperador";
-import { fmtComanda } from "@/lib/rotuloComanda";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // ── Modal de Saldo do Dia ─────────────────────────────────────────
 export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSenhaErro, autorizado, setAutorizado, senhaVis, setSenhaVis, sales, pending, metodosCustom }) {

@@ -16,7 +16,7 @@ import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/featu
 import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 import { useEstadoAjusteCheckout } from "./useEstadoAjusteCheckout";
 import { useEstadoRemocaoCheckout } from "./useEstadoRemocaoCheckout";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // Estado e ações da finalização da comanda: pagamentos, divisão, taxa de serviço,
 // desconto e acréscimo, cliente, CPF na nota e remoção de item.

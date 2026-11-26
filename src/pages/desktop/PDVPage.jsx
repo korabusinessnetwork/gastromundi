@@ -1,5 +1,5 @@
 import { useOutletContext } from "react-router-dom";
-import PDVView from "@/components/desktop/views/PDVView";
+import PDVView from "@/features/pdv/desktop";
 
 export default function PDVPage() {
   const { notify } = useOutletContext();

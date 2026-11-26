@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { LuArmchair } from "react-icons/lu";
 import { createPortal } from "react-dom";
-import { fmtComanda } from "@/lib/rotuloComanda";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 // Janela que pede a mesa antes de entrar na comanda.
 export default function ModalEscolherMesa({ tela }) {

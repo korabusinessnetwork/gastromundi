@@ -32,8 +32,8 @@ const emitirDocumentoFiscalMock = vi.fn(() => Promise.resolve({ status: "stub", 
 vi.mock("@/features/fiscal/dados/fiscal", () => ({ emitirDocumentoFiscal: (...args) => emitirDocumentoFiscalMock(...args) }));
 
 const processarPagamentoTefMock = vi.fn(() => Promise.resolve({ status: "stub", metodo: "credito" }));
-vi.mock("@/lib/tef", async () => {
-  const actual = await vi.importActual("@/lib/tef");
+vi.mock("@/features/pdv/regras/tef", async () => {
+  const actual = await vi.importActual("@/features/pdv/regras/tef");
   return { ...actual, processarPagamentoTef: (...args) => processarPagamentoTefMock(...args) };
 });
 

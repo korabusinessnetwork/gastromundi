@@ -1,6 +1,6 @@
 // Regras de pagamento do caixa, usadas pelo PDV do computador e pela venda de
 // balcão do celular. Refatoração 4.2: antes cada superfície tinha a sua cópia.
-import { metodoUsaTef } from "@/lib/tef";
+import { metodoUsaTef } from "@/features/pdv/regras/tef";
 import { round2 } from "@/features/caixa/regras/vendas";
 
 /** Meios de pagamento de quem ainda não escolheu os seus. */

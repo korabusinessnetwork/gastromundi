@@ -28,7 +28,7 @@ const RAIZ = join(__dirname, "..");
  *  vale em toda parte, mas cobrar no repositório todo transformaria este
  *  guard num varredor de refactor, e ele existe para proteger o caixa. */
 const ARQUIVOS = [
-  "components/desktop/views/PDVView/index.jsx",
+  "features/pdv/desktop/index.jsx",
   // Desde a refatoração 3 a lógica do caixa mora nos ganchos da feature. A
   // lista acompanha a lógica, não a tela: um guard que só cobra AUSÊNCIA passa
   // sozinho quando o código sai do arquivo que ele lê.

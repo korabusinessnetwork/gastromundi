@@ -4,7 +4,7 @@ import { logAction } from "@/lib/logger";
 import { criarLancamento } from "@/lib/financeiro";
 import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";
-import { processarPagamentoTef, metodoUsaTef } from "@/lib/tef";
+import { processarPagamentoTef, metodoUsaTef } from "@/features/pdv/regras/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
 import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/lib/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
@@ -12,7 +12,7 @@ import { round2 } from "@/features/caixa/regras/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";
 import { iniciarLoteDeBaixas, fecharLoteDeBaixas } from "@/features/estoque/regras/estoque";
 import { hojeLocalISO, diaLocalDaqui } from "@/utils/datas";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // Normalizado por nome: "fiado" ainda não existe como meio de pagamento
 // cadastrado hoje, mas a checagem já fica pronta para quando existir

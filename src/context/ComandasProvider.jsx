@@ -7,8 +7,8 @@ import {
   inserirComanda, atualizarComanda, excluirComanda, lerItensDaComanda,
   adquirirTravaDaComanda, lerDonoDaTrava, liberarTravaDaComanda, assinarComandas,
 } from "@/features/comandas/dados/comandas";
-import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/lib/comandaItens";
-import { LOCK_TTL_MS } from "@/lib/comandaLock";
+import { garantirUidItens, mesclarItensComanda, totalItensAtivos } from "@/features/comandas/regras/comandaItens";
+import { LOCK_TTL_MS } from "@/features/comandas/regras/comandaLock";
 import { separarCampos, COLUNAS_ESCRITA_PENDING } from "@/lib/camposPermitidos";
 import { emitirEvento } from "@/lib/jarvas";
 import { isErroDeRede } from "@/lib/offline/rede";

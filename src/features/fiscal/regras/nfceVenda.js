@@ -20,7 +20,7 @@
  */
 
 import { apenasDigitos } from "@/lib/documento";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // Método de pagamento do PDV → tPag da SEFAZ (NFC-e). O que não casar cai
 // em "99" (Outros) — nunca esconde nem perde um pagamento.

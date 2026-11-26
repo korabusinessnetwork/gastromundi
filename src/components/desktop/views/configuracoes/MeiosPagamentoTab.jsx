@@ -3,7 +3,7 @@ import { useSessao, useConfig } from "@/context/AppContext";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuPlus, LuTrash2, LuWallet, LuTriangleAlert } from "react-icons/lu";
-import { METODOS_TEF_PADRAO, podeUsarTef } from "@/lib/tef";
+import { METODOS_TEF_PADRAO, podeUsarTef } from "@/features/pdv/regras/tef";
 import ToggleChip from "./ToggleChip";
 import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 

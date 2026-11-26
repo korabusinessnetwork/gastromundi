@@ -20,12 +20,12 @@ import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import {
   totalLancamentosGarcom, radarOportunidades
-} from "@/lib/painelGarcom";
+} from "@/features/comandas/regras/painelGarcom";
 import {
   removerEspera, totalEspera, resumoEsperas
-} from "@/lib/pedidosEmEspera";
-import { nomeTrava } from "@/lib/comandaLock";
-import { cancelarItemComanda, totalItensAtivos } from "@/lib/comandaItens";
+} from "@/features/comandas/regras/pedidosEmEspera";
+import { nomeTrava } from "@/features/comandas/regras/comandaLock";
+import { cancelarItemComanda, totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 
 import { fmtComanda, fmtDinheiro } from "@/pages/mobile/fmt";
 import { BottomNav, Guarda, Toast } from "@/pages/mobile/chrome";

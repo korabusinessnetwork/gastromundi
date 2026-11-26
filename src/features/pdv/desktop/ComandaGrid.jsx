@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock, LuTriangleAlert, LuArmchair, LuCircleCheck, LuSearchX } from "react-icons/lu";
-import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/lib/comandaItens";
+import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 import "./ComandaGrid.css";
-import { fmtComanda } from "@/lib/rotuloComanda";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 const TOTAL = 1000;
 const PAGE  = 50;

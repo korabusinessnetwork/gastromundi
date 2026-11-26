@@ -1,7 +1,7 @@
 import { logAction } from "@/lib/logger";
 import { mesmoItemDeVenda } from "@/lib/combos";
-import { totalItensAtivos, itensNaoCancelados } from "@/lib/comandaItens";
-import { fmtComanda } from "@/lib/rotuloComanda";
+import { totalItensAtivos, itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 // Ações de transferir itens entre comandas: abrir a janela e executar a transferência.
 // Não guarda estado: recebe o estado de `useEstadoTransferencia` e o que a tela do PDV

@@ -3,7 +3,7 @@ import { LuTrash2 } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
-import { fmtComanda } from "@/lib/rotuloComanda";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 // Confirmação antes de cancelar o pedido em andamento.
 export default function ConfirmarCancelarPedido({ tela }) {

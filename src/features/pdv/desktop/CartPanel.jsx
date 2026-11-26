@@ -8,8 +8,8 @@ import { getSizes } from "@/constants/sizes";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
 import "./CartPanel.css";
-import { fmtComanda } from "@/lib/rotuloComanda";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {

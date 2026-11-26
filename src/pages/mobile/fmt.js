@@ -9,7 +9,7 @@
  *   livres (ex.: "Mesa VIP") passam intactos.
  */
 
-export { fmtComanda } from "@/lib/rotuloComanda";
+export { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 export function fmtDinheiro(v) {
   return `R$ ${Number(v ?? 0).toFixed(2)}`;

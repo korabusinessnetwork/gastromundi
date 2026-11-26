@@ -1,5 +1,5 @@
 import { rotuloMetodo } from "@/utils/pagamentos";
-import { fmtComanda as fmtComandaBase } from "@/lib/rotuloComanda";
+import { fmtComanda as fmtComandaBase } from "@/features/comandas/regras/rotuloComanda";
 
 /**
  * F020 — LAYOUT EDITÁVEL DA COMANDA (Leva 16).

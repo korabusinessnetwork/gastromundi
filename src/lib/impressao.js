@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
 import { normalizarPontos } from "./impressao/pontos";
 import { layoutComandaDeConfig, normalizarLayoutComanda } from "./impressao/layoutComanda";
-import { itensNaoCancelados } from "./comandaItens";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 /**
  * Impressão — F015 (docs/09_BACKLOG/features.md).

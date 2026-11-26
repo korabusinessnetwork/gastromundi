@@ -4,7 +4,7 @@ import { LuTrash2, LuNotebookPen } from "react-icons/lu";
 // valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
 // `buildPayloadPagamentos` e `buildPrintPagamentos` montam campo a campo, então ele
 // não chega à venda nem ao cupom.
-import { fmtComanda } from "@/lib/rotuloComanda";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 // Resumo do pedido: os itens da comanda e os totais.
 export default function ResumoPedido({ tela }) {

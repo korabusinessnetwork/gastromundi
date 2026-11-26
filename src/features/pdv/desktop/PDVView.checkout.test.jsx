@@ -41,7 +41,7 @@ vi.mock("@/lib/impressao/despacho", () => ({
 }));
 
 import { setAppMock } from "@/test/mockApp";
-import { mesclarItensComanda } from "@/lib/comandaItens";
+import { mesclarItensComanda } from "@/features/comandas/regras/comandaItens";
 import PDVView from "./index";
 
 const CERVEJA_3 = { uid: "i1", id: 1, name: "Cerveja", price: 16.1, qty: 3 };

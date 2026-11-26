@@ -4,7 +4,7 @@ import { varColor } from "@/lib/tema";
 import { LuTriangleAlert, LuChevronDown, LuChevronUp, LuLock, LuSearch, LuX, LuLayoutGrid, LuList, LuReceipt, LuCalendarCheck } from "react-icons/lu";
 import { produtosVencendo } from "@/features/estoque/regras/validade";
 import { classificarEstoque } from "@/features/estoque/regras/estoqueSituacao";
-import { nomeTrava } from "@/lib/comandaLock";
+import { nomeTrava } from "@/features/comandas/regras/comandaLock";
 import ComandaGrid   from "./ComandaGrid";
 import CheckoutView  from "./CheckoutView";
 import ClienteComandaModal from "./ClienteComandaModal";

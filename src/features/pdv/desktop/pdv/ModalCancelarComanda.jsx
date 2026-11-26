@@ -2,8 +2,8 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
 import { LuX, LuEye, LuEyeOff, LuTriangleAlert } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
-import { fmtComanda } from "@/lib/rotuloComanda";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // Janela de cancelar a comanda inteira, com motivo e senha de gerente.
 export default function ModalCancelarComanda({ tela }) {

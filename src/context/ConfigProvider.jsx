@@ -2,7 +2,7 @@ import { createContext, useContext, useMemo, useState } from "react";
 import { ConfigContext } from "./ConfigContext";
 import { gravarConfig } from "./gravarConfig";
 import { useFuncaoEstavel } from "@/hooks/useFuncaoEstavel";
-import { METODOS_TEF_PADRAO } from "@/lib/tef";
+import { METODOS_TEF_PADRAO } from "@/features/pdv/regras/tef";
 import { LIMITE_SANGRIA_PADRAO, limiteSangriaValido } from "@/features/caixa/regras/caixaMovimentos";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 import { METODOS_PADRAO } from "@/features/pdv/regras/pagamento";

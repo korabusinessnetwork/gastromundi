@@ -1,5 +1,5 @@
 import { LuShoppingBag, LuShoppingCart } from "react-icons/lu";
-import { totalItensAtivos } from "@/lib/comandaItens";
+import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 import ProductGrid   from "../ProductGrid";
 import CartPanel     from "../CartPanel";
 

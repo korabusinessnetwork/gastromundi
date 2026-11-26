@@ -1,4 +1,4 @@
-import { round2 } from "../features/caixa/regras/vendas";
+import { round2 } from "@/features/caixa/regras/vendas";
 
 // Reconciliação de itens de comanda entre dispositivos (Palm × PDV).
 //

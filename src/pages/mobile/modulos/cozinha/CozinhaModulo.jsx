@@ -21,7 +21,7 @@ import {
 } from "@/lib/cozinha";
 import "../modulos.css";
 import "./CozinhaModulo.css";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 /**
  * CozinhaModulo — tela mobile da Cozinha/KDS no Palm (tela 1i do redesign).

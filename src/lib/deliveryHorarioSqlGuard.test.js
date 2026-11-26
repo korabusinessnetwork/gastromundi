@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
-import { deliveryDeveEstarAberto, paraMinutos } from "../features/delivery/regras/deliveryHorario";
+import { deliveryDeveEstarAberto, paraMinutos } from "@/features/delivery/regras/deliveryHorario";
 
 /**
  * Guard da leva 5 do Run 6 — o delivery decidia coisas do dia a dia do

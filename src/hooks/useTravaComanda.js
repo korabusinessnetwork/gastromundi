@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSessao, useComandas } from "@/context/AppContext";
-import { HEARTBEAT_MS, travadaPorOutro } from "@/lib/comandaLock";
+import { HEARTBEAT_MS, travadaPorOutro } from "@/features/comandas/regras/comandaLock";
 
 /**
  * Trava de edição de comanda (Leva 14).

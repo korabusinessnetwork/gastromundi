@@ -6,8 +6,8 @@ import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatar
 import { enviarViaProducao } from "@/lib/impressao/despacho";
 import { LuArmchair, LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
-import { fmtComanda } from "@/lib/rotuloComanda";
-import { itensNaoCancelados } from "@/lib/comandaItens";
+import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
+import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 
 // A cor de cada coluna fica no CSS (`cozinha-view__coluna--<status>`), com os
