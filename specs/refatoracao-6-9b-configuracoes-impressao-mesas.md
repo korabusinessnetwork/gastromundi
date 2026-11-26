@@ -30,7 +30,8 @@ caminho que não afrouxa a regra.
 
 ## Diferenças
 
-DIFERENCAS
+Roteiro completo, 209 telas, contra a 6.9a: nenhuma diferença e 1 mudança leve de 0,000% nas
+Reservas do PDV, o mesmo ruído de captura das rodadas anteriores.
 
 ## Critérios de aceite
 
@@ -44,5 +45,5 @@ DIFERENCAS
 ## Revisão
 
 - Spec: 4 de 4 em sim. Suíte 269 arquivos e 4446 testes, verde; build limpo; lint 0 erros e 25
-  avisos. Chamadas ao Supabase fora de `dados/`: FORA_DE_DADOS.
+  avisos. Chamadas ao Supabase fora de `dados/`: 44.
 - Qualidade: nenhum crítico ou importante.

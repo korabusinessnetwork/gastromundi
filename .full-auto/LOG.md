@@ -25,3 +25,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T19 (6.8 pautas em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo (resolve as telas de pautas pelo import dinâmico), lint 0 erros; sem foto de pautas no roteiro. 10 arquivos com `git mv`.
 - 2026-11-26, T20 (6.9 apex em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 6 telas de login sem diferença. 6 arquivos com `git mv`.
 - 2026-11-26, T20a (6.9a telas do cardápio em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 22 telas do domínio, 0 diferença. 24 arquivos com `git mv`.
+- 2026-11-26, T20b (6.9b configurações, impressão e mesas em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 1 leve (ruído nas Reservas). 81 arquivos com `git mv`.
