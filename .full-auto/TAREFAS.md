@@ -22,7 +22,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T09 | 5.x Cores hexadecimais no JSX para `var(--gm-*)` | métrica "cor hexadecimal em JSX" em zero | ui | T07 |
 | [x] T10 | Decisão 037, rodada própria: o campo de emoji do produto sai (escolha no cadastro e exibição no PDV, cozinha, cardápio, relatório) | guard de emoji em zero, sem migration (a coluna fica no banco, sem uso) | ui | T08 |
 | [x] T11 | 5.y Prova do white-label: roteiro de fotos com dois temas de tenant | nenhuma cor da marca padrão aparece no tema do outro | ui | T09, T10 |
-| [ ] T12 | 6.1 Mover fiscal para `src/features/fiscal/` | domínio movido com `git mv`, testes junto, suíte verde | pastas | T11 |
+| [x] T12 | 6.1 Mover fiscal para `src/features/fiscal/` | domínio movido com `git mv`, testes junto, suíte verde | pastas | T11 |
 | [ ] T13 | 6.2 delivery | idem | pastas | T12 |
 | [ ] T14 | 6.3 estoque | idem | pastas | T13 |
 | [ ] T15 | 6.4 caixa | idem | pastas | T14 |

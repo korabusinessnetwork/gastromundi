@@ -1,3 +1,9 @@
+## Rodada 141, refatoração 6.1, domínio fiscal em src/features/fiscal, 2026-11-26
+- Spec: specs/refatoracao-6-1-fiscal-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 31 telas do domínio,
+  0 diferença. Sem migration. 76 arquivos movidos com `git mv`.
+- As funções de borda da NFC-e apontam para `src/features/fiscal/regras/`.
 ## Rodada 140, refatoração 5.34, prova do white-label no roteiro, fase 5 pronta, 2026-11-26
 - Spec: specs/refatoracao-5-34-prova-white-label.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
