@@ -5,7 +5,7 @@ import {
 } from "react-icons/lu";
 import {
   alternarProdutoId, vincularGrupoProduto, desvincularGrupoProduto, salvarGrupoComplemento, removerGrupoComplemento, salvarComplemento, removerComplemento, subgrupoCriaCiclo, vincularSubgrupo, desvincularSubgrupo, reordenarSubgrupos, formatarReais
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 import ListaArrastavel from "@/components/shared/ListaArrastavel";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import SeletorProdutoComplemento from "./SeletorProdutoComplemento";

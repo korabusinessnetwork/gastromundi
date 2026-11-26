@@ -7,7 +7,7 @@
 // sessionStorage por slug pra não perder a sacola ao recarregar a aba.
 // ──────────────────────────────────────────────────────────────────
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { calcularSubtotal, totalItens } from "@/lib/delivery";
+import { calcularSubtotal, totalItens } from "@/features/delivery/delivery";
 
 function chaveStorage(slug) {
   return `kora.delivery.sacola.${slug || "default"}`;

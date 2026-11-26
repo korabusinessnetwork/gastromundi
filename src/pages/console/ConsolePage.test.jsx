@@ -102,7 +102,7 @@ vi.mock("@/lib/assinatura", async () => {
 });
 
 import { montarMensagemPrimeiroAcesso } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";
 

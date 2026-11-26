@@ -2,7 +2,7 @@
 // Confirmacao — sucesso: nº do pedido + total + tempo estimado. Fecha e
 // volta ao cardápio com a sacola já limpa (feedback humano de sucesso).
 // ──────────────────────────────────────────────────────────────────
-import { formatarPreco } from "@/lib/delivery";
+import { formatarPreco } from "@/features/delivery/delivery";
 import "./Confirmacao.css";
 
 export default function Confirmacao({ resultado, tempoPreparo, onFechar }) {

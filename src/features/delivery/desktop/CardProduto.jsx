@@ -3,7 +3,7 @@ import {
   LuPencil, LuTrash2, LuX, LuUtensils } from "react-icons/lu";
 import {
   formatarReais
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 
 export default function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
   const nome = item.produto?.name || "(produto removido do PDV)";

@@ -29,7 +29,7 @@ vi.mock("@/lib/supabase", async () => {
 });
 
 const listarPedidosDelivery = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/deliveryPedidos", () => ({ listarPedidosDelivery }));
+vi.mock("@/features/delivery/dados/deliveryPedidos", () => ({ listarPedidosDelivery }));
 
 import { usePedidosDelivery, usePedidosCozinha } from "./hooks";
 

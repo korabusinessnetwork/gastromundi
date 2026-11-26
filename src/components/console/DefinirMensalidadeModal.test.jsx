@@ -32,7 +32,7 @@ vi.mock("@/lib/console", async () => {
 
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import { MENSALIDADE_MAXIMA } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 
 const SEM_PRECO = { tenantId: "t-novo", nome: "Bar do Zé", valorMensal: 0, status: "ativo" };
 const COM_PRECO = { tenantId: "t-pago", nome: "Café Central", valorMensal: 300, status: "ativo" };

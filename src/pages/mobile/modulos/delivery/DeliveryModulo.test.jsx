@@ -15,7 +15,7 @@ const { carregarItensPedido, usePedidosDelivery, avancarPedido, cancelarPedido }
   cancelarPedido: vi.fn(() => Promise.resolve({ error: null })),
 }));
 
-vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
+vi.mock("@/features/delivery/dados/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   carregarItensPedido,
   // Desde a refatoração 4.3 as telas mudam o status por estas duas ações da

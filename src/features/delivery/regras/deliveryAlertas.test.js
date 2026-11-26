@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // deliveryAlertas importa formatarReais de ./deliveryPedidos, que por sua vez
 // importa o client Supabase (exige VITE_* no import). Mockamos o client para
 // não exigir env — só exercitamos as puras e as guardadas de navegador.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });

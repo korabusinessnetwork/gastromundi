@@ -30,7 +30,7 @@ vi.mock("@/lib/console", async () => {
 
 import NovoEstabelecimentoModal from "./NovoEstabelecimentoModal";
 import { MENSALIDADE_MAXIMA } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 
 const PLANOS = [
   { codigo: "basico", nome: "Básico" },

@@ -9,7 +9,7 @@
 // saiu do ar ou mudou de preço. Sem isso o cliente só descobria no último
 // clique, por uma recusa do servidor que não diz qual item é.
 // ──────────────────────────────────────────────────────────────────
-import { formatarPreco, precoLinha } from "@/lib/delivery";
+import { formatarPreco, precoLinha } from "@/features/delivery/delivery";
 import "./SacolaModal.css";
 import { LuShoppingBag } from "react-icons/lu";
 

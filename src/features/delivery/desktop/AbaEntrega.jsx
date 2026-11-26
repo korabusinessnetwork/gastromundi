@@ -7,9 +7,9 @@ import {
 } from "react-icons/lu";
 import {
   carregarConfigDelivery, salvarConfigDelivery, faixaResumo, validarFaixa, formatarCep, temFaixasKm
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 import MapaRaioEntrega from "./MapaRaioEntrega";
-import { geocodificarEndereco, sugerirEnderecos } from "@/lib/delivery";
+import { geocodificarEndereco, sugerirEnderecos } from "@/features/delivery/delivery";
 import { comUid } from "@/lib/uidLista";
 
 // ════════════════════════════════════════════════════════════════

@@ -34,8 +34,8 @@ vi.mock("@/lib/supabase", async () => {
 
 // Só as idas à rede viram dublê — cepCompleto, formatarCep e formatarPreco
 // continuam reais.
-vi.mock("@/lib/delivery", async () => {
-  const real = await vi.importActual("@/lib/delivery");
+vi.mock("@/features/delivery/delivery", async () => {
+  const real = await vi.importActual("@/features/delivery/delivery");
   return {
     ...real,
     calcularTaxaEntrega: mockCalcularTaxa,
@@ -499,7 +499,7 @@ describe("CheckoutEntrega, terceiro pendurado não mata o checkout (Run 6, leva 
   beforeEach(async () => {
     // Aqui as buscas são as DE VERDADE — o que está sob teste é o prazo
     // delas. Só o `fetch` vira dublê, pendurado como terceiro fora do ar.
-    const real = await vi.importActual("@/lib/delivery");
+    const real = await vi.importActual("@/features/delivery/delivery");
     mockViaCep.mockImplementation((...args) => real.buscarEnderecoViaCep(...args));
     mockGeocodificar.mockImplementation((...args) => real.geocodificarEndereco(...args));
     globalThis.fetch = vi.fn((_url, opcoes) => {

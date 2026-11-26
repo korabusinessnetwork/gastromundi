@@ -6,8 +6,8 @@ import { varColor } from "@/lib/tema";
 import { LuPencil, LuTrash2, LuX, LuCheck, LuImage, LuImages, LuUpload, LuRefreshCw, LuTriangleAlert } from "react-icons/lu";
 import {
   salvarProdutoDelivery, formatarReais
-} from "@/lib/deliveryAdmin";
-import { enviarFotoProduto, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/lib/deliveryFotos";
+} from "@/features/delivery/deliveryAdmin";
+import { enviarFotoProduto, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/features/delivery/dados/deliveryFotos";
 import { useGaleriaFotos } from "@/features/delivery/hooks/useGaleriaFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 

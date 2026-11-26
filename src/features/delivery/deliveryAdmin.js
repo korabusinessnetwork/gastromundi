@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────────
 // Delivery — camada de acesso do PAINEL DO DONO (admin autenticado)
 //
-// Diferente da vitrine pública (src/lib/delivery.js, que só fala com as
+// Diferente da vitrine pública (src/features/delivery/delivery.js, que só fala com as
 // 3 RPCs por slug): aqui o admin autenticado lê/escreve as tabelas do
 // delivery DIRETO pelo client normal. A RLS RESTRICTIVE
 // (tenant_id = tenant_atual_id()) da migration 20260804 garante o
@@ -22,7 +22,7 @@
 // ──────────────────────────────────────────────────────────────────
 //
 // Regras e acesso a dados da administração do delivery. Desde a refatoração 3 cada
-// assunto mora num arquivo de src/lib/deliveryAdmin/; este arquivo só reexporta, para
+// assunto mora em `regras/admin.js` ou `dados/admin.js`; este arquivo só reexporta, para
 // nenhum import de fora precisar mudar.
-export { produtoPublicavelNoDelivery, produtosParaImportar, filtrarProdutos, alternarProdutoId, filtrarItensDelivery, normalizarFaixaTaxa, validarFaixa, faixaResumo, sanitizarConfig, distanciaKm, selecionarFaixaKm, temFaixasKm, subgrupoCriaCiclo, formatarCep, formatarReais, formatarKm } from "./deliveryAdmin/regras";
-export { carregarConfigDelivery, salvarConfigDelivery, listarProdutosDelivery, salvarProdutoDelivery, removerProdutoDelivery, importarProdutosDelivery, listarBibliotecaGrupos, vincularGrupoProduto, desvincularGrupoProduto, vincularSubgrupo, desvincularSubgrupo, reordenarSubgrupos, reordenarComplementos, reordenarGrupos, listarGruposComplemento, salvarGrupoComplemento, removerGrupoComplemento, salvarComplemento, removerComplemento } from "./deliveryAdmin/dados";
+export { produtoPublicavelNoDelivery, produtosParaImportar, filtrarProdutos, alternarProdutoId, filtrarItensDelivery, normalizarFaixaTaxa, validarFaixa, faixaResumo, sanitizarConfig, distanciaKm, selecionarFaixaKm, temFaixasKm, subgrupoCriaCiclo, formatarCep, formatarReais, formatarKm } from "./regras/admin";
+export { carregarConfigDelivery, salvarConfigDelivery, listarProdutosDelivery, salvarProdutoDelivery, removerProdutoDelivery, importarProdutosDelivery, listarBibliotecaGrupos, vincularGrupoProduto, desvincularGrupoProduto, vincularSubgrupo, desvincularSubgrupo, reordenarSubgrupos, reordenarComplementos, reordenarGrupos, listarGruposComplemento, salvarGrupoComplemento, removerGrupoComplemento, salvarComplemento, removerComplemento } from "./dados/admin";

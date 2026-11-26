@@ -4,7 +4,7 @@ import {
 import {
   FILTROS_SITUACAO, montarMensagemPrimeiroAcesso
 } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
 import SeloStatus from "@/components/console/SeloStatus";
 import { ROTULOS_FILTRO, BLOCO_LISTA, formatarData, formatarVencimento, rotularPlano, rotularLayout, rotularAddons } from "./apoio";

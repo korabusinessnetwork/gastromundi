@@ -4,7 +4,7 @@ import {
   LuChartPie, LuBanknote, LuX, LuReceipt,
 } from "react-icons/lu";
 import { resumirPlataforma } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";
 import HistoricoPagamentosModal from "./HistoricoPagamentosModal";

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { LuPlus, LuPuzzle } from "react-icons/lu";
 import {
   listarBibliotecaGrupos, salvarGrupoComplemento
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 import GrupoCardMini from "./GrupoCardMini";
 import GrupoEditor from "./GrupoEditor";
 

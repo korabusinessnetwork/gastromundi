@@ -4,7 +4,7 @@
 // celular). Combos "monte seu" entram como uma categoria própria.
 // ──────────────────────────────────────────────────────────────────
 import { useMemo, useState } from "react";
-import { formatarPreco } from "@/lib/delivery";
+import { formatarPreco } from "@/features/delivery/delivery";
 import { LuUtensils } from "react-icons/lu";
 
 function CardProduto({ item, onAbrir }) {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { listarFotosDelivery } from "@/lib/deliveryFotos";
+import { listarFotosDelivery } from "@/features/delivery/dados/deliveryFotos";
 
 // Menu de escolha da foto (enviar nova, escolher da galeria, remover) e o modal
 // da galeria com as fotos já enviadas pelo estabelecimento.

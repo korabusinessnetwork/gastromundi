@@ -43,20 +43,20 @@ const { avancarPedido, cancelarPedido } = vi.hoisted(() => ({
   cancelarPedido: vi.fn(() => Promise.resolve({ error: null })),
 }));
 
-vi.mock("@/lib/deliveryPedidos", async (importOriginal) => ({
+vi.mock("@/features/delivery/dados/deliveryPedidos", async (importOriginal) => ({
   ...(await importOriginal()),
   avancarPedido,
   cancelarPedido,
 }));
 
-vi.mock("@/lib/deliveryAdmin", async (importOriginal) => ({
+vi.mock("@/features/delivery/deliveryAdmin", async (importOriginal) => ({
   ...(await importOriginal()),
   listarProdutosDelivery,
   carregarConfigDelivery,
 }));
 
 // O mapa arrasta Leaflet inteiro para o jsdom e não tem nada a ver com pedidos.
-vi.mock("./delivery/MapaRaioEntrega", () => ({ default: () => null }));
+vi.mock("./MapaRaioEntrega", () => ({ default: () => null }));
 
 import { setAppMock } from "@/test/mockApp";
 import DeliveryView from "./DeliveryView";

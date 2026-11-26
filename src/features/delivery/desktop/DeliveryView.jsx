@@ -29,8 +29,8 @@ import { varColor } from "@/lib/tema";
 import { LuBike, LuTruck, LuStore, LuPower, LuPowerOff, LuClock, LuExternalLink, LuTriangleAlert } from "react-icons/lu";
 import {
   carregarConfigDelivery, salvarConfigDelivery, listarProdutosDelivery, produtosParaImportar
-} from "@/lib/deliveryAdmin";
-import { ajusteAutomaticoAbertura, resumoHorario } from "@/lib/deliveryHorario";
+} from "@/features/delivery/deliveryAdmin";
+import { ajusteAutomaticoAbertura, resumoHorario } from "@/features/delivery/regras/deliveryHorario";
 // TD015: as faixas de taxa entram e saem do meio da lista, então a chave de
 // renderização não pode ser a posição. O `uid` vive só no state desta tela:
 // `sanitizarConfig` reconstrói cada faixa antes de gravar, então ele morre na
@@ -44,10 +44,10 @@ const ABAS = [
   { id: "entrega",      label: "Entrega e taxas" },
 ];
 
-import AbaPedidos from "./delivery/AbaPedidos";
-import AbaCardapio from "./delivery/AbaCardapio";
-import AbaComplementos from "./delivery/AbaComplementos";
-import AbaEntrega from "./delivery/AbaEntrega";
+import AbaPedidos from "./AbaPedidos";
+import AbaCardapio from "./AbaCardapio";
+import AbaComplementos from "./AbaComplementos";
+import AbaEntrega from "./AbaEntrega";
 import { ehGerencia } from "@/constants/roles";
 
 export default function DeliveryView({ notify } = {}) {

@@ -17,8 +17,8 @@ import {
   MAX_SLUG,
 } from "@/lib/console";
 import { urlDoCardapioPublico } from "@/lib/tenantSlug";
-import { valorDigitado } from "@/lib/delivery";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { valorDigitado } from "@/features/delivery/delivery";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 import "./NovoEstabelecimentoModal.css";

@@ -4,7 +4,7 @@ import {
   LuBuilding2, LuStore,
 } from "react-icons/lu";
 import { listarAnalitico, resumirUso, PERIODOS_ANALYTICS } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import "./AnalyticsDashboard.css";
 
 /**

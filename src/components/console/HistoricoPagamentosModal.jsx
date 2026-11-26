@@ -7,7 +7,7 @@ import {
   listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
 } from "@/lib/assinatura";
 import { mensagemDeErroDoConsole } from "@/lib/console";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 // A casca (overlay, modal, header, botões, spinner) é a mesma dos outros

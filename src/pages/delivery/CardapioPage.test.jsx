@@ -42,8 +42,8 @@ vi.mock("@/lib/supabase", async () => {
 // Só as idas ao servidor viram dublê. montarPayloadPedido, calcularTroco,
 // valorDigitado, formatarPreco e o carrinho continuam REAIS — são eles que
 // esta prova mede.
-vi.mock("@/lib/delivery", async () => {
-  const real = await vi.importActual("@/lib/delivery");
+vi.mock("@/features/delivery/delivery", async () => {
+  const real = await vi.importActual("@/features/delivery/delivery");
   return {
     ...real,
     carregarCardapio: mockCarregarCardapio,

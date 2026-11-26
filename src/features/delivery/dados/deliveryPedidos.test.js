@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // A camada importa o client Supabase (que exige VITE_* no import). Só
 // testamos as funções PURAS aqui — o client é mockado para não exigir env.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
@@ -30,7 +30,7 @@ import {
   avancarPedido,
   cancelarPedido,
 } from "./deliveryPedidos";
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 
 describe("statusLabel", () => {
   it("traduz cada status do fluxo + cancelado", () => {

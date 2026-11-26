@@ -26,7 +26,7 @@ import { supabase } from "@/lib/supabase";
 import {
   BUCKET_FOTOS, TAMANHO_MAX_ORIGINAL, ACCEPT_IMAGEM,
   tipoImagemAceito, calcularDimensoes, urlComVersao,
-} from "@/lib/deliveryFotos";
+} from "@/features/delivery/dados/deliveryFotos";
 
 export { ACCEPT_IMAGEM, TAMANHO_MAX_ORIGINAL };
 

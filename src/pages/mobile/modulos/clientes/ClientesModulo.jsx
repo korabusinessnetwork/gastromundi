@@ -13,7 +13,7 @@ import {
 import { useSessao } from "@/context/AppContext";
 import { listarFiadoEmAberto } from "@/features/financeiro/dados/lancamentos";
 import { formatarDocumento } from "@/lib/documento";
-import { formatarTelefone } from "@/lib/deliveryPedidos";
+import { formatarTelefone } from "@/features/delivery/dados/deliveryPedidos";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import {
   listarClientes,

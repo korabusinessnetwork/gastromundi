@@ -15,7 +15,7 @@
 //
 // As puras (detectar/montar texto) nascem com teste — deliveryAlertas.test.js.
 // ──────────────────────────────────────────────────────────────────
-import { formatarReais } from "./deliveryPedidos";
+import { formatarReais } from "../dados/deliveryPedidos";
 
 // ── Puras ───────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@
 // Mostra o total (subtotal + taxa) e o troco calculado só para exibir —
 // o servidor revalida tudo ao gravar o pedido.
 // ──────────────────────────────────────────────────────────────────
-import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
+import { calcularTroco, formatarPreco, valorDigitado } from "@/features/delivery/delivery";
 import "./CheckoutPagamento.css";
 import { LuBanknote, LuZap, LuCreditCard } from "react-icons/lu";
 

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { apenasDigitosCep, valorDigitado } from "./carrinho";
+import { apenasDigitosCep, valorDigitado } from "../regras/carrinho";
 
 // Pedido de delivery: montagem do payload, leitura do cardápio, taxa de entrega e envio.
 // ── Payload do pedido (o que a RPC criar_pedido_delivery espera) ────

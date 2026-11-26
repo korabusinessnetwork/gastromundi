@@ -1,4 +1,4 @@
-import { FAIXA_PADRAO, normalizarHorario } from "@/lib/deliveryHorario";
+import { FAIXA_PADRAO, normalizarHorario } from "@/features/delivery/regras/deliveryHorario";
 import { novoUid, comUid } from "@/lib/uidLista";
 
 // Edição do horário do delivery na tela, usada pelas Configurações do computador

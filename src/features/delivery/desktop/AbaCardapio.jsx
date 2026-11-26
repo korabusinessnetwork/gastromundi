@@ -5,7 +5,7 @@ import { varColor } from "@/lib/tema";
 import { LuDownload, LuPlus, LuHourglass, LuBike } from "react-icons/lu";
 import {
   salvarProdutoDelivery, removerProdutoDelivery, importarProdutosDelivery
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 import CardProduto from "./CardProduto";
 import ModalProduto from "./ModalProduto";
 

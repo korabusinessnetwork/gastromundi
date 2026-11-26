@@ -20,7 +20,7 @@ import {
   rotuloRegraGrupo,
   primeiroGrupoPendente,
   achatarGrupos,
-} from "@/lib/delivery";
+} from "@/features/delivery/delivery";
 import { LuUtensils } from "react-icons/lu";
 
 // ──────────────────────────────────────────────────────────────────

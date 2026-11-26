@@ -19,7 +19,7 @@ import {
   formatarCep,
   formatarPreco,
   geocodificarEndereco,
-} from "@/lib/delivery";
+} from "@/features/delivery/delivery";
 import "./CheckoutEntrega.css";
 
 export default function CheckoutEntrega({ slug, dados, onMudar, onVoltar, onAvancar }) {

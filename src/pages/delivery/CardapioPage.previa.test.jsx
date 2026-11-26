@@ -40,8 +40,8 @@ vi.mock("@/lib/brandingCache", () => ({
 }));
 
 // Só a ida ao servidor vira dublê; as funções puras da sacola ficam reais.
-vi.mock("@/lib/delivery", async () => {
-  const real = await vi.importActual("@/lib/delivery");
+vi.mock("@/features/delivery/delivery", async () => {
+  const real = await vi.importActual("@/features/delivery/delivery");
   return { ...real, carregarCardapio: mockCarregarCardapio };
 });
 

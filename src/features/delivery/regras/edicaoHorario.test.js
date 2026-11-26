@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { faixaNova, horarioParaEdicao } from "./edicaoHorario";
-import { FAIXA_PADRAO } from "@/lib/deliveryHorario";
+import { FAIXA_PADRAO } from "@/features/delivery/regras/deliveryHorario";
 
 // Refatoração 4.10: a edição do horário é a mesma nas Configurações do
 // computador e do celular.

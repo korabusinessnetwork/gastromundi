@@ -30,7 +30,7 @@ import {
   mensagemDeErroDoPedido,
   montarPayloadPedido,
   revisarSacola,
-} from "@/lib/delivery";
+} from "@/features/delivery/delivery";
 import { useCarrinho } from "./useCarrinho";
 import CardapioLista from "./CardapioLista";
 import ProdutoModal from "./ProdutoModal";

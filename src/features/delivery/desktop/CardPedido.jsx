@@ -4,10 +4,10 @@ import {
 } from "react-icons/lu";
 import {
   rotuloAcao, ehTerminal, podeCancelar, resumoEndereco, formatarTelefone, linkWhatsApp, resumoPagamento, tempoDecorrido, carregarItensPedido
-} from "@/lib/deliveryPedidos";
+} from "@/features/delivery/dados/deliveryPedidos";
 import {
   formatarReais
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 import { baseCorStatus, cssCor } from "./corStatus";
 
 export default function CardPedido({ pedido, isAdmin, onAvancar, onCancelar }) {

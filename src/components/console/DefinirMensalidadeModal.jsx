@@ -2,8 +2,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuWallet } from "react-icons/lu";
 import { mensagemDeErroDoConsole, definirMensalidade, MENSALIDADE_MAXIMA } from "@/lib/console";
-import { valorDigitado } from "@/lib/delivery";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { valorDigitado } from "@/features/delivery/delivery";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";
 // Reaproveita o CSS genérico de modal do Console (overlay, modal, header,

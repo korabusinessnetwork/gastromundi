@@ -4,7 +4,7 @@ import {
 } from "react-icons/lu";
 import { pendentesPrimeiro, resumirPlanoSolicitado } from "@/lib/console";
 import { formatarTelefone } from "@/lib/telefone";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import "./SolicitacoesFila.css";
 
 /**

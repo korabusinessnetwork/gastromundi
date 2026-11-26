@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 
 // enviarFotoProduto importa o client Supabase (exige VITE_* no import).
 // Mockamos para não exigir env — só exercitamos as puras aqui.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });

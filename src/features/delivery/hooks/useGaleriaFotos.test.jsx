@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
-vi.mock("@/lib/deliveryFotos", () => ({ listarFotosDelivery: vi.fn() }));
+vi.mock("@/features/delivery/dados/deliveryFotos", () => ({ listarFotosDelivery: vi.fn() }));
 
-import { listarFotosDelivery } from "@/lib/deliveryFotos";
+import { listarFotosDelivery } from "@/features/delivery/dados/deliveryFotos";
 import { useGaleriaFotos } from "./useGaleriaFotos";
 
 function montar(retangulo) {

@@ -11,8 +11,8 @@
 // ──────────────────────────────────────────────────────────────────
 //
 // Regras do cardápio público de delivery. Desde a refatoração 3 cada assunto mora num
-// arquivo de src/lib/delivery/; este arquivo só reexporta, para nenhum import de fora
+// arquivo de `regras/` ou `dados/` desta pasta; este arquivo só reexporta, para nenhum import de fora
 // precisar mudar.
-export { apenasDigitosCep, formatarCep, cepCompleto, formatarPreco, valorDigitado, somaComplementos, precoUnitario, precoLinha, calcularSubtotal, totalItens, calcularTroco, grupoSatisfeito, achatarGrupos, grupoArvoreSatisfeita, produtoPodeAdicionar, grupoImpossivel, produtoImpossivel, rotuloRegraGrupo, primeiroGrupoPendente, revisarSacola } from "./delivery/carrinho";
-export { montarPayloadPedido, carregarCardapio, calcularTaxaEntrega, mensagemDeErroDoPedido, enviarPedido } from "./delivery/pedido";
-export { buscarEnderecoViaCep, geocodificarEndereco, sugerirEnderecos } from "./delivery/enderecos";
+export { apenasDigitosCep, formatarCep, cepCompleto, formatarPreco, valorDigitado, somaComplementos, precoUnitario, precoLinha, calcularSubtotal, totalItens, calcularTroco, grupoSatisfeito, achatarGrupos, grupoArvoreSatisfeita, produtoPodeAdicionar, grupoImpossivel, produtoImpossivel, rotuloRegraGrupo, primeiroGrupoPendente, revisarSacola } from "./regras/carrinho";
+export { montarPayloadPedido, carregarCardapio, calcularTaxaEntrega, mensagemDeErroDoPedido, enviarPedido } from "./dados/pedido";
+export { buscarEnderecoViaCep, geocodificarEndereco, sugerirEnderecos } from "./regras/enderecos";

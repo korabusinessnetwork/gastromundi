@@ -7,7 +7,7 @@ import {
   listarPagamentosAssinatura, resumirPagamentos, resumirPlanoDoTenant, rotuloCompetencia,
 } from "@/lib/assinatura";
 import { buscarPlanoDoTenant } from "@/lib/tenant";
-import { formatarReais } from "@/lib/deliveryPedidos";
+import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { ROTULOS_MODULO } from "@/constants/modulos";
 import "./MinhaAssinaturaTab.css";
 

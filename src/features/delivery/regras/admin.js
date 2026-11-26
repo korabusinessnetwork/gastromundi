@@ -1,6 +1,6 @@
 import { normalizarTexto } from "@/lib/importacao/planilha";
 import { ehCategoriaFixa } from "@/lib/categoriasProduto";
-import { normalizarHorario } from "@/lib/deliveryHorario";
+import { normalizarHorario } from "@/features/delivery/regras/deliveryHorario";
 
 // Regras puras da administração do delivery: publicação, filtros, faixas de taxa, distância, subgrupos e formatação.
 // ════════════════════════════════════════════════════════════════

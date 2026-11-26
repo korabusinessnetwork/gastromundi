@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   filtrarProdutos, formatarReais
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 
 // Menu de busca para escolher um produto JÁ CRIADO como complemento.
 // Digita → lista os itens do catálogo que casam (menos os já no grupo) →

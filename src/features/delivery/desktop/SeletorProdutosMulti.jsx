@@ -4,7 +4,7 @@ import {
 } from "react-icons/lu";
 import {
   filtrarItensDelivery
-} from "@/lib/deliveryAdmin";
+} from "@/features/delivery/deliveryAdmin";
 
 // Busca multi-seleção para "aparece nestes produtos". Em cima, os produtos
 // já vinculados aparecem como chips removíveis; embaixo, uma busca lista os

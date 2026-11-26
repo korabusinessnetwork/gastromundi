@@ -3,10 +3,10 @@ import { usePedidosDelivery } from "@/utils/hooks";
 import { LuRefreshCw, LuBell, LuBellOff, LuHourglass, LuWifiOff, LuBike } from "react-icons/lu";
 import {
   statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido
-} from "@/lib/deliveryPedidos";
+} from "@/features/delivery/dados/deliveryPedidos";
 import {
   detectarNovosPedidos, alertarPedidosNovos, permissaoNotificacao, pedirPermissaoNotificacao, notificacoesSuportadas
-} from "@/lib/deliveryAlertas";
+} from "@/features/delivery/regras/deliveryAlertas";
 import { baseCorStatus, cssCor } from "./corStatus";
 import CardPedido from "./CardPedido";
 

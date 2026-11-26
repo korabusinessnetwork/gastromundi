@@ -19,8 +19,8 @@
 // Puras (dinheiro/status/formatos) nascem com teste — deliveryPedidos.test.js.
 // Nunca faz select * em tabela sensível (CLAUDE.md): campos explícitos.
 // ──────────────────────────────────────────────────────────────────
-import { supabase } from "./supabase";
-import { logAction } from "./logger";
+import { supabase } from "@/lib/supabase";
+import { logAction } from "@/lib/logger";
 
 // Fluxo de status do delivery. A coluna `status` é text livre (sem CHECK
 // no banco), então o fluxo é definido AQUI, na única fonte de verdade do
@@ -141,8 +141,8 @@ export function resumoEndereco(pedido) {
 // Máscara e dígitos de telefone moram em src/lib/telefone.js — regra única,
 // a mesma que o cadastro de cliente usa para validar. Reexportadas aqui para
 // quem já importava deste módulo.
-import { apenasDigitosTelefone } from "./telefone";
-export { apenasDigitosTelefone, formatarTelefone } from "./telefone";
+import { apenasDigitosTelefone } from "@/lib/telefone";
+export { apenasDigitosTelefone, formatarTelefone } from "@/lib/telefone";
 
 /**
  * Link do WhatsApp (wa.me) para falar com o cliente. Assume DDI 55 (Brasil)

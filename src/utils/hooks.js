@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { listarPedidosDelivery } from "@/lib/deliveryPedidos";
+import { listarPedidosDelivery } from "@/features/delivery/dados/deliveryPedidos";
 
 /**
  * useLS — localStorage com fallback e sincronização

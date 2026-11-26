@@ -1,6 +1,6 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { statusCor } from "@/lib/deliveryPedidos";
+import { statusCor } from "@/features/delivery/dados/deliveryPedidos";
 
 // Chaves de cor semânticas (statusCor) → token do design system. O âmbar era
 // o hex `#f59e0b` cravado aqui; `--gm-warn` vale exatamente esse valor

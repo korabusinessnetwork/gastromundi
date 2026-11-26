@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { produtosParaImportar, sanitizarConfig } from "./regras";
+import { produtosParaImportar, sanitizarConfig } from "../regras/admin";
 
 // Acesso a dados da administração do delivery: configuração, produtos publicados, grupos e complementos.
 // ════════════════════════════════════════════════════════════════

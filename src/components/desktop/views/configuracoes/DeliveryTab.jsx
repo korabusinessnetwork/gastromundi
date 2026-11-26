@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
 import { logAction } from "@/lib/logger";
-import { carregarConfigDelivery, salvarConfigDelivery } from "@/lib/deliveryAdmin";
+import { carregarConfigDelivery, salvarConfigDelivery } from "@/features/delivery/deliveryAdmin";
 import {
   DIAS_SEMANA, HORARIO_PADRAO, normalizarHorario, horarioValido, resumoHorario, deliveryDeveEstarAberto
-} from "@/lib/deliveryHorario";
+} from "@/features/delivery/regras/deliveryHorario";
 import { faixaNova, horarioParaEdicao } from "@/features/delivery/regras/edicaoHorario";
 
 export default function DeliveryTab({ sz }) {

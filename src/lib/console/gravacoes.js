@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
-import { geocodificarEndereco } from "@/lib/delivery";
+import { geocodificarEndereco } from "@/features/delivery/delivery";
 import { ROTULOS_MODULO } from "@/constants/modulos";
 import {
   normalizarSlug
