@@ -16,7 +16,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T03 | 5.24 Casca e telas de acesso: `DesktopLayout` (13), `AssinaturaBloqueada` (8), `SemAcesso` (4), `UpgradeNecessario` (4), `AssinaturaBanner` (3), `main.jsx` (4) | idem | ui | , |
 | [x] T04 | 5.25 Configurações restantes: `UnidadesMedidaTab`, `CategoriasGrupoTab`, `DeliveryTab`, `ConfiguracoesView`, `PonteLocalConfig`, `ImportarExportarTab` e os componentes pequenos (`StrengthBar`, `Avatar`, `ErrBox`, `PermCheck`, `RoleBadge`, `ToggleChip`) | idem | ui | , |
 | [x] T05 | 5.26 Cozinha: `CozinhaView` (13, 1 emoji) | idem | ui | , |
-| [ ] T06 | 5.27 Financeiro: `FinanceiroView`, `LancamentosList`, `NovoLancamentoModal`, `ResumoCards` | idem | ui | , |
+| [x] T06 | 5.27 Financeiro: `FinanceiroView`, `LancamentosList`, `NovoLancamentoModal`, `ResumoCards` | idem | ui | , |
 | [ ] T07 | 5.28 O que sobrar de estilo inline (estoque, demo, console, cardápio público, delivery, notificação, celular) | guard de estilo inline em zero, sem lista de exceções | ui | T01..T06 |
 | [ ] T08 | 5.z Emoji de código restante (fora o campo de emoji do produto) | guard de emoji só com o que é do campo do produto, listado arquivo a arquivo | ui | T07 |
 | [ ] T09 | 5.x Cores hexadecimais no JSX para `var(--gm-*)` | métrica "cor hexadecimal em JSX" em zero | ui | T07 |

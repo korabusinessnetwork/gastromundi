@@ -380,6 +380,7 @@ tela de erro, 36 para 0).
 Depois, as configurações restantes (unidades, radar, delivery, abas e componentes pequenos, 54
 para 0), sem emoji: a área de Configurações inteira fica sem estilo inline.
 Depois, a Cozinha (13 para 0), sem emoji.
+Depois, o Financeiro (resumo, lista e novo lançamento, 22 para 0).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),

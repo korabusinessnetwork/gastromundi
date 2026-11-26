@@ -1,3 +1,8 @@
+## Rodada 133, refatoração 5.27, Financeiro sem estilo inline, 2026-11-26
+- Spec: specs/refatoracao-5-27-financeiro.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 202 telas, 0
+  diferença. Sem migration. Estilo inline: 37 para 15.
 ## Rodada 132, refatoração 5.26, Cozinha sem estilo inline, 2026-11-26
 - Spec: specs/refatoracao-5-26-cozinha.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4435
