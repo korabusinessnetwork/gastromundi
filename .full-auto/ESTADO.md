@@ -7,6 +7,6 @@
 - início: 2026-11-25
 - base verificada: commit b87b0435 (rodada 5.21), suíte 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros e 25 avisos, estilo inline 185 em 36 arquivos, emoji 98 em 49
 - fase: 5
-- tarefa atual: T10
-- próximo passo: T10, segunda metade, rodada 5.33: emoji do produto no celular, cardápio público, página da Kora, importação por planilha e formulário do produto (17 restantes); depois o guard de emoji fica em zero e passa a exigir zero: roteiro de fotos primeiro, referência, conversão, comparação, registro, PR e merge
-- progresso: 9 de 24
+- tarefa atual: T11
+- próximo passo: T11, rodada 5.34 prova do white-label: rodar o roteiro com dois temas de tenant e conferir que nenhuma cor da marca padrão aparece no tema do outro (inclui a força da senha em utils/crypto.js, ainda em hex)
+- progresso: 10 de 24

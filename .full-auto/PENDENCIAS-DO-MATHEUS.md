@@ -197,3 +197,8 @@ tela diria que está tudo bem justamente no caso mais grave.
 ### P2-02. Datas exibidas um dia antes (defeito antigo, achado nas fotos)
 - **O que:** a data da compra (Área Admin) e o vencimento do fiado (detalhe do cliente) aparecem um dia antes, porque `new Date("AAAA-MM-DD")` é lido como UTC. Registrado nas specs 5.19 e 5.20.
 - **Como:** iniciar a tarefa sugerida "Corrigir data da compra um dia antes" e pedir para incluir o vencimento em `ClienteDetalhe.jsx`, ou pedir a correção numa rodada da fase F.
+
+### P2-03. Coluna `emoji` da tabela `products`, sem uso
+- **O que:** desde as rodadas 5.32 e 5.33 (decisão 037) nada lê nem grava o emoji do produto. A coluna continua no banco com os valores antigos.
+- **Como:** se quiser limpar, uma migration `alter table products drop column emoji;` (e conferir `supabase/schema.sql`). Não é urgente: a coluna parada não afeta nada.
+- **Confirmar:** a suíte continua verde e o PDV abre normalmente depois de aplicar.

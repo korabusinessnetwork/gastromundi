@@ -1,3 +1,10 @@
+## Rodada 139, refatoração 5.33, emoji do produto fora do resto do sistema, guard de emoji em zero, 2026-11-26
+- Spec: specs/refatoracao-5-33-emoji-do-produto-resto.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4444
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 4
+  diferenças (celular, onde havia emoji). Sem migration. Emoji: 17 para 0.
+- A regra "o sistema não tem emoji" fecha: o `emojiGuard` exige zero, sem linha de base. A
+  planilha de produtos perde a coluna emoji (planilha antiga ainda importa).
 ## Rodada 138, refatoração 5.32, emoji do produto fora do computador e da impressão, 2026-11-26
 - Spec: specs/refatoracao-5-32-emoji-do-produto-computador.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4444

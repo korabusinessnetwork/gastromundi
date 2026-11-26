@@ -391,6 +391,8 @@ Depois, a 5.x: nenhuma cor hexadecimal no JSX (5.31, 8 para 0), com os tokens `-
 `--gm-violet` e um teste que segura a meta.
 Depois, o emoji do produto sai do computador e do papel (5.32, 40 para 17): ícone neutro onde o
 emoji tinha lugar fixo, nada onde vinha antes do nome; o campo de escolha do Delivery saiu.
+Depois, o resto do emoji do produto (5.33, 17 para 0): celular, cardápio público, página da Kora e
+a planilha de produtos, que perde a coluna emoji. **Emoji zerado**, e o `emojiGuard` passa a exigir zero.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
