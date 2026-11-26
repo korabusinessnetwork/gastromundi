@@ -10,18 +10,18 @@ export function formatarBRL(valor) {
 export const CATEGORIAS_DEMO = ["Lanches", "Pratos", "Bebidas", "Cafés", "Sobremesas"];
 
 export const PRODUTOS_DEMO = [
-  { id: 1,  nome: "Burger da casa",        preco: 34.9, categoria: "Lanches",    emoji: "🍔" },
-  { id: 2,  nome: "X-Salada duplo",        preco: 29.9, categoria: "Lanches",    emoji: "🥪" },
-  { id: 3,  nome: "Batata rústica",        preco: 22.0, categoria: "Lanches",    emoji: "🍟" },
-  { id: 4,  nome: "Parmegiana + fritas",   preco: 42.0, categoria: "Pratos",     emoji: "🍛" },
-  { id: 5,  nome: "Executivo do dia",      preco: 28.5, categoria: "Pratos",     emoji: "🍽️" },
-  { id: 6,  nome: "Chopp artesanal 500ml", preco: 14.0, categoria: "Bebidas",    emoji: "🍺" },
-  { id: 7,  nome: "Suco natural 300ml",    preco: 9.5,  categoria: "Bebidas",    emoji: "🍊" },
-  { id: 8,  nome: "Refrigerante lata",     preco: 6.5,  categoria: "Bebidas",    emoji: "🥤" },
-  { id: 9,  nome: "Espresso duplo",        preco: 8.0,  categoria: "Cafés",      emoji: "☕" },
-  { id: 10, nome: "Cappuccino cremoso",    preco: 12.0, categoria: "Cafés",      emoji: "🍮" },
-  { id: 11, nome: "Pudim de leite",        preco: 11.0, categoria: "Sobremesas", emoji: "🍮" },
-  { id: 12, nome: "Brownie com sorvete",   preco: 16.0, categoria: "Sobremesas", emoji: "🍫" },
+  { id: 1,  nome: "Burger da casa",        preco: 34.9, categoria: "Lanches" },
+  { id: 2,  nome: "X-Salada duplo",        preco: 29.9, categoria: "Lanches" },
+  { id: 3,  nome: "Batata rústica",        preco: 22.0, categoria: "Lanches" },
+  { id: 4,  nome: "Parmegiana + fritas",   preco: 42.0, categoria: "Pratos" },
+  { id: 5,  nome: "Executivo do dia",      preco: 28.5, categoria: "Pratos" },
+  { id: 6,  nome: "Chopp artesanal 500ml", preco: 14.0, categoria: "Bebidas" },
+  { id: 7,  nome: "Suco natural 300ml",    preco: 9.5,  categoria: "Bebidas" },
+  { id: 8,  nome: "Refrigerante lata",     preco: 6.5,  categoria: "Bebidas" },
+  { id: 9,  nome: "Espresso duplo",        preco: 8.0,  categoria: "Cafés" },
+  { id: 10, nome: "Cappuccino cremoso",    preco: 12.0, categoria: "Cafés" },
+  { id: 11, nome: "Pudim de leite",        preco: 11.0, categoria: "Sobremesas" },
+  { id: 12, nome: "Brownie com sorvete",   preco: 16.0, categoria: "Sobremesas" },
 ];
 
 /** Comanda que já chega aberta na Frente de Caixa (Mesa 12, como no hero). */

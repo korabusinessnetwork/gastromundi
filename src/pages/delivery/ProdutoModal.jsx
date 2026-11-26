@@ -21,6 +21,7 @@ import {
   primeiroGrupoPendente,
   achatarGrupos,
 } from "@/lib/delivery";
+import { LuUtensils } from "react-icons/lu";
 
 // ──────────────────────────────────────────────────────────────────
 // GrupoBloco — renderiza UM grupo (cabeçalho + opções) e, recursivamente,
@@ -211,7 +212,7 @@ export default function ProdutoModal({ produto, lojaAberta = true, onFechar, onA
               <img className="produto-hero__foto" src={produto.foto_url} alt={produto.nome} />
             ) : (
               <div className="produto-hero__foto produto-hero__foto--emoji" aria-hidden="true">
-                {produto?.emoji || "🍽️"}
+                <LuUtensils />
               </div>
             )}
             {produto?.descricao && <p className="produto-hero__desc">{produto.descricao}</p>}

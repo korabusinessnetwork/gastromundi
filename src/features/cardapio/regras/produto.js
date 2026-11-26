@@ -8,7 +8,7 @@
 export const EMPTY_COMPRA = { nome: "", unidade: "", fator: "" };
 
 export const EMPTY_FORM = {
-  name: "", price: "", category: "", emoji: "",
+  name: "", price: "", category: "",
   unidade_estoque: "",
   compras: [],
   unidade_consumo: "",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync, writeFileSync } from "fs";
+import { readFileSync, readdirSync, statSync } from "fs";
 import { join, relative, sep } from "path";
 import { contarEmoji } from "../../scripts/contarEmoji.mjs";
 
@@ -13,19 +13,16 @@ import { contarEmoji } from "../../scripts/contarEmoji.mjs";
  * do tema; emoji não segue tema, muda de desenho de aparelho para aparelho e
  * vira quadrado na impressora térmica.
  *
- * Como funciona: o mesmo molde do `inlineStyleGuard`. A contagem de cada
- * arquivo está em `emojiGuard.linhaDeBase.json`. O teste falha se um arquivo
- * SOBE, se um arquivo novo aparece com emoji, e se um arquivo DESCE sem a linha
- * de base acompanhar: assim ela só encolhe, até zerar. Para registrar a queda:
- *
- *   GERAR_LINHA_DE_BASE=1 npx vitest run src/lib/emojiGuard.test.js
+ * Como funciona: a contagem saiu de 118 (em 58 arquivos, no dia da regra) e
+ * chegou a zero na refatoração 5.33, com uma linha de base que só encolhia.
+ * Agora a regra é zero, sem lista de exceções: qualquer emoji no que o código
+ * escreve reprova a suíte.
  *
  * Lê a árvore de sintaxe, não o texto: conta emoji em texto JSX, string e
  * pedaço de template. Comentário fica de fora, como no guard do travessão.
  */
 
 const RAIZ = join(__dirname, "..");
-const LINHA_DE_BASE = join(__dirname, "emojiGuard.linhaDeBase.json");
 const IGNORAR = [/\.test\.(jsx|js)$/, /[/\\]test[/\\]/];
 
 function arquivos(dir, saida = []) {
@@ -62,26 +59,9 @@ describe("contarEmoji", () => {
   });
 });
 
-describe("emoji não cresce no sistema", () => {
-  const atual = contagemAtual();
-
-  if (process.env.GERAR_LINHA_DE_BASE) {
-    writeFileSync(LINHA_DE_BASE, JSON.stringify(atual, null, 2) + "\n");
-  }
-
-  const base = JSON.parse(readFileSync(LINHA_DE_BASE, "utf8"));
-
-  it("nenhum arquivo ganha emoji", () => {
-    const subiram = Object.entries(atual)
-      .filter(([arq, n]) => n > (base[arq] ?? 0))
-      .map(([arq, n]) => `${arq}: ${base[arq] ?? 0} para ${n}`);
-    expect(subiram, "O sistema não tem emoji. Ícone de tela vem de react-icons/lu").toEqual([]);
-  });
-
-  it("a linha de base acompanha o que já saiu (só encolhe)", () => {
-    const desceram = Object.entries(base)
-      .filter(([arq, n]) => (atual[arq] ?? 0) < n)
-      .map(([arq, n]) => `${arq}: ${n} para ${atual[arq] ?? 0}`);
-    expect(desceram, "Rode com GERAR_LINHA_DE_BASE=1 para registrar a queda").toEqual([]);
+describe("o sistema não tem emoji", () => {
+  it("nenhum arquivo escreve emoji na tela, no cupom ou na planilha", () => {
+    const encontrados = Object.entries(contagemAtual()).map(([arq, n]) => `${arq}: ${n}`);
+    expect(encontrados, "O sistema não tem emoji. Ícone de tela vem de react-icons/lu").toEqual([]);
   });
 });

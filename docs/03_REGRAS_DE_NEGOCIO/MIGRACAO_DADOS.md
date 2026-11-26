@@ -131,7 +131,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 
 - Histórico de vendas/financeiro do sistema antigo (valor baixo, risco alto de
   dado inconsistente; o cliente começa histórico limpo no KORA).
-- Fotos de produto (não existe campo hoje; produto usa `emoji`).
+- Fotos de produto (não existe campo hoje).
 - Sincronização contínua com outro sistema (isso é integração, não migração).
 
 ## 5. Modelo de dados alvo (estado real do banco — `supabase/schema.sql`)
@@ -143,7 +143,7 @@ mexer no banco. Import/export vira parte do produto, não um favor manual.
 | `name` | text | ✅ | chave natural do upsert (por tenant, case-insensitive, trim) |
 | `price` | numeric | ✅ | preço de venda |
 | `category` | text | ✅ | texto livre; ver grupos abaixo |
-| `emoji` | text | — | default por grupo se vazio (ex.: 🍽️/🥤/☕) |
+| `emoji` | text | — | **sem uso desde a decisão 037** (o sistema não tem emoji): não é importado nem exportado; o valor antigo fica no banco |
 | `active` | boolean | — | default `true` |
 | `unidade_estoque` | text | — | default `'un'` |
 | `produzivel` | boolean | — | default `true` (aparece na Cozinha) |
@@ -171,10 +171,13 @@ o dono ajusta depois na tela de produto.
 ### Template CSV de produtos (contrato do MVP)
 
 ```csv
-nome;preco;categoria;emoji;ativo;unidade
-X-Salada;24,90;Lanches;🍔;sim;un
-Suco de Laranja 300ml;9,00;Bebidas;🍊;sim;un
+nome;preco;categoria;ativo;unidade
+X-Salada;24,90;Lanches;sim;un
+Suco de Laranja 300ml;9,00;Bebidas;sim;un
 ```
+
+Uma planilha antiga, exportada antes da decisão 037, ainda tem a coluna `emoji`:
+ela importa normalmente e a coluna é ignorada.
 
 ### Template CSV de clientes (Fase 2)
 

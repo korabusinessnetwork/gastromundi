@@ -83,7 +83,7 @@ export function buscarNotaPorChave(chaveAcesso) {
 export function listarItensDaNota(notaId) {
   return supabase
     .from("notas_fiscais_itens")
-    .select("*, products(name, emoji, unidade_estoque)")
+    .select("*, products(name, unidade_estoque)")
     .eq("nota_fiscal_id", notaId)
     .order("id");
 }

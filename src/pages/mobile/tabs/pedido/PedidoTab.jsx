@@ -124,11 +124,6 @@ export default function PedidoTab({
                   {qtd > 0 ? (
                     <span className="pedido-tab__card-badge">{qtd}</span>
                   ) : null}
-                  {produto.emoji ? (
-                    <span className="pedido-tab__card-emoji" aria-hidden="true">
-                      {produto.emoji}
-                    </span>
-                  ) : null}
                   <span className="pedido-tab__card-nome">{produto.name}</span>
                   <span className="pedido-tab__card-preco">
                     {fmtDinheiro(produto.price)}

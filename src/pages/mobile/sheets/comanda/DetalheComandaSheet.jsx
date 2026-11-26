@@ -50,7 +50,7 @@ function formatHora(iso) {
 }
 
 function LinhaItem({ item, podeExcluir, onExcluir }) {
-  const { name, qty, price, emoji, launched_at, cancelado, motivoCancelamento } = item;
+  const { name, qty, price, launched_at, cancelado, motivoCancelamento } = item;
 
   return (
     <li
@@ -67,7 +67,6 @@ function LinhaItem({ item, podeExcluir, onExcluir }) {
 
       <div className="detalhe-comanda-sheet__item-info">
         <span className="detalhe-comanda-sheet__item-nome">
-          {emoji ? `${emoji} ` : ""}
           {name}
         </span>
         <div className="detalhe-comanda-sheet__item-sub">
@@ -309,7 +308,6 @@ export default function DetalheComandaSheet({
 
               <h3 className="detalhe-comanda-sheet__excluir-titulo">Excluir item</h3>
               <p className="detalhe-comanda-sheet__excluir-item">
-                {excluindo.item.emoji ? `${excluindo.item.emoji} ` : ""}
                 {excluindo.item.qty}× {excluindo.item.name}
               </p>
               <p className="detalhe-comanda-sheet__excluir-ajuda">

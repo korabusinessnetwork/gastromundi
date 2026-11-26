@@ -1,13 +1,5 @@
 import { useMemo, useState } from "react";
-import {
-  LuArrowLeft,
-  LuCircleOff,
-  LuPause,
-  LuPlay,
-  LuSearch,
-  LuSearchX,
-  LuUtensilsCrossed,
-} from "react-icons/lu";
+import { LuArrowLeft, LuCircleOff, LuPause, LuPlay, LuSearch, LuSearchX, LuUtensilsCrossed, LuPackage } from "react-icons/lu";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { fmtDinheiro } from "@/pages/mobile/fmt";
 import "../modulos.css";
@@ -234,7 +226,7 @@ function CartaoProduto({ produto, isAdmin, processando, onToggle }) {
       <div className="mod-cartao__topo">
         <div className="cardapio-modulo__info">
           <span className="cardapio-modulo__emoji" aria-hidden="true">
-            {produto.emoji || "🍽️"}
+            <LuPackage />
           </span>
           <span className="cardapio-modulo__nomes">
             <span className="mod-cartao__titulo">{produto.name}</span>

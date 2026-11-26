@@ -289,11 +289,6 @@ export default function PdvModulo({ onVoltar }) {
                 {qtd > 0 ? (
                   <span className="pdv-modulo__produtoBadge">{qtd}</span>
                 ) : null}
-                {produto.emoji ? (
-                  <span className="pdv-modulo__produtoEmoji" aria-hidden="true">
-                    {produto.emoji}
-                  </span>
-                ) : null}
                 <span className="pdv-modulo__produtoNome">{produto.name}</span>
                 <span className="pdv-modulo__produtoPreco">
                   {fmtDinheiro(produto.price)}

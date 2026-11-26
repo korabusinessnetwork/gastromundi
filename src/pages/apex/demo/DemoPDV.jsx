@@ -93,7 +93,6 @@ export default function DemoPDV() {
               className="demo-pdv__produto"
               onClick={() => adicionar(p.id)}
             >
-              <span className="demo-pdv__produto-emoji" aria-hidden="true">{p.emoji}</span>
               <span className="demo-pdv__produto-nome">{p.nome}</span>
               <span className="demo-pdv__produto-preco">{formatarBRL(p.preco)}</span>
             </button>

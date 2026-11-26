@@ -33,7 +33,7 @@ function CardProduto({ item, onAbrir }) {
         />
       ) : (
         <div className="card-produto__foto card-produto__foto--emoji" aria-hidden="true">
-          {item.emoji || "🍽️"}
+          <LuUtensils />
         </div>
       )}
     </button>

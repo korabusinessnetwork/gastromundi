@@ -118,13 +118,23 @@ describe("parsearBooleanoBR", () => {
 });
 
 describe("validarPlanilhaProdutos", () => {
-  const cabecalho = "nome;preco;categoria;emoji;ativo;unidade";
+  const cabecalho = "nome;preco;categoria;ativo;unidade";
 
   it("caminho feliz com dinheiro pt-BR e acento", () => {
-    const r = validarPlanilhaProdutos(`${cabecalho}\nPão na chapa;R$ 8,50;Cafés;🍞;sim;un`);
+    const r = validarPlanilhaProdutos(`${cabecalho}\nPão na chapa;R$ 8,50;Cafés;sim;un`);
     expect(r.erros).toEqual([]);
     expect(r.produtos).toEqual([
-      { linha: 2, nome: "Pão na chapa", preco: 8.5, categoria: "Cafés", emoji: "🍞", ativo: true, unidade: "un" },
+      { linha: 2, nome: "Pão na chapa", preco: 8.5, categoria: "Cafés", ativo: true, unidade: "un" },
+    ]);
+  });
+
+  // Decisão 037: o produto não tem mais emoji. Um export antigo, com a coluna
+  // emoji, continua importando: a coluna é ignorada.
+  it("planilha antiga com a coluna emoji importa e ignora o emoji", () => {
+    const r = validarPlanilhaProdutos("nome;preco;categoria;emoji;ativo;unidade\nPão na chapa;R$ 8,50;Cafés;🍞;sim;un");
+    expect(r.erros).toEqual([]);
+    expect(r.produtos).toEqual([
+      { linha: 2, nome: "Pão na chapa", preco: 8.5, categoria: "Cafés", ativo: true, unidade: "un" },
     ]);
   });
 
@@ -169,7 +179,7 @@ describe("validarPlanilhaProdutos", () => {
   });
 
   it("preço absurdo (acima do teto de magnitude) é rejeitado com mensagem clara, sem derrubar as boas", () => {
-    const r = validarPlanilhaProdutos(`${cabecalho}\nBom;10,00;Pratos;;;\nAbsurdo;999999999999;Pratos;;;`);
+    const r = validarPlanilhaProdutos(`${cabecalho}\nBom;10,00;Pratos;;\nAbsurdo;999999999999;Pratos;;`);
     expect(r.produtos).toHaveLength(1);
     expect(r.produtos[0].nome).toBe("Bom");
     expect(r.erros[0].mensagem).toMatch(/não é um valor válido/);
@@ -185,8 +195,8 @@ describe("montarCSVProdutos / gerarModeloCSV (portabilidade)", () => {
     const r = validarPlanilhaProdutos(csv);
     expect(r.erros).toEqual([]);
     expect(r.produtos).toEqual([
-      { linha: 2, nome: "X-Salada", preco: 24.9, categoria: "Lanches", emoji: "🍔", ativo: true, unidade: "un" },
-      { linha: 3, nome: "Item; com separador", preco: 7, categoria: "Pratos", emoji: null, ativo: false, unidade: "un" },
+      { linha: 2, nome: "X-Salada", preco: 24.9, categoria: "Lanches", ativo: true, unidade: "un" },
+      { linha: 3, nome: "Item; com separador", preco: 7, categoria: "Pratos", ativo: false, unidade: "un" },
     ]);
   });
 
@@ -228,33 +238,20 @@ describe("montarCSVProdutos, proteção contra CSV injection (I1)", () => {
     expect(linhaProduto).toContain('"\'=diz ""oi""; ok"');
   });
 
-  // emoji é texto livre no banco: um valor tipo "=HYPERLINK(...)" ou com ";"
-  // também vira fórmula/quebra a estrutura no CSV exportado (importado por
-  // outro tenant na portabilidade). Passa por celulaCSV como nome/categoria.
-  it("emoji com caractere de fórmula é neutralizado (não fica cru na coluna 4)", () => {
-    const csv = montarCSVProdutos([
-      { name: "X", price: 10, category: "Pratos", emoji: "=HYPERLINK(0)" },
-    ]);
-    const colunaEmoji = csv.split("\r\n")[1].split(";")[3].replace(/^"|"$/g, "");
-    expect(colunaEmoji.startsWith("'=")).toBe(true);
-  });
-
-  it("emoji com separador não quebra a estrutura de colunas", () => {
-    const csv = montarCSVProdutos([
-      { name: "X", price: 10, category: "Pratos", emoji: "a;b" },
-    ]);
-    // a;b entra entre aspas — o parser de CSV lê como UMA coluna, não duas
-    expect(csv.split("\r\n")[1]).toContain('"a;b"');
-    const linhaDados = parsearCSV(csv)[1];
-    expect(linhaDados.length).toBe(COLUNAS_MODELO.length);
-    expect(linhaDados[3]).toBe("a;b");
+  // Decisão 037: o export não leva mais o emoji, mesmo que o produto ainda o
+  // tenha no banco (o valor antigo fica lá, sem uso).
+  it("export não tem coluna emoji, nem com o produto tendo emoji no banco", () => {
+    const csv = montarCSVProdutos([{ name: "X", price: 10, category: "Pratos", emoji: "🍔" }]);
+    expect(csv).not.toContain("emoji");
+    expect(csv).not.toContain("🍔");
+    expect(parsearCSV(csv)[1].length).toBe(COLUNAS_MODELO.length);
   });
 
   it("unidade_estoque com caractere de fórmula é neutralizada", () => {
     const csv = montarCSVProdutos([
       { name: "X", price: 10, category: "Pratos", unidade_estoque: "=cmd" },
     ]);
-    const colunaUnidade = csv.split("\r\n")[1].split(";")[5].replace(/^"|"$/g, "");
+    const colunaUnidade = csv.split("\r\n")[1].split(";")[COLUNAS_MODELO.indexOf("unidade")].replace(/^"|"$/g, "");
     expect(colunaUnidade.startsWith("'=")).toBe(true);
   });
 });

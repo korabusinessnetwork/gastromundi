@@ -141,14 +141,6 @@ export default function CarrinhoSheet({
                   <li className="carrinho-sheet__item" key={item._key}>
                     <div className="carrinho-sheet__item-info">
                       <span className="carrinho-sheet__item-nome">
-                        {item.emoji ? (
-                          <span
-                            className="carrinho-sheet__item-emoji"
-                            aria-hidden="true"
-                          >
-                            {item.emoji}
-                          </span>
-                        ) : null}
                         {item.name}
                       </span>
                       <span className="carrinho-sheet__item-preco">

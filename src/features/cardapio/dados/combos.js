@@ -82,7 +82,7 @@ export function carregarSubprodutosDoCombo(comboId) {
 }
 
 export function carregarProdutosDoCombo(comboId) {
-  return supabase.from("combo_produtos").select("*, products(id, name, price, emoji, category)").eq("combo_id", comboId);
+  return supabase.from("combo_produtos").select("*, products(id, name, price, category)").eq("combo_id", comboId);
 }
 
 export function alterarSituacaoCombo(comboId, ativo) {

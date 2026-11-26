@@ -186,7 +186,6 @@ export function useProdutos() {
       name:            p.name,
       price:           String(p.price ?? "0"),
       category:        p.category ?? "",
-      emoji:           p.emoji ?? "",
       unidade_estoque: p.unidade_estoque ?? p.unidade ?? "",
       compras,
       unidade_consumo: p.unidade_consumo ?? "",
@@ -265,7 +264,6 @@ export function useProdutos() {
       name:                  form.name.trim(),
       price:                 isInsumo ? 0 : parseFloat(String(form.price).replace(",", ".")),
       category:              isInsumo ? "Insumo" : isProducao ? "Produção" : form.category.trim(),
-      emoji:                 form.emoji || null,
       unidade_estoque:       ue,
       unidade_consumo:       form.unidade_consumo.trim() || null,
       // crítico 7 — fator real informado no cadastro; sem unidade de

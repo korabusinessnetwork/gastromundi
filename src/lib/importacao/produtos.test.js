@@ -9,7 +9,6 @@ const itemPlanilha = (extra = {}) => ({
   nome: "X-Salada",
   preco: 24.9,
   categoria: "Lanches",
-  emoji: "🍔",
   ativo: true,
   unidade: "un",
   ...extra,
@@ -39,9 +38,11 @@ describe("planejarImportacaoProdutos (idempotência por nome no tenant)", () => 
     expect(plano.iguais).toHaveLength(1);
   });
 
-  it("emoji vazio na planilha não apaga o emoji existente", () => {
+  // Decisão 037: a planilha não tem mais emoji; o que o banco ainda tiver fica
+  // como está, e mesmo um item com emoji (vindo de outro caminho) não o grava.
+  it("importação não mexe no emoji que o produto ainda tiver no banco", () => {
     const existente = { id: 7, name: "X-Salada", price: 24.9, category: "Lanches", emoji: "🍔", active: true };
-    const plano = planejarImportacaoProdutos([itemPlanilha({ emoji: null })], [existente]);
+    const plano = planejarImportacaoProdutos([itemPlanilha({ emoji: "🌭" })], [existente]);
     expect(plano.atualizar).toEqual([]);
     expect(plano.iguais).toHaveLength(1);
   });
@@ -74,7 +75,6 @@ describe("paraPayloadProduto", () => {
       name: "X-Salada",
       price: 24.9,
       category: "Lanches",
-      emoji: "🍔",
       active: true,
       unidade_estoque: "un",
     });

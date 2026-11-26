@@ -56,18 +56,18 @@ demonstração. Ícone de interface é componente de ícone (`react-icons/lu`), 
 do tema do estabelecimento; emoji não segue tema, muda de desenho de aparelho para aparelho
 e vira quadrado na impressora térmica.
 
-**`src/lib/emojiGuard.test.js` cobra na suíte.** Ele conta emoji por arquivo contra a linha
-de base `emojiGuard.linhaDeBase.json` (118 em 58 arquivos quando a regra nasceu): falha se
-um arquivo ganha emoji, se um arquivo novo aparece com emoji, e se um arquivo perde emoji
-sem a linha de base acompanhar. A linha de base só encolhe, até zerar. Para registrar uma
-queda: `GERAR_LINHA_DE_BASE=1 npx vitest run src/lib/emojiGuard.test.js`.
+**`src/lib/emojiGuard.test.js` cobra na suíte, e exige zero.** A contagem começou em 118
+emojis em 58 arquivos quando a regra nasceu e chegou a zero na refatoração 5.33; desde então
+não há linha de base nem lista de exceções: qualquer emoji no que o código escreve reprova a
+suíte.
 
-Ficam de fora, como no travessão: comentário de código, e as setas e o visto usados como
-texto (→, ✓, ✕), que não são emoji.
+Ficam de fora, como no travessão: comentário de código, as setas e o visto usados como
+texto (→, ✓, ✕), e ©, ® e ™ (o crédito de mapa que a licença do OpenStreetMap exige, o
+rodapé), que não são emoji.
 
-Decisão 037 (`memory/decisions.md`): os emojis que o código já tem saem junto com a fase 5
-da refatoração, arquivo por arquivo; e o ícone emoji que o estabelecimento escolhe para cada
-produto também sai, numa rodada própria depois da fase 5.
+Decisão 037 (`memory/decisions.md`): os emojis do código saíram junto com a fase 5 da
+refatoração, e o emoji que o estabelecimento escolhia para cada produto saiu nas rodadas 5.32 e
+5.33 (a coluna `emoji` ainda existe no banco, sem uso; apagá-la é migration e fica com o dono).
 
 ## Fonte de verdade (leia antes de qualquer mudança relevante)
 

@@ -21,7 +21,7 @@ export const TAMANHO_LOTE = 200;
  * então idempotência é por casamento de nome normalizado no código:
  * existe → UPDATE por id; não existe → INSERT.
  * @param {Array} produtosPlanilha - saída de validarPlanilhaProdutos().produtos
- * @param {Array<{id:number|string, name:string, price:number, category:string, emoji?:string, active?:boolean, unidade_estoque?:string}>} produtosExistentes
+ * @param {Array<{id:number|string, name:string, price:number, category:string, active?:boolean, unidade_estoque?:string}>} produtosExistentes
  * @returns {{criar:Array, atualizar:Array<{id, nome, changes}>, iguais:Array, categoriasNovas:string[]}}
  */
 export function planejarImportacaoProdutos(produtosPlanilha, produtosExistentes) {
@@ -52,7 +52,6 @@ export function planejarImportacaoProdutos(produtosPlanilha, produtosExistentes)
     const changes = {};
     if (Number(existente.price) !== item.preco) changes.price = item.preco;
     if ((existente.category || "") !== item.categoria) changes.category = item.categoria;
-    if (item.emoji && (existente.emoji || null) !== item.emoji) changes.emoji = item.emoji;
     if (Boolean(existente.active) !== item.ativo) changes.active = item.ativo;
     // Unidade só entra no UPDATE quando a planilha realmente traz uma (item.unidade
     // != null). Assim o export→editar unidade→reimportar aplica a mudança, mas um
@@ -75,7 +74,6 @@ export function paraPayloadProduto(item) {
     name: item.nome,
     price: item.preco,
     category: item.categoria,
-    emoji: item.emoji,
     active: item.ativo,
     unidade_estoque: item.unidade || "un",
   };

@@ -54,7 +54,7 @@ export async function aplicarImportacaoProdutos(plano, onProgresso) {
 export async function buscarProdutosParaMigracao() {
   return supabase
     .from("products")
-    .select("id, name, price, category, emoji, active, unidade_estoque")
+    .select("id, name, price, category, active, unidade_estoque")
     .order("category")
     .order("name");
 }

@@ -2,7 +2,9 @@
 // Migração de dados — núcleo de PLANILHA (funções puras, sem Supabase)
 //
 // Contratos de CSV (docs/03_REGRAS_DE_NEGOCIO/MIGRACAO_DADOS.md):
-//   produtos: nome;preco;categoria;emoji;ativo;unidade
+//   produtos: nome;preco;categoria;ativo;unidade
+//   (a coluna emoji saiu com a decisão 037; planilha antiga com ela importa e
+//   a coluna é ignorada)
 //   clientes: nome;telefone;endereco;observacoes        (Fase 2)
 //   estoque:  produto;quantidade;minimo                 (Fase 2)
 // Tolerante ao mundo real do Excel brasileiro: encoding Windows-1252,
@@ -12,7 +14,7 @@
 // ──────────────────────────────────────────────────────────────────
 
 /** Colunas do modelo de produtos. Só `nome`, `preco` e `categoria` são obrigatórias. */
-export const COLUNAS_MODELO = ["nome", "preco", "categoria", "emoji", "ativo", "unidade"];
+export const COLUNAS_MODELO = ["nome", "preco", "categoria", "ativo", "unidade"];
 export const COLUNAS_OBRIGATORIAS = ["nome", "preco", "categoria"];
 
 export const COLUNAS_MODELO_CLIENTES = ["nome", "telefone", "endereco", "observacoes"];
@@ -269,12 +271,11 @@ export function validarPlanilhaProdutos(texto) {
       nome,
       preco,
       categoria,
-      emoji: pegar("emoji").slice(0, 8) || null,
       ativo: ativoFinal,
       // null = "não informado" (coluna ausente ou célula vazia). Mantido
       // separado de um valor real pra que um import mínimo (sem a coluna
       // unidade) NUNCA sobrescreva a unidade já cadastrada — mesmo cuidado
-      // do emoji. No CREATE, paraPayloadProduto aplica o default "un".
+      // do resto. No CREATE, paraPayloadProduto aplica o default "un".
       unidade: pegar("unidade").slice(0, 10) || null,
     });
   }
@@ -306,7 +307,7 @@ function celulaCSV(valor, separador) {
  * Gera o CSV de produtos no MESMO layout do modelo de import — export
  * de um tenant importa em outro sem editar nada (portabilidade real).
  * Com BOM + ";" pra abrir certo no Excel BR.
- * @param {Array<{name:string, price:number, category:string, emoji?:string, active?:boolean, unidade_estoque?:string}>} produtos
+ * @param {Array<{name:string, price:number, category:string, active?:boolean, unidade_estoque?:string}>} produtos
  */
 export function montarCSVProdutos(produtos) {
   const sep = ";";
@@ -316,7 +317,6 @@ export function montarCSVProdutos(produtos) {
       celulaCSV(p.name, sep),
       String(p.price ?? 0).replace(".", ","),
       celulaCSV(p.category, sep),
-      celulaCSV(p.emoji || "", sep),
       p.active === false ? "não" : "sim",
       celulaCSV(p.unidade_estoque || "un", sep),
     ].join(sep)
@@ -327,8 +327,8 @@ export function montarCSVProdutos(produtos) {
 /** Planilha modelo (o contrato) com 2 linhas de exemplo. */
 export function gerarModeloCSV() {
   return montarCSVProdutos([
-    { name: "X-Salada", price: 24.9, category: "Lanches", emoji: "🍔", active: true, unidade_estoque: "un" },
-    { name: "Suco de Laranja 300ml", price: 9, category: "Bebidas", emoji: "🍊", active: true, unidade_estoque: "un" },
+    { name: "X-Salada", price: 24.9, category: "Lanches", active: true, unidade_estoque: "un" },
+    { name: "Suco de Laranja 300ml", price: 9, category: "Bebidas", active: true, unidade_estoque: "un" },
   ]);
 }
 

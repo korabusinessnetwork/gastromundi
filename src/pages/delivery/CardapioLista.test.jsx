@@ -51,15 +51,17 @@ describe("CardapioLista, foto que não carrega cai no emoji, não no ícone queb
 
     expect(screen.queryByAltText("Pizza Calabresa")).not.toBeInTheDocument();
     expect(azulejoEmoji(container)).toBeInTheDocument();
-    expect(screen.getByText("🍕")).toBeInTheDocument();
+    // Decisão 037: o azulejo mostra o ícone de prato, nunca o emoji do produto.
+    expect(screen.queryByText("🍕")).not.toBeInTheDocument();
   });
 
-  it("sem emoji próprio, a reserva é o prato genérico", () => {
-    montar({ produtos: [produto({ foto_url: "https://bucket/x.jpg" })] });
+  it("a reserva é o ícone de prato, mesmo que o produto tenha emoji no banco", () => {
+    const { container } = montar({ produtos: [produto({ foto_url: "https://bucket/x.jpg", emoji: "🍕" })] });
 
     fireEvent.error(screen.getByAltText("Pizza Calabresa"));
 
-    expect(screen.getByText("🍽️")).toBeInTheDocument();
+    expect(azulejoEmoji(container).querySelector("svg")).toBeInTheDocument();
+    expect(azulejoEmoji(container)).not.toHaveTextContent("🍕");
   });
 
   it("foto que carrega bem continua na tela", () => {
