@@ -5,7 +5,9 @@ import { LuWallet } from "react-icons/lu";
 import { useSessao, useOffline, useConfig } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { buscarClientePorId } from "@/features/clientes/dados/clientes";
-import { ajusteExigeSenha, validarAjuste } from "@/features/caixa/regras/vendas";
+import { ajusteExigeSenha, round2, validarAjuste } from "@/features/caixa/regras/vendas";
+import { montarComprovantePagamento, buscarConfigImpressao } from "@/features/impressao/dados/impressao";
+import { imprimirDocumento } from "@/features/impressao/regras/drivers";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
 // lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
 // valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
@@ -20,10 +22,10 @@ import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 // Estado e ações da finalização da comanda: pagamentos, divisão, taxa de serviço,
 // desconto e acréscimo, cliente, CPF na nota e remoção de item.
-export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }) {
+export function useCheckout({ comanda, items, onConfirm, onBack, onConcluir, onRemoverItem }) {
   const { width } = useResponsive();
   const sz = getSizes(width);
-  const { currentUser, addonHabilitado } = useSessao();
+  const { currentUser, addonHabilitado, tenant } = useSessao();
   const { redeOnline } = useOffline();
   const { meiosPagamento, metodosCustom, taxaServico, metodosTef } = useConfig();
   const catalogCompleto = [
@@ -39,6 +41,11 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
   const [confirmando,   setConfirmando]   = useState(false);
   const [erroConfirmar, setErroConfirmar] = useState("");
   const [aplicarTaxa,   setAplicarTaxa]   = useState(!!taxaServico);
+  // Venda confirmada: o checkout vira a tela de sucesso, com imprimir
+  // comprovante, e só sai no Concluir (o mesmo que o Palm faz).
+  const [vendaConcluida,  setVendaConcluida]  = useState(null);
+  const [statusImpressao, setStatusImpressao] = useState(null); // null | "imprimindo" | "erro" | "sucesso"
+  const [erroImpressao,   setErroImpressao]   = useState("");
 
   const {
     showAjuste, setShowAjuste, ajusteTipo, setAjusteTipo, ajusteMode, setAjusteMode, ajusteValor,
@@ -89,7 +96,8 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
   // Todo valor cobrado é arredondado a centavos: taxa de 10% e ajuste
   // percentual geram frações de centavo que estouravam a tolerância do
   // split e chegavam ao pagamento com casas fantasma.
-  const round2 = (v) => Math.round((v + Number.EPSILON) * 100) / 100;
+  // Um arredondamento de dinheiro só, o de `vendas`: arredondado de dois
+  // jeitos na mesma tela é como nasce a diferença de um centavo no fechamento.
 
   const subtotal      = round2(itensVisiveis.reduce((s, i) => s + i.price * i.qty, 0));
   const valorTaxa     = aplicarTaxa ? round2(subtotal * 0.10) : 0;
@@ -301,6 +309,9 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
     setConfirmando(true);
     setErroConfirmar("");
     const payloadPagamentos = buildPayloadPagamentos();
+    // Congela a venda ANTES de confirmar: o comprovante pós-venda tem que
+    // refletir exatamente o que foi cobrado, mesmo que o carrinho mude depois.
+    const vendaCongelada = montarVendaParaImpressao();
     try {
       // clienteId = vínculo persistido da venda (Financeiro/fiado); cliente =
       // o objeto completo, usado só para puxar o CPF/CNPJ do destinatário da
@@ -309,6 +320,8 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
       const resultado = await onConfirm({ pagamentos: payloadPagamentos, total, taxaServico: aplicarTaxa, valorTaxa, ajuste: ajusteAplicado, valorAjuste, clienteId: clienteFiado?.id ?? null, cliente: clienteFiado ?? null, dest });
       if (resultado?.error) {
         setErroConfirmar(resultado.error?.message || "Não foi possível registrar o pagamento. Tente novamente.");
+      } else {
+        setVendaConcluida(vendaCongelada);
       }
     } catch (err) {
       setErroConfirmar(err?.message || "Não foi possível registrar o pagamento. Tente novamente.");
@@ -364,6 +377,29 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
     pagamentos: buildPrintPagamentos(),
   });
 
+  const imprimirComprovanteConcluido = async () => {
+    if (statusImpressao === "imprimindo" || !vendaConcluida) return;
+    setStatusImpressao("imprimindo");
+    setErroImpressao("");
+    try {
+      const { data: configImpressao } = await buscarConfigImpressao();
+      const dados = montarComprovantePagamento({ venda: vendaConcluida, tenant, configImpressao });
+      const { error } = await imprimirDocumento(dados, configImpressao?.perfilImpressora);
+      if (error) {
+        setErroImpressao(error.message);
+        setStatusImpressao("erro");
+        return;
+      }
+      setStatusImpressao("sucesso");
+      setTimeout(() => setStatusImpressao((s) => (s === "sucesso" ? null : s)), 2500);
+    } catch (err) {
+      setErroImpressao(err?.message ?? "Não foi possível imprimir agora.");
+      setStatusImpressao("erro");
+    }
+  };
+
+  const concluir = () => (onConcluir ?? onBack)?.();
+
   const isMob = sz.checkoutResumo === 0;
 
   return {
@@ -384,6 +420,7 @@ export function useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem }
     updatePagamento, removePagamento, addPagamento, dividirPagamento, voltarParaUnico,
     abrirAjuste, fecharAjuste, aplicarAjuste, abrirRemocao, confirmarRemocao,
     buildPayloadPagamentos, finalizar, handleConfirm, confirmarCpfNota, buildPrintPagamentos,
-    montarVendaParaImpressao, isMob, comanda, items, onConfirm, onBack, onRemoverItem,
+    montarVendaParaImpressao, vendaConcluida, statusImpressao, erroImpressao,
+    imprimirComprovanteConcluido, concluir, isMob, comanda, items, onConfirm, onBack, onRemoverItem,
   };
 }

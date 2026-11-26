@@ -1,0 +1,99 @@
+/* Confirmação pós-venda (espelha o "concluído" do Palm). */
+.checkout-view--concluido {
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--gm-bg);
+}
+
+.venda-concluida {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 18px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+
+.venda-concluida__icone {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  background: color-mix(in srgb, var(--gm-green) 12%, transparent);
+  color: var(--gm-green);
+}
+
+.venda-concluida__titulo {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-lg);
+  font-weight: 800;
+  color: var(--gm-text);
+}
+
+.venda-concluida__sub {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-muted);
+}
+
+.venda-concluida__acoes {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Alvo de toque grande: é o PDV, no ritmo do balcão. */
+.venda-concluida__btn {
+  width: 100%;
+  border-radius: 12px;
+  padding: 16px;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 800;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.venda-concluida__btn--imprimir {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+}
+.venda-concluida__btn--imprimir:disabled {
+  cursor: not-allowed;
+}
+
+.venda-concluida__btn--concluir {
+  border: none;
+  background: var(--gm-green);
+  color: #fff;   /* literal: sem token para texto sobre a marca */
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--gm-green) 27%, transparent);
+}
+
+.venda-concluida__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  margin-top: 10px;
+}
+.venda-concluida__status--erro { color: var(--gm-red); }
+.venda-concluida__status--sucesso { color: var(--gm-green); }

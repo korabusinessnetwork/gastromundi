@@ -25,7 +25,7 @@ const MIGRATION = readFileSync(
 );
 const SCHEMA = readFileSync(join(RAIZ, "supabase", "schema.sql"), "utf8");
 const CHECKOUT = readFileSync(
-  join(RAIZ, "src", "features", "pdv", "desktop", "CheckoutView.jsx"),
+  join(RAIZ, "src", "features", "pdv", "hooks", "useCheckout.js"),
   "utf8",
 );
 
@@ -223,10 +223,10 @@ describe("supabase/schema.sql descreve os tipos que a migration aplica", () => {
 });
 
 describe("front-end usa um arredondamento de dinheiro só", () => {
-  it("o checkout importa o round2 de @/lib/vendas em vez de declarar o próprio", () => {
+  it("o checkout importa o round2 de vendas em vez de declarar o próprio", () => {
     // Dois arredondamentos parecidos na mesma tela é como nasce a diferença
     // de um centavo entre o que o cliente paga e o que o fechamento espera.
-    expect(CHECKOUT).toMatch(/import \{[^}]*\bround2\b[^}]*\} from "@\/lib\/vendas"/);
+    expect(CHECKOUT).toMatch(/import \{[^}]*\bround2\b[^}]*\} from "@\/features\/caixa\/regras\/vendas"/);
     expect(CHECKOUT).not.toMatch(/const round2 =/);
   });
 });

@@ -457,7 +457,8 @@ export function usePdv({ notify }) {
         onNfce: ({ estado, resultado, venda }) =>
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
-      handleBack();
+      // Não volta sozinho: o checkout mostra a venda concluída, com o botão
+      // de imprimir o comprovante, e só sai quando o operador toca Concluir.
       return { error: null };
     } catch (err) {
       // Só o resumo mascarado: o objeto cru leva o payload da cobrança
