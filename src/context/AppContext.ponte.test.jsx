@@ -35,7 +35,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 // Folhas com efeito colateral, sem relação com a chave da Ponte.
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
@@ -47,8 +47,8 @@ vi.mock("@/components/shared/IndicadorRede", () => ({ default: () => null }));
 vi.mock("@/components/shared/PonteLocalBridge", () => ({ default: () => null }));
 vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () => null }));
 
-vi.mock("@/lib/tenant", async () => {
-  const real = await vi.importActual("@/lib/tenant");
+vi.mock("@/features/tenant/dados/tenant", async () => {
+  const real = await vi.importActual("@/features/tenant/dados/tenant");
   return { ...real, buscarBootstrapTenant: mockBootstrapTenant };
 });
 

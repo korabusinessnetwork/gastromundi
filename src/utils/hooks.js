@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { assinarMudancas } from "@/lib/dados/tempoReal";
 import { listarPedidosDelivery } from "@/features/delivery/dados/deliveryPedidos";
+import { listarMesas, alterarStatusManualMesa } from "@/features/mesas/dados/mesas";
+import { listarPedidosCozinha } from "@/features/cozinha/dados/cozinha";
 
 /**
  * useLS — localStorage com fallback e sincronização
@@ -137,10 +139,7 @@ export function useMesas() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("mesas")
-      .select("numero,capacidade,posicao_x,posicao_y,status_manual")
-      .order("numero")
+    listarMesas()
       .then(({ data }) => {
         setMesas(data ?? []);
         setLoading(false);
@@ -149,9 +148,7 @@ export function useMesas() {
 
   // Requer Realtime habilitado na tabela `mesas` (Database → Replication).
   useEffect(() => {
-    const channel = supabase
-      .channel("mesas-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "mesas" }, (payload) => {
+    return assinarMudancas("mesas-realtime", { table: "mesas" }, (payload) => {
         if (payload.eventType === "INSERT") {
           setMesas(prev =>
             prev.find(m => m.numero === payload.new.numero)
@@ -163,10 +160,7 @@ export function useMesas() {
         } else if (payload.eventType === "DELETE") {
           setMesas(prev => prev.filter(m => m.numero !== payload.old.numero));
         }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   // Marca a mesa como livre/reservada/manutencao (aba "Reservas" do PDV).
@@ -184,10 +178,7 @@ export function useMesas() {
       anterior = m.status_manual ?? "livre";
       return { ...m, status_manual: novoStatus };
     }));
-    const { error } = await supabase
-      .from("mesas")
-      .update({ status_manual: novoStatus })
-      .eq("numero", numero);
+    const { error } = await alterarStatusManualMesa(numero, novoStatus);
     if (error) {
       setMesas(prev => prev.map(m => m.numero === numero ? { ...m, status_manual: anterior } : m));
     }
@@ -207,8 +198,6 @@ export function useMesas() {
  * painel quebrado precisam ser distinguíveis a metros de distância.
  * Expõe `recarregar` para o cozinheiro tentar de novo sem sair da tela.
  */
-const CAMPOS_COZINHA = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
-
 export function usePedidosCozinha() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -216,10 +205,7 @@ export function usePedidosCozinha() {
 
   const recarregar = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("pending")
-      .select(CAMPOS_COZINHA)
-      .order("created_at", { ascending: true });
+    const { data, error } = await listarPedidosCozinha();
     if (error) {
       // Mantém o que já estava na tela: é melhor a lista de 1 minuto atrás do
       // que apagar pedidos reais que a cozinha ainda precisa fazer.
@@ -235,9 +221,7 @@ export function usePedidosCozinha() {
 
   // Requer Realtime habilitado na tabela `pending` (Database → Replication).
   useEffect(() => {
-    const channel = supabase
-      .channel("cozinha-pedidos-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "pending" }, (payload) => {
+    return assinarMudancas("cozinha-pedidos-realtime", { table: "pending" }, (payload) => {
         if (payload.eventType === "INSERT") {
           const novo = payload.new;
           if (!Array.isArray(novo.items) || novo.items.length === 0) return;
@@ -257,10 +241,7 @@ export function usePedidosCozinha() {
           // Comanda finalizada/cancelada — sai do painel (mesma regra de COZINHA.md).
           setPedidos(prev => prev.filter(p => p.id !== payload.old.id));
         }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   return { pedidos, loading, erro, recarregar };
@@ -309,9 +290,7 @@ export function usePedidosDelivery() {
 
   // Status ao vivo entre dispositivos.
   useEffect(() => {
-    const channel = supabase
-      .channel("delivery-pedidos-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "delivery_pedidos" }, (payload) => {
+    return assinarMudancas("delivery-pedidos-realtime", { table: "delivery_pedidos" }, (payload) => {
         if (payload.eventType === "INSERT") {
           const novo = payload.new;
           setPedidos((prev) => (prev.find((p) => p.id === novo.id) ? prev : [novo, ...prev]));
@@ -321,26 +300,18 @@ export function usePedidosDelivery() {
         } else if (payload.eventType === "DELETE") {
           setPedidos((prev) => prev.filter((p) => p.id !== payload.old.id));
         }
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    });
   }, []);
 
   // Novo pedido do cliente ao vivo HOJE: `pending` já tem Realtime. O espelho
   // do delivery entra com created_by='delivery' — nesse INSERT, recarrega a
   // lista de `delivery_pedidos` (fonte de verdade da aba).
   useEffect(() => {
-    const channel = supabase
-      .channel("delivery-pending-espelho")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pending", filter: "created_by=eq.delivery" },
-        () => { recarregar(); },
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    return assinarMudancas(
+      "delivery-pending-espelho",
+      { event: "INSERT", table: "pending", filter: "created_by=eq.delivery" },
+      () => { recarregar(); },
+    );
   }, [recarregar]);
 
   return { pedidos, carregando, erro, recarregar };

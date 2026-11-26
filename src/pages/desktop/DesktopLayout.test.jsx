@@ -13,7 +13,7 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvas", () => ({
   emitirEvento: vi.fn(),
   buscarInsights: vi.fn(() => Promise.resolve({ data: [], error: null })),
@@ -22,7 +22,7 @@ vi.mock("@/features/jarvas/dados/jarvas", () => ({
 vi.mock("@/features/jarvas/dados/jarvasAssistente", () => ({ perguntarAoJarvas: vi.fn() }));
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import DesktopLayout from "./DesktopLayout";
 
 beforeEach(() => {

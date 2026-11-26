@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import { useSessao, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { useResponsive, useMesas } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";

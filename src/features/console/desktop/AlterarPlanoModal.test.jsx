@@ -28,8 +28,8 @@ vi.mock("@/features/console/console", async () => {
   const real = await vi.importActual("@/features/console/console");
   return { ...real, alterarPlano: mockAlterarPlano };
 });
-vi.mock("@/lib/tenant", async () => {
-  const real = await vi.importActual("@/lib/tenant");
+vi.mock("@/features/tenant/dados/tenant", async () => {
+  const real = await vi.importActual("@/features/tenant/dados/tenant");
   return { ...real, buscarModulosDoPlano: mockBuscarModulos };
 });
 

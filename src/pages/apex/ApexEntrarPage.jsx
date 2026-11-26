@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import ApexPortaShell from "./ApexPortaShell";
 import { normalizarSlug } from "@/lib/slugEstabelecimento";
 import { urlDeAcessoDoTenant } from "@/lib/tenantSlug";
-import { buscarBrandingPorSlug } from "@/lib/tenant";
+import { buscarBrandingPorSlug } from "@/features/tenant/dados/tenant";
 
 /**
  * `/entrar` — a porta de entrada do site da plataforma.

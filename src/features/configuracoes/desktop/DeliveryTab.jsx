@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSessao } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/features/delivery/deliveryAdmin";
 import {
   DIAS_SEMANA, HORARIO_PADRAO, normalizarHorario, horarioValido, resumoHorario, deliveryDeveEstarAberto

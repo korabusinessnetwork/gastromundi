@@ -17,7 +17,7 @@ const { rpc, upload, getPublicUrl } = vi.hoisted(() => ({
   getPublicUrl: vi.fn(),
 }));
 
-vi.mock("./supabase", () => ({
+vi.mock("@/lib/supabase", () => ({
   supabase: {
     rpc,
     storage: { from: () => ({ upload, getPublicUrl }) },

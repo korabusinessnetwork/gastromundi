@@ -23,7 +23,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 const logActionMock = vi.fn();
-vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
 
 const criarLancamentoMock = vi.fn(() => Promise.resolve({ data: { id: "lanc-1" }, error: null }));
 vi.mock("@/features/financeiro/dados/financeiro", () => ({ criarLancamento: (...args) => criarLancamentoMock(...args) }));

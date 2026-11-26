@@ -54,7 +54,7 @@ vi.mock("@/features/delivery/delivery", async () => {
   };
 });
 
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/features/tenant/dados/tenant", () => ({
   buscarBrandingPorSlug: vi.fn(() => Promise.resolve({ data: null, error: null })),
 }));
 

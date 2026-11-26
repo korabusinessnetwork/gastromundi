@@ -20,7 +20,7 @@
 // Nunca faz select * em tabela sensível (CLAUDE.md): campos explícitos.
 // ──────────────────────────────────────────────────────────────────
 import { supabase } from "@/lib/supabase";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 
 // Fluxo de status do delivery. A coluna `status` é text livre (sem CHECK
 // no banco), então o fluxo é definido AQUI, na única fonte de verdade do

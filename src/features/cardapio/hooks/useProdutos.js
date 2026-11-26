@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { lerCategoriasExtra, salvarCategoriasExtra } from "@/features/cardapio/dados/categorias";
 import { listarUnidadesMedida } from "@/features/estoque/dados/unidadesMedida";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { CATS_FIXAS, chaveCategoria, ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";

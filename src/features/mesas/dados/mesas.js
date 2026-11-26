@@ -23,6 +23,11 @@ export function excluirMesa(numero) {
   return supabase.from("mesas").delete().eq("numero", numero);
 }
 
+/** Marca a mesa como livre, reservada ou em manutenção (aba Reservas do PDV). */
+export function alterarStatusManualMesa(numero, statusManual) {
+  return supabase.from("mesas").update({ status_manual: statusManual }).eq("numero", numero);
+}
+
 /** Grava a posição de todas as mesas de uma vez (o "Salvar layout" do mapa). */
 export function salvarLayoutMesas(linhas) {
   return supabase.from("mesas").upsert(linhas, { onConflict: "tenant_id,numero" });

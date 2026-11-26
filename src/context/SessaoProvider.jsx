@@ -6,14 +6,14 @@ import { obterSessaoAuth, entrarComSenha, sairDoAuth, aoMudarSessaoAuth } from "
 import {
   buscarUsuarioAtivoPorAuth, criarUsuario, atualizarUsuario, excluirUsuario, salvarPermissoesDoCargo
 } from "@/features/sessao/dados/usuarios";
-import { moduloHabilitado, addonHabilitado } from "@/lib/tenant";
+import { moduloHabilitado, addonHabilitado } from "@/features/tenant/dados/tenant";
 import { emailDoLogin } from "@/lib/tenantSlug";
 import { consultarBloqueio, registrarFalha, registrarSucesso } from "@/features/sessao/dados/loginTentativas";
 import { ehConsoleHost } from "@/features/console/regras/consoleHost";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, temTrocaAutomatica, variaveisDoLayout, msAteProximaTroca } from "@/layouts";
 import { salvarBrandingCache } from "@/lib/brandingCache";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { sanitizeInput } from "@/utils/crypto";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarInconsistencia } from "@/lib/observabilidade";

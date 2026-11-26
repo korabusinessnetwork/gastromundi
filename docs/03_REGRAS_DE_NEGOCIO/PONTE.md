@@ -57,7 +57,7 @@ Existem **dois interruptores em série** — a Ponte só funciona quando os dois
 
 ## Auditoria
 - **Ligar/desligar `ponte_local_ativa` não deixa registro de auditoria hoje.** O caminho inteiro é `setPonteLocalAtiva` → `gravarConfig` (`src/context/AppContext.jsx`), e `gravarConfig` faz só o `upsert` em `config` (mais `reportarFalha` quando o banco recusa). Nenhum setter de config chama `logAction`, e não há trigger no banco fazendo isso por baixo.
-- Os registros de operador ficam na tabela **`operator_logs`** (`src/lib/logger.js`) — não em `activity_log`. Do `AppContext` só escrevem lá `auth:login`, `auth:logout`, `venda:cancelar` e as ações de caixa.
+- Os registros de operador ficam na tabela **`operator_logs`** (`src/features/auditoria/dados/logger.js`) — não em `activity_log`. Do `AppContext` só escrevem lá `auth:login`, `auth:logout`, `venda:cancelar` e as ações de caixa.
 - Registrar a troca desta chave é **pendência** (ver "Configurações Futuras"): quem auditar hoje não vai achar quem ligou nem quando.
 - Recebimento e confirmação de pedidos ficam no `ponte.log` do computador do caixa.
 

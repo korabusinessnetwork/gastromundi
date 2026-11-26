@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 import { buscarAssinaturaAtual, calcularStatusAssinatura, calcularDiasParaVencimento } from "@/features/assinatura/dados/assinatura";
 
 /**

@@ -22,7 +22,7 @@ import { listarGruposCategoria, listarCategoriaGrupos } from "@/features/cardapi
 import {
   listarUsuariosAtivos, listarPermissoesDosCargos
 } from "@/features/sessao/dados/usuarios";
-import { buscarBootstrapTenant } from "@/lib/tenant";
+import { buscarBootstrapTenant } from "@/features/tenant/dados/tenant";
 import { sincronizarStatusAssinatura } from "@/features/assinatura/dados/assinatura";
 import { executarAnaliseJarvas } from "@/features/jarvas/dados/jarvasEngine";
 import { montarVendaLegada } from "@/features/caixa/regras/vendas";

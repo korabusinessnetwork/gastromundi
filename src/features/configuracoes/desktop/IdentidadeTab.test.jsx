@@ -32,12 +32,12 @@ vi.mock("@/lib/supabase", async () => {
 
 // Só o upload é substituído: `comprimirLogo` depende de <canvas>, que o
 // jsdom não implementa. O resto do módulo (RPC, "mudou?", trim) roda real.
-vi.mock("@/lib/identidadeTenant", async (importOriginal) => {
+vi.mock("@/features/tenant/dados/identidadeTenant", async (importOriginal) => {
   const real = await importOriginal();
   return { ...real, enviarLogoTenant };
 });
 
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 import { setAppMock } from "@/test/mockApp";

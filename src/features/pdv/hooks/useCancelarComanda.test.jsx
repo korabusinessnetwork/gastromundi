@@ -8,7 +8,7 @@ vi.mock("@/context/AppContext", async () => {
 });
 
 const logActionMock = vi.fn();
-vi.mock("@/lib/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: (...args) => logActionMock(...args) }));
 
 const emitirEventoMock = vi.fn();
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: (...args) => emitirEventoMock(...args) }));

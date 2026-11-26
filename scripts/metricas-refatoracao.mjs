@@ -73,7 +73,9 @@ const featuresImportaDesktop = [];
 let maiorUseState = { caminho: "", total: 0 };
 
 for (const { caminho, texto } of arquivos) {
-  const chamadas = contar(texto, /supabase\s*\.\s*(from|rpc)\s*\(/g);
+  // `src/test/` é o Supabase falso dos testes, não código do app: fica fora da
+  // conta, como já fica da conta de emoji.
+  const chamadas = /^src\/test\//.test(caminho) ? 0 : contar(texto, /supabase\s*\.\s*(from|rpc)\s*\(/g);
   if (chamadas) {
     supabasePorArea[areaDoArquivo(caminho)] += chamadas;
     supabasePorArquivo.push({ caminho, chamadas });

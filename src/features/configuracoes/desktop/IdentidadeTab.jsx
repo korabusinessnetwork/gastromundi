@@ -5,7 +5,7 @@ import { nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema"
 import {
   ACCEPT_IMAGEM, MAX_NOME_EXIBICAO,
   enviarLogoTenant, salvarIdentidadeTenant, identidadeMudou, limparNomeExibicao,
-} from "@/lib/identidadeTenant";
+} from "@/features/tenant/dados/identidadeTenant";
 import "./IdentidadeTab.css";
 
 /**

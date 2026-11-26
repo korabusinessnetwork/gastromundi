@@ -17,7 +17,7 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import {
   adicionarEspera
 } from "@/features/comandas/regras/pedidosEmEspera";

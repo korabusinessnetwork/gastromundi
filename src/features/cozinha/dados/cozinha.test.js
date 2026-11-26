@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/supabase", () => ({ supabase: {} }));
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 import { tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, SLA_MINUTOS_PADRAO, statusCozinha, referenciaDaEtapa } from "./cozinha";

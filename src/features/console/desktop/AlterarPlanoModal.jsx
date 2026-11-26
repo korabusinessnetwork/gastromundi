@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuBuilding2, LuPlus } from "react-icons/lu";
 import { mensagemDeErroDoConsole, alterarPlano, compararModulosDoPlano } from "@/features/console/console";
-import { buscarModulosDoPlano } from "@/lib/tenant";
+import { buscarModulosDoPlano } from "@/features/tenant/dados/tenant";
 import MODULOS from "@/constants/modulos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";

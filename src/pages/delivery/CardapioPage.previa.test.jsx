@@ -32,7 +32,7 @@ vi.mock("@/lib/tenantSlug", () => ({
   resolverSlugTenant: () => "gastromundi",
 }));
 
-vi.mock("@/lib/tenant", () => ({ buscarBrandingPorSlug: mockBuscarBranding }));
+vi.mock("@/features/tenant/dados/tenant", () => ({ buscarBrandingPorSlug: mockBuscarBranding }));
 
 vi.mock("@/lib/brandingCache", () => ({
   lerBrandingCache: mockLerCache,

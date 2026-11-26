@@ -21,7 +21,7 @@ import {
 } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { slugDaVitrine } from "@/lib/tenantSlug";
-import { buscarBrandingPorSlug } from "@/lib/tenant";
+import { buscarBrandingPorSlug } from "@/features/tenant/dados/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import {
   carregarCardapio,

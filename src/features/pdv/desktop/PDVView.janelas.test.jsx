@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({ useTravaComanda: () => ({ bloqueio: null }) }));
 vi.mock("@/features/sessao/dados/adminAuth", () => ({

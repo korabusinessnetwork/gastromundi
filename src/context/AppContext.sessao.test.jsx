@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 // Folhas com efeito colateral, sem relação com o defeito.
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
@@ -48,7 +48,7 @@ vi.mock("@/lib/observabilidade", () => ({
 vi.mock("@/components/shared/IndicadorRede", () => ({ default: () => null }));
 vi.mock("@/components/shared/PonteLocalBridge", () => ({ default: () => null }));
 vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () => null }));
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/features/tenant/dados/tenant", () => ({
   buscarBootstrapTenant: vi.fn(() => Promise.resolve({ data: null, error: null })),
   moduloHabilitado: () => true,
   addonHabilitado: () => false,

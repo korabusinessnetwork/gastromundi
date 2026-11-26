@@ -22,7 +22,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSessao, useCatalogo } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";

@@ -20,7 +20,7 @@ vi.mock("@/context/AppContext", async () => {
 });
 // A tela busca a marca do estabelecimento na abertura; sem tenant nenhum o
 // login normal aparece, que é o cenário aqui.
-vi.mock("@/lib/tenant", () => ({
+vi.mock("@/features/tenant/dados/tenant", () => ({
   buscarBrandingPorSlug: vi.fn(() => Promise.resolve({ data: null, error: null })),
 }));
 
@@ -34,7 +34,7 @@ vi.mock("@/features/console/regras/consoleHost", () => ({
 }));
 
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
-import { buscarBrandingPorSlug } from "@/lib/tenant";
+import { buscarBrandingPorSlug } from "@/features/tenant/dados/tenant";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import { setAttempts, clearAttempts, MAX_ATTEMPTS } from "@/utils/session";
 import LoginPage from "./LoginPage";

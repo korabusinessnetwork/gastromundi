@@ -7,7 +7,7 @@ import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarT
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
 import { consoleAtivo } from "@/features/console/regras/consoleHost";
-import { buscarBrandingPorSlug } from "@/lib/tenant";
+import { buscarBrandingPorSlug } from "@/features/tenant/dados/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import { sanitizeInput, MAX_ATTEMPTS, getAttempts } from "@/utils";
 import { LuEye, LuEyeOff, LuShieldAlert, LuTriangleAlert, LuSearchX } from "react-icons/lu";

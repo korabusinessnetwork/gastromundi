@@ -1,6 +1,6 @@
 import { limparReservaMesa } from "@/features/mesas/dados/mesas";
 import { useSessao, useOffline, useConfig, useCatalogo, useComandas, useCaixa } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { criarLancamento } from "@/features/financeiro/dados/financeiro";
 import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";

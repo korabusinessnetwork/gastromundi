@@ -49,7 +49,7 @@ vi.mock("@/lib/supabase", () => ({ supabase: mockSupabase }));
 // Folhas com efeito colateral, sem relação com o defeito.
 vi.mock("@/features/jarvas/dados/jarvas", () => ({ emitirEvento: vi.fn() }));
 vi.mock("@/features/jarvas/dados/jarvasEngine", () => ({ executarAnaliseJarvas: vi.fn() }));
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/lib/observabilidade", () => ({
   reportarFalha: vi.fn(),
   reportarInconsistencia: vi.fn(),
@@ -62,8 +62,8 @@ vi.mock("@/components/shared/ImpressaoLancamentosBridge", () => ({ default: () =
 // Só a BUSCA do tenant é dublê. `moduloHabilitado`/`addonHabilitado` seguem
 // reais de propósito: o defeito está na composição das duas, não em nenhuma
 // delas isolada — um stub aqui esconderia justamente o que se quer medir.
-vi.mock("@/lib/tenant", async () => {
-  const real = await vi.importActual("@/lib/tenant");
+vi.mock("@/features/tenant/dados/tenant", async () => {
+  const real = await vi.importActual("@/features/tenant/dados/tenant");
   return { ...real, buscarBootstrapTenant: mockBootstrapTenant };
 });
 

@@ -8,7 +8,7 @@ import { gravarVendaNormalizada, marcarVendaCancelada, assinarVendas } from "@/f
 import { gravarFechamento, registrarMovimento, excluirLancamentosDaVenda } from "@/features/caixa/dados/caixa";
 import { lerValor, validarMovimento } from "@/features/caixa/regras/caixaMovimentos";
 import { emitirEvento } from "@/features/jarvas/dados/jarvas";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { reportarFalha, reportarInconsistencia } from "@/lib/observabilidade";
 import { sanitizeInput } from "@/utils/crypto";

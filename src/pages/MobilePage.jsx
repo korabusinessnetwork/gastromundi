@@ -15,7 +15,7 @@
  */
 import { LuWifiOff } from "react-icons/lu";
 
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { marcaDoCabecalho } from "@/lib/tema";
 import { lerBrandingCache } from "@/lib/brandingCache";
 import {

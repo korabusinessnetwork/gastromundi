@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 
 /**
@@ -12,6 +12,13 @@ import { emitirEvento } from "@/features/jarvas/dados/jarvas";
  * status_cozinha/em_preparo_em/pronto_em (migração
  * supabase/migrations/20260711_cozinha_kds.sql).
  */
+
+const CAMPOS_COZINHA = "id,comanda,mesa,apelido,items,status,status_cozinha,garcom,created_at,em_preparo_em,pronto_em";
+
+/** Comandas do painel da cozinha, da mais antiga para a mais nova. */
+export function listarPedidosCozinha() {
+  return supabase.from("pending").select(CAMPOS_COZINHA).order("created_at", { ascending: true });
+}
 
 export const SLA_MINUTOS_PADRAO = 15; // fallback fixo nesta fase — configurável em fase futura
 

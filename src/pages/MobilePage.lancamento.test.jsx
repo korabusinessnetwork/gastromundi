@@ -24,7 +24,7 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 vi.mock("@/hooks/useTravaComanda", () => ({
   useTravaComanda: () => ({ bloqueio: null }),
 }));

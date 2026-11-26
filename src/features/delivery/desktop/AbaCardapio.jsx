@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
 import { LuDownload, LuPlus, LuHourglass, LuBike } from "react-icons/lu";

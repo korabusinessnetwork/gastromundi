@@ -1,5 +1,5 @@
 import { useSessao, useComandas } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 

@@ -17,7 +17,7 @@ import { MemoryRouter } from "react-router-dom";
 
 const { mockBranding } = vi.hoisted(() => ({ mockBranding: vi.fn() }));
 
-vi.mock("@/lib/tenant", async (importOriginal) => ({
+vi.mock("@/features/tenant/dados/tenant", async (importOriginal) => ({
   ...(await importOriginal()),
   buscarBrandingPorSlug: mockBranding,
 }));

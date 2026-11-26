@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LuArmchair, LuMonitor, LuPencil, LuPlus, LuSearch, LuTrash2, LuUsers } from "react-icons/lu";
 import { useSessao } from "@/context/AppContext";
 import { listarMesas, criarMesa, alterarCapacidadeMesa, excluirMesa } from "@/features/mesas/dados/mesas";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import "./SecaoMesas.css";
 import { EMPTY_FORM, proximaPosicaoLivre, capacidadeDaMesa, erroNovaMesa } from "@/features/mesas/regras/mapa";
 

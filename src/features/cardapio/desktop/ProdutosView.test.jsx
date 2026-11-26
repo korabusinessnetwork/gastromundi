@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase", async () => {
   return { supabase: mockSupabase.current };
 });
 
-vi.mock("@/lib/logger", () => ({ logAction: vi.fn() }));
+vi.mock("@/features/auditoria/dados/logger", () => ({ logAction: vi.fn() }));
 
 import { setAppMock } from "@/test/mockApp";
 import ProdutosView from "./ProdutosView";

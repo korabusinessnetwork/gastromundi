@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { useMemo, useState } from "react";
 import { useSessao, useConfig, useCaixa } from "@/context/AppContext";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import Sidebar from "@/components/desktop/Sidebar";

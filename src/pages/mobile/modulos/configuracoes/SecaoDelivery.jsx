@@ -3,7 +3,7 @@ import { useSessao } from "@/context/AppContext";
 import { DIAS_SEMANA, HORARIO_PADRAO, deliveryDeveEstarAberto, horarioValido, normalizarHorario, resumoHorario } from "@/features/delivery/regras/deliveryHorario";
 import { faixaNova, horarioParaEdicao } from "@/features/delivery/regras/edicaoHorario";
 import { carregarConfigDelivery, salvarConfigDelivery } from "@/features/delivery/deliveryAdmin";
-import { logAction } from "@/lib/logger";
+import { logAction } from "@/features/auditoria/dados/logger";
 import "./SecaoDelivery.css";
 
 /**

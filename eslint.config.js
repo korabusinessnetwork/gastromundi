@@ -13,6 +13,10 @@ import globals from "globals";
 import react from "eslint-plugin-react";
 import reactHooks from "eslint-plugin-react-hooks";
 
+const MSG_SUPABASE = "Só a camada dados/ fala com o Supabase: use a função de dados/ da feature (fase 1 e fase F do plano de refatoração).";
+const SUPABASE_PATH = { name: "@/lib/supabase", message: MSG_SUPABASE };
+const SUPABASE_PATTERN = { group: ["**/lib/supabase", "./supabase", "../supabase"], message: MSG_SUPABASE };
+
 export default [
   {
     ignores: [
@@ -61,16 +65,20 @@ export default [
     files: ["scripts/**/*.{js,mjs}", "*.config.js"],
     languageOptions: { globals: globals.node },
   },
+  // As três fronteiras abaixo usam a mesma regra (`no-restricted-imports`). No
+  // flat config, o bloco que vem depois substitui a regra inteira para os
+  // arquivos em comum, então cada bloco repete a fronteira do Supabase junto
+  // da sua.
   {
-    // Fronteira da camada de dados: tela não fala com o Supabase direto.
-    // Erro desde a tarefa 1.4 do plano, quando a última tela saiu; o
-    // contexto entrou na regra na tarefa 2.7, quando a última chamada saiu dele.
-    files: ["src/components/**", "src/pages/**", "src/routes/**", "src/layouts/**", "src/context/**"],
-    ignores: ["**/*.test.{js,jsx}"],
+    // Fronteira da camada de dados: só `dados/` fala com o Supabase. Erro para
+    // tela desde a tarefa 1.4, para o contexto desde a 2.7, e para todo `src/`
+    // desde a fase F (2026-11-26), quando a última chamada fora de `dados/` saiu.
+    files: ["src/**/*.{js,jsx}"],
+    ignores: ["**/*.test.{js,jsx}", "src/test/**", "**/dados/**", "src/lib/supabase.js"],
     rules: {
       "no-restricted-imports": ["error", {
-        paths: [{ name: "@/lib/supabase", message: "Tela não chama o Supabase direto: use a camada dados/ da feature (fase 1 do plano de refatoração)." }],
-        patterns: [{ group: ["**/lib/supabase"], message: "Tela não chama o Supabase direto: use a camada dados/ da feature (fase 1 do plano de refatoração)." }],
+        paths: [SUPABASE_PATH],
+        patterns: [SUPABASE_PATTERN],
       }],
     },
   },
@@ -79,6 +87,17 @@ export default [
     // o celular usa esses ganchos, então a dependência chegaria a ele um passo
     // adiante, sem a regra de baixo ver. Erro desde o fim da fase 4 (2026-11-24).
     files: ["src/features/**"],
+    ignores: ["**/*.test.{js,jsx}", "**/dados/**"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [SUPABASE_PATH],
+        patterns: [SUPABASE_PATTERN, { group: ["@/components/desktop/**", "**/components/desktop/**"], message: "Funcionalidade não depende de tela do computador: o que é comum sai de components/desktop para a feature (fases 4 e 6 do plano de refatoração)." }],
+      }],
+    },
+  },
+  {
+    // A camada de dados de uma feature também não depende de tela do computador.
+    files: ["src/features/**/dados/**"],
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
       "no-restricted-imports": ["error", {
@@ -93,7 +112,8 @@ export default [
     ignores: ["**/*.test.{js,jsx}"],
     rules: {
       "no-restricted-imports": ["error", {
-        patterns: [{ group: ["@/components/desktop/**", "**/components/desktop/**"], message: "Lógica compartilhada mora em hooks da feature, não na pasta do computador (fase 4 do plano de refatoração)." }],
+        paths: [SUPABASE_PATH],
+        patterns: [SUPABASE_PATTERN, { group: ["@/components/desktop/**", "**/components/desktop/**"], message: "Lógica compartilhada mora em hooks da feature, não na pasta do computador (fase 4 do plano de refatoração)." }],
       }],
     },
   },
