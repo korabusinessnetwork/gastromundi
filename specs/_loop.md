@@ -1,3 +1,8 @@
+## Rodada 138, refatoração 5.32, emoji do produto fora do computador e da impressão, 2026-11-26
+- Spec: specs/refatoracao-5-32-emoji-do-produto-computador.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4444
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 33
+  diferenças e 25 leves, todas onde havia emoji de produto. Sem migration. Emoji: 40 para 17.
 ## Rodada 137, refatoração 5.31, JSX sem cor hexadecimal (5.x), 2026-11-26
 - Spec: specs/refatoracao-5-31-cores-fixas.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4439

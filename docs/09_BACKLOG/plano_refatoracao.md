@@ -389,6 +389,8 @@ Depois, os estados vazios, o cardápio público e a página da Kora (5.30, 64 pa
 só o campo de emoji do produto.
 Depois, a 5.x: nenhuma cor hexadecimal no JSX (5.31, 8 para 0), com os tokens `--gm-orange` e
 `--gm-violet` e um teste que segura a meta.
+Depois, o emoji do produto sai do computador e do papel (5.32, 40 para 17): ícone neutro onde o
+emoji tinha lugar fixo, nada onde vinha antes do nome; o campo de escolha do Delivery saiu.
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
