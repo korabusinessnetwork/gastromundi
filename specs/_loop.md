@@ -1,3 +1,8 @@
+## Rodada 153, refatoração 6.9c, Área Admin em features/, 2026-11-26
+- Spec: specs/refatoracao-6-9c-admin-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 22 telas do domínio, 0 diferença. Sem
+  migration. 18 arquivos movidos com `git mv`.
 ## Rodada 152, correção das datas um dia antes e página de novidades, 2026-11-26
 - Spec: specs/correcao-datas-e-pagina-de-novidades.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 272 arquivos / 4456

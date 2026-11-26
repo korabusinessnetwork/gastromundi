@@ -27,3 +27,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T20a (6.9a telas do cardápio em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 22 telas do domínio, 0 diferença. 24 arquivos com `git mv`.
 - 2026-11-26, T20b (6.9b configurações, impressão e mesas em features/): `npm test` 269 arquivos e 4446 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 1 leve (ruído nas Reservas). 81 arquivos com `git mv`.
 - 2026-11-26, pedido do dono (datas um dia antes e página de novidades): `npm test` 272 arquivos e 4456 testes verdes, build limpo, lint 0 erros, roteiro 36 telas com só as datas mudando para o dia gravado; hook de pre-push conferido em repositório de teste.
+- 2026-11-26, T20c (6.9c Área Admin em features/): `npm test` 272 arquivos e 4456 testes verdes, build limpo, lint 0 erros, roteiro 22 telas do domínio, 0 diferença. 18 arquivos com `git mv`.
