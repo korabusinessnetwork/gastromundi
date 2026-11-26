@@ -18,7 +18,7 @@ const finalizarPagamento = vi.hoisted(() => vi.fn(() => Promise.resolve()));
 vi.mock("@/features/pdv/hooks/useFinalizarPagamento", () => ({
   useFinalizarPagamento: () => ({ finalizarPagamento }),
 }));
-vi.mock("@/lib/impressao/drivers", () => ({ imprimirDocumento: vi.fn(() => Promise.resolve({ ok: true })) }));
+vi.mock("@/features/impressao/regras/drivers", () => ({ imprimirDocumento: vi.fn(() => Promise.resolve({ ok: true })) }));
 
 import { setAppMock } from "@/test/mockApp";
 import PdvModulo from "./PdvModulo";

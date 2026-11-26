@@ -21,8 +21,8 @@ import {
   pingPonte, buscarInfoPonte, enviarSnapshotPonte, buscarFilaImpressaoPonte,
   buscarPedidosPonte, confirmarPedidosPonte, montarEnderecoPalm, vincularPonte,
 } from "@/lib/ponte";
-import { imprimirLancamento } from "@/lib/impressao/despacho";
-import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
+import { imprimirLancamento } from "@/features/impressao/regras/despacho";
+import { chaveLancamento, registroLancamentos } from "@/features/impressao/regras/lancamentos";
 import {
   assinaturaComandasAbertas, encaixarPedidoDoPalm, pedidoJaGravado, resumirComandasAbertas,
 } from "@/lib/ponteComandas";
@@ -86,7 +86,7 @@ const emMs = (valor) => {
  *
  * Conta IMPRESSÕES, não comandas — e a tela precisa dizer isso com essa
  * palavra. Um lançamento vira um trabalho na fila da Ponte POR PONTO DE
- * IMPRESSÃO configurado (src/lib/impressao/despacho.js fatia a via por
+ * IMPRESSÃO configurado (src/features/impressao/regras/despacho.js fatia a via por
  * ponto), então uma comanda só, com a impressora do Bar desligada, pode
  * aparecer aqui como três; e a fila que a Ponte devolve carrega também
  * comprovante de pagamento e pré-nota mandados pelo caixa, que não são

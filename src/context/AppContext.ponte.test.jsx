@@ -64,7 +64,7 @@ vi.mock("@/lib/ponte", () => ({
 
 import { AppProvider } from "./AppContext";
 import { useContextoCompleto } from "@/test/contextoCompleto";
-import PonteLocalConfig from "@/components/desktop/views/impressao/PonteLocalConfig";
+import PonteLocalConfig from "@/features/impressao/desktop/PonteLocalConfig";
 import { saveSession } from "@/utils/session";
 import { salvarSnapshot, lerSnapshot } from "@/lib/offline/snapshot";
 

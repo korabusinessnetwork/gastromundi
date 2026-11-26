@@ -27,7 +27,7 @@ vi.mock("@/lib/ponte", () => ({
   montarEnderecoPalm: () => null,
 }));
 // A impressão de verdade não entra neste teste (e evita arrastar o Supabase).
-vi.mock("@/lib/impressao/despacho", () => ({
+vi.mock("@/features/impressao/regras/despacho", () => ({
   imprimirLancamento: vi.fn(async () => ({ error: null, impresso: false })),
 }));
 

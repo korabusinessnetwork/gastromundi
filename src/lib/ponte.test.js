@@ -12,7 +12,7 @@ import {
   enviarImpressaoPonte,
   buscarFilaImpressaoPonte,
 } from "./ponte.js";
-import { imprimir as imprimirPelaPonte } from "./impressao/drivers/escposPonte.js";
+import { imprimir as imprimirPelaPonte } from "@/features/impressao/regras/drivers/escposPonte.js";
 
 const respostaJson = (corpo, { status = 200 } = {}) => ({
   ok: status >= 200 && status < 300,
@@ -338,7 +338,7 @@ describe("impressão que não pode sair duas vezes", () => {
 });
 
 // O id que protege contra comanda dobrada nasce no despacho da impressão
-// (src/lib/impressao/despacho.js) e viaja no perfil da impressora. Se ele se
+// (src/features/impressao/regras/despacho.js) e viaja no perfil da impressora. Se ele se
 // perdesse neste último trecho, a proteção não chegaria à Ponte — que só
 // deduplica pelo campo `id` do corpo.
 describe("o driver da térmica leva o id da ação até a Ponte", () => {

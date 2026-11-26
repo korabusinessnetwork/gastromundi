@@ -30,8 +30,8 @@ import { round2 } from "@/features/caixa/regras/vendas";
 import { rotuloMetodo } from "@/utils/pagamentos";
 import {
   buscarConfigImpressao, montarComprovantePagamento
-} from "@/lib/impressao";
-import { imprimirDocumento } from "@/lib/impressao/drivers";
+} from "@/features/impressao/dados/impressao";
+import { imprimirDocumento } from "@/features/impressao/regras/drivers";
 import { ICONES_METODO, COMANDA_BALCAO, precoDoItem } from "@/pages/mobile/modulos/pdv/apoio";
 import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/features/pdv/regras/pagamento";
 

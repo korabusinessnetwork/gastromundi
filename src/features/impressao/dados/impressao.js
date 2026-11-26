@@ -1,7 +1,7 @@
-import { supabase } from "./supabase";
-import { nomeExibicaoTenant, logoUrlTenant } from "./tema";
-import { normalizarPontos } from "./impressao/pontos";
-import { layoutComandaDeConfig, normalizarLayoutComanda } from "./impressao/layoutComanda";
+import { supabase } from "@/lib/supabase";
+import { nomeExibicaoTenant, logoUrlTenant } from "@/lib/tema";
+import { normalizarPontos } from "../regras/pontos";
+import { layoutComandaDeConfig, normalizarLayoutComanda } from "../regras/layoutComanda";
 import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 
 /**
@@ -358,7 +358,7 @@ export function montarViaProducao({ pedido } = {}) {
     .filter((i) => !i?.cancelado && i?.produzivel !== false)
     .map((i) => ({
       // `id` (do produto) e `category` não são impressos — são o que o
-      // roteamento por ponto de impressão consulta (src/lib/impressao/
+      // roteamento por ponto de impressão consulta (src/features/impressao/regras/
       // pontos.js). Sem eles aqui, a via chegaria no despacho sem como
       // saber em qual estação cada item sai e tudo cairia no padrão.
       id: i.id ?? null,

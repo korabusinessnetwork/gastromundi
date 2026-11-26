@@ -9,14 +9,14 @@ vi.mock("@/context/AppContext", async () => {
 });
 
 const buscarConfigImpressaoMock = vi.fn(() => Promise.resolve({ data: {}, error: null }));
-vi.mock("@/lib/impressao", () => ({
+vi.mock("@/features/impressao/dados/impressao", () => ({
   montarComprovantePagamento: vi.fn((args) => ({ tipo: "comprovante", ...args })),
   montarCupomPreNota: vi.fn((args) => ({ tipo: "cupom_pre_nota", ...args })),
   buscarConfigImpressao: (...args) => buscarConfigImpressaoMock(...args),
 }));
 
 const abrirJanelaImpressaoMock = vi.fn(() => ({ error: null }));
-vi.mock("@/lib/impressao/renderizar", () => ({
+vi.mock("@/features/impressao/regras/renderizar", () => ({
   renderizarRecibo: vi.fn(() => "<html></html>"),
   abrirJanelaImpressao: (...args) => abrirJanelaImpressaoMock(...args),
 }));
@@ -51,7 +51,7 @@ describe("ImpressaoAcoes, F015 (1 clique, estados visíveis)", () => {
 
   it("clicar em 'Pré-nota' usa o template de cupom, não o comprovante", async () => {
     const user = userEvent.setup();
-    const { montarCupomPreNota, montarComprovantePagamento } = await import("@/lib/impressao");
+    const { montarCupomPreNota, montarComprovantePagamento } = await import("@/features/impressao/dados/impressao");
 
     render(<ImpressaoAcoes montarVenda={() => ({})} />);
     await user.click(screen.getByRole("button", { name: /pré-nota/i }));

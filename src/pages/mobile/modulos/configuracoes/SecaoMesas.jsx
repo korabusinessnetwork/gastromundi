@@ -10,7 +10,7 @@ import { EMPTY_FORM, proximaPosicaoLivre, capacidadeDaMesa, erroNovaMesa } from 
  * SecaoMesas — aba "Mesas" das Configurações, versão nativa do Palm.
  *
  * Porta o CRUD de mesas que já existe no desktop (MesasAdmin.jsx em
- * src/components/desktop/views/mesas/) para o celular: listar, criar, editar
+ * src/features/mesas/desktop/) para o celular: listar, criar, editar
  * lugares e remover — mesma tabela (`mesas`), mesmas mensagens de validação
  * (número/nome obrigatório, duplicidade), mesmo texto de confirmação de
  * remoção. O que NÃO foi portado, de propósito, é o editor de layout por

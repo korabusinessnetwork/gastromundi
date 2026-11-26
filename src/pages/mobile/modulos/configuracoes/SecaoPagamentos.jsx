@@ -8,7 +8,7 @@ import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 /**
  * SecaoPagamentos — aba "Meios de Pagamento" das Configurações, versão nativa do Palm.
  *
- * Espelha `MeiosPagamentoTab` em src/components/desktop/views/ConfiguracoesView.jsx:
+ * Espelha `MeiosPagamentoTab` em src/features/configuracoes/desktop/ConfiguracoesView.jsx:
  * mesmo catálogo de métodos, mesmos métodos personalizados, mesma seleção de
  * maquininha (TEF). Nada de regra nova — tudo passa pelas mesmas funções do
  * AppContext (setMeiosPagamento/setMetodosCustom/setMetodosTef) e por

@@ -3,7 +3,7 @@ import { useSessao } from "@/context/AppContext";
 import { usePedidosCozinha, useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { iniciarPreparo, marcarPronto, tempoDecorridoMin, estaAtrasado, formatarTempoDecorrido, statusCozinha, referenciaDaEtapa } from "@/lib/cozinha";
-import { enviarViaProducao } from "@/lib/impressao/despacho";
+import { enviarViaProducao } from "@/features/impressao/regras/despacho";
 import { LuArmchair, LuChefHat, LuClock, LuTriangleAlert, LuPlay, LuCheck, LuPrinter } from "react-icons/lu";
 import "./CozinhaView.css";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";

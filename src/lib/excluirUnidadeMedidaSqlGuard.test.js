@@ -51,7 +51,7 @@ describe("excluir_unidade_medida, migration 20261125", () => {
 
   it("a frase dublada nos testes das duas telas é a mesma que o banco levanta", () => {
     for (const arquivo of [
-      "src/components/desktop/views/UnidadesMedidaTab.test.jsx",
+      "src/features/configuracoes/desktop/UnidadesMedidaTab.test.jsx",
       "src/pages/mobile/modulos/configuracoes/SecaoUnidades.test.jsx",
     ]) {
       const teste = readFileSync(join(RAIZ, arquivo), "utf8");

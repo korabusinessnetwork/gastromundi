@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { salvarConfigImpressao } from "@/lib/impressao";
-import { aparelhoImprimeLancamentos, definirAparelhoImprimeLancamentos } from "@/lib/impressao/aparelho";
+import { salvarConfigImpressao } from "@/features/impressao/dados/impressao";
+import { aparelhoImprimeLancamentos, definirAparelhoImprimeLancamentos } from "@/features/impressao/regras/aparelho";
 import {
   LuCircleCheck, LuCircleAlert
 } from "react-icons/lu";

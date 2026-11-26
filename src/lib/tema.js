@@ -176,7 +176,7 @@ export function marcaDoCabecalho(tenant, cache) {
 }
 
 /**
- * X2 — mesma política de `logoUrlSegura` (src/lib/impressao/renderizar.js):
+ * X2 — mesma política de `logoUrlSegura` (src/features/impressao/regras/renderizar.js):
  * o logo vem do CADASTRO DO TENANT (white-label, decisão 017) e cai direto
  * em `<img src>` (SidebarBranding, LoginPage, CardapioPage). Sem validar o
  * esquema, um `javascript:`/`data:text/html` salvo ali vira XSS. Allowlist:

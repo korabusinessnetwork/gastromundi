@@ -1,4 +1,4 @@
-import { buscarConfigImpressao, montarViaProducao } from "../impressao";
+import { buscarConfigImpressao, montarViaProducao } from "../dados/impressao";
 import { agruparItensPorPonto, normalizarPontos, pontoDoItem } from "./pontos";
 import { lancamentosDoPedido } from "./lancamentos";
 import { imprimirDocumento } from "./drivers";

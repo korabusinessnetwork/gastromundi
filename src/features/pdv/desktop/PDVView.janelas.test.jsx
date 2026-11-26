@@ -22,7 +22,7 @@ vi.mock("@/hooks/useTravaComanda", () => ({ useTravaComanda: () => ({ bloqueio: 
 vi.mock("@/lib/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
-vi.mock("@/lib/impressao/despacho", () => ({ imprimirLancamento: vi.fn(() => Promise.resolve({ ok: true })) }));
+vi.mock("@/features/impressao/regras/despacho", () => ({ imprimirLancamento: vi.fn(() => Promise.resolve({ ok: true })) }));
 
 import { setAppMock } from "@/test/mockApp";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO } from "@/lib/impressao";
-import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
-import { imprimirDocumento, OPCOES_DRIVER } from "@/lib/impressao/drivers";
+import { buscarConfigImpressao, salvarConfigImpressao, PERFIL_IMPRESSORA_PADRAO } from "@/features/impressao/dados/impressao";
+import { gerarHtmlComPerfil } from "@/features/impressao/regras/drivers/browserRaster";
+import { imprimirDocumento, OPCOES_DRIVER } from "@/features/impressao/regras/drivers";
 import { listarImpressorasPonte } from "@/lib/ponte";
 // Endereço de onde o dono baixa a Ponte KORA — o programa que faz a térmica
 // imprimir. Vem do ambiente e é compartilhado com a aba "Pedidos sem
@@ -33,7 +33,7 @@ const DOCUMENTO_EXEMPLO = {
 };
 
 // Resume o destino de impressão da Ponte em uma linha legível — o mesmo
-// formato { tipo, nome } | { tipo, host, porta } definido em src/lib/impressao.js.
+// formato { tipo, nome } | { tipo, host, porta } definido em src/features/impressao/dados/impressao.js.
 function resumoImpressora(impressora) {
   if (!impressora) return "";
   if (impressora.tipo === "rede") return `${impressora.host}:${impressora.porta} (impressora de rede)`;

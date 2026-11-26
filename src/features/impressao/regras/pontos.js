@@ -67,7 +67,7 @@ function sanitizarNome(nome, fallback) {
 }
 
 // Só os dois destinos que a Ponte KORA entende (ver PERFIL_IMPRESSORA_PADRAO
-// em src/lib/impressao.js). Destino incompleto (windows sem nome, rede sem
+// em src/features/impressao/dados/impressao.js). Destino incompleto (windows sem nome, rede sem
 // host) vira `null` de propósito: o driver recusa `null` com uma mensagem
 // clara ("Escolha a impressora em Configurações"), enquanto um destino
 // pela metade viraria trabalho de impressão que falha sem explicação.

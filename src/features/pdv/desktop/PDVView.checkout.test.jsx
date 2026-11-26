@@ -36,7 +36,7 @@ vi.mock("@/hooks/useTravaComanda", () => ({
 vi.mock("@/lib/adminAuth", () => ({
   verificarSenhaAdmin: vi.fn(() => Promise.resolve({ ok: true, erro: null })),
 }));
-vi.mock("@/lib/impressao/despacho", () => ({
+vi.mock("@/features/impressao/regras/despacho", () => ({
   imprimirLancamento: vi.fn(() => Promise.resolve({ ok: true })),
 }));
 

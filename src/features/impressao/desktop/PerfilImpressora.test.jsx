@@ -15,8 +15,8 @@ import { render, act, cleanup } from "@testing-library/react";
 const { mockBuscarConfig } = vi.hoisted(() => ({
   mockBuscarConfig: vi.fn(),
 }));
-vi.mock("@/lib/impressao", async () => {
-  const real = await vi.importActual("@/lib/impressao");
+vi.mock("@/features/impressao/dados/impressao", async () => {
+  const real = await vi.importActual("@/features/impressao/dados/impressao");
   return { ...real, buscarConfigImpressao: mockBuscarConfig, salvarConfigImpressao: vi.fn() };
 });
 vi.mock("@/lib/ponte", () => ({
@@ -24,7 +24,7 @@ vi.mock("@/lib/ponte", () => ({
 }));
 
 import PerfilImpressora from "./PerfilImpressora";
-import { CONFIG_IMPRESSAO_PADRAO, PERFIL_IMPRESSORA_PADRAO } from "@/lib/impressao";
+import { CONFIG_IMPRESSAO_PADRAO, PERFIL_IMPRESSORA_PADRAO } from "@/features/impressao/dados/impressao";
 
 // Erro de leitura tranca a tela (e some com a pré-visualização), então o
 // dublê devolve a configuração de fábrica — o estado normal de quem abre a

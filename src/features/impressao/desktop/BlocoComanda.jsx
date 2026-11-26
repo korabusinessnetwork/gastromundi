@@ -1,4 +1,4 @@
-import { TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj } from "@/lib/impressao/layoutComanda";
+import { TIPOS_BLOCO, MAX_TEXTO_BLOCO, DIGITOS_CNPJ, formatarCnpj } from "@/features/impressao/regras/layoutComanda";
 import {
   LuGripVertical, LuEye, LuEyeOff, LuChevronUp, LuChevronDown, LuTrash2,
   LuAlignLeft, LuAlignCenter, LuAlignRight, LuBold, LuCaseUpper, LuCircleAlert,

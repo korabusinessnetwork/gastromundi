@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { LuPrinter, LuReceipt, LuCircleCheck, LuCircleAlert } from "react-icons/lu";
 import { useSessao } from "@/context/AppContext";
-import { montarComprovantePagamento, montarCupomPreNota, buscarConfigImpressao } from "@/lib/impressao";
-import { imprimirDocumento } from "@/lib/impressao/drivers";
+import { montarComprovantePagamento, montarCupomPreNota, buscarConfigImpressao } from "@/features/impressao/dados/impressao";
+import { imprimirDocumento } from "@/features/impressao/regras/drivers";
 import "./ImpressaoAcoes.css";
 
 /**

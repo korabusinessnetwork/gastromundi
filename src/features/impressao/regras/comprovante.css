@@ -6,7 +6,7 @@
  *
  * Largura/margem/fonte vêm do PERFIL DE IMPRESSORA (F020, decisão
  * 025) via custom properties `--print-*`, injetadas pelo driver
- * browser-raster (src/lib/impressao/drivers/browserRaster.js) a
+ * browser-raster (src/features/impressao/regras/drivers/browserRaster.js) a
  * partir de `perfilImpressora`. Os defaults abaixo (300px = 80mm,
  * 13px de fonte) reproduzem o comportamento fixo do F015 quando não
  * há perfil configurado — nada muda pra quem já usa hoje.

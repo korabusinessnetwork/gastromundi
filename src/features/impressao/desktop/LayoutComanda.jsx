@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useSessao } from "@/context/AppContext";
-import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota } from "@/lib/impressao";
+import { buscarConfigImpressao, salvarConfigImpressao, montarCupomPreNota } from "@/features/impressao/dados/impressao";
 import {
   TIPOS_BLOCO,
   LAYOUT_COMANDA_PADRAO,
@@ -9,10 +9,10 @@ import {
   normalizarLayoutComanda,
   configLegadoDeLayout,
   blocoNovo,
-} from "@/lib/impressao/layoutComanda";
-import { gerarHtmlComPerfil } from "@/lib/impressao/drivers/browserRaster";
-import { formatarComprovanteEscpos } from "@/lib/impressao/escposFormatador";
-import { colunasEscpos } from "@/lib/impressao/largura";
+} from "@/features/impressao/regras/layoutComanda";
+import { gerarHtmlComPerfil } from "@/features/impressao/regras/drivers/browserRaster";
+import { formatarComprovanteEscpos } from "@/features/impressao/regras/escposFormatador";
+import { colunasEscpos } from "@/features/impressao/regras/largura";
 import { logoUrlTenant } from "@/lib/tema";
 import BlocoComanda from "./BlocoComanda";
 import { LuCircleCheck, LuCircleAlert, LuRefreshCw, LuPlus, LuRotateCcw, LuType } from "react-icons/lu";

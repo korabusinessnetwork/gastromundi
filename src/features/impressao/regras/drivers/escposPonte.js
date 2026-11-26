@@ -1,6 +1,6 @@
 import { colunasEscpos } from "../largura";
 import { formatarComprovanteEscpos, formatarViaProducaoEscpos } from "../escposFormatador";
-import { enviarImpressaoPonte } from "../../ponte";
+import { enviarImpressaoPonte } from "@/lib/ponte";
 
 /**
  * Driver "escpos-ponte" — impressora térmica via Ponte KORA (Tarefa I).

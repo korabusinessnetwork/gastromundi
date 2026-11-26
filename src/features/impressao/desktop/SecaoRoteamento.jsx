@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { salvarConfigImpressao } from "@/lib/impressao";
+import { salvarConfigImpressao } from "@/features/impressao/dados/impressao";
 import {
   normalizarPontos, destinoDaCategoria, definirRotaCategoria, categoriasOrfas
-} from "@/lib/impressao/pontos";
+} from "@/features/impressao/regras/pontos";
 import {
   LuCircleCheck, LuCircleAlert, LuPlus, LuTrash2, LuChevronDown
 } from "react-icons/lu";

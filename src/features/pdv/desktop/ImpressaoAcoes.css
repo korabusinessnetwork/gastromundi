@@ -1,7 +1,7 @@
 /* F015 — ações de impressão do checkout. Decisão 018 (CSS separado do
    JSX) + tokens --gm-* (Fase 6) — este componente vive na árvore React
    do app, então herda o :root normalmente (diferente dos templates de
-   impressão em src/lib/impressao/, que rodam numa janela à parte). */
+   impressão em src/features/impressao/regras/, que rodam numa janela à parte). */
 
 .impressao-acoes {
   display: flex;

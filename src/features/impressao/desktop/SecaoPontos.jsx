@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { salvarConfigImpressao } from "@/lib/impressao";
+import { salvarConfigImpressao } from "@/features/impressao/dados/impressao";
 import {
   LuCircleCheck, LuCircleAlert, LuPlus
 } from "react-icons/lu";

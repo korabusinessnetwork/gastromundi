@@ -11,7 +11,7 @@ vi.mock("@/context/AppContext", async () => {
 let configNoBanco = {};
 const buscarConfigImpressaoMock = vi.fn(() => Promise.resolve({ data: configNoBanco, error: null }));
 const salvarConfigImpressaoMock = vi.fn(() => Promise.resolve({ error: null }));
-vi.mock("@/lib/impressao", () => ({
+vi.mock("@/features/impressao/dados/impressao", () => ({
   buscarConfigImpressao: (...args) => buscarConfigImpressaoMock(...args),
   salvarConfigImpressao: (...args) => salvarConfigImpressaoMock(...args),
 }));

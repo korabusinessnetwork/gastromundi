@@ -2,7 +2,7 @@ import { quebrarLinha } from "./largura";
 import { resolverBlocosComanda, fmtComanda } from "./layoutComanda";
 
 /**
- * F020 — formata os dados já montados por `src/lib/impressao.js`
+ * F020 — formata os dados já montados por `src/features/impressao/dados/impressao.js`
  * (montarComprovantePagamento/montarCupomPreNota/montarViaProducao)
  * como texto puro em colunas, pro driver ESC/POS/QZ Tray. Pura: não
  * imprime nada, só devolve `string[]` (uma por linha) — quem imprime

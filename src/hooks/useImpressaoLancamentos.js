@@ -13,9 +13,9 @@
 // marcado como o que imprime (ver `lib/impressao/aparelho`).
 
 import { useEffect, useRef, useState } from "react";
-import { imprimirLancamento } from "@/lib/impressao/despacho";
-import { registroLancamentos } from "@/lib/impressao/lancamentos";
-import { aparelhoImprimeLancamentos, assinarAparelhoImprime } from "@/lib/impressao/aparelho";
+import { imprimirLancamento } from "@/features/impressao/regras/despacho";
+import { registroLancamentos } from "@/features/impressao/regras/lancamentos";
+import { aparelhoImprimeLancamentos, assinarAparelhoImprime } from "@/features/impressao/regras/aparelho";
 
 /** Estado atual da chave deste aparelho, reagindo a mudanças na configuração. */
 export function useAparelhoImprime() {

@@ -1,6 +1,6 @@
 import { renderizarRecibo, renderizarViaProducao, abrirJanelaImpressao } from "../renderizar";
 import { larguraEmPx } from "../largura";
-import { resolverCor } from "../../tema";
+import { resolverCor } from "@/lib/tema";
 
 /**
  * Driver "browser-raster" — F020 (decisão 025). DEFAULT, gratuito:
@@ -45,7 +45,7 @@ function injetarVariaveisCss(html, variaveis) {
  * (mesma renderização exata que sai na impressão de verdade).
  *
  * @param {object} documento - retorno de montarComprovantePagamento/montarCupomPreNota/montarViaProducao
- * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao.js
+ * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/features/impressao/dados/impressao.js
  * @returns {string}
  */
 export function gerarHtmlComPerfil(documento, perfil) {
@@ -54,7 +54,7 @@ export function gerarHtmlComPerfil(documento, perfil) {
 
 /**
  * @param {object} documento - retorno de montarComprovantePagamento/montarCupomPreNota/montarViaProducao
- * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/lib/impressao.js
+ * @param {object} [perfil] - perfilImpressora (largura/margem/fonte) — ver src/features/impressao/dados/impressao.js
  * @returns {Promise<{error: object|null}>}
  */
 export async function imprimir(documento, perfil) {

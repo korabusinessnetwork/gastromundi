@@ -18,8 +18,8 @@ const { mockBuscarConfig, mockSalvarConfig } = vi.hoisted(() => ({
   mockSalvarConfig: vi.fn(),
 }));
 
-vi.mock("@/lib/impressao", async () => {
-  const real = await vi.importActual("@/lib/impressao");
+vi.mock("@/features/impressao/dados/impressao", async () => {
+  const real = await vi.importActual("@/features/impressao/dados/impressao");
   return { ...real, buscarConfigImpressao: mockBuscarConfig, salvarConfigImpressao: mockSalvarConfig };
 });
 

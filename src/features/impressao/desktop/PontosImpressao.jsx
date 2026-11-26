@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useCatalogo } from "@/context/AppContext";
-import { buscarConfigImpressao } from "@/lib/impressao";
+import { buscarConfigImpressao } from "@/features/impressao/dados/impressao";
 import {
   normalizarPontos, novoPonto, removerPonto, definirPadrao
-} from "@/lib/impressao/pontos";
+} from "@/features/impressao/regras/pontos";
 import {
   LuCircleAlert, LuRefreshCw
 } from "react-icons/lu";
