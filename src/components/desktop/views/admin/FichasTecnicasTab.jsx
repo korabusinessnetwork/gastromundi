@@ -53,7 +53,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
       ...f,
       ingredientes: [
         ...f.ingredientes,
-        { ...ING_VAZIO, uid: novoUid(), produtoId: produto.id, nome: produto.name, emoji: produto.emoji || "", unidade: unidadePadrao },
+        { ...ING_VAZIO, uid: novoUid(), produtoId: produto.id, nome: produto.name, unidade: unidadePadrao },
       ],
     }));
     if (buscaRef.current) buscaRef.current.focus();
@@ -138,14 +138,12 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
             const cp            = ct / (parseFloat(f.rendimento) || 1);
             const prodCard      = f.produtoId ? products.find(p => p.id === f.produtoId) : null;
             const nomeCard      = prodCard?.name ?? f.nome ?? "Sem produto";
-            const emojiCard     = prodCard?.emoji;
             return (
               <div key={f.id} className="fichas-tab__card">
 
                 {/* Cabeçalho */}
                 <div className="fichas-tab__card-topo">
                   <div className="fichas-tab__card-identidade">
-                    {emojiCard && <span className="fichas-tab__card-emoji">{emojiCard}</span>}
                     <div>
                       <div className="fichas-tab__card-nome">{nomeCard}</div>
                       {f.categoria && <div className="fichas-tab__card-categoria">{f.categoria}</div>}
@@ -180,10 +178,9 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                     </div>
 
                     {ings.map((ing, i) => {
-                      // Sempre deriva nome/emoji do produto atual se vinculado
+                      // Sempre deriva o nome do produto atual se vinculado
                       const produto    = ing.produtoId ? products.find(p => p.id === ing.produtoId) : null;
                       const nomeShow   = produto?.name  ?? ing.nome;
-                      const emojiShow  = produto?.emoji ?? ing.emoji;
                       const qtdNec     = parseFloat(ing.qtd) || 0;
                       // Converte qtd necessária (em unidade_consumo) para unidade_estoque para comparar
                       const qtdNecEst  = produto ? consumoParaEstoque(qtdNec, produto) : qtdNec;
@@ -201,9 +198,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                         >
                           {/* Nome */}
                           <div className="fichas-tab__ing-nome">
-                            {emojiShow
-                              ? <span className="fichas-tab__ing-emoji">{emojiShow}</span>
-                              : <LuPackage size={13} color={varColor(C.muted)} className="fichas-tab__icone-fixo" />}
+                            <LuPackage size={13} color={varColor(C.muted)} className="fichas-tab__icone-fixo" />
                             <span className="fichas-tab__ing-nome-texto">
                               {nomeShow || <span className="fichas-tab__sem-nome">sem nome</span>}
                             </span>
@@ -277,7 +272,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
               <div className="fichas-tab__ancora">
                 {produtoVinculado ? (
                   <div className="fichas-tab__produto-vinculado">
-                    <span className="fichas-tab__vinculado-emoji">{produtoVinculado.emoji || "📦"}</span>
+                    <span className="fichas-tab__vinculado-emoji"><LuPackage aria-hidden="true" /></span>
                     <span className="fichas-tab__vinculado-nome">{produtoVinculado.name}</span>
                     <button type="button" onClick={() => { setF("produtoId", null); setF("nome", ""); setF("categoria", ""); setBuscaPrato(""); setShowPratoDD(false); }} className="fichas-tab__btn-limpar"><LuX size={13} /></button>
                   </div>
@@ -304,7 +299,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                             onMouseDown={() => { setF("produtoId", p.id); setF("nome", p.name); setF("categoria", p.category ?? ""); setBuscaPrato(""); setShowPratoDD(false); }}
                             className="fichas-tab__dropdown-item"
                           >
-                            <span className="fichas-tab__dropdown-emoji">{p.emoji || "📦"}</span>
+                            <span className="fichas-tab__dropdown-emoji"><LuPackage aria-hidden="true" /></span>
                             <div className="fichas-tab__texto-flex">
                               <div className="fichas-tab__dropdown-nome">{p.name}</div>
                               {p.category && <div className="fichas-tab__dropdown-categoria">{p.category}</div>}
@@ -356,13 +351,11 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                   // Sempre usa dados atuais do produto vinculado
                   const prodVinc   = ing.produtoId ? products.find(p => p.id === ing.produtoId) : null;
                   const nomeChip   = prodVinc?.name  ?? ing.nome;
-                  const emojiChip  = prodVinc?.emoji ?? ing.emoji;
                   return (
                   <div key={ing.uid} className={`fichas-tab__ing-grade fichas-tab__ing-grade--item${isNarrow ? " fichas-tab__ing-grade--estreito" : ""}`}>
                     {/* Nome — chip se vinculado, input se manual */}
                     {prodVinc ? (
                       <div className="fichas-tab__ing-chip">
-                        {emojiChip && <span className="fichas-tab__ing-chip-emoji">{emojiChip}</span>}
                         <span className="fichas-tab__ing-chip-nome">{nomeChip}</span>
                         <LuLink size={11} color={varColor(C.accent)} className="fichas-tab__icone-fixo" />
                       </div>
@@ -493,7 +486,7 @@ export default function FichasTecnicasTab({ fichas, products, estoque, onSave, o
                         onClick={() => !jaAdicionado && adicionarDoProduto(p)}
                         className={`fichas-tab__produto-item${jaAdicionado ? " fichas-tab__produto-item--adicionado" : ""}`}
                       >
-                        <span className="fichas-tab__produto-item-emoji">{p.emoji || "📦"}</span>
+                        <span className="fichas-tab__produto-item-emoji"><LuPackage aria-hidden="true" /></span>
                         <div className="fichas-tab__texto-flex">
                           <div className="fichas-tab__produto-item-nome">{p.name}</div>
                           <div className="fichas-tab__produto-item-categoria">{p.category}</div>

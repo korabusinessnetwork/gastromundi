@@ -186,7 +186,7 @@ export const LAYOUT_COMANDA_PADRAO = Object.freeze([
   { id: "cnpj", tipo: "cnpj", visivel: false, alinhamento: "centro", tamanho: "pequeno", texto: "" },
   { id: "comanda", tipo: "comanda", visivel: true, alinhamento: "centro", tamanho: "pequeno" },
   { id: "separador-1", tipo: "separador", visivel: true },
-  { id: "itens", tipo: "itens", visivel: true, opcoes: { unitario: true, observacoes: true, emoji: true } },
+  { id: "itens", tipo: "itens", visivel: true, opcoes: { unitario: true, observacoes: true } },
   { id: "separador-2", tipo: "separador", visivel: true },
   { id: "subtotal", tipo: "subtotal", visivel: true, tamanho: "pequeno" },
   { id: "taxa", tipo: "taxa", visivel: true, tamanho: "pequeno" },
@@ -225,7 +225,6 @@ function normalizarBloco(bruto, id) {
     bloco.opcoes = {
       unitario: bruto?.opcoes?.unitario !== false,
       observacoes: bruto?.opcoes?.observacoes !== false,
-      emoji: bruto?.opcoes?.emoji !== false,
     };
   }
   if (aceita(tipo, "linhasEmBranco")) {
@@ -412,10 +411,11 @@ function linhasDeTexto(texto) {
     .filter(Boolean);
 }
 
+// Decisão 037: o emoji do produto não vai para o cupom (a térmica imprime um
+// quadrado no lugar). Layout antigo com a opção "emoji" ligada é ignorado.
 function itemResolvido(item, opcoes) {
-  const emoji = opcoes.emoji && item.emoji ? `${item.emoji} ` : "";
   return {
-    nome: `${emoji}${item.nome ?? ""}`,
+    nome: `${item.nome ?? ""}`,
     qty: Number(item.qty) || 1,
     unitario: fmtR(item.preco),
     total: fmtR((Number(item.preco) || 0) * (Number(item.qty) || 1)),
@@ -489,7 +489,7 @@ export function resolverBlocosComanda(layout, dados) {
         break;
       }
       case "itens": {
-        const opcoes = bloco.opcoes ?? { unitario: true, observacoes: true, emoji: true };
+        const opcoes = bloco.opcoes ?? { unitario: true, observacoes: true };
         saida.push({
           tipo: "itens",
           estilo,

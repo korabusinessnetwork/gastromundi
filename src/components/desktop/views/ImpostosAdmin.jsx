@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { listarConfigFiscalDosItens } from "@/features/fiscal/dados/itensFiscal";
 import { useCatalogo } from "@/context/AppContext";
-import { LuSearch, LuX, LuTriangleAlert, LuClipboardList } from "react-icons/lu";
+import { LuSearch, LuX, LuTriangleAlert, LuClipboardList, LuPackage } from "react-icons/lu";
 import "./ImpostosAdmin.css";
 import ModalFiscal from "./impostos/ModalFiscal";
 import { CATS_EXCLUIDAS } from "./impostos/apoio";
@@ -192,7 +192,7 @@ export default function ImpostosAdmin() {
                     >
                       {/* Emoji / ícone */}
                       <div className="impostos-admin__item-icone">
-                        {item.emoji || "📦"}
+                        <LuPackage aria-hidden="true" />
                       </div>
 
                       {/* Nome */}

@@ -24,8 +24,8 @@ const DOCUMENTO_EXEMPLO = {
   identidade: { nome: "Seu Estabelecimento", logoUrl: null, endereco: "", cnpj: "", rodape: "Obrigado pela preferência!" },
   comanda: "42",
   itens: [
-    { nome: "Hambúrguer artesanal", qty: 2, preco: 32.5, emoji: "🍔", obs: ["sem cebola"] },
-    { nome: "Refrigerante lata", qty: 1, preco: 6, emoji: "🥤", obs: [] },
+    { nome: "Hambúrguer artesanal", qty: 2, preco: 32.5, obs: ["sem cebola"] },
+    { nome: "Refrigerante lata", qty: 1, preco: 6, obs: [] },
   ],
   subtotal: 71, valorTaxa: 7.1, ajuste: null, valorAjuste: 0, total: 78.1,
   pagamentos: [{ metodo: "pix", valor: 78.1, troco: 0 }], trocoTotal: 0,

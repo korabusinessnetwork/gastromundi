@@ -31,7 +31,6 @@ const TAMANHOS = [
 const OPCOES_ITENS = [
   { chave: "unitario", rotulo: "Preço de cada unidade", ajuda: "Só na impressão pelo navegador, na térmica sai só o total do item." },
   { chave: "observacoes", rotulo: "Observações do pedido", ajuda: "“sem cebola”, “ponto da carne”." },
-  { chave: "emoji", rotulo: "Emoji do produto", ajuda: "Impressora térmica não imprime emoji; no navegador, sim." },
 ];
 
 // Resumo do conteúdo na própria linha: quem bate o olho na lista já vê

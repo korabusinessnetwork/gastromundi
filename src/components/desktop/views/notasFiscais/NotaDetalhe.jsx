@@ -4,9 +4,7 @@
 // 3 × 0,35 grava 1.0499999999999998 e o saldo carrega a sujeira para sempre.
 // TD015: a linha da nota carrega estado próprio (busca do produto, dropdown
 // aberto), então a chave de renderização não pode ser a posição na lista.
-import {
-  LuArrowLeft
-} from "react-icons/lu";
+import { LuArrowLeft, LuPackage } from "react-icons/lu";
 import { fmtDt, fmtR, fmtCnpj } from "./apoio";
 
 // Detalhe de uma nota já importada: cabeçalho e itens.
@@ -70,7 +68,7 @@ export default function NotaDetalhe({ nf }) {
                   <td className="nf-tab__td nf-tab__sub">
                     {it.products ? (
                       <span className="nf-tab__produto-linha">
-                        <span>{it.products.emoji || "📦"}</span>
+                        <span><LuPackage aria-hidden="true" /></span>
                         <span className="nf-tab__produto-nome">{it.products.name}</span>
                       </span>
                     ) : (

@@ -53,7 +53,6 @@ export default function ModalTransferirItens({ tela }) {
                   const ativo  = qSel > 0;
                   return (
                     <div key={item.uid ?? idx} className={`pdv__transfer-item${ativo ? " pdv__transfer-item--ativo" : ""}`}>
-                      {item.emoji && <span className="pdv__transfer-item-emoji">{item.emoji}</span>}
                       <div className="pdv__transfer-item-info">
                         <div className="pdv__transfer-item-nome">
                           {item.name}

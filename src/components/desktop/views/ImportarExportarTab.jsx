@@ -130,7 +130,7 @@ export default function ImportarExportarTab() {
       },
       aplicar: (plano, onProg) => aplicarImportacaoProdutos(plano.bruto, onProg),
       aposGravar: recarregarProdutos,
-      chip: (p) => `${p.emoji || "🍽️"} ${p.nome}`,
+      chip: (p) => p.nome,
       pillAtualizar: (n) => `${n} atualização(ões)`,
       tituloGravando: "Gravando produtos…",
       resumo: (r) => `Importação concluída: ${r.criados} produto(s) criado(s), ${r.atualizados} atualizado(s).`,

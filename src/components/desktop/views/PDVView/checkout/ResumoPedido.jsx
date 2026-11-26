@@ -25,10 +25,7 @@ export default function ResumoPedido({ tela }) {
         return (
           <div key={item.uid ?? i} className="checkout-view__item">
             <div className="checkout-view__item-icone">
-              {item.emoji
-                ? <span className="checkout-view__item-emoji">{item.emoji}</span>
-                : null}
-              <span className={`checkout-view__item-qtd${item.emoji ? " checkout-view__item-qtd--compacta" : ""}`}>×{qty}</span>
+              <span className="checkout-view__item-qtd">×{qty}</span>
             </div>
 
             <div className="checkout-view__item-corpo">

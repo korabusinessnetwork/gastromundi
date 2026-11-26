@@ -22,7 +22,6 @@ export default function ModalProduto({
   const [nome, setNome] = useState(prod?.name || "");
   const [preco, setPreco] = useState(prod?.price != null ? String(prod.price) : "");
   const [categoria, setCategoria] = useState(prod?.category || "");
-  const [emoji, setEmoji] = useState(prod?.emoji || "");
   const [descricao, setDescricao] = useState(item?.descricao || "");
   // Foto: a URL já gravada (edição) e, quando o dono escolhe uma nova, o
   // File local + a prévia (object URL). O upload só acontece no salvar,
@@ -107,7 +106,6 @@ export default function ModalProduto({
         name: nome.trim().toUpperCase(),
         price: parseFloat(String(preco).replace(",", ".")),
         category: categoria.trim() || "Delivery",
-        emoji: emoji || null,
       };
       if (modo === "novo") {
         const { data, error } = await addProduct(payload);
@@ -200,10 +198,6 @@ export default function ModalProduto({
               <div className="delivery-view__campo delivery-view__campo--flex">
                 <label className="delivery-view__label">Preço (R$) *</label>
                 <input className="delivery-view__input" type="number" min="0" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} placeholder="0,00" />
-              </div>
-              <div className="delivery-view__campo delivery-view__campo--emoji">
-                <label className="delivery-view__label">Emoji</label>
-                <input className="delivery-view__input delivery-view__input--centro" value={emoji} onChange={(e) => setEmoji(e.target.value)} placeholder="🍔" maxLength={4} />
               </div>
             </div>
             <div className="delivery-view__campo">

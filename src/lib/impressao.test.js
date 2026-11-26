@@ -93,7 +93,8 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
   it("exclui itens cancelados e calcula o subtotal só dos ativos", () => {
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
-    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, emoji: "🍔", obs: [] }]);
+    // Decisão 037: o emoji do produto não vai para o cupom, mesmo que o item o traga.
+    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, obs: [] }]);
     expect(comprovante.subtotal).toBe(60);
   });
 
@@ -161,7 +162,7 @@ describe("montarCupomPreNota (base para o futuro add-on fiscal, F019)", () => {
 
     const cupom = montarCupomPreNota({ venda });
 
-    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, emoji: "", obs: [] }]);
+    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, obs: [] }]);
     expect(cupom.total).toBe(10);
   });
 

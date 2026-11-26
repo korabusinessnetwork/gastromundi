@@ -152,7 +152,6 @@ export function useRelatorios() {
           canceladoPor:  it.canceladoPor || "—",
           at:            v.at,
           nome:          it.name ?? "—",
-          emoji:         it.emoji ?? "",
           qty:           it.qty ?? 1,
           price:         it.price ?? 0,
           motivo:        it.motivoCancelamento || "—",
@@ -172,7 +171,6 @@ export function useRelatorios() {
           canceladoPor:  it.canceladoPor || "—",
           at:            p.updated_at ?? p.created_at,
           nome:          it.name ?? "—",
-          emoji:         it.emoji ?? "",
           qty:           it.qty ?? 1,
           price:         it.price ?? 0,
           motivo:        it.motivoCancelamento || "—",
@@ -239,7 +237,7 @@ export function useRelatorios() {
         (Array.isArray(v.items) && v.items.length > 0 ? v.items : [{ name: "—", qty: 0, price: 0 }]).map(it => [
           v.comanda ?? "—", v.cashier ?? "—",
           normalizarPagamentos(v).map(p => rotuloMetodo(p.metodo, customLabels)).join(" + "),
-          (it.emoji ? `${it.emoji} ` : "") + (it.name ?? "—"),
+          it.name ?? "—",
           it.qty ?? 1, Number(it.price ?? 0).toFixed(2),
           Number((it.price ?? 0) * (it.qty ?? 1)).toFixed(2),
           fmtData(v.at),
@@ -281,7 +279,7 @@ export function useRelatorios() {
     const headers = ["Comanda", "Produto", "Qtd", "Unit. (R$)", "Valor (R$)", "Motivo", "Cancelado por", "Finalizado por", "Origem", "Data/Hora"];
     const rows = cancelamentos.map(c => [
       c.comanda,
-      (c.emoji ? `${c.emoji} ` : "") + c.nome,
+      c.nome,
       c.qty,
       Number(c.price).toFixed(2),
       Number(c.price * c.qty).toFixed(2),

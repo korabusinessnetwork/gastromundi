@@ -94,12 +94,12 @@ export default function PDVView({ notify }) {
               <div className="pdv__alerta-lista">
                 {criticos.map(p => (
                   <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--critico">
-                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">0</span>
+                    {p.name} · <span className="pdv__alerta-chip-valor">0</span>
                   </span>
                 ))}
                 {baixos.map(p => (
                   <span key={p.id} className="pdv__alerta-chip pdv__alerta-chip--atencao">
-                    {p.emoji} {p.name} · <span className="pdv__alerta-chip-valor">{estoque[p.id]}</span>
+                    {p.name} · <span className="pdv__alerta-chip-valor">{estoque[p.id]}</span>
                   </span>
                 ))}
               </div>
@@ -137,7 +137,7 @@ export default function PDVView({ notify }) {
               <div className="pdv__alerta-lista">
                 {vencendo.map(({ produto, dias, vencido }) => (
                   <span key={produto.id} className={`pdv__alerta-chip pdv__alerta-chip--${vencido ? "critico" : "atencao"}`}>
-                    {produto.emoji} {produto.name} · <span className="pdv__alerta-chip-valor">{rotuloDias(dias)}</span>
+                    {produto.name} · <span className="pdv__alerta-chip-valor">{rotuloDias(dias)}</span>
                   </span>
                 ))}
               </div>

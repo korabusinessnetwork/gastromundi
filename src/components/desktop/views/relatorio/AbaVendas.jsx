@@ -215,7 +215,7 @@ export default function AbaVendas({ tela }) {
                                   <tr key={j} className="aba-vendas__item">
                                     <td className="relatorio-view__item-cell aba-vendas__celula">
                                       <div className="aba-vendas__item-nome">
-                                        {it.emoji ? `${it.emoji} ` : ""}{it.name ?? "—"}
+                                        {it.name ?? "—"}
                                       </div>
                                       {it.obs && (
                                         <div className="relatorio-view__item-obs aba-vendas__item-obs">

@@ -288,7 +288,6 @@ function normalizarItensVenda(itens) {
       nome: i.name ?? "",
       qty: Number(i.qty) || 1,
       preco: Number(i.price) || 0,
-      emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
     }));
 }
@@ -366,7 +365,6 @@ export function montarViaProducao({ pedido } = {}) {
       category: typeof i.category === "string" ? i.category : "",
       nome: i.name ?? "",
       qty: Number(i.qty) || 1,
-      emoji: i.emoji ?? "",
       obs: Array.isArray(i.obs) ? i.obs : (i.obs ? [i.obs] : []),
     }));
 

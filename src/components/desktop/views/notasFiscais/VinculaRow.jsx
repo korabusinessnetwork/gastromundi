@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { arredondarQtd } from "@/utils/conversaoUnidades";
-import {
-  LuX, LuSearch
-} from "react-icons/lu";
+import { LuX, LuSearch, LuPackage } from "react-icons/lu";
 import { fmtR } from "./apoio";
 import { nomeBateComBusca } from "@/lib/busca";
 
@@ -68,7 +66,7 @@ export default function VinculaRow({ item, products, onChange }) {
         <div ref={ref} className="nf-tab__ancora">
           {linked ? (
             <div className="nf-tab__vinculado-chip">
-              <span className="nf-tab__emoji">{item.produto.emoji || "📦"}</span>
+              <span className="nf-tab__emoji"><LuPackage aria-hidden="true" /></span>
               <span className="nf-tab__vinculado-nome">
                 {item.produto.name}
               </span>
@@ -96,7 +94,7 @@ export default function VinculaRow({ item, products, onChange }) {
                       onMouseDown={() => selectProduto(p)}
                       className="nf-tab__dropdown-item nf-tab__dropdown-item--denso"
                     >
-                      <span className="nf-tab__emoji">{p.emoji || "📦"}</span>
+                      <span className="nf-tab__emoji"><LuPackage aria-hidden="true" /></span>
                       <div>
                         <div className="nf-tab__sub nf-tab__dropdown-nome">{p.name}</div>
                         <div className="nf-tab__cap nf-tab__muted">{p.unidade_estoque}</div>

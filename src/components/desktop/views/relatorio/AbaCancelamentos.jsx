@@ -64,7 +64,7 @@ export default function AbaCancelamentos({ tela }) {
                         </Td>
                         <Td sz={sz}>
                           <span className="rel-semi">
-                            {c.emoji ? `${c.emoji} ` : ""}{c.nome}
+                            {c.nome}
                           </span>
                         </Td>
                         <Td sz={sz} right>

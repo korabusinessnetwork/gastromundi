@@ -19,7 +19,7 @@ export const STATUS_COMPRA = {
 
 export const FICHA_VAZIA = { id: "", produtoId: null, nome: "", categoria: "", rendimento: "1", ingredientes: [], preparo: "" };
 
-export const ING_VAZIO   = { produtoId: null, nome: "", emoji: "", qtd: "", unidade: "g", custoUnit: "" };
+export const ING_VAZIO   = { produtoId: null, nome: "", qtd: "", unidade: "g", custoUnit: "" };
 
 export const FORN_VAZIO = { id: "", nome: "", cnpj: "", categoria: "", contato: "", telefone: "", email: "", observacoes: "" };
 

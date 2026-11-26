@@ -19,7 +19,7 @@ export default function ConfirmarExclusaoProduto({ tela }) {
                   </div>
                   <div>
                     <div className="produtos-view__confirm-titulo">Excluir produto?</div>
-                    <div className="produtos-view__confirm-sub">{p?.emoji} <strong className="produtos-view__destaque">{p?.name}</strong></div>
+                    <div className="produtos-view__confirm-sub"><strong className="produtos-view__destaque">{p?.name}</strong></div>
                   </div>
                 </div>
                 <div className="produtos-view__confirm-aviso produtos-view__confirm-aviso--perigo">

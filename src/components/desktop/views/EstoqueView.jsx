@@ -163,7 +163,7 @@ export default function EstoqueView() {
                       {/* Produto */}
                       <td className="estoque-view__td">
                         <div className="estoque-view__produto">
-                          <span className="estoque-view__produto-emoji">{p.emoji ?? "📦"}</span>
+                          <span className="estoque-view__produto-emoji"><LuPackage aria-hidden="true" /></span>
                           <div>
                             <div className="estoque-view__produto-nome">{p.name}</div>
                             {(temP || temC) && (

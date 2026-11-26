@@ -136,7 +136,7 @@ export function formatarViaProducaoEscpos(dados, colunas) {
   }
 
   for (const it of itens) {
-    const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
+    const nome = `${it.qty}x ${it.nome}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
       quebrarLinha(`  Obs.: ${obs}`, colunas).forEach(l => linhas.push(l));

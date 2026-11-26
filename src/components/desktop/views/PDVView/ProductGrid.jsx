@@ -137,9 +137,6 @@ function ProdutoCard({ product, onAdd }) {
       onClick={handleClick}
       className={`produto-card${pressed ? " produto-card--pressed" : ""}`}
     >
-      {product.emoji && (
-        <div className="produto-card__emoji">{product.emoji}</div>
-      )}
       <div className="produto-card__nome">
         {product.name}
       </div>
@@ -157,8 +154,8 @@ function ComboCard({ combo, produto, onAdd }) {
     const item = montarItemCombo(combo);
     if (!item) return;
     setPressed(true);
-    // Emoji/categoria do principal para o carrinho ficar reconhecível
-    onAdd({ ...item, emoji: produto?.emoji, category: produto?.category });
+    // Categoria do principal para o carrinho agrupar o combo com ela
+    onAdd({ ...item, category: produto?.category });
     setTimeout(() => setPressed(false), 150);
   };
 

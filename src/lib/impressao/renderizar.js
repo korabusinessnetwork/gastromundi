@@ -143,7 +143,7 @@ export function renderizarViaProducao(dados) {
   const linhasItens = itens
     .map((it) => `
       <div class="item">
-        <div class="item__linha">${esc(it.qty)}x ${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</div>
+        <div class="item__linha">${esc(it.qty)}x ${esc(it.nome)}</div>
         ${it.obs.map((o) => `<div class="item__obs">Obs.: ${esc(o)}</div>`).join("")}
       </div>
     `)

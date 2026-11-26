@@ -86,7 +86,6 @@ export default function ModalComandasFechadas({ tela }) {
                           <div key={it.uid ?? idx} className="fechadas-modal__item">
                             <div className="fechadas-modal__item-linha">
                               <span className="sidebar__item-nome fechadas-modal__item-nome">
-                                {it.emoji && <span className="fechadas-modal__item-emoji">{it.emoji}</span>}
                                 {it.name}
                                 {it.qty > 1 && <span className="fechadas-modal__item-qtd"> × {it.qty}</span>}
                               </span>

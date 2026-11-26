@@ -142,7 +142,7 @@ export default function CombosView({ sz }) {
                 >
                   {/* Ícone */}
                   <div className="combos-view__card-icone">
-                    {prod?.emoji ?? "🍽️"}
+                    <LuPackage aria-hidden="true" />
                   </div>
 
                   {/* Info */}
@@ -216,7 +216,7 @@ export default function CombosView({ sz }) {
               </div>
               <div>
                 <div className="combos-view__confirm-titulo">Excluir combo?</div>
-                <div className="combos-view__confirm-sub">{prodMap[excluindo.item_principal_id]?.emoji ?? "🍽️"} <strong className="combos-view__destaque">{excluindo.nome}</strong></div>
+                <div className="combos-view__confirm-sub"><LuPackage aria-hidden="true" /> <strong className="combos-view__destaque">{excluindo.nome}</strong></div>
               </div>
             </div>
             <div className="combos-view__confirm-aviso">

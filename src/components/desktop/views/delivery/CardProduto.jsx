@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
-  LuPencil, LuTrash2, LuX
-} from "react-icons/lu";
+  LuPencil, LuTrash2, LuX, LuUtensils } from "react-icons/lu";
 import {
   formatarReais
 } from "@/lib/deliveryAdmin";
@@ -9,7 +8,6 @@ import {
 export default function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemover, onToggle }) {
   const nome = item.produto?.name || "(produto removido do PDV)";
   const preco = item.produto?.price;
-  const emoji = item.produto?.emoji || "🍽️";
   const [confirmar, setConfirmar] = useState(false);
 
   return (
@@ -18,7 +16,7 @@ export default function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemove
         {item.foto_url ? (
           <img className="delivery-view__card-foto" src={item.foto_url} alt={nome} />
         ) : (
-          <div className="delivery-view__card-emoji">{emoji}</div>
+          <div className="delivery-view__card-emoji"><LuUtensils aria-hidden="true" /></div>
         )}
         <div className="delivery-view__card-corpo">
           <div className="delivery-view__card-nome">{nome}</div>

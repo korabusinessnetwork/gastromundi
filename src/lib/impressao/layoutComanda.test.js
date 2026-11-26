@@ -368,3 +368,30 @@ describe("catálogo de blocos", () => {
     }
   });
 });
+
+// Decisão 037: o sistema não tem emoji, e o cupom também não. O emoji que o
+// produto ainda tiver no banco não vai para o papel, nem com um layout antigo
+// que tinha a opção "Emoji do produto" ligada.
+describe("emoji do produto fora do cupom (decisão 037)", () => {
+  const comEmoji = () => {
+    const v = venda();
+    return { ...v, itens: v.itens.map((it) => ({ ...it, emoji: "🍔" })) };
+  };
+
+  it("o layout normalizado não tem mais a opção de emoji", () => {
+    const [itens] = normalizarLayoutComanda([{ tipo: "itens", opcoes: { emoji: true } }]);
+    expect(itens.opcoes).not.toHaveProperty("emoji");
+  });
+
+  it("layout antigo com emoji ligado não imprime o emoji, no papel nem na térmica", () => {
+    const layout = normalizarLayoutComanda([{ tipo: "itens", opcoes: { unitario: true, observacoes: true, emoji: true } }]);
+    const dados = { ...comEmoji(), layout };
+    expect(papel(dados)).not.toContain("🍔");
+    expect(termica(dados)).not.toContain("🍔");
+  });
+
+  it("sem layout, o comprovante também não imprime o emoji", () => {
+    expect(papel(comEmoji())).not.toContain("🍔");
+    expect(termica(comEmoji())).not.toContain("🍔");
+  });
+});

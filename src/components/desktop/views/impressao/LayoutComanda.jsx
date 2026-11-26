@@ -43,8 +43,8 @@ import "./LayoutComanda.css";
 const VENDA_EXEMPLO = {
   comanda: "42",
   items: [
-    { name: "Prato do dia", qty: 2, price: 32.5, emoji: "🍽️", obs: ["sem cebola"] },
-    { name: "Refrigerante lata", qty: 1, price: 6, emoji: "🥤", obs: [] },
+    { name: "Prato do dia", qty: 2, price: 32.5, obs: ["sem cebola"] },
+    { name: "Refrigerante lata", qty: 1, price: 6, obs: [] },
   ],
   valorTaxa: 7.1,
   total: 78.1,

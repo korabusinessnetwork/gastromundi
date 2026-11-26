@@ -269,7 +269,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
                         <div className="pdv__saldo-cancelado-info">
                           <div className="pdv__saldo-cancelado-titulo">
                             <span className="pdv__saldo-item-nome">
-                              {item.emoji ? `${item.emoji} ` : ""}{item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
+                              {item.name}{(item.qty ?? 1) > 1 ? ` ×${item.qty}` : ""}
                             </span>
                             {item._comandaCancelada && (
                               <span className="pdv__saldo-item-selo">

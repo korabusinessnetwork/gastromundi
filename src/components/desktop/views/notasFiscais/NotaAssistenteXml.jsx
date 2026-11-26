@@ -238,7 +238,7 @@ export default function NotaAssistenteXml({ nf }) {
                     {vinculados.map(item => (
                       <div key={item.uid} className="nf-tab__entrada-linha nf-assist__entrada">
                         <div className="nf-assist__entrada-produto">
-                          <span className="nf-tab__emoji-lg">{item.produto.emoji || "📦"}</span>
+                          <span className="nf-tab__emoji-lg"><LuPackage aria-hidden="true" /></span>
                           <div>
                             <div className="nf-tab__sub nf-assist__entrada-nome">{item.produto.name}</div>
                             <div className="nf-tab__cap nf-tab__muted">{item.descricaoXml}</div>

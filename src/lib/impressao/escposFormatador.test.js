@@ -174,3 +174,14 @@ describe("observação do item no cupom, sem emoji", () => {
     expect(texto).not.toContain("📝");
   });
 });
+
+describe("emoji do produto fora da via de produção (decisão 037)", () => {
+  it("o item com emoji sai só com o nome", () => {
+    const texto = formatarViaProducaoEscpos({
+      comanda: "7", horario: "2026-07-06T12:00:00.000Z",
+      itens: [{ nome: "Pizza Margherita", qty: 1, emoji: "🍕", obs: [] }],
+    }, colunasPorLargura(80, 15)).join("\n");
+    expect(texto).toContain("1x Pizza Margherita");
+    expect(texto).not.toContain("🍕");
+  });
+});

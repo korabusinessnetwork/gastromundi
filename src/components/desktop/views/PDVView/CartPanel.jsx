@@ -142,11 +142,6 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 return (
                   <div key={item.uid ?? idx} className={`cart-panel__item cart-panel__item--transicao cart-panel__item--lancado${cancelado ? " cart-panel__item--cancelado" : ""}`}>
                     <div className="cart-panel__item-linha">
-                      {item.emoji && (
-                        <span className="cart-panel__item-emoji">
-                          {item.emoji}
-                        </span>
-                      )}
                       <div className="cart-panel__item-corpo">
                         <div className="cart-panel__item-nome-texto">
                           {item.name}
@@ -345,7 +340,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                   {confirmExcluir.tipo === "lancado" ? "Cancelar item?" : "Remover item?"}
                 </div>
                 <div className="cart-panel__modal-nome-item">
-                  {confirmExcluir.item.emoji} {confirmExcluir.item.name}
+                  {confirmExcluir.item.name}
                 </div>
               </div>
             </div>

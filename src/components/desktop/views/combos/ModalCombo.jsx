@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import {
   salvarCombo, carregarSubprodutosDoCombo, carregarProdutosDoCombo
 } from "@/features/cardapio/dados/combos";
-import { LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight, LuTriangleAlert } from "react-icons/lu";
+import { LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight, LuTriangleAlert, LuPackage } from "react-icons/lu";
 import Toggle from "./Toggle";
 import { CATS_NAO_VENDAVEIS, fmtBRL } from "./apoio";
 import { nomeBateComBusca } from "@/lib/busca";
@@ -207,7 +207,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
           <div className="combos-view__label">Produto principal *</div>
           {principal ? (
             <div className="combos-view__principal-selecionado">
-              <span className="combos-view__principal-emoji">{principal.emoji ?? "📦"}</span>
+              <span className="combos-view__principal-emoji"><LuPackage aria-hidden="true" /></span>
               <div className="combos-view__cresce">
                 <div className="combos-view__principal-nome">{principal.name}</div>
                 <div className="combos-view__principal-preco">R$ {Number(principal.price).toFixed(2)}</div>
@@ -234,7 +234,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                       onClick={() => escolherPrincipal(p)}
                       className="combos-view__dropdown-item"
                     >
-                      <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
+                      <span className="combos-view__dropdown-item-emoji"><LuPackage aria-hidden="true" /></span>
                       <div className="combos-view__cresce">
                         <div className="combos-view__dropdown-item-nome">{p.name}</div>
                         <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>
@@ -261,7 +261,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                   <div className={`combos-view__item-linha${it.usarCustom ? " combos-view__item-linha--custom" : ""}`}>
                     {/* Nome */}
                     <div className="combos-view__cresce">
-                      <div className="combos-view__item-nome">{it.produto.emoji ?? "📦"} {it.produto.name}</div>
+                      <div className="combos-view__item-nome"><LuPackage aria-hidden="true" /> {it.produto.name}</div>
                       <div className="combos-view__item-info">{it.produto.category ?? "Produto"} · {!it.usarCustom ? fmtBRL(it.produto.price) : "preço custom"}</div>
                     </div>
                     {/* Quantidade */}
@@ -313,7 +313,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
                     onClick={() => addComp(p)}
                     className="combos-view__dropdown-item"
                   >
-                    <span className="combos-view__dropdown-item-emoji">{p.emoji ?? "📦"}</span>
+                    <span className="combos-view__dropdown-item-emoji"><LuPackage aria-hidden="true" /></span>
                     <div className="combos-view__cresce">
                       <div className="combos-view__dropdown-item-nome">{p.name}</div>
                       <div className="combos-view__dropdown-item-preco">R$ {Number(p.price).toFixed(2)}</div>

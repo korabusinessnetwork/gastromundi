@@ -208,3 +208,14 @@ describe("observação do item na impressão pelo navegador, sem emoji", () => {
     expect(html).not.toContain("📝");
   });
 });
+
+describe("emoji do produto fora da via de produção no navegador (decisão 037)", () => {
+  it("o item com emoji sai só com o nome", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X-Burguer", qty: 1, emoji: "🍔", obs: [] }],
+    });
+    expect(html).toContain("X-Burguer");
+    expect(html).not.toContain("🍔");
+  });
+});

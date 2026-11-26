@@ -110,7 +110,7 @@ export default function ProdutosView() {
                 return (
                   <tr key={p.id} className="produtos-view__tr">
                     <td className="produtos-view__td-emoji">
-                      <div className="produtos-view__emoji-box">{p.emoji || "📦"}</div>
+                      <div className="produtos-view__emoji-box"><LuPackage aria-hidden="true" /></div>
                     </td>
                     <td className="produtos-view__td">
                       <div className="produtos-view__nome">{p.name}</div>

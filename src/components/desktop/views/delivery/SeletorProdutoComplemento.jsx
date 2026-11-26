@@ -42,7 +42,6 @@ export default function SeletorProdutoComplemento({ products, idsExcluir, onEsco
                 onMouseDown={(e) => { e.preventDefault(); onEscolher(p); setTermo(""); setAberto(false); }}
                 className="delivery-view__btn delivery-view__menu-opcao"
               >
-                {p.emoji && <span className="delivery-view__opcao-emoji">{p.emoji}</span>}
                 <span className="delivery-view__menu-opcao-nome">{p.name}</span>
                 <span className="delivery-view__opcao-meta">
                   {formatarReais(p.price)}

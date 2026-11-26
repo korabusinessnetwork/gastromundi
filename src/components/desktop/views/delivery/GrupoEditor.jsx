@@ -368,7 +368,6 @@ export default function GrupoEditor({ isAdmin, grupo, biblioteca = [], products,
             // Produto escolhido: mostra o item + preço (editável) + confirmar.
             <>
               <div className="delivery-view__selecionado">
-                {selecionadoProd.emoji && <span>{selecionadoProd.emoji}</span>}
                 <span className="delivery-view__selecionado-nome">{selecionadoProd.name}</span>
                 <button
                   type="button"
