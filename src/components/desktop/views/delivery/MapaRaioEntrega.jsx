@@ -21,6 +21,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { LuMapPin } from "react-icons/lu";
 import "./MapaRaioEntrega.css";
+import { resolverCor } from "@/lib/tema";
 
 // Centro-padrão quando ainda não há origem: Brasil (aprox. centro
 // geográfico) num zoom bem aberto — só até o dono arrastar o pino.
@@ -28,16 +29,11 @@ const CENTRO_PADRAO = [-15.78, -47.93];
 const ZOOM_PADRAO = 4;
 const ZOOM_COM_ORIGEM = 13;
 
-// Resolve uma variável CSS (--gm-accent) para um valor concreto de cor,
-// porque Leaflet aplica a cor como atributo SVG e `var(--x)` não resolve
-// nesse contexto. Fallback azul.
-function corAccent(el) {
-  try {
-    const v = getComputedStyle(el).getPropertyValue("--gm-accent").trim();
-    return v || "#2563eb";
-  } catch {
-    return "#2563eb";
-  }
+// Resolve --gm-accent para um valor concreto de cor, porque Leaflet aplica a
+// cor como atributo SVG e `var(--x)` não resolve nesse contexto. A reserva é a
+// do próprio tema (`resolverCor`), não um azul solto.
+function corAccent() {
+  return resolverCor("--gm-accent");
 }
 
 const pinoIcon = L.divIcon({
@@ -127,7 +123,7 @@ export default function MapaRaioEntrega({ origem, aneis = [], onOrigemChange, re
     }
 
     const centro = [Number(origem.lat), Number(origem.lng)];
-    const cor = corAccent(boxRef.current);
+    const cor = corAccent();
 
     // Pino central (arrastável).
     if (!markerRef.current) {

@@ -5,8 +5,8 @@
  * 7×19 em x=9 rotacionadas ±45° a partir do ponto (9,15)).
  *
  * Inline (sem asset externo). Em fundo escuro a haste muda de cor —
- * `haste` permite as variantes do design (ex.: #B8B0F0 no CTA final,
- * #77768A no rodapé); azul/verde não variam.
+ * `haste` permite as variantes do design (o lilás claro `--kora-lilas` no CTA
+ * final, a névoa `--kora-nevoa` no rodapé); azul/verde não variam.
  */
 export default function KoraMonograma({ className, haste = "var(--kora-roxo)" }) {
   return (

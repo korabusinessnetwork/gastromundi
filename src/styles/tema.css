@@ -50,6 +50,11 @@
      como os demais — customizável por tenant. Substitui o AMBER hardcoded
      ("#f59e0b") que existia inline no palm/mobile. */
   --gm-warn: #f59e0b;
+  /* Tons de apoio de status, fora da marca: laranja (itens cancelados, a seção
+     de Impostos) e violeta (débito no Saldo do Dia). Viviam como hex cravado no
+     JSX e no CSS; viraram tokens para o tenant poder trocar (refatoração 5.31). */
+  --gm-orange: #f97316;
+  --gm-violet: #8b5cf6;
   --gm-text: #eef2f7;
   --gm-muted: #9aa8c4;
   --gm-faint: #323d58;

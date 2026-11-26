@@ -23,7 +23,7 @@ export default function DemoShell({ telaAtiva, aoTrocarTela, children }) {
     <div className="demo-shell">
       <aside className="demo-shell__sidebar">
         <div className="demo-shell__marca">
-          <KoraMonograma className="demo-shell__monograma" haste="#B8B0F0" />
+          <KoraMonograma className="demo-shell__monograma" haste="var(--kora-lilas)" />
           <span className="demo-shell__wordmark">KORA</span>
           <span className="demo-shell__badge">DEMO</span>
         </div>

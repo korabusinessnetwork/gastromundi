@@ -21,7 +21,7 @@ export default function AbaCancelamentos({ tela }) {
             {/* KPIs */}
             <div className={`rel-kpis${width < 700 ? " rel-kpis--duas" : ""}`}>
               <KpiCard label="Ocorrências"       value={kpisCancelamentos.total}                        color={varColor(C.red)}    Icon={LuCircleX}       sz={sz} />
-              <KpiCard label="Itens Cancelados"  value={kpisCancelamentos.qtd}                          color="#f97316"  Icon={LuPackage}       sz={sz} />
+              <KpiCard label="Itens Cancelados"  value={kpisCancelamentos.qtd}                          color="var(--gm-orange)"  Icon={LuPackage}       sz={sz} />
               <KpiCard label="Valor Perdido"     value={fmtR(kpisCancelamentos.valor)}                  color={varColor(C.red)}    Icon={LuBanknote}      sz={sz} />
               <KpiCard label="Motivo Mais Comum" value={kpisCancelamentos.topMotivo}                    color={varColor(C.muted)}  Icon={LuTriangleAlert} sz={sz} />
             </div>

@@ -12,7 +12,7 @@ export default function ApexRodape() {
   return (
     <footer className="apex-rodape">
       <div className="apex-rodape__marca">
-        <KoraMonograma className="apex-rodape__monograma" haste="#77768A" />
+        <KoraMonograma className="apex-rodape__monograma" haste="var(--kora-nevoa)" />
         <span className="apex-rodape__wordmark">KORA</span>
       </div>
       <span className="apex-rodape__copyright">

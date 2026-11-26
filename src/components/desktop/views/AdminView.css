@@ -1327,7 +1327,7 @@
 .grade-inicial__card--destaque { --secao-cor: var(--gm-accent); }
 .grade-inicial__card--azul     { --secao-cor: var(--gm-blue); }
 .grade-inicial__card--verde    { --secao-cor: var(--gm-green); }
-.grade-inicial__card--laranja  { --secao-cor: #f97316; }
+.grade-inicial__card--laranja  { --secao-cor: var(--gm-orange); }
 .grade-inicial__card {
   border-color: var(--gm-border);
 }

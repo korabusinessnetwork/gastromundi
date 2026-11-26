@@ -12,7 +12,7 @@ export default function ApexDemo({ contatoUrl }) {
   return (
     <section id="demo" className="apex-demo">
       <div className="apex-container apex-demo__conteudo">
-        <KoraMonograma className="apex-demo__monograma" haste="#B8B0F0" />
+        <KoraMonograma className="apex-demo__monograma" haste="var(--kora-lilas)" />
         <h2 className="apex-demo__titulo">
           Veja o KORA rodando com o cardápio do SEU negócio
         </h2>

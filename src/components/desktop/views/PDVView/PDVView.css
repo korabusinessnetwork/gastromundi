@@ -2346,7 +2346,7 @@
 }
 .pdv__saldo-metodo-pill--dinheiro { --metodo-cor: var(--gm-green); }
 .pdv__saldo-metodo-pill--credito  { --metodo-cor: var(--gm-blue); }
-.pdv__saldo-metodo-pill--debito   { --metodo-cor: #8b5cf6; }
+.pdv__saldo-metodo-pill--debito   { --metodo-cor: var(--gm-violet); }
 .pdv__saldo-metodo-pill--pix      { --metodo-cor: var(--gm-warn); }
 .pdv__saldo-comanda-valor {
   color: var(--gm-accent);

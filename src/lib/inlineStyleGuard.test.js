@@ -51,3 +51,16 @@ describe("o sistema não tem estilo inline (fase 5)", () => {
     expect(encontrados, "Estilo vai para o .css do componente, com var(--gm-*); dado vira variável CSS").toEqual([]);
   });
 });
+
+// Tarefa 5.x do plano: nenhuma cor hexadecimal escrita no JSX. Cor vem de
+// token --gm-* (que o estabelecimento troca) ou, na página da Kora, de --kora-*.
+// Mesma conta da métrica `Cor hexadecimal em JSX` (texto do arquivo inteiro).
+describe("o JSX não tem cor hexadecimal (tarefa 5.x)", () => {
+  it("nenhum .jsx escreve #rrggbb", () => {
+    const encontrados = arquivos(RAIZ)
+      .map((caminho) => [relative(RAIZ, caminho).split(sep).join("/"), (readFileSync(caminho, "utf8").match(/#[0-9a-fA-F]{6}\b/g) ?? []).length])
+      .filter(([, n]) => n > 0)
+      .map(([arq, n]) => `${arq}: ${n}`);
+    expect(encontrados, "Use var(--gm-*); a cor padrão fica em src/styles/tema.css").toEqual([]);
+  });
+});

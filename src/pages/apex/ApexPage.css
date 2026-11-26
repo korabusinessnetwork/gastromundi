@@ -14,6 +14,8 @@
   --kora-roxo: #473CA8;
   --kora-azul: #3E8DD6;
   --kora-verde: #37BFA7;
+  /* Lilás claro do handoff, para o roxo da marca sobre fundo escuro. */
+  --kora-lilas: #B8B0F0;
 
   /* Neutros */
   --kora-tinta: #1B1930;
