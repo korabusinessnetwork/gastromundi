@@ -3,7 +3,7 @@ import MODULOS from "@/constants/modulos";
 /**
  * Rotas candidatas a "casa" do usuário, em ordem de preferência operacional.
  * Cada entrada exige a MESMA permissão (e módulo, quando houver) que a rota
- * real em `src/routes/index.jsx`. Assim, o destino escolhido aqui SEMPRE passa
+ * real em `src/app/rotas/estabelecimento.jsx`. Assim, o destino escolhido aqui SEMPRE passa
  * na checagem do PrivateRoute de chegada — sem laço de redirecionamento.
  *
  * As rotas com `modulo` só são escolhidas quando o plano do tenant as inclui
