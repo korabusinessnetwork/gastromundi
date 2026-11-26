@@ -106,27 +106,54 @@ export function precoDasEscolhas(escolhas) {
 }
 
 /**
- * Monta o item de carrinho de um COMBO flexível com as escolhas feitas.
- * `id = null` de propósito: o combo não é um produto de catálogo, então
- * não baixa estoque por si — quem baixa são as escolhas. O preço é o
- * `preco_total` do combo mais eventuais acréscimos das escolhas.
+ * Monta o item de carrinho de um combo. Os dois modelos convivem
+ * (decisão do dono na integração do PR #32, 2026-11-26):
  *
- * @param {object} combo - linha de `combos` ({ id, nome, preco_total })
+ * - combo com produto principal (`item_principal_id`): o item usa
+ *   `id = item_principal_id`, então o principal baixa pelo fluxo normal, e a
+ *   receita viaja em `combo.subprodutos` e `combo.produtos` (ver
+ *   calcularBaixasSubprodutos e calcularBaixasProdutosCombo);
+ * - combo flexível, sem principal: `id = null`, e quem baixa estoque são as
+ *   escolhas (ver calcularBaixasEscolhas);
+ * - um combo pode ter as duas coisas, e as baixas somam.
+ *
+ * O preço é o `preco_total` mais os acréscimos das escolhas. Os itens FIXOS
+ * entram sempre, antes do que o cliente escolheu, com preço 0: existem para
+ * baixar estoque e sair na comanda (src/features/cardapio/regras/comboItensFixos.js).
+ *
+ * @param {object} combo - linha de `combos`, com `combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))`, `combo_produtos(quantidade, products(id, name))` e `escolhasFixas` quando houver
  * @param {Array<object>} escolhas - produtos escolhidos nos grupos
  * @returns {object|null} item pronto para o carrinho (sem qty/_key) ou null
  */
 export function montarItemCombo(combo, escolhas = []) {
   if (!combo) return null;
-  // Os itens FIXOS entram sempre, antes do que o cliente escolheu: é o que
-  // o combo já inclui (src/lib/comboItensFixos.js). Vêm com preço 0, então
-  // não mexem no total — existem para baixar estoque e sair na comanda.
-  // Combo sem itens fixos continua exatamente como era.
   const escs = normalizarEscolhas([...(combo.escolhasFixas ?? []), ...escolhas]);
+
+  const subprodutos = (combo.combo_subprodutos ?? [])
+    .filter((cs) => cs?.subprodutos?.id)
+    .map((cs) => ({
+      id: cs.subprodutos.id,
+      nome: cs.subprodutos.nome ?? "",
+      quantidade: Number(cs.quantidade ?? 1) || 1,
+      controla_estoque: !!cs.subprodutos.controla_estoque,
+    }));
+  const produtos = (combo.combo_produtos ?? [])
+    .filter((cp) => cp?.products?.id != null)
+    .map((cp) => ({
+      id: cp.products.id,
+      nome: cp.products.name ?? "",
+      quantidade: Number(cp.quantidade ?? 1) || 1,
+    }));
+
+  const receita = {};
+  if (subprodutos.length) receita.subprodutos = subprodutos;
+  if (produtos.length) receita.produtos = produtos;
+
   return {
-    id: null,
+    id: combo.item_principal_id ?? null,
     name: combo.nome ?? "Combo",
     price: (Number(combo.preco_total ?? 0) || 0) + precoDasEscolhas(escs),
-    combo: { comboId: combo.id, escolhas: escs },
+    combo: { comboId: combo.id, ...receita, escolhas: escs },
   };
 }
 
@@ -151,6 +178,78 @@ export function montarItemProdutoEscolhas(produto, escolhas = []) {
     category: produto.category,
     combo: { escolhas: escs },
   };
+}
+
+/**
+ * Agrega as baixas de estoque de subprodutos de uma lista de itens
+ * vendidos. Só entram subprodutos com `controla_estoque`; itens
+ * cancelados ficam de fora; quantidades somam por subproduto
+ * (quantidade na receita × qty do item no carrinho).
+ *
+ * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{subprodutos:[{id, nome, quantidade, controla_estoque}]}})
+ * @returns {Array<{subprodutoId: string, nome: string, qtd: number}>}
+ */
+export function calcularBaixasSubprodutos(itens) {
+  const porSubproduto = new Map();
+
+  for (const item of itens ?? []) {
+    if (!item || item.cancelado) continue;
+    const subs = item.combo?.subprodutos;
+    if (!Array.isArray(subs) || subs.length === 0) continue;
+
+    const qtyItem = Number(item.qty ?? 1) || 0;
+    if (qtyItem <= 0) continue;
+
+    for (const sub of subs) {
+      if (!sub || !sub.id || !sub.controla_estoque) continue;
+      const qtdReceita = Number(sub.quantidade ?? 1) || 0;
+      if (qtdReceita <= 0) continue;
+
+      const qtd = qtdReceita * qtyItem;
+      const atual = porSubproduto.get(sub.id);
+      if (atual) atual.qtd += qtd;
+      else porSubproduto.set(sub.id, { subprodutoId: sub.id, nome: sub.nome ?? "", qtd });
+    }
+  }
+
+  return [...porSubproduto.values()];
+}
+
+/**
+ * Agrega as baixas de estoque dos PRODUTOS adicionais dos combos (os que
+ * não são o principal). Cada produto adicional baixa seu próprio estoque,
+ * como um produto vendido — quem decide se de fato controla estoque é a
+ * finalização (guarda `prodId in estoque` + conversão de unidade), igual
+ * ao principal. Itens cancelados ficam de fora; quantidades somam por
+ * produto (quantidade no combo × qty do item no carrinho).
+ *
+ * @param {Array<object>} itens - itens do carrinho/comanda ({qty, cancelado, combo:{produtos:[{id, nome, quantidade}]}})
+ * @returns {Array<{produtoId: (number|string), nome: string, qtd: number}>}
+ */
+export function calcularBaixasProdutosCombo(itens) {
+  const porProduto = new Map();
+
+  for (const item of itens ?? []) {
+    if (!item || item.cancelado) continue;
+    const prods = item.combo?.produtos;
+    if (!Array.isArray(prods) || prods.length === 0) continue;
+
+    const qtyItem = Number(item.qty ?? 1) || 0;
+    if (qtyItem <= 0) continue;
+
+    for (const p of prods) {
+      if (!p || p.id == null) continue;
+      const qtdCombo = Number(p.quantidade ?? 1) || 0;
+      if (qtdCombo <= 0) continue;
+
+      const qtd = qtdCombo * qtyItem;
+      const atual = porProduto.get(p.id);
+      if (atual) atual.qtd += qtd;
+      else porProduto.set(p.id, { produtoId: p.id, nome: p.nome ?? "", qtd });
+    }
+  }
+
+  return [...porProduto.values()];
 }
 
 /**
