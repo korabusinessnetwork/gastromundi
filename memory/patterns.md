@@ -1096,3 +1096,37 @@ passo que decide, não o número.
   lint apontar nome sem origem e `import` sem uso, e só então rodar os testes. Guard que
   lê código-fonte tem de seguir o código para o arquivo novo, sem afrouxar.
 
+
+## Organização por domínio e mudança de lugar (ADR-015, fase 6, 2026-11-26)
+
+- Arquivo de um assunto mora em `src/features/<dominio>/`: `dados/` fala com o Supabase (ou com a
+  função de borda, ou com a ponte), `regras/` é função pura com teste, `hooks/` é estado da feature,
+  `desktop/` é tela do computador com o `.css` ao lado. Fachada que só reexporta fica na raiz da
+  feature (`delivery.js`, `deliveryAdmin.js`, `console.js`).
+- Mudar de lugar é `git mv` com os imports reescritos por script (`mover.py` da execução Full
+  Automático: resolve cada import pelo lugar antigo e escreve o novo; relativo dentro da mesma
+  feature, `@/` quando cruza de um módulo para outro). Relativo dentro da feature é o que mantém
+  legível pelo Deno a regra que uma função de borda importa.
+- Depois de mover, conferir quem lê o arquivo **pelo caminho**: guardas com `readFileSync` (caminho
+  inteiro, `join(RAIZ, "src", ...)` em segmentos e `join(__dirname, ...)`), a exceção nomeada do
+  guarda de travessão, as funções de borda (`../../../src/...`) e o `bot/`. Um guarda que lê um
+  caminho que não existe tem de reprovar, nunca passar calado.
+- Uma tela vai junto com outra quando uma abre a outra e a regra do lint proíbe a dependência
+  (Configurações levou Mesas), e uma aba fica com a tela cujo CSS a estiliza.
+- Nunca criar link simbólico de `node_modules` dentro de uma cópia do repositório que vai ser
+  commitada: o `.gitignore` ignora `node_modules` como nome, mas o `git add -A` antigo levou o link,
+  e o cherry-pick trocou a pasta real por ele.
+
+## Rotas por superfície (refatoração 6.10)
+
+- `src/app/rotas/` tem um arquivo por superfície e `escolherRotas({ naHostDoConsole,
+  consoleForaDoHost, noApex })`. O `routes/index.jsx` só lê o endereço. Rota nova entra no arquivo
+  da superfície dela; tela nova do computador entra em `estabelecimento.jsx` pelo `telaDoApp`, com a
+  permissão e o módulo do plano.
+
+## Notas de atualização a cada push (pedido do dono, 2026-11-26)
+
+- Todo push leva a atualização de `src/features/apex/regras/notasDeAtualizacao.js`
+  (`kora.codes/patchnotes`); o `.githooks/pre-push` recusa sem ela, olhando commit por commit.
+  Texto para quem usa o sistema, sem termo técnico; mudança só por dentro vira um item "Por dentro"
+  por dia. Por isso uma rodada sobe num push só, no fim, com a nota junto.

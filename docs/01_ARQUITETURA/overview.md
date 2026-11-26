@@ -1,220 +1,183 @@
-# Arquitetura Geral — GastroMundi
+# Arquitetura Geral, GastroMundi
+
+> Estado real do código, revisado na refatoração 6.12 (2026-11-26). A arquitetura com API própria,
+> Drizzle e Clerk (ADR-002) continua como roadmap; o que vale hoje é o ADR-004 (Supabase direto) e a
+> organização por domínio do ADR-015.
 
 ## Objetivo
-Descrever a visão macro da arquitetura do sistema GastroMundi: camadas, responsabilidades, fronteiras e princípios que guiam todas as decisões técnicas.
+Descrever a visão macro da arquitetura do GastroMundi: camadas, responsabilidades, fronteiras e
+princípios que guiam as decisões técnicas, como o código está hoje.
 
 ## Contexto
-GastroMundi é construído sobre React + Vite + Tailwind (frontend), uma **API Express contract-first** com **Drizzle ORM** (backend), **PostgreSQL hospedado no Supabase** (banco) e **Clerk** (autenticação). A arquitetura prioriza velocidade de desenvolvimento, escalabilidade progressiva e manutenibilidade a longo prazo. Ver [ADR-002](../08_DECISOES/adr-002.md) (revisa o ADR-001).
+O GastroMundi é um SaaS multi-estabelecimento white-label (decisão 017) para restaurante e varejo:
+PDV, caixa, comandas, cozinha, estoque, delivery, financeiro, nota fiscal e o assistente Jarvas.
+É uma SPA em **React + Vite** que fala **direto com o Supabase** (autenticação, banco Postgres com
+RLS, Realtime e funções de borda), publicada na **Vercel**. Não há API própria no meio (ADR-004).
+Dois programas satélites rodam fora do navegador: a **Ponte KORA** (`ponte/`, pedidos e impressão
+pela rede local sem internet) e o **importador de cardápio** (`bot/`).
 
 ## Regras Gerais
-- O frontend é responsável apenas por apresentação e interação; lógica de negócio vive na **API Express** (camada de serviços do servidor)
-- Comunicação entre frontend e backend ocorre exclusivamente via **API HTTP do `api-server`** (contrato definido em OpenAPI, hooks gerados pelo Orval), documentada em `docs/07_APIS/`
-- O frontend **nunca acessa o banco diretamente**; o acesso a dados é exclusivo da API (Drizzle)
-- Toda camada deve ter responsabilidade única e bem definida
-- Segurança por padrão: isolamento por `tenant_id` aplicado na API e, opcionalmente, via RLS (Row Level Security) no PostgreSQL
+- **Tela não chama o Supabase.** Toda leitura e gravação passa pela camada `dados/` da feature (ou
+  pelos provedores de `src/context/`). O lint cobra.
+- **O isolamento entre estabelecimentos é do banco**, por `tenant_id` e RLS. O front nunca decide o
+  tenant: ele vem do JWT da sessão.
+- **Gravação de várias etapas é uma função do banco**, atômica (combo, importação de nota, exclusão
+  de unidade de medida). O navegador não encadeia gravações que podem ficar pela metade.
+- **Segredo não vai para o front.** Só `VITE_SUPABASE_URL` e a chave anon, que são públicas. Chaves
+  de serviço, certificado fiscal e CSC ficam nas funções de borda e no Vault do Supabase.
+- **Nada de marca de um cliente no código.** Nome, cor, logo e regras vêm do tenant (decisão 017).
 
 ## Validações
-- Credenciais de banco (`SUPABASE_DATABASE_URL`) e a `service_role`/chaves administrativas nunca podem ser expostas no frontend
-- Toda nova rota ou endpoint deve ser definida no OpenAPI e documentada antes de ser implementada
+- Input do usuário é validado antes de qualquer gravação, e de novo no banco (constraint, RLS ou
+  validação na função).
+- Toda tabela nova nasce com RLS, e a função nova do banco com checagem de tenant e `search_path` fixo.
 
 ## Permissões
-- Mudanças na arquitetura de alto nível exigem ADR aprovado em `docs/08_DECISOES/`
-- Acesso ao banco de dados de produção é restrito ao tech lead e ao Supabase dashboard
+- Mudança de arquitetura de alto nível exige ADR em `docs/08_DECISOES/`.
+- Migration em produção é decisão do dono (decisão D6 do ADR-015: aplicada antes do merge da rodada).
 
 ## Exceções
-- Protótipos e provas de conceito podem temporariamente violar fronteiras arquiteturais, desde que marcados com `[POC]` e com prazo de refatoração definido
+- Protótipos podem violar fronteiras temporariamente, marcados com `[POC]` e com prazo.
 
 ## Auditoria
-- Diagrama de arquitetura deve ser atualizado a cada mudança estrutural relevante
-- Revisão da arquitetura: semestral ou após mudança de stack
+- Este documento é atualizado a cada mudança estrutural relevante.
+- `scripts/metricas-refatoracao.mjs` mede as fronteiras (chamadas ao Supabase fora de `dados/`,
+  estilo inline, cor fixa, emoji, celular importando do computador).
 
 ## Eventos
-- `architecture.changed` — mudança estrutural relevante registrada
-- `architecture.reviewed` — revisão periódica realizada
+- Os eventos de domínio são do Jarvas (ver "Eventos do Jarvas" abaixo).
 
 ## Configurações Futuras
-- Avaliar Edge Functions do Supabase para lógica sensível à latência
-- Planejar estratégia de multi-tenancy conforme escala
-- Definir estratégia de CDN para assets estáticos
+- API própria + Drizzle + Clerk (ADR-002), quando o custo e a escala justificarem.
+- TanStack Query para cache de servidor, reavaliado depois da divisão do contexto (ADR-015, D1).
 
 ## Casos de Uso
-- Onboarding técnico
-- Avaliação de novas tecnologias
-- Planejamento de escalabilidade
-- Decisões de infraestrutura
+- Onboarding técnico, avaliação de tecnologia, planejamento de escala.
 
 ## Critérios de Aceite
-- [ ] Diagrama de camadas está atualizado
-- [ ] Responsabilidades de cada camada estão descritas
-- [ ] Fronteiras de segurança estão mapeadas
-- [ ] Stack principal está documentada com justificativas
+- [x] Diagrama de camadas descreve o código real
+- [x] Responsabilidades de cada camada estão descritas
+- [x] Fronteiras de segurança estão mapeadas
+- [x] Stack principal está documentada (ver `tech-stack.md`)
 
 ---
 
 ## Diagrama de Camadas
 
 ```
-┌─────────────────────────────────────────┐
-│              Usuário (Browser)           │
-└────────────────────┬────────────────────┘
-                     │
-┌────────────────────▼────────────────────┐
-│         Frontend (React + Vite)          │
-│  • Componentes UI                        │
-│  • Gerenciamento de estado               │
-│  • Roteamento (wouter)                   │
-│  • Auth no cliente (Clerk) + API client  │
-└────────────────────┬────────────────────┘
-                     │ HTTP (cookie de sessão Clerk) — hooks gerados pelo Orval
-┌────────────────────▼────────────────────┐
-│        API (Express 5 · api-server)      │
-│  • Auth/sessão (Clerk middleware)        │
-│  • Validação de contratos (Zod)          │
-│  • Camada de serviços (regras + tenant)  │
-│  • Acesso a dados (Drizzle ORM)          │
-└────────────────────┬────────────────────┘
-                     │ SQL (SUPABASE_DATABASE_URL)
-┌────────────────────▼────────────────────┐
-│   PostgreSQL gerenciado (Supabase host)  │
-│  • Tabelas multi-tenant (tenant_id)      │
-│  • RLS opcional por tenant               │
-└─────────────────────────────────────────┘
-
-Auth: Clerk (gerenciado pela Replit) — cookie de sessão no web; middleware no Express.
+Navegador (computador, celular do garçom, cardápio público, site da Kora)
+   │
+   ▼
+SPA React + Vite (Vercel)
+   │  src/app/rotas/      uma superfície por endereço
+   │  src/context/        seis provedores (sessão, offline, configuração, catálogo, comandas, caixa)
+   │  src/features/<x>/   telas, ganchos, regras puras e a camada dados/
+   │
+   │  supabase-js (JWT da sessão)                         HTTP na rede local
+   ▼                                                      ▼
+Supabase                                              Ponte KORA (PC do caixa)
+   • Auth (usuário@<estabelecimento>.local)              • pedidos do Palm sem internet
+   • Postgres com RLS por tenant_id                      • impressão na térmica
+   • funções do banco (RPC) atômicas
+   • Realtime (comandas, cozinha)
+   • funções de borda (NFC-e, provisionamento, importação)
 ```
 
 ## Princípios Arquiteturais
 
-1. **Separação de responsabilidades.** Apresentação (frontend) ≠ lógica de negócio (API Express) ≠ dados (PostgreSQL via Drizzle).
-2. **Segurança por padrão.** RLS ativo em todas as tabelas; menor privilégio sempre.
-3. **Contrato explícito.** Toda fronteira (API, formulário, evento) é validada por schema (Zod).
-4. **Baixo acoplamento.** Módulos se comunicam por Event Bus e contratos, não por dependências diretas.
-5. **Isolamento de fornecedor.** Acesso a dados concentrado na camada de serviços da API (Drizzle), reduzindo lock-in; o Supabase é só o host do Postgres e pode ser trocado alterando `SUPABASE_DATABASE_URL`.
-6. **Escalabilidade progressiva.** Decisões simples no MVP, com caminho claro de evolução (multi-tenant, cache, CDN).
-7. **Observabilidade.** Eventos de domínio auditáveis; erros nunca silenciados.
+1. **Separação por camada dentro de cada domínio.** Tela, gancho de estado, regra pura e acesso a
+   dados ficam em pastas próprias da feature.
+2. **Segurança por padrão.** RLS em todas as tabelas; menor privilégio; o front é tratado como não
+   confiável.
+3. **Regra de negócio é função pura com teste.** Dinheiro, conversão, regras do Jarvas e fiscais
+   nascem com teste.
+4. **Computador e celular compartilham a lógica.** Os dois usam os mesmos ganchos e regras da
+   feature; o celular não importa da pasta do computador (o lint cobra).
+5. **Estilo vem do tema.** CSS co-localizado com variáveis `--gm-*` que cada estabelecimento
+   sobrescreve; sem estilo inline e sem cor fixa no JSX (guardas na suíte).
+6. **Custo zero primeiro.** Nada pago sem decisão do dono (`memory/restrictions.md`).
+7. **Observabilidade.** Erros vão para o Sentry e para o log de operações, sem dado sensível.
 
 ---
 
 ## Arquitetura Frontend
 
-O frontend é uma SPA em React + Vite, organizada **por módulos/features** (ver `memory/patterns.md`).
-
 ```
-┌──────────────────────────────────────────────┐
-│                  App Shell                     │
-│  Providers globais (Context API):              │
-│  Auth (Clerk) · Tenant · Theme · FeatureFlags  │
-└───────────────┬────────────────────────────────┘
-                │
-   ┌────────────┼────────────┐
-   ▼            ▼            ▼
-┌────────┐  ┌────────┐  ┌────────┐
-│ Módulo │  │ Módulo │  │ Módulo │   (PDV, Caixa, Pedidos,
-│  (UI)  │  │  (UI)  │  │  (UI)  │    Cozinha, Estoque…)
-└───┬────┘  └───┬────┘  └───┬────┘
-    │           │           │
-    ▼           ▼           ▼
-┌────────────────────────────────┐
-│   API client (hooks Orval)      │  ← único ponto de acesso a dados
-│   TanStack Query (cache)        │
-└───────────────┬─────────────────┘
-                │  HTTP (cookie de sessão Clerk)
-                ▼
-        API Express (api-server) ──▶ Drizzle ──▶ PostgreSQL (Supabase)
+src/
+  main.jsx            ponto de entrada (e o atalho das pautas, em subdomínio próprio)
+  app/                coordenação da carga, tela de erro, ganchos da casca
+    rotas/            apex.jsx, console.jsx, cardapioPublico.jsx, estabelecimento.jsx, index.js
+  routes/             index.jsx (só escolhe a superfície), PrivateRoute, ConsoleRoute
+  context/            os seis provedores e os ganchos de leitura (useSessao, useCaixa...)
+  features/<dominio>/
+    dados/            única camada que fala com o Supabase
+    regras/           funções puras com teste
+    hooks/            estado da feature, usado pelo computador e pelo celular
+    desktop/          telas do computador, cada uma com seu .css
+  pages/              casca das páginas (computador, celular, cardápio público, site da Kora, console)
+  components/         casca do computador (barra lateral, avisos de assinatura) e componentes comuns
+  lib/                utilidade técnica e de plataforma, sem regra de domínio
+  styles/             tema (--gm-*), campos, ícones
 ```
 
-**Responsabilidades por camada:**
+**Domínios em `src/features/`:** admin, apex (site da Kora), assinatura, auditoria, caixa, cardápio,
+clientes, comandas, configurações, console, cozinha, delivery, estoque, financeiro, fiscal (NFC-e),
+importação, impressão, jarvas, mesas, pautas, pdv, ponte, relatórios e sessão.
 
-| Camada | Responsabilidade |
-|--------|------------------|
-| App Shell / Providers | Estado global de UI: sessão (Clerk), tenant atual, tema, feature flags |
-| Módulos (UI) | Componentes e telas de cada feature; apenas apresentação e interação |
-| API client (hooks Orval + TanStack Query) | Chamadas à API, cache de estado de servidor, tipos/validação (Zod) |
-| Roteamento | Navegação (wouter, com `base` por artefato), incluindo rotas protegidas por sessão/papel |
+**O que fica em `src/lib/`:** o cliente do Supabase e o prazo de rede, o tema e a marca do
+estabelecimento, a fila offline, o log e a observabilidade, os guardas de SQL e de texto, e funções
+pequenas usadas por vários domínios (telefone, documento, busca, períodos). É o papel que o ADR-015
+dá a `shared/lib/`; a pasta mantém o nome atual.
 
-**Regras:**
-- Componentes nunca chamam o banco diretamente — sempre via API client (hooks Orval); o acesso ao Postgres é exclusivo da API.
-- Estado de servidor mora no TanStack Query (cache); estado global de UI mora em contextos; estado local mora no componente.
+**Superfícies** (`src/app/rotas/`): o site da Kora no domínio nu, o Console da plataforma (no host
+dedicado ou em `/console`), o cardápio público em `/cardapio` e o estabelecimento (login, `/palm` e
+`/app`). O `routes/index.jsx` só lê o endereço e escolhe.
 
 ---
 
-## Event Bus
+## Eventos do Jarvas
 
-Mecanismo interno de comunicação **desacoplada** entre módulos. Em vez de um módulo chamar outro diretamente, ele **publica um evento**; módulos interessados **assinam** e reagem.
-
-**Por quê:** reduz acoplamento, habilita reações cross-módulo (ex.: faturamento reage a `user.invited`) e cria uma trilha de auditoria natural.
-
-**Convenções:**
-- Nomes de eventos em `dot.case`, no formato `dominio.acao` (ex.: `decision.added`, `user.invited`, `billing.upgraded`).
-- Eventos descrevem **fatos que já aconteceram** (passado), não comandos.
-- O catálogo canônico de eventos por domínio vive nos respectivos arquivos de `docs/03_REGRAS_DE_NEGOCIO/` e `docs/03_REGRAS_DE_NEGOCIO/` (seção "Eventos").
-
-```
-Módulo A ──publica──▶ [ Event Bus ] ──notifica──▶ Módulo B
-                          │
-                          └──notifica──▶ Auditoria / Analytics
-```
-
-**Limites:** o Event Bus é para reações assíncronas e desacopladas; fluxos que exigem resposta imediata e transacional usam chamadas diretas à camada de serviços.
+O Jarvas é a IA transversal (spec em `docs/03_REGRAS_DE_NEGOCIO/JARVAS.md`). Os domínios publicam
+eventos de fato consumado (`venda.finalizada`, `estoque.baixa`, `pedido.cancelado` e afins) em `jarvas_eventos`, pela
+função `emitirEvento` de `src/features/jarvas/dados/jarvas.js`, de forma fire-and-forget. O motor de
+regras (`jarvasEngine.js`) transforma eventos e leituras em insight, alerta ou sugestão. O Jarvas
+nunca executa ação sem confirmação humana.
 
 ---
 
-## Context API
+## Estado global (Context API)
 
-Gerencia o **estado global de UI** sem bibliotecas externas de estado (decisão 003). Cada contexto tem responsabilidade única e expõe um provider no App Shell.
-
-| Contexto | Responsabilidade |
-|----------|------------------|
-| `AuthContext` | Sessão do usuário, login/logout, dados do usuário atual |
-| `TenantContext` | Tenant ativo, papel do usuário no tenant, troca de tenant |
-| `ThemeContext` | Tema (claro/escuro) e preferências visuais |
-| `FeatureFlagsContext` | Flags ativas para o usuário/tenant atual |
-
-**Regras:**
-- Context API é para estado **global de UI**, não para cache de dados de servidor (esse fica na camada de data-fetching).
-- Evitar "mega-contexto": preferir contextos pequenos e focados para limitar re-renderizações.
-- Se o estado global crescer além do que a Context API suporta confortavelmente, reavaliar via ADR (alternativas como Zustand/Jotai estão registradas como decisão em aberto).
+Sem Redux (decisão 003). Seis provedores em `src/context/`, cada um dono de um assunto e com valor
+memorizado, montados de fora para dentro: **sessão** (usuário, papel, tenant), **offline** (fila de
+operações sem internet), **configuração**, **catálogo** (produtos e categorias), **comandas** e
+**caixa**. No centro, `src/app/CoordenacaoDaCarga.jsx` faz a carga, o dreno da fila offline e a
+análise do Jarvas. As telas leem pelos ganchos (`useSessao`, `useCaixa`...).
 
 ---
 
-## Feature Flags
+## Planos e módulos (no lugar de feature flags)
 
-Permitem **ligar/desligar funcionalidades** sem novo deploy (decisão 005).
-
-**Usos:** entregas graduais (rollout por %), testes A/B, *kill-switch* de emergência, e gating de recursos por plano (free/pro/enterprise).
-
-**Modelo conceitual:**
-- Uma flag tem: chave, descrição, estado (on/off) e regras de elegibilidade (por tenant, plano ou usuário).
-- A avaliação acontece numa única fonte (`FeatureFlagsContext`), nunca espalhada em condicionais soltas pelo código.
-- Flags temporárias (de rollout) têm prazo de remoção; flags permanentes (de plano) são parte do produto.
-
-```
-Flag definida ──▶ Regras (tenant/plano/usuário) ──▶ FeatureFlagsContext ──▶ UI decide o que mostrar
-```
-
-**Restrição:** nenhuma flag deve expor recurso pago no plano free sem decisão registrada (ver `memory/restrictions.md`).
+O que cada estabelecimento vê depende do **plano** dele (F013): cada plano libera módulos
+(`planos_modulos`), e add-ons pagos (nota fiscal, TEF) são ligados por estabelecimento no Console.
+O `PrivateRoute` recebe o módulo exigido pela tela e mostra o convite de upgrade quando o plano não
+tem o módulo. A liberação real está no banco.
 
 ---
 
 ## Arquitetura Multi-tenant
 
-GastroMundi é **multi-tenant**: cada organização (tenant) tem seus dados isolados, compartilhando a mesma aplicação e banco.
+**Estratégia (decisão 002):** banco e schema compartilhados, coluna `tenant_id` e isolamento por
+**RLS** no Postgres.
 
-**Estratégia adotada (decisão 002):** *shared database, shared schema* com coluna `tenant_id` e isolamento garantido por **RLS** no PostgreSQL.
-
-| Estratégia | Isolamento | Custo/Operação | Decisão |
-|-----------|-----------|----------------|---------|
-| Banco por tenant | Máximo | Alto | Rejeitada (cara no MVP) |
-| Schema por tenant | Alto | Médio | Rejeitada (complexa) |
-| **`tenant_id` + RLS** | Alto (via políticas) | Baixo | **Adotada** |
+| Estratégia | Isolamento | Custo | Decisão |
+|-----------|-----------|-------|---------|
+| Banco por tenant | Máximo | Alto | Rejeitada |
+| Schema por tenant | Alto | Médio | Rejeitada |
+| **`tenant_id` + RLS** | Alto (por política) | Baixo | **Adotada** |
 
 **Garantias:**
-- Toda tabela com dados de tenant possui `tenant_id` e políticas RLS que filtram pelo tenant da sessão.
-- O `TenantContext` define o tenant ativo no frontend; o backend **nunca** confia apenas no cliente — o isolamento real é imposto por RLS.
-- Vazamento de dados entre tenants é tratado como **incidente crítico** (ver `memory/restrictions.md`).
-
-```
-Usuário (sessão) ──▶ tenant_id ──▶ RLS no PostgreSQL ──▶ vê apenas dados do seu tenant
-```
-
-**Evolução futura:** se um tenant enterprise exigir isolamento físico, avaliar migração para schema/banco dedicado via ADR — sem quebrar o modelo padrão.
+- Toda tabela com dado de estabelecimento tem `tenant_id` e políticas RLS pelo tenant do JWT.
+- O usuário é `usuario@<endereco>.local` (ADR-009): o mesmo nome de usuário pode existir em dois
+  estabelecimentos sem conflito.
+- O subdomínio escolhe a marca da tela de login; ele não dá acesso a nada.
+- Vazamento de dado entre estabelecimentos é incidente crítico (`memory/restrictions.md`).

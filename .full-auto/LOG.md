@@ -31,3 +31,5 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T20d (6.9d, 6.9e e 6.9g cozinha, financeiro e relatório em features/): `npm test` 272 arquivos e 4456 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 1 leve (ruído nas Reservas). 44 arquivos com `git mv`.
 - 2026-11-26, T21 (6.10 roteador por superfície em src/app/rotas): `npm test` 273 arquivos e 4462 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 2 leves (ruído nas Reservas). 0 arquivos com `git mv`.
 - 2026-11-26, T22 (6.11 READMEs da ponte e do bot): leitura dos dois READMEs conferida contra os imports reais de `ponte/` e `bot/`.
+- 2026-11-26, T20h (6.9h domínios restantes de src/lib em features/): `npm test` 273 arquivos e 4462 testes verdes, build limpo, lint 0 erros, roteiro 209 telas, 0 diferença e 1 leve (ruído nas Reservas). 33 arquivos com `git mv`.
+- 2026-11-26, T23 (6.12 documentação final): arquitetura, CLAUDE.md, patterns e ADR-015 conferidos contra o código (package.json, src/, nomes de evento).

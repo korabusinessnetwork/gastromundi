@@ -1,10 +1,13 @@
-# Tech Stack — GastroMundi
+# Tech Stack, GastroMundi
 
 ## Objetivo
 Documentar todas as tecnologias utilizadas no projeto GastroMundi, com justificativas, versões e responsabilidades de cada camada.
 
 ## Contexto
-A stack foi escolhida para maximizar velocidade de entrega no early stage, com path claro de escalabilidade. O acesso a dados passa pela **API Express (contract-first) + Drizzle**; o **Supabase atua apenas como o PostgreSQL gerenciado**; a autenticação é feita pelo **Clerk**. React + Vite + Tailwind garantem DX e performance no frontend. Ver [ADR-002](../08_DECISOES/adr-002.md) (revisa o ADR-001).
+Estado real revisado na refatoração 6.12 (2026-11-26). O app é uma SPA em **React + Vite** que fala
+**direto com o Supabase** (autenticação, Postgres com RLS, Realtime e funções de borda), sem API
+própria (ADR-004). Estilo em CSS co-localizado com variáveis `--gm-*`, sem Tailwind (ADR-007). A
+stack com Express, Drizzle e Clerk (ADR-002) é roadmap, não estado atual.
 
 ## Regras Gerais
 - Mudanças de stack exigem ADR registrado em `docs/08_DECISOES/`
@@ -27,8 +30,8 @@ A stack foi escolhida para maximizar velocidade de entrega no early stage, com p
 - Dependências sem uso devem ser removidas
 
 ## Eventos
-- `stack.updated` — dependência adicionada, atualizada ou removida
-- `stack.vulnerability` — vulnerabilidade identificada em dependência
+- `stack.updated`, dependência adicionada, atualizada ou removida
+- `stack.vulnerability`, vulnerabilidade identificada em dependência
 
 ## Configurações Futuras
 - Avaliar migração para Bun como runtime
@@ -52,32 +55,41 @@ A stack foi escolhida para maximizar velocidade de entrega no early stage, com p
 
 | Tecnologia | Versão | Responsabilidade | Justificativa |
 |------------|--------|-----------------|---------------|
-| React | 19.x | UI e estado | Ecossistema maduro, team familiarity |
-| Vite | 7.x | Build e dev server | Velocidade de HMR, simplicidade |
-| Tailwind CSS | 4.x | Estilização | Utility-first, consistência visual |
-| wouter | 3.x | Roteamento | Router minimalista do monorepo; usado com `base` por artefato (decisão 013) |
-| Context API (React) | 19.x | Estado global de UI | Cobre sessão/tenant/tema/flags sem boilerplate (decisão 003) |
-| TanStack Query | 5.x | Estado de servidor (cache) | Hooks gerados pelo Orval a partir do OpenAPI (decisão 013) |
-| Zod | 3.x | Validação de contratos | Type-safe em runtime, contrato único front/back (decisão 006) |
-| @clerk/react | — | Autenticação no cliente | SSO + e-mail/senha, gerenciado pela Replit (decisão 012) |
+| React | 18.3 | UI e estado local | Ecossistema maduro, time familiarizado |
+| Vite | 8.x | Build e servidor de desenvolvimento | Velocidade de HMR, simplicidade |
+| React Router | 7.x (`createBrowserRouter`) | Roteamento, uma superfície por endereço em `src/app/rotas/` | Padrão do ecossistema React |
+| Context API | (React) | Estado global, seis provedores | Sem Redux (decisão 003) |
+| CSS co-localizado + `--gm-*` | | Estilo e white-label por estabelecimento | ADR-007, decisões 018 e 023 |
+| react-icons (`lu`) | 5.x | Ícones que seguem a cor do tema | O sistema não usa emoji (decisão 037) |
+| vite-plugin-pwa | 1.x | App instalável e cache offline | Operação sem internet no PDV |
+| Leaflet | 1.9 | Mapa do raio de entrega | Gratuito, OpenStreetMap |
+| xlsx, jsPDF | | Planilhas e PDF de relatório e importação | Gratuitos, no navegador |
+| pdfjs-dist, tesseract.js | 4.x, 7.x | Ler cardápio em PDF ou imagem | Gratuitos, no navegador |
+| @sentry/react | 10.x | Erros em produção | Plano gratuito |
 
-## Backend / Dados
+## Backend e dados (Supabase)
 
-| Tecnologia | Versão | Responsabilidade | Justificativa |
-|------------|--------|-----------------|---------------|
-| Express | 5.x | API HTTP (`artifacts/api-server`) | Contract-first via OpenAPI; centraliza regras e validação (decisão 011) |
-| Drizzle ORM | — | Acesso a dados tipado | Migrations e queries type-safe sobre o Postgres (decisão 011) |
-| PostgreSQL (hospedado no Supabase) | 15.x | Banco de dados relacional | RLS nativo; conexão via `SUPABASE_DATABASE_URL` (decisão 011) |
-| Clerk (@clerk/express) | — | Autenticação/sessão no servidor | Gerenciado pela Replit; cookie de sessão + middleware (decisão 012) |
-| Orval | — | Geração de cliente | Gera hooks React Query + schemas Zod a partir do OpenAPI |
+| Tecnologia | Responsabilidade | Justificativa |
+|------------|-----------------|---------------|
+| Supabase Auth | Login (`usuario@<estabelecimento>.local`, ADR-009) | Incluso no Supabase |
+| Postgres + RLS | Dados de todos os estabelecimentos, isolados por `tenant_id` | Decisão 002 |
+| Funções do banco (RPC) | Gravações atômicas e leituras agregadas, com checagem de tenant | Nada fica pela metade |
+| Realtime | Comandas e cozinha ao vivo entre aparelhos | Incluso no Supabase |
+| Funções de borda (Deno) | NFC-e, provisionamento de estabelecimento, importação | Segredos fora do navegador |
+| `@supabase/supabase-js` 2.x | Cliente usado só pela camada `dados/` e pelos provedores | Lint impede tela de importar |
 
-> **Nota:** Supabase é usado **apenas como Postgres gerenciado**. Auth, Storage, Realtime e Edge Functions do Supabase **não** estão em uso nesta fase — reavaliáveis via novo ADR.
+## Satélites
+
+| Programa | Tecnologia | Responsabilidade |
+|----------|-----------|-----------------|
+| Ponte KORA (`ponte/`) | Node puro, empacotado em `.exe` | Pedidos do Palm e impressão pela rede local, sem internet |
+| Importador de cardápio (`bot/`) | Node | Importa planilha de produtos a partir de uma pasta |
 
 ## Ferramentas de Desenvolvimento
 
 | Ferramenta | Responsabilidade |
 |------------|-----------------|
-| TypeScript | Tipagem estática |
-| ESLint | Linting |
-| Prettier | Formatação |
-| Vitest + Testing Library | Testes (unitário e de componente) — provável, a confirmar via ADR |
+| JavaScript com JSDoc | Código; TypeScript só nos tipos gerados do banco (ADR-015, D2) |
+| ESLint 9 | Lint, inclusive as fronteiras de camada |
+| Vitest 4 + Testing Library | Testes de unidade, de componente e guardas (travessão, emoji, estilo inline, SQL) |
+| Playwright | Roteiro de fotos da refatoração contra um Supabase falso |

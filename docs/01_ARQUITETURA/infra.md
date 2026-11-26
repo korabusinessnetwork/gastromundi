@@ -1,4 +1,4 @@
-# Infraestrutura — GastroMundi
+# Infraestrutura, GastroMundi
 
 ## Objetivo
 Documentar a infraestrutura do projeto GastroMundi: ambientes, deploys, domínios, variáveis de ambiente e estratégia de CI/CD.
@@ -28,9 +28,9 @@ GastroMundi utiliza Supabase como backend gerenciado, eliminando a necessidade d
 - Acessos ao painel de produção devem ser auditados
 
 ## Eventos
-- `infra.deploy` — deploy realizado em qualquer ambiente
-- `infra.incident` — incidente de infraestrutura registrado
-- `infra.config.changed` — variável de ambiente ou configuração alterada
+- `infra.deploy`, deploy realizado em qualquer ambiente
+- `infra.incident`, incidente de infraestrutura registrado
+- `infra.config.changed`, variável de ambiente ou configuração alterada
 
 ## Configurações Futuras
 - Definir estratégia de backup do banco de dados
@@ -53,49 +53,51 @@ GastroMundi utiliza Supabase como backend gerenciado, eliminando a necessidade d
 
 ## Ambientes
 
-| Ambiente | URL | Projeto Supabase | Responsável |
-|----------|-----|-----------------|-------------|
-| Desenvolvimento | localhost:5173 | A definir | Todos |
-| Staging | A definir | A definir | Tech lead |
-| Produção | A definir | A definir | Tech lead + Founders |
+Estado real revisado na refatoração 6.12 (2026-11-26).
 
-## Variáveis de Ambiente Obrigatórias
+| Ambiente | Onde | Banco | Observação |
+|----------|------|-------|-----------|
+| Desenvolvimento | `localhost:5173` (`npm run dev`) | o projeto Supabase configurado no `.env.local` | Testes e o roteiro de fotos usam um Supabase falso, sem rede |
+| Prévia | URL de prévia da Vercel por branch | o mesmo projeto Supabase | O site da Kora e o Console ficam inertes sem `VITE_ROOT_DOMAIN` |
+| Produção | Vercel, domínio `kora.codes` e subdomínios dos estabelecimentos | projeto Supabase de produção | Não há staging separado |
+
+## Variáveis de Ambiente
 
 ```env
-VITE_SUPABASE_URL=         # URL do projeto Supabase
-VITE_SUPABASE_ANON_KEY=    # Chave anon pública do Supabase
+VITE_SUPABASE_URL=         # URL do projeto Supabase (pública)
+VITE_SUPABASE_ANON_KEY=    # chave anon (pública; o acesso real é decidido pela RLS)
+VITE_ROOT_DOMAIN=          # domínio da plataforma (liga o site da Kora e os subdomínios)
+VITE_CONSOLE_SUBDOMAIN=    # opcional: o Console em subdomínio próprio
 ```
+
+Segredos (chave de serviço, certificado A1 e CSC da NFC-e) ficam nas funções de borda e no Vault do
+Supabase, nunca em variável `VITE_*`.
 
 ## Processo de Deploy
 
-Fluxo padrão, do commit à produção:
-
-1. **Pull Request** — branch focada, com checagens automáticas (lint, typecheck, testes) verdes e revisão aprovada.
-2. **Merge na branch principal** — dispara build automatizado.
-3. **Deploy em staging** — versão publicada no ambiente de staging para validação.
-4. **Validação em staging** — smoke test das jornadas críticas (auth, dashboard, billing).
-5. **Promoção para produção** — após aprovação; migrações de banco aplicadas de forma controlada.
-6. **Verificação pós-deploy** — checagem de saúde e monitoramento de erros.
+1. **Rodada numa branch**, com suíte verde, build limpo, lint sem erro e o roteiro de fotos
+   comparado.
+2. **Pull Request** com a spec da rodada. O push leva a nota de atualização
+   (`kora.codes/patchnotes`); o `.githooks/pre-push` recusa sem ela.
+3. **Merge na `main`** (avanço rápido). A integração da Vercel **publica produção a cada push na
+   `main`**.
+4. **Migration** é aplicada no Supabase de produção **antes** do merge da rodada que depende dela
+   (ADR-015, D6), com aviso ao dono. Rodada com migration pendente não é mesclada calada.
 
 ```
-PR (checks verdes) ──▶ merge ──▶ build ──▶ staging ──▶ validação ──▶ produção ──▶ verificação
+branch (verificada) ──▶ PR ──▶ merge na main ──▶ Vercel publica produção
 ```
-
-**Regras:**
-- Mudanças em produção **sempre** passam por staging antes (ver "Regras Gerais").
-- Migrações de schema são versionadas e aplicadas antes do deploy do código que depende delas.
-- Cada ambiente usa um projeto Supabase separado (dev/staging/prod isolados).
 
 ## Estratégia de Rollback
 
-- **Frontend:** reverter para o build anterior (deploy imutável e versionado) — rollback rápido e sem perda de dados.
+- **Frontend:** voltar ao build anterior na Vercel (cada deploy fica guardado), rápido e sem perda de dados.
 - **Banco de dados:** migrações devem ser **reversíveis** sempre que possível; mudanças destrutivas (drop de coluna/tabela) são feitas em etapas (expandir → migrar → contrair) para permitir rollback seguro.
 - **Critério de acionamento:** erro crítico em produção (perda de dados, falha de auth, indisponibilidade) aciona rollback imediato; o tech lead decide entre rollback e hotfix.
 - **Pós-rollback:** registrar incidente e abrir post-mortem (ver `memory/learnings.md`).
 
 ## Considerações Multi-tenant na Infraestrutura
 
-- Todos os tenants compartilham a mesma aplicação e banco (modelo `tenant_id` + RLS — ver `docs/01_ARQUITETURA/overview.md`).
+- Todos os tenants compartilham a mesma aplicação e banco (modelo `tenant_id` + RLS, ver `docs/01_ARQUITETURA/overview.md`).
 - Backups e restaurações operam sobre o banco compartilhado; restaurações pontuais por tenant devem preservar o isolamento.
 - Limites de capacidade (conexões, storage) são monitorados globalmente, com atenção a tenants de maior volume.
-- Evolução futura: tenants enterprise podem exigir recursos dedicados — decisão a ser registrada via ADR.
+- Evolução futura: tenants enterprise podem exigir recursos dedicados, decisão a ser registrada via ADR.

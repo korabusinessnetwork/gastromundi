@@ -1,3 +1,12 @@
+## Rodada 158, refatoração 6.12, documentação final e ADR-015 implementado, 2026-11-26
+- Spec: specs/refatoracao-6-12-documentacao-final.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante. Só documentação. A fase 6 fecha:
+  `components/desktop/views/` não existe e `src/lib/` não tem regra de domínio.
+## Rodada 157, refatoração 6.9h, domínios restantes de src/lib em features/, 2026-11-26
+- Spec: specs/refatoracao-6-9h-dominios-restantes-de-lib.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 273 arquivos / 4462
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 209 telas, 0 diferença e 1 leve (ruído nas Reservas). Sem
+  migration. 33 arquivos movidos com `git mv`.
 ## Rodada 156, refatoração 6.11, READMEs da ponte e do bot, 2026-11-26
 - Spec: specs/refatoracao-6-11-readme-ponte-e-bot.md
 - Resultado: 3 de 3 critérios em sim, sem crítico nem importante. Só documentação. Nenhum dos
