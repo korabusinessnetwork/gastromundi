@@ -16,11 +16,11 @@ import ImpostosAdmin from "@/features/fiscal/desktop/ImpostosAdmin";
 // local deste arquivo, que é id de entidade (a ficha, a compra) e vai para o banco.
 // O `novoUid` daqui é chave de renderização, e sai do objeto antes de gravar.
 import "./AdminView.css";
-import FichasTecnicasTab from "./admin/FichasTecnicasTab";
-import FornecedoresTab from "./admin/FornecedoresTab";
-import ComprasTab from "./admin/ComprasTab";
-import GradeInicial from "./admin/GradeInicial";
-import { uid, FORN_VAZIO, SECOES } from "./admin/apoio";
+import FichasTecnicasTab from "./FichasTecnicasTab";
+import FornecedoresTab from "./FornecedoresTab";
+import ComprasTab from "./ComprasTab";
+import GradeInicial from "./GradeInicial";
+import { uid, FORN_VAZIO, SECOES } from "./apoio";
 
 // ── Helpers ───────────────────────────────────────────────────────
 
