@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { registrarLeadApex, validarLead } from "@/lib/leads";
+import { registrarLeadApex, validarLead } from "@/features/apex/dados/leads";
 import "./ApexAgendamento.css";
 import { LuCircleCheck } from "react-icons/lu";
 
@@ -8,7 +8,7 @@ import { LuCircleCheck } from "react-icons/lu";
  *
  * Abre a partir do botão "Agendar demonstração" do construtor de plano.
  * Coleta Nome, WhatsApp e E-mail, valida na hora e grava o lead pela
- * RPC pública `registrar_lead_apex` (src/lib/leads.js).
+ * RPC pública `registrar_lead_apex` (src/features/apex/dados/leads.js).
  *
  * A confirmação diz o que REALMENTE aconteceu: recebemos o contato e
  * vamos chamar no WhatsApp para marcar a demonstração. Nada de "parabéns

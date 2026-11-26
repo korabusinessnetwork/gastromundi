@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
-import { normalizarSlug, SLUGS_RESERVADOS } from "./slugEstabelecimento";
+import { supabase } from "@/lib/supabase";
+import { normalizarSlug, SLUGS_RESERVADOS } from "@/lib/slugEstabelecimento";
 
 /**
  * Solicitações de conta do site institucional (apex kora.codes).

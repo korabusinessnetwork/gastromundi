@@ -4,7 +4,7 @@ import PrivateRoute   from "./PrivateRoute";
 import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
 import CarregandoApex from "./CarregandoApex";
-import { ehApexInstitucional } from "@/lib/apex";
+import { ehApexInstitucional } from "@/features/apex/regras/apex";
 import { consoleAtivo, ehConsoleHost } from "@/features/console/regras/consoleHost";
 
 // Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
@@ -76,7 +76,7 @@ const rotasHostConsole = [
 const rotasApp = [
   // Raiz: no apex (kora.codes/www) mostra a vitrine institucional da Kora;
   // em qualquer outro host (subdomínio de tenant, dev, preview) segue o
-  // comportamento de sempre — direto ao login. Decisão em src/lib/apex.js.
+  // comportamento de sempre — direto ao login. Decisão em src/features/apex/regras/apex.js.
   {
     path: "/",
     element: ehApexInstitucional()

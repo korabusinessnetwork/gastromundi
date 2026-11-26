@@ -18,7 +18,7 @@ const { mockRegistrar } = vi.hoisted(() => ({ mockRegistrar: vi.fn() }));
 
 // Só a ida ao banco é dublada: `validarSolicitacao` continua real, porque é
 // ela que decide o que a pessoa vê embaixo de cada campo.
-vi.mock("@/lib/solicitacoes", async (importOriginal) => ({
+vi.mock("@/features/apex/dados/solicitacoes", async (importOriginal) => ({
   ...(await importOriginal()),
   registrarSolicitacaoConta: mockRegistrar,
 }));

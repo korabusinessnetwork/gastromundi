@@ -2,12 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // solicitacoes.js importa ./supabase (que exige VITE_* já no import).
 // Mesmo padrão de leads.test.js: mockamos o módulo inteiro.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
 
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 import { validarSolicitacao, registrarSolicitacaoConta } from "./solicitacoes";
 
 const VALIDO = {

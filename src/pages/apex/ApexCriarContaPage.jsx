@@ -4,7 +4,7 @@ import ApexPortaShell from "./ApexPortaShell";
 import { PLANOS_PRONTOS, totalDoPreset, itensDoPreset } from "./catalogoDoSite";
 import { normalizarSlug } from "@/lib/slugEstabelecimento";
 import { mascararTelefone } from "@/lib/telefone";
-import { validarSolicitacao, registrarSolicitacaoConta } from "@/lib/solicitacoes";
+import { validarSolicitacao, registrarSolicitacaoConta } from "@/features/apex/dados/solicitacoes";
 import { LuCircleCheck } from "react-icons/lu";
 
 /**

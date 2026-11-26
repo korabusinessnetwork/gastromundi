@@ -17,7 +17,7 @@ const { mockRegistrar } = vi.hoisted(() => ({ mockRegistrar: vi.fn() }));
 
 // Só a ida ao banco é dublada: `validarLead` continua real, porque é ela
 // que decide o que o visitante vê embaixo de cada campo.
-vi.mock("@/lib/leads", async (importOriginal) => ({
+vi.mock("@/features/apex/dados/leads", async (importOriginal) => ({
   ...(await importOriginal()),
   registrarLeadApex: mockRegistrar,
 }));
