@@ -30,10 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/full-auto-stop.js"
-            ]
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/full-auto-stop.cjs\""
           }
         ]
       }
@@ -44,10 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/full-auto-limite.js"
-            ]
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/full-auto-limite.cjs\""
           }
         ]
       }

@@ -1,9 +1,9 @@
 ---
-name: loop-spec-build-review
-description: Transforma o Claude Code num loop autocorretivo — entrevista até fechar o desenho, especifica, constrói, revisa contra a própria especificação e corrige até aprovar sem ressalvas, sem precisar de um novo prompt manual a cada rodada. Use SEMPRE que Matheus pedir para "criar um loop", "automatizar correção", "fazer o Claude revisar o próprio trabalho", ou quando for iniciar qualquer feature nova em GASTROMUNDI, Kora AI, Casa Coffee Colab ou qualquer venture da Kora que hoje segue o padrão manual "Claude propõe → Matheus roda → reporta → Claude revisa". Também trigger em pedidos como "monta os comandos /spec /build /review", "cria uma skill de loop baseada em [referência]", ou qualquer menção a ciclo spec→build→review no Claude Code.
+name: ciclo
+description: Transforma o Claude Code num loop autocorretivo — entrevista até fechar o desenho, especifica, constrói, revisa contra a própria especificação e corrige até aprovar sem ressalvas, sem precisar de um novo prompt manual a cada rodada. Use SEMPRE que Matheus pedir para "criar um loop", "automatizar correção", "fazer o Claude revisar o próprio trabalho", ou quando for iniciar qualquer feature nova em GASTROMUNDI, Kora AI, Casa Coffee Colab ou qualquer venture da Kora que hoje segue o padrão manual "Claude propõe → Matheus roda → reporta → Claude revisa". Também trigger em pedidos como "monta os comandos /spec /build /review", "cria uma skill de loop baseada em [referência]", ou qualquer menção a ciclo spec→build→review no Claude Code. Invocável diretamente como "/ciclo", e é a skill que o modo Full Automático (`/full-automatico`) chama para executar cada tarefa do plano.
 ---
 
-# Loop: Spec → Build → Review
+# Ciclo: Spec → Build → Review
 
 ## O conceito
 

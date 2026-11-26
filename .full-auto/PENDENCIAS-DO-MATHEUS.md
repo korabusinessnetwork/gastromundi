@@ -189,7 +189,7 @@ tela diria que está tudo bem justamente no caso mais grave.
 
 ## Execução 2, plano de refatoração (a partir de 2026-11-25)
 
-### P2-01. Instalar ou liberar a skill `/ciclo`
+### P2-01. Instalar ou liberar a skill `/ciclo` (RESOLVIDA em 2026-11-26: o PR #34 foi trazido para a main, e a skill mora em `.claude/skills/ciclo/`)
 - **O que:** a skill Full Automático pede que cada tarefa rode pelo `/ciclo`, que não está disponível nesta sessão. As tarefas estão rodando o ciclo manual equivalente (spec, fotos, build, revisão em duas etapas).
 - **Como:** instalar a skill `ciclo` nas skills da conta, ou ignorar se o ciclo manual servir.
 - **Confirmar:** em uma sessão nova, `/ciclo` aparece na lista de skills.

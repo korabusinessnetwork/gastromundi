@@ -39,7 +39,7 @@ process.stdin.on("end", () => {
     );
   } catch {}
 
-  const vigia = path.join(raiz, ".claude", "hooks", "vigia-limite.js");
+  const vigia = path.join(raiz, ".claude", "hooks", "vigia-limite.cjs");
   if (!fs.existsSync(vigia)) process.exit(0);
 
   const filho = spawn(process.execPath, [vigia, raiz], {

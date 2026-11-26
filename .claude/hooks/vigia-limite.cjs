@@ -4,7 +4,7 @@
 // e a cada X minutos tenta retomar a execução. Quando o limite volta, ele relança
 // o Full Automático em modo headless e continua relançando até o projeto terminar.
 //
-// Uso: node vigia-limite.js <pasta-do-projeto> [--intervalo 10] [--max-horas 48] [--agora]
+// Uso: node vigia-limite.cjs <pasta-do-projeto> [--intervalo 10] [--max-horas 48] [--agora]
 // Sem dependências. Windows, macOS e Linux.
 
 const fs = require("fs");
