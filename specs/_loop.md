@@ -1,3 +1,10 @@
+## Rodada 135, refatoração 5.29, avisos, ícones e cupom sem emoji, 2026-11-26
+- Spec: specs/refatoracao-5-29-avisos-icones-e-cupom-sem-emoji.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4438
+  testes, verde, 4 novos de impressão; `npm run build` limpo; lint 0 erros, 25 avisos).
+  Roteiro: 209 telas, 16 diferenças e 32 leves, todas emoji trocado. Sem migration. Emoji: 91
+  para 64.
+- O cupom deixa de imprimir "📝" (quadrado na térmica): a observação sai como "Obs.:".
 ## Rodada 134, refatoração 5.28, estilo inline zerado e guard sem linha de base, 2026-11-26
 - Spec: specs/refatoracao-5-28-estilo-inline-zerado.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 268 arquivos / 4434

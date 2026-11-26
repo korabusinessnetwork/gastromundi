@@ -383,6 +383,8 @@ Depois, a Cozinha (13 para 0), sem emoji.
 Depois, o Financeiro (resumo, lista e novo lançamento, 22 para 0).
 Depois, os últimos oito arquivos (15 para 0): **estilo inline zerado**, e o `inlineStyleGuard` passa a
 exigir zero, sem linha de base (refatoração 5.28).
+Depois, o emoji de código: avisos de erro, ícones de mesa, lixeira e dinheiro, e o "📝" do cupom,
+que vira "Obs.:" (5.29, 91 para 64).
 
 **5.2 em diante** Zerar estilo inline por arquivo, na ordem da maior contagem:
 `RelatorioView` (159), `CheckoutView` (140), `AdminView` (133), `NotasFiscaisTab` (124),
