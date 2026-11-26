@@ -1,5 +1,5 @@
 import { labelEstoque, getUnidadesCompra } from "@/utils/conversaoUnidades";
-import { LuTag } from "react-icons/lu";
+import { LuTag, LuHourglass, LuPackage } from "react-icons/lu";
 import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
 import CategoriasComBusca from "./produtos/CategoriasComBusca";
@@ -85,12 +85,12 @@ export default function ProdutosView() {
       <div className="produtos-view__tabela-area">
         {carregando ? (
           <div className="produtos-view__vazio" role="status">
-            <div className="produtos-view__vazio-emoji">⏳</div>
+            <div className="produtos-view__vazio-emoji"><LuHourglass aria-hidden="true" /></div>
             <div className="produtos-view__vazio-titulo">Carregando os produtos…</div>
           </div>
         ) : produtosFiltrados.length === 0 ? (
           <div className="produtos-view__vazio">
-            <div className="produtos-view__vazio-emoji">📦</div>
+            <div className="produtos-view__vazio-emoji"><LuPackage aria-hidden="true" /></div>
             <div className="produtos-view__vazio-titulo">{busca ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}</div>
             {isAdmin && !busca && <div className="produtos-view__vazio-texto">Clique em "+ Novo Produto" para adicionar</div>}
           </div>

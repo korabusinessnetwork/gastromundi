@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuUser, LuClock, LuLock, LuTriangleAlert, LuArmchair } from "react-icons/lu";
+import { LuUser, LuClock, LuLock, LuTriangleAlert, LuArmchair, LuCircleCheck, LuSearchX } from "react-icons/lu";
 import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
@@ -69,7 +69,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
       <div className="comanda-grid comanda-grid--lista" style={{ "--grade-pad": gradePad }}>
         {vazio ? (
           <div className="comanda-grid__vazio">
-            <div className="comanda-grid__vazio-icone">{somenteAbertas && !q ? "✅" : "🔍"}</div>
+            <div className="comanda-grid__vazio-icone">{somenteAbertas && !q ? <LuCircleCheck aria-hidden="true" /> : <LuSearchX aria-hidden="true" />}</div>
             <div className="comanda-grid__vazio-titulo">
               {somenteAbertas && !q ? "Nenhuma comanda em aberto" : "Nenhuma comanda encontrada"}
             </div>

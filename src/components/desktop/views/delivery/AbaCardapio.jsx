@@ -2,9 +2,7 @@ import { useState } from "react";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuDownload, LuPlus
-} from "react-icons/lu";
+import { LuDownload, LuPlus, LuHourglass, LuBike } from "react-icons/lu";
 import {
   salvarProdutoDelivery, removerProdutoDelivery, importarProdutosDelivery
 } from "@/lib/deliveryAdmin";
@@ -78,12 +76,12 @@ export default function AbaCardapio({
       {/* Lista / estados */}
       {carregando ? (
         <div className="delivery-view__vazio">
-          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando"><LuHourglass aria-hidden="true" /></div>
           <div className="delivery-view__carregando">Carregando o cardápio…</div>
         </div>
       ) : itens.length === 0 ? (
         <div className="delivery-view__vazio">
-          <div className="delivery-view__vazio-emoji">🛵</div>
+          <div className="delivery-view__vazio-emoji"><LuBike aria-hidden="true" /></div>
           <div className="delivery-view__vazio-titulo">Nenhum produto no delivery ainda</div>
           <div className="delivery-view__vazio-desc">
             {ehAddon

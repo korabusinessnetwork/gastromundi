@@ -5,6 +5,7 @@ import { PLANOS_PRONTOS, totalDoPreset, itensDoPreset } from "./catalogoDoSite";
 import { normalizarSlug } from "@/lib/slugEstabelecimento";
 import { mascararTelefone } from "@/lib/telefone";
 import { validarSolicitacao, registrarSolicitacaoConta } from "@/lib/solicitacoes";
+import { LuCircleCheck } from "react-icons/lu";
 
 /**
  * `/criar-conta` — o visitante pede a conta dele: os dados do responsável,
@@ -128,7 +129,7 @@ export default function ApexCriarContaPage() {
     return (
       <ApexPortaShell titulo={`Pedido recebido, ${primeiroNome}!`}>
         <div className="apex-porta__sucesso">
-          <div className="apex-porta__sucesso-icone" aria-hidden="true">✅</div>
+          <div className="apex-porta__sucesso-icone" aria-hidden="true"><LuCircleCheck /></div>
           <p className="apex-porta__sucesso-texto">
             Vamos preparar o KORA do <strong>{enviado.estabelecimento}</strong> no
             endereço <strong>{enderecoFinal}</strong>.

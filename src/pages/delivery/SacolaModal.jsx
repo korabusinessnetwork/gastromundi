@@ -11,6 +11,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco, precoLinha } from "@/lib/delivery";
 import "./SacolaModal.css";
+import { LuShoppingBag } from "react-icons/lu";
 
 export default function SacolaModal({
   itens,
@@ -39,7 +40,7 @@ export default function SacolaModal({
         <div className="modal-corpo">
           {itens.length === 0 ? (
             <div className="vitrine__estado">
-              <div className="vitrine__estado-emoji">🛒</div>
+              <div className="vitrine__estado-emoji"><LuShoppingBag aria-hidden="true" /></div>
               <p>Sua sacola está vazia. Escolha algo no cardápio!</p>
             </div>
           ) : (

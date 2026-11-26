@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { registrarLeadApex, validarLead } from "@/lib/leads";
 import "./ApexAgendamento.css";
+import { LuCircleCheck } from "react-icons/lu";
 
 /**
  * Aba de agendamento de demonstração — captura de lead do apex.
@@ -238,7 +239,7 @@ export default function ApexAgendamento({ aberto, onFechar, plano }) {
         ) : (
           <div className="apex-agendamento__sucesso">
             <div className="apex-agendamento__sucesso-icone" aria-hidden="true">
-              ✅
+              <LuCircleCheck />
             </div>
             <h3 id="apex-agendamento-titulo" className="apex-agendamento__titulo">
               Contato recebido, {nome.trim().split(" ")[0]}!

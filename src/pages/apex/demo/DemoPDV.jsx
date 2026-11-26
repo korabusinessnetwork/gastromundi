@@ -7,6 +7,7 @@ import {
   TAXA_SERVICO_DEMO,
   formatarBRL,
 } from "./demoDados";
+import { LuCircleCheck } from "react-icons/lu";
 
 /**
  * Frente de Caixa da demo — a tela interativa do protótipo: tocar num
@@ -108,7 +109,7 @@ export default function DemoPDV() {
 
         {sucesso !== null && (
           <div className="demo-pdv__sucesso" role="status">
-            ✅ Venda registrada, {formatarBRL(sucesso)}
+            <LuCircleCheck className="gm-icone-texto" aria-hidden="true" /> Venda registrada, {formatarBRL(sucesso)}
           </div>
         )}
 

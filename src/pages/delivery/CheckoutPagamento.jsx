@@ -6,11 +6,12 @@
 // ──────────────────────────────────────────────────────────────────
 import { calcularTroco, formatarPreco, valorDigitado } from "@/lib/delivery";
 import "./CheckoutPagamento.css";
+import { LuBanknote, LuZap, LuCreditCard } from "react-icons/lu";
 
 const FORMAS = [
-  { id: "dinheiro", nome: "Dinheiro", emoji: "💵" },
-  { id: "pix", nome: "Pix na entrega", emoji: "📱" },
-  { id: "cartao", nome: "Cartão na entrega", emoji: "💳" },
+  { id: "dinheiro", nome: "Dinheiro", Icone: LuBanknote },
+  { id: "pix", nome: "Pix na entrega", Icone: LuZap },
+  { id: "cartao", nome: "Cartão na entrega", Icone: LuCreditCard },
 ];
 
 export default function CheckoutPagamento({
@@ -59,7 +60,7 @@ export default function CheckoutPagamento({
               onClick={() => onMudar({ forma: f.id })}
               aria-pressed={dados.forma === f.id}
             >
-              <span className="forma__emoji" aria-hidden="true">{f.emoji}</span>
+              <span className="forma__emoji" aria-hidden="true"><f.Icone /></span>
               <span className="forma__nome">{f.nome}</span>
             </button>
           ))}

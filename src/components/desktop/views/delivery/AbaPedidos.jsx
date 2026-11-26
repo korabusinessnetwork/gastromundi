@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePedidosDelivery } from "@/utils/hooks";
-import {
-  LuRefreshCw, LuBell, LuBellOff
-} from "react-icons/lu";
+import { LuRefreshCw, LuBell, LuBellOff, LuHourglass, LuWifiOff, LuBike } from "react-icons/lu";
 import {
   statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido
 } from "@/lib/deliveryPedidos";
@@ -135,12 +133,12 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
 
       {carregando ? (
         <div className="delivery-view__vazio">
-          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando">⏳</div>
+          <div className="delivery-view__vazio-emoji delivery-view__vazio-emoji--carregando"><LuHourglass aria-hidden="true" /></div>
           <div className="delivery-view__carregando">Carregando pedidos…</div>
         </div>
       ) : erro && pedidos.length === 0 ? (
         <div className="delivery-view__vazio">
-          <div className="delivery-view__vazio-emoji">📡</div>
+          <div className="delivery-view__vazio-emoji"><LuWifiOff aria-hidden="true" /></div>
           <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
           <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
         </div>
@@ -167,7 +165,7 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
           )}
           {colunas.length === 0 ? (
             <div className="delivery-view__vazio">
-              <div className="delivery-view__vazio-emoji">🛵</div>
+              <div className="delivery-view__vazio-emoji"><LuBike aria-hidden="true" /></div>
               <div className="delivery-view__vazio-titulo">Nenhum pedido por aqui ainda</div>
               <div className="delivery-view__vazio-desc">
                 Quando um cliente pedir pelo cardápio online, o pedido aparece aqui na hora.

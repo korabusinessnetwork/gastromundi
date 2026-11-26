@@ -39,6 +39,7 @@ import CheckoutEntrega from "./CheckoutEntrega";
 import CheckoutPagamento from "./CheckoutPagamento";
 import Confirmacao from "./Confirmacao";
 import "./vitrine.css";
+import { LuHourglass, LuCircleAlert, LuStore } from "react-icons/lu";
 
 const ENTREGA_INICIAL = {
   nome: "",
@@ -200,7 +201,7 @@ export default function CardapioPage() {
       <div className="vitrine">
         <div className="vitrine__wrap">
           <div className="vitrine__estado">
-            <div className="vitrine__estado-emoji">⏳</div>
+            <div className="vitrine__estado-emoji"><LuHourglass aria-hidden="true" /></div>
             <p>Carregando o cardápio…</p>
           </div>
         </div>
@@ -213,7 +214,7 @@ export default function CardapioPage() {
       <div className="vitrine">
         <div className="vitrine__wrap">
           <div className="vitrine__estado">
-            <div className="vitrine__estado-emoji">{erro ? "😕" : "🏪"}</div>
+            <div className="vitrine__estado-emoji">{erro ? <LuCircleAlert aria-hidden="true" /> : <LuStore aria-hidden="true" />}</div>
             <p>
               {erro ||
                 "Este endereço ainda não tem delivery disponível. Confira o link do estabelecimento."}

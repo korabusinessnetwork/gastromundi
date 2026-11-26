@@ -5,6 +5,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { useMemo, useState } from "react";
 import { formatarPreco } from "@/lib/delivery";
+import { LuUtensils } from "react-icons/lu";
 
 function CardProduto({ item, onAbrir }) {
   // O emoji de reserva já existia, mas só entrava quando NÃO havia foto —
@@ -68,7 +69,7 @@ export default function CardapioLista({ cardapio, onAbrirProduto }) {
   if (vazio) {
     return (
       <div className="vitrine__estado">
-        <div className="vitrine__estado-emoji">🍽️</div>
+        <div className="vitrine__estado-emoji"><LuUtensils aria-hidden="true" /></div>
         <p>Cardápio ainda sendo preparado. Volte em breve!</p>
       </div>
     );

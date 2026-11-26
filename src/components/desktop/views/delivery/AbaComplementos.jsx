@@ -1,7 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import {
-  LuPlus
-} from "react-icons/lu";
+import { LuPlus, LuPuzzle } from "react-icons/lu";
 import {
   listarBibliotecaGrupos, salvarGrupoComplemento
 } from "@/lib/deliveryAdmin";
@@ -97,7 +95,7 @@ export default function AbaComplementos({ isAdmin, itens, products, aviso }) {
 
       {grupos.length === 0 ? (
         <div className="delivery-view__vazio">
-          <div className="delivery-view__vazio-emoji">🧩</div>
+          <div className="delivery-view__vazio-emoji"><LuPuzzle aria-hidden="true" /></div>
           <div className="delivery-view__vazio-titulo">Nenhum grupo ainda</div>
           <div className="delivery-view__vazio-desc">Crie o primeiro grupo (ex.: “Adicionais”) e escolha em quais produtos ele aparece.</div>
         </div>

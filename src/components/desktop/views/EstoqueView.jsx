@@ -4,9 +4,7 @@ import {
 import {
   controlaEstoque, situacaoDoSaldo
 } from "@/lib/estoqueSituacao";
-import {
-  LuPackage, LuTriangleAlert, LuCircleAlert, LuMinus, LuPlus, LuShoppingCart, LuBox, LuLock, LuLockOpen, LuChevronUp, LuChevronDown, LuChevronsUpDown
-} from "react-icons/lu";
+import { LuPackage, LuTriangleAlert, LuCircleAlert, LuMinus, LuPlus, LuShoppingCart, LuBox, LuLock, LuLockOpen, LuChevronUp, LuChevronDown, LuChevronsUpDown, LuHourglass } from "react-icons/lu";
 import { MINIMO_FALLBACK, COLUNAS } from "./estoque/apoio";
 import { useEstoque } from "@/features/estoque/hooks/useEstoque";
 import PopupAutorizacaoEstoque from "./estoque/PopupAutorizacaoEstoque";
@@ -95,12 +93,12 @@ export default function EstoqueView() {
       <div className="estoque-view__tabela-area">
         {carregando ? (
           <div className="estoque-view__vazio" role="status">
-            <div className="estoque-view__vazio-emoji">⏳</div>
+            <div className="estoque-view__vazio-emoji"><LuHourglass aria-hidden="true" /></div>
             <div className="estoque-view__vazio-texto">Carregando o estoque…</div>
           </div>
         ) : lista.length === 0 ? (
           <div className="estoque-view__vazio">
-            <div className="estoque-view__vazio-emoji">📦</div>
+            <div className="estoque-view__vazio-emoji"><LuPackage aria-hidden="true" /></div>
             <div className="estoque-view__vazio-texto">Nenhum produto encontrado</div>
           </div>
         ) : (

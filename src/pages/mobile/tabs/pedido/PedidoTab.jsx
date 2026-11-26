@@ -99,7 +99,7 @@ export default function PedidoTab({
         {produtos.length === 0 ? (
           <div className="pedido-tab__vazio">
             <span className="pedido-tab__vazio-emoji" aria-hidden="true">
-              🍽️
+              <LuUtensils />
             </span>
             <p className="pedido-tab__vazio-titulo">Nenhum item encontrado</p>
             <p className="pedido-tab__vazio-dica">
