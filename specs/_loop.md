@@ -1,3 +1,8 @@
+## Rodada 150, refatoração 6.9a, telas do cardápio em features/, 2026-11-26
+- Spec: specs/refatoracao-6-9a-cardapio-em-features.md
+- Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446
+  testes, verde; `npm run build` limpo; lint 0 erros, 25 avisos). Roteiro: 22 telas do domínio, 0 diferença. Sem
+  migration. 24 arquivos movidos com `git mv`.
 ## Rodada 149, refatoração 6.9, lógica da apex em src/features/apex, 2026-11-26
 - Spec: specs/refatoracao-6-9-apex-em-features.md
 - Resultado: 4 de 4 critérios em sim, sem crítico nem importante (suíte 269 arquivos / 4446

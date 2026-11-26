@@ -7,6 +7,6 @@
 - início: 2026-11-25
 - base verificada: commit b87b0435 (rodada 5.21), suíte 268 arquivos e 4435 testes verdes, build limpo, lint 0 erros e 25 avisos, estilo inline 185 em 36 arquivos, emoji 98 em 49
 - fase: 6
-- tarefa atual: T20a
-- próximo passo: T20a, rodada 6.9a: mover o cardápio (ProdutosView, SubprodutosView, CombosView, produtos/, combos/, lib/combos, categoriasProduto) para `src/features/cardapio/` com `git mv` (script em scratchpad/mover.py)
-- progresso: 20 de 31
+- tarefa atual: T20b
+- próximo passo: T20b, rodada 6.9b: mover as Configurações (ConfiguracoesView, configuracoes/, abas Identidade, ImportarExportar, MinhaAssinatura, Usuarios, UnidadesMedida, impressao/) para `src/features/configuracoes/` com `git mv` (scripts em scratchpad: mover.py e registrar.py)
+- progresso: 21 de 31

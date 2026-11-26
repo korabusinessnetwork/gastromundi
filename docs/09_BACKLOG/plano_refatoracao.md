@@ -429,7 +429,7 @@ para preservar o histórico: fiscal (os 17 arquivos `nfce*` e afins), delivery, 
 caixa, PDV, clientes, console, pautas e apex. Regras puras ficam em `regras/`, os
 testes andam junto com o arquivo.
 Feito: fiscal (6.1), com regras, dados e telas em `src/features/fiscal/` e as funções de borda
-da NFC-e apontando para lá. Delivery (6.2), com as duas fachadas na raiz da feature. Estoque (6.3), com a aba de notas de entrada. Caixa (6.4), com as três janelas do caixa. PDV (6.5), com as regras de comanda em `features/comandas/`. Clientes (6.6). Console (6.7). Pautas (6.8). Apex (6.9), só a lógica: as telas do site continuam em `pages/apex/`.
+da NFC-e apontando para lá. Delivery (6.2), com as duas fachadas na raiz da feature. Estoque (6.3), com a aba de notas de entrada. Caixa (6.4), com as três janelas do caixa. PDV (6.5), com as regras de comanda em `features/comandas/`. Clientes (6.6). Console (6.7). Pautas (6.8). Apex (6.9), só a lógica: as telas do site continuam em `pages/apex/`. Cardápio (6.9a).
 
 **6.9a a 6.9g (acrescentadas na execução, 2026-11-26):** a lista acima não cobre todas as telas de
 `components/desktop/views/`, e o "pronto quando" da fase exige a pasta vazia. Entram, depois da

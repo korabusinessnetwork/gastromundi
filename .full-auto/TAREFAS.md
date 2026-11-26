@@ -31,7 +31,7 @@ Rodada com migration não é mesclada sem o dono (regra 5 do plano).
 | [x] T18 | 6.7 console | idem | pastas | T17 |
 | [x] T19 | 6.8 pautas | idem | pastas | T18 |
 | [x] T20 | 6.9 apex | idem | pastas | T19 |
-| [ ] T20a | 6.9a cardápio (produtos, subprodutos, combos) | idem | pastas | T20 |
+| [x] T20a | 6.9a cardápio (produtos, subprodutos, combos) | idem | pastas | T20 |
 | [ ] T20b | 6.9b configurações (abas e impressão) | idem | pastas | T20 |
 | [ ] T20c | 6.9c Área Admin | idem | pastas | T20 |
 | [ ] T20d | 6.9d cozinha | idem | pastas | T20 |
