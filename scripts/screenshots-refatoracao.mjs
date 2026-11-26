@@ -649,6 +649,22 @@ function roteiro(largura) {
   telas.push({ nome: "app-relatorio-resumido", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Resumido") });
   telas.push({ nome: "app-relatorio-detalhado", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Detalhado") });
   telas.push({ nome: "app-relatorio-por-dia", perfil: "dono", caminho: "/app/relatorio", passo: modoVendas("Por dia") });
+  // Fase 5: Cozinha com um pedido em cada etapa. A consulta da Cozinha (a que
+  // pede status_cozinha) recebe três pedidos fictícios; o resto do app segue
+  // com as comandas de sempre. O relógio do roteiro está em 20/11 às 15h (18h UTC).
+  const pedidoCozinha = (id, comanda, extra) => ({ id, comanda, mesa: null, apelido: null, status: "open",
+    garcom: "Bruno Demo", items: [{ id: 1, name: "Café expresso", price: 6, qty: 2, category: "Bebidas" }],
+    status_cozinha: null, created_at: "2026-11-20T17:55:00.000Z", em_preparo_em: null, pronto_em: null, ...extra });
+  telas.push({ nome: "app-cozinha-etapas", perfil: "dono", caminho: "/app/cozinha",
+    preparar: (contexto) => contexto.route(/\/rest\/v1\/pending\?.*status_cozinha/, (route) => (route.request().method() === "GET"
+      ? route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify([
+          pedidoCozinha("coz-1", "30"),
+          pedidoCozinha("coz-2", "31", { status_cozinha: "em_preparo", created_at: "2026-11-20T17:20:00.000Z", em_preparo_em: "2026-11-20T17:30:00.000Z", mesa: "4" }),
+          pedidoCozinha("coz-3", "32", { status_cozinha: "em_preparo", created_at: "2026-11-20T17:50:00.000Z", em_preparo_em: "2026-11-20T17:56:00.000Z" }),
+          pedidoCozinha("coz-4", "33", { status_cozinha: "pronto", created_at: "2026-11-20T17:00:00.000Z", em_preparo_em: "2026-11-20T17:10:00.000Z", pronto_em: "2026-11-20T17:40:00.000Z" }),
+        ]) })
+      : route.fallback())) });
   // Fase 5: Clientes (cadastro, detalhe com fiado e sem, exclusão, edição).
   const abrirCliente = (nome) => (page) => page.locator(".clientes-view__card", { hasText: nome }).click({ timeout: 3000 });
   const noCliente = (nome, passo) => async (page) => {
