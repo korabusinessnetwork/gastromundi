@@ -222,7 +222,7 @@ export default function CombosView({ sz }) {
             <div className="combos-view__confirm-aviso">
               Esta ação <strong className="combos-view__perigo">não pode ser desfeita</strong>. O combo será removido permanentemente. Os produtos e subprodutos do catálogo <strong>não</strong> são afetados.
             </div>
-            {erroDelete && <div className="combos-view__erro combos-view__erro--confirmar">⚠ {erroDelete}</div>}
+            {erroDelete && <div className="combos-view__erro combos-view__erro--confirmar"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erroDelete}</div>}
             <div className="combos-view__confirm-botoes">
               <button onClick={() => setExcluindo(null)} disabled={deletando} className="combos-view__confirm-btn-cancelar">Cancelar</button>
               <button onClick={confirmarExcluir} disabled={deletando} className="combos-view__confirm-btn-excluir">{deletando ? "Excluindo…" : "Sim, excluir"}</button>

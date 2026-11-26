@@ -56,6 +56,9 @@ describe("contarEmoji", () => {
   it("não conta comentário nem texto sem emoji", () => {
     expect(contarEmoji("// 🧾 recibo\nconst a = <div>Recibo</div>;")).toBe(0);
     expect(contarEmoji("const a = <div>Total → R$ 5,00 ✓</div>;")).toBe(0);
+    // ©, ® e ™ são símbolos de texto (crédito de mapa, rodapé), não emoji.
+    expect(contarEmoji('const a = "© OpenStreetMap";')).toBe(0);
+    expect(contarEmoji("const a = <p>Kora® e Marca™</p>;")).toBe(0);
   });
 });
 

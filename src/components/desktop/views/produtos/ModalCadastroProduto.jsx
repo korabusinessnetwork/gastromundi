@@ -1,7 +1,7 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { chaveCategoria, ehCategoriaFixa } from "@/lib/categoriasProduto";
 import { fmtQtd } from "@/utils/conversaoUnidades";
-import { LuPencil, LuX as LuXIcon, LuRuler } from "react-icons/lu";
+import { LuPencil, LuX as LuXIcon, LuRuler, LuTriangleAlert } from "react-icons/lu";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import Label from "./Label";
 import Input from "./Input";
@@ -258,7 +258,7 @@ export default function ModalCadastroProduto({ tela }) {
             {/* Erro */}
             {erro && (
               <div className="produtos-view__erro produtos-view__erro--caixa">
-                ⚠️ {erro}
+                <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}
               </div>
             )}
 

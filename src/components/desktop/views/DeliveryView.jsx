@@ -26,9 +26,7 @@ import { logAction } from "@/lib/logger";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuBike, LuTruck, LuStore, LuPower, LuPowerOff, LuClock, LuExternalLink
-} from "react-icons/lu";
+import { LuBike, LuTruck, LuStore, LuPower, LuPowerOff, LuClock, LuExternalLink, LuTriangleAlert } from "react-icons/lu";
 import {
   carregarConfigDelivery, salvarConfigDelivery, listarProdutosDelivery, produtosParaImportar
 } from "@/lib/deliveryAdmin";
@@ -301,7 +299,7 @@ export default function DeliveryView({ notify } = {}) {
       <div className="delivery-view__area">
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro delivery-view__aviso--espacado">
-            ⚠️ {erro}
+            <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}
           </div>
         )}
 

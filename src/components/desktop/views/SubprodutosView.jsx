@@ -183,7 +183,7 @@ function ModalSubproduto({ item, onClose, onSalvo }) {
           </div>
         </div>
 
-        {erro && <div className="subprodutos-view__erro">⚠ {erro}</div>}
+        {erro && <div className="subprodutos-view__erro"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}</div>}
 
         <div className="subprodutos-view__modal-botoes">
           <button onClick={onClose} className="subprodutos-view__btn-cancelar">Cancelar</button>
@@ -326,7 +326,7 @@ export default function SubprodutosView({ sz }) {
       {/* Tabela */}
       <div className="subprodutos-view__tabela-area">
         {erroTela && (
-          <div className="subprodutos-view__erro subprodutos-view__erro-tela" role="alert">⚠ {erroTela}</div>
+          <div className="subprodutos-view__erro subprodutos-view__erro-tela" role="alert"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erroTela}</div>
         )}
         {loading ? (
           <div className="subprodutos-view__estado">Carregando…</div>
@@ -448,7 +448,7 @@ export default function SubprodutosView({ sz }) {
                 </div>
               )}
 
-              {erroDelete && <div className="subprodutos-view__erro subprodutos-view__erro--confirmar">⚠ {erroDelete}</div>}
+              {erroDelete && <div className="subprodutos-view__erro subprodutos-view__erro--confirmar"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erroDelete}</div>}
 
               <div className="subprodutos-view__confirm-botoes">
                 {bloqueado ? (

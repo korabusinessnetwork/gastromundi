@@ -1,6 +1,6 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
-import { LuX, LuEye, LuEyeOff } from "react-icons/lu";
+import { LuX, LuEye, LuEyeOff, LuTriangleAlert } from "react-icons/lu";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
 import { fmtComanda } from "@/lib/rotuloComanda";
 import { itensNaoCancelados } from "@/lib/comandaItens";
@@ -88,7 +88,7 @@ export default function ModalCancelarComanda({ tela }) {
                     className={`pdv__modal-input pdv__cancelar-motivo-input${cancelarMotivo.trim() ? " pdv__cancelar-motivo-input--preenchido" : ""}`}
                   />
                   <div className="pdv__modal-aviso pdv__cancelar-aviso">
-                    ⚠️ {itensNaoCancelados(selected?.items).length} item(ns) serão cancelados e enviados para o relatório.
+                    <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {itensNaoCancelados(selected?.items).length} item(ns) serão cancelados e enviados para o relatório.
                   </div>
                   <button
                     onClick={async () => {

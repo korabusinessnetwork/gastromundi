@@ -1,7 +1,7 @@
 import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { CATS_FIXAS } from "@/lib/categoriasProduto";
-import { LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon } from "react-icons/lu";
+import { LuTag, LuPencil, LuTrash2, LuCheck, LuX as LuXIcon, LuTriangleAlert } from "react-icons/lu";
 import { CAT_SEM_CATEGORIA } from "./apoio";
 
 // Janela de gerenciar as categorias personalizadas.
@@ -20,7 +20,7 @@ export default function ModalCategorias({ tela }) {
               <button onClick={() => { setShowCatModal(false); setCatEditando(null); setCatNova(""); }} className="produtos-view__cat-fechar"><LuXIcon size={20} /></button>
             </div>
             {catErro && (
-              <div className="produtos-view__cat-erro" role="alert">⚠️ {catErro}</div>
+              <div className="produtos-view__cat-erro" role="alert"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {catErro}</div>
             )}
             <div className="produtos-view__cat-lista">
               {categorias.length === 0 && <div className="produtos-view__cat-vazio">Nenhuma categoria ainda.</div>}

@@ -155,3 +155,22 @@ describe("formatarViaProducaoEscpos", () => {
     expect(comPonto.length).toBe(semPonto.length + 1);
   });
 });
+
+// Decisão 037 (o sistema não tem emoji): a impressora térmica não tem o
+// desenho do emoji e imprime um quadrado. A observação sai como texto.
+describe("observação do item no cupom, sem emoji", () => {
+  it("comprovante escreve 'Obs.:' antes da observação", () => {
+    const texto = formatarComprovanteEscpos(comprovante(), colunasPorLargura(80, 13)).join("\n");
+    expect(texto).toContain("Obs.: sem cebola");
+    expect(texto).not.toContain("📝");
+  });
+
+  it("via de produção escreve 'Obs.:' antes da observação", () => {
+    const texto = formatarViaProducaoEscpos({
+      comanda: "7", horario: "2026-07-06T12:00:00.000Z",
+      itens: [{ nome: "Pizza Margherita", qty: 1, emoji: "", obs: ["sem manjericão"] }],
+    }, colunasPorLargura(80, 15)).join("\n");
+    expect(texto).toContain("Obs.: sem manjericão");
+    expect(texto).not.toContain("📝");
+  });
+});

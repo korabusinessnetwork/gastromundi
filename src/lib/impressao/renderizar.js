@@ -60,7 +60,7 @@ function htmlItens(bloco) {
         ${bloco.unitario ? `<td style="text-align:right;">${esc(it.unitario)}</td>` : ""}
         <td style="text-align:right;font-weight:bold;">${esc(it.total)}</td>
       </tr>
-      ${it.obs.map((o) => `<tr><td colspan="${colunas}" class="obs">📝 ${esc(o)}</td></tr>`).join("")}
+      ${it.obs.map((o) => `<tr><td colspan="${colunas}" class="obs">Obs.: ${esc(o)}</td></tr>`).join("")}
     `)
     .join("");
 
@@ -144,7 +144,7 @@ export function renderizarViaProducao(dados) {
     .map((it) => `
       <div class="item">
         <div class="item__linha">${esc(it.qty)}x ${it.emoji ? `${esc(it.emoji)} ` : ""}${esc(it.nome)}</div>
-        ${it.obs.map((o) => `<div class="item__obs">📝 ${esc(o)}</div>`).join("")}
+        ${it.obs.map((o) => `<div class="item__obs">Obs.: ${esc(o)}</div>`).join("")}
       </div>
     `)
     .join("");

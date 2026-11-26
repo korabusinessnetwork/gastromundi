@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { LuUser, LuClock, LuLock, LuTriangleAlert } from "react-icons/lu";
+import { LuUser, LuClock, LuLock, LuTriangleAlert, LuArmchair } from "react-icons/lu";
 import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/lib/comandaItens";
 import "./ComandaGrid.css";
 import { fmtComanda } from "@/lib/rotuloComanda";
@@ -156,7 +156,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
                       )}
                       {order.mesa && (
                         <span className="comanda-grid__tag-mesa">
-                          🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
+                          <LuArmchair size={12} className="gm-icone-texto" aria-hidden="true" /> {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
                         </span>
                       )}
                       {!order.mesa && order.apelido && (
@@ -329,7 +329,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
         <div className="comanda-card__meta">
           {order.mesa && (
             <span className="comanda-card__tag-mesa">
-              🪑 {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
+              <LuArmchair size={12} className="gm-icone-texto" aria-hidden="true" /> {order.mesa}{order.apelido ? ` · ${order.apelido}` : ""}
             </span>
           )}
           {!order.mesa && order.apelido && (

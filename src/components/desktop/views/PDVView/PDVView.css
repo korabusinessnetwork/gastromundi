@@ -2354,3 +2354,7 @@
 .pdv__saldo-comanda-valor--vazia {
   color: var(--gm-muted);
 }
+
+/* Decisão 037: os círculos de ícone das janelas recebem ícone, na cor do círculo. */
+.pdv__confirm-emoji { color: var(--gm-red); }
+.pdv__mesa-emoji { color: var(--gm-accent); }

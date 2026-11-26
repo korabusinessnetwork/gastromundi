@@ -1,4 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { LuArmchair } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { fmtComanda } from "@/lib/rotuloComanda";
 
@@ -16,7 +17,7 @@ export default function ModalEscolherMesa({ tela }) {
             {/* Header */}
             <div className="pdv__mesa-header">
               <div className="pdv__modal-emoji-circulo pdv__mesa-emoji">
-                🪑
+                <LuArmchair size={22} aria-hidden="true" />
               </div>
               <div>
                 <div className="pdv__modal-titulo pdv__mesa-titulo">

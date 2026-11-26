@@ -13,7 +13,6 @@ export const ROLES = {
     label: "Garçom",
     color: varColor(C.blue),
     description: "Tira pedidos via Palm",
-    icon: "🛎️",
     permissions: {
       pdv: false, produtos: false, relatorio: false,
       configuracoes: false, transferir: false, palm: true, estoque: false,
@@ -24,7 +23,6 @@ export const ROLES = {
     label: "Caixa",
     color: varColor(C.green),
     description: "Tira pedidos e opera a frente de caixa",
-    icon: "🧾",
     permissions: {
       pdv: true, produtos: false, relatorio: false,
       configuracoes: false, transferir: true, palm: true, estoque: false,
@@ -35,7 +33,6 @@ export const ROLES = {
     label: "Gerente",
     color: varColor(C.warn),
     description: "Caixa + relatórios e cadastro de produtos",
-    icon: "📊",
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: false, transferir: true, palm: true, estoque: true,
@@ -46,7 +43,6 @@ export const ROLES = {
     label: "Administrador",
     color: varColor(C.accent),
     description: "Acesso completo ao sistema",
-    icon: "⚙️",
     permissions: {
       pdv: true, produtos: true, relatorio: true,
       configuracoes: true, transferir: true, palm: true, estoque: true,

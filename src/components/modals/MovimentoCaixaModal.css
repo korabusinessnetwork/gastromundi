@@ -269,3 +269,6 @@
   background: var(--gm-faint);
   cursor: not-allowed;
 }
+
+/* Decisão 037: o ícone do cabeçalho segue o tom do movimento. */
+.movimento-caixa__icone-header { color: var(--mov-tom); }

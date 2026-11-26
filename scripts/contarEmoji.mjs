@@ -4,9 +4,11 @@
 //
 // "Emoji" aqui é a propriedade Unicode Extended_Pictographic: pega 📦, ⚠️, 🧾,
 // e deixa de fora as setas e o visto (→, ✓, ✕) que o sistema usa como texto.
+// ©, ® e ™ também ficam de fora: estão na propriedade, mas são símbolos de
+// texto (o crédito do mapa que a licença do OpenStreetMap exige, o rodapé).
 import { parse } from "@babel/parser";
 
-const EMOJI = /\p{Extended_Pictographic}/gu;
+const EMOJI = /(?![©®™])\p{Extended_Pictographic}/gu;
 
 function texto(no) {
   if (no.type === "JSXText" || no.type === "StringLiteral") return no.value;
@@ -15,7 +17,7 @@ function texto(no) {
 }
 
 export function contarEmoji(fonte) {
-  if (!/\p{Extended_Pictographic}/u.test(fonte)) return 0;
+  if (!/(?![©®™])\p{Extended_Pictographic}/u.test(fonte)) return 0;
   const ast = parse(fonte, { sourceType: "module", plugins: ["jsx"] });
   let total = 0;
   const visitar = (no) => {

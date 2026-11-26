@@ -33,6 +33,8 @@
    qualquer tema). Usa os tokens --gm-input-* definidos abaixo; @import resolve
    custom properties em tempo de uso, então a ordem não é problema. */
 @import "./inputs.css";
+/* Ícone de react-icons no meio do texto (decisão 037, sem emoji). */
+@import "./icones.css";
 
 :root {
   --gm-bg: #070b14;

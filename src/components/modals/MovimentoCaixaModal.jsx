@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LuBanknote } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { verificarSenhaUsuario } from "@/lib/adminAuth";
 import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/lib/caixaMovimentos";
@@ -94,7 +95,7 @@ export default function MovimentoCaixaModal({
         {/* Header */}
         <div className="movimento-caixa__topo">
           <div className="movimento-caixa__icone-header">
-            💵
+            <LuBanknote size={22} aria-hidden="true" />
           </div>
           <div>
             <div className="movimento-caixa__titulo">

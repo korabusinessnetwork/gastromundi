@@ -4,9 +4,7 @@ import { createPortal } from "react-dom";
 import {
   salvarCombo, carregarSubprodutosDoCombo, carregarProdutosDoCombo
 } from "@/features/cardapio/dados/combos";
-import {
-  LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight
-} from "react-icons/lu";
+import { LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight, LuTriangleAlert } from "react-icons/lu";
 import Toggle from "./Toggle";
 import { CATS_NAO_VENDAVEIS, fmtBRL } from "./apoio";
 import { nomeBateComBusca } from "@/lib/busca";
@@ -433,7 +431,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
           <div className="combos-view__preco-total-valor">{fmtBRL(precoTotal)}</div>
         </div>
 
-        {erro && <div className="combos-view__erro">⚠ {erro}</div>}
+        {erro && <div className="combos-view__erro"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}</div>}
 
         <div className="combos-view__modal-botoes">
           <button onClick={onClose} className="combos-view__btn-cancelar">Cancelar</button>

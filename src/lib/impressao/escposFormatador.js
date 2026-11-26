@@ -52,7 +52,7 @@ function linhasDoItem(item, colunas) {
   linhas.push(...quebrarLinha(`${item.qty}x ${item.nome}`, colunas));
   linhas.push(linhaValor("", item.total, colunas));
   for (const obs of item.obs ?? []) {
-    linhas.push(...quebrarLinha(`  📝 ${obs}`, colunas));
+    linhas.push(...quebrarLinha(`  Obs.: ${obs}`, colunas));
   }
   return linhas;
 }
@@ -139,7 +139,7 @@ export function formatarViaProducaoEscpos(dados, colunas) {
     const nome = `${it.qty}x ${it.emoji ? `${it.emoji} ` : ""}${it.nome}`;
     quebrarLinha(nome, colunas).forEach(l => linhas.push(l));
     for (const obs of (it.obs ?? [])) {
-      quebrarLinha(`  📝 ${obs}`, colunas).forEach(l => linhas.push(l));
+      quebrarLinha(`  Obs.: ${obs}`, colunas).forEach(l => linhas.push(l));
     }
   }
 

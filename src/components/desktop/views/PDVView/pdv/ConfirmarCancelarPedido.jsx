@@ -1,4 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { LuTrash2 } from "react-icons/lu";
 import { createPortal } from "react-dom";
 import { logAction } from "@/lib/logger";
 import { emitirEvento } from "@/lib/jarvas";
@@ -18,7 +19,7 @@ export default function ConfirmarCancelarPedido({ tela }) {
           <div className="pdv__confirm-card">
             <div className="pdv__confirm-header">
               <div className="pdv__modal-emoji-circulo pdv__confirm-emoji">
-                🗑️
+                <LuTrash2 size={22} aria-hidden="true" />
               </div>
               <div>
                 <div className="pdv__modal-titulo pdv__confirm-titulo">Cancelar pedido?</div>

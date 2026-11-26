@@ -3,9 +3,7 @@ import { createPortal } from "react-dom";
 import { logAction } from "@/lib/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuPencil, LuTrash2, LuX, LuCheck, LuImage, LuImages, LuUpload, LuRefreshCw
-} from "react-icons/lu";
+import { LuPencil, LuTrash2, LuX, LuCheck, LuImage, LuImages, LuUpload, LuRefreshCw, LuTriangleAlert } from "react-icons/lu";
 import {
   salvarProdutoDelivery, formatarReais
 } from "@/lib/deliveryAdmin";
@@ -309,7 +307,7 @@ export default function ModalProduto({
 
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro">
-            ⚠️ {erro}
+            <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}
           </div>
         )}
 
@@ -344,7 +342,7 @@ export default function ModalProduto({
           ) : galeriaErro ? (
             <div className="delivery-view__galeria-estado">
               <div className="delivery-view__aviso delivery-view__aviso--erro">
-                ⚠️ {galeriaErro}
+                <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {galeriaErro}
               </div>
               <button
                 type="button"

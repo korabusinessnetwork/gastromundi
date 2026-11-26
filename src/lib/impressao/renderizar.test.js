@@ -185,3 +185,26 @@ describe("renderizarViaProducao", () => {
     expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
   });
 });
+
+// Decisão 037: a observação impressa sai como texto, sem o emoji de bloco.
+describe("observação do item na impressão pelo navegador, sem emoji", () => {
+  it("via de produção escreve 'Obs.:' antes da observação", () => {
+    const html = renderizarViaProducao({
+      comanda: "7", horario: "2026-07-21T12:00:00.000Z",
+      itens: [{ nome: "X-Burguer", qty: 1, emoji: "", obs: ["sem cebola"] }],
+    });
+    expect(html).toContain("Obs.: sem cebola");
+    expect(html).not.toContain("📝");
+  });
+
+  it("recibo escreve 'Obs.:' antes da observação", () => {
+    const html = renderizarRecibo({
+      identidade: { nome: "Loja", logoUrl: null, endereco: "", cnpj: "", rodape: "" },
+      comanda: "7", itens: [{ nome: "X-Burguer", qty: 1, preco: 10, emoji: "", obs: ["sem cebola"] }],
+      subtotal: 10, valorTaxa: 0, ajuste: null, valorAjuste: 0, total: 10,
+      pagamentos: [{ metodo: "pix", valor: 10, troco: 0 }], trocoTotal: 0, naoFiscal: false, avisoNaoFiscal: "",
+    });
+    expect(html).toContain("Obs.: sem cebola");
+    expect(html).not.toContain("📝");
+  });
+});

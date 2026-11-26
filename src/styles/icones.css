@@ -1,0 +1,8 @@
+/* Ícone de react-icons/lu no meio de uma linha de texto (aviso de erro, mesa
+   da comanda, observação do item). Desce um pouco para alinhar com a linha de
+   base do texto e não encolhe em flex. Decisão 037: o sistema não tem emoji,
+   e estes ícones ocupam o lugar que os emojis tinham. */
+.gm-icone-texto {
+  vertical-align: -2px;
+  flex-shrink: 0;
+}

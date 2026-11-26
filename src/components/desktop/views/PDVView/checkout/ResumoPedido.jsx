@@ -1,4 +1,4 @@
-import { LuTrash2 } from "react-icons/lu";
+import { LuTrash2, LuNotebookPen } from "react-icons/lu";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
 // lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
 // valor com foco). A chave não pode ser a posição. O `uid` vive só no state daqui:
@@ -40,7 +40,7 @@ export default function ResumoPedido({ tela }) {
               </div>
               {obsArr.map((obs, j) => (
                 <div key={j} className="checkout-view__item-obs">
-                  📝 {obs}
+                  <LuNotebookPen size={12} className="gm-icone-texto" aria-hidden="true" /> {obs}
                 </div>
               ))}
             </div>
