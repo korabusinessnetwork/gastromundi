@@ -9,7 +9,7 @@ vi.mock("./supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-import { MENSALIDADE_MAXIMA } from "./console";
+import { MENSALIDADE_MAXIMA } from "@/features/console/console";
 
 /**
  * Guard de regressão do R7L8 — a plataforma tem que ter como REGISTRAR o que
@@ -36,7 +36,7 @@ import { MENSALIDADE_MAXIMA } from "./console";
  *   (c) SECURITY DEFINER + SET search_path (a tabela não tem policy de UPDATE:
  *       sem DEFINER a RPC não escreve nada);
  *   (d) recusa NULL, negativo e valor acima do teto, e arredonda em centavos;
- *   (e) o teto da migração é o MESMO exportado por src/lib/console.js — sem
+ *   (e) o teto da migração é o MESMO exportado por src/features/console/console.js — sem
  *       este pino, mudar um dos dois deixa a tela aceitando um valor que o
  *       banco recusa (ou o contrário);
  *   (f) `IF NOT FOUND` → erro: estabelecimento sem linha de assinatura não

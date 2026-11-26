@@ -28,8 +28,8 @@ vi.mock("@/lib/supabase", async () => {
 // `resumirUso` fica REAL — é ela que decide quem aparece, em que ordem e quem
 // está pagando sem usar. Só a ida ao banco é dublada.
 const { mockListar } = vi.hoisted(() => ({ mockListar: vi.fn() }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return { ...real, listarAnalitico: mockListar };
 });
 

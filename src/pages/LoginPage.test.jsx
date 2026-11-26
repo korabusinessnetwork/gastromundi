@@ -28,7 +28,7 @@ vi.mock("@/lib/tenant", () => ({
 // ambiente de teste — sem dublê só daria para exercitar o caminho "console no
 // mesmo host". A lógica de host em si tem teste próprio em consoleHost.test.js.
 const { mockConsoleAtivo } = vi.hoisted(() => ({ mockConsoleAtivo: vi.fn(() => false) }));
-vi.mock("@/lib/consoleHost", () => ({
+vi.mock("@/features/console/regras/consoleHost", () => ({
   consoleAtivo: mockConsoleAtivo,
   ehConsoleHost: vi.fn(() => false),
 }));

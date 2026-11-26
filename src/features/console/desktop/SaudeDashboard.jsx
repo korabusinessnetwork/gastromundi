@@ -3,7 +3,7 @@ import {
   LuTriangleAlert, LuLoaderCircle, LuReceipt, LuPrinter,
   LuBuilding2, LuCircleCheck, LuStore,
 } from "react-icons/lu";
-import { listarSaude, resumirSaude, PERIODOS_ANALYTICS } from "@/lib/console";
+import { listarSaude, resumirSaude, PERIODOS_ANALYTICS } from "@/features/console/console";
 import "./SaudeDashboard.css";
 
 /**

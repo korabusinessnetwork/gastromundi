@@ -25,13 +25,13 @@ vi.mock("@/lib/supabase", async () => {
 // `valorDigitado` (o parser de dinheiro) e `MENSALIDADE_MAXIMA` ficam REAIS —
 // são a regra sob teste. Só a escrita no banco é dublada.
 const { mockDefinir } = vi.hoisted(() => ({ mockDefinir: vi.fn() }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return { ...real, definirMensalidade: mockDefinir };
 });
 
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
-import { MENSALIDADE_MAXIMA } from "@/lib/console";
+import { MENSALIDADE_MAXIMA } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 
 const SEM_PRECO = { tenantId: "t-novo", nome: "Bar do Zé", valorMensal: 0, status: "ativo" };

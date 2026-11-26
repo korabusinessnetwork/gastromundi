@@ -32,13 +32,13 @@ vi.mock("@/lib/supabase", () => ({ supabase: {} }));
 // `consoleAtivo`/`ehConsoleHost` leem VITE_ROOT_DOMAIN/VITE_CONSOLE_SUBDOMAIN,
 // que não existem no ambiente de teste — sem dublê só daria para exercitar o
 // caminho "console em subdomínio desligado". A lógica de host em si já tem
-// teste próprio em `src/lib/consoleHost.test.js`.
+// teste próprio em `src/features/console/regras/consoleHost.test.js`.
 const { mockConsoleAtivo, mockEhConsoleHost } = vi.hoisted(() => ({
   mockConsoleAtivo: vi.fn(() => false),
   mockEhConsoleHost: vi.fn(() => false),
 }));
 
-vi.mock("@/lib/consoleHost", () => ({
+vi.mock("@/features/console/regras/consoleHost", () => ({
   consoleAtivo: mockConsoleAtivo,
   ehConsoleHost: mockEhConsoleHost,
 }));

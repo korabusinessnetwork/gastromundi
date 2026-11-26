@@ -4,7 +4,7 @@ import { useSessao } from "@/context/AppContext";
 import { useStatusRede } from "@/hooks/useStatusRede";
 import {
   listarEstabelecimentos, listarPlanos, listarAssinaturas, listarAddonsPorTenant, contarAddonsPorTenant, resumirPlataforma, ordenarPorUrgencia, filtrarEstabelecimentos, filtrarPorSituacao, normalizarFiltroSituacao, normalizarAba, ABAS_CONSOLE, normalizarPeriodo, PERIODO_PADRAO, filtrarPorPlano, normalizarFiltroPlano, contarPorPlano, montarMensagemPrimeiroAcesso, listarSolicitacoes, decidirSolicitacao, pendentesPrimeiro, mensagemDeErroDoConsole
-} from "@/lib/console";
+} from "@/features/console/console";
 import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
 import { ROTULOS_FILTRO, BLOCO_LISTA, rotularPlano, rotularLayout } from "@/pages/console/apoio";
 import { useEstadoJanelasConsole } from "./useEstadoJanelasConsole";

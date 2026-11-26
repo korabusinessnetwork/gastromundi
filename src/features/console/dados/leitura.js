@@ -1,4 +1,4 @@
-import { supabase } from "../supabase";
+import { supabase } from "@/lib/supabase";
 
 // Leituras do banco: estabelecimentos, planos e assinaturas.
 /**

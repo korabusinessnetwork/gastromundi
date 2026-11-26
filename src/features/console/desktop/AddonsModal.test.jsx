@@ -31,8 +31,8 @@ const { mockListarAddons, mockListarPorTenant, mockAlternar } = vi.hoisted(() =>
   mockListarPorTenant: vi.fn(),
   mockAlternar: vi.fn(),
 }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return {
     ...real,
     listarAddons: mockListarAddons,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuPuzzle, LuInfo } from "react-icons/lu";
-import { mensagemDeErroDoConsole, listarAddons, listarAddonsPorTenant, alternarAddon, resumirAddonsDoTenant } from "@/lib/console";
+import { mensagemDeErroDoConsole, listarAddons, listarAddonsPorTenant, alternarAddon, resumirAddonsDoTenant } from "@/features/console/console";
 import { AVISOS_ADDON, CONSEQUENCIAS_DESLIGAR } from "@/constants/addons";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";

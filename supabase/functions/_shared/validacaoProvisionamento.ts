@@ -13,7 +13,7 @@
  *     const username = (admin.username ?? "").trim().toLowerCase();
  *     if (!username || !password) return 400;
  *
- * enquanto o Console (src/lib/console.js) normaliza o username para
+ * enquanto o Console (src/features/console/console.js) normaliza o username para
  * `[a-z0-9._-]` sem acento, exige 3 caracteres e senha de 6. A borda é a
  * fronteira de verdade: qualquer corpo montado à mão — ou um cliente futuro —
  * passava por ela.
@@ -32,7 +32,7 @@
  * `[a-z0-9._-]` e o limite aqui (30) é menor que o corte dele (60), então a
  * tela de login sempre reproduz o que foi gravado.
  *
- * A regra é a MESMA de `normalizarUsername` em src/lib/console.js. Não há como
+ * A regra é a MESMA de `normalizarUsername` em src/features/console/console.js. Não há como
  * importar de `src/` aqui (o deploy da função só empacota a pasta dela e
  * `_shared/`), então a duplicação é inevitável — e o teste compara as duas
  * implementações input por input para que não divirjam com o tempo.
@@ -57,7 +57,7 @@ export const MAX_SENHA = 100;
 export const MAX_SLUG = 40;
 
 /**
- * Idêntica a `normalizarUsername` de src/lib/console.js. NÃO corta o tamanho
+ * Idêntica a `normalizarUsername` de src/features/console/console.js. NÃO corta o tamanho
  * de propósito: cortar gravaria um username diferente do pedido e o chamador
  * acharia que deu certo. Quem valida recusa alto (ver `validarEntradaProvisionamento`).
  */

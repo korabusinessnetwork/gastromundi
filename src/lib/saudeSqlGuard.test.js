@@ -9,7 +9,7 @@ vi.mock("./supabase", async () => {
   return { supabase: createMockSupabase() };
 });
 
-import { PERIODOS_ANALYTICS } from "./console";
+import { PERIODOS_ANALYTICS } from "@/features/console/console";
 
 /**
  * Guard da RPC de saúde da plataforma (F022-SAUDE).

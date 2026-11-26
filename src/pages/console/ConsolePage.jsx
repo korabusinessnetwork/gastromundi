@@ -1,17 +1,17 @@
 import {
   LuStore, LuLogOut, LuTriangleAlert, LuCircleCheck, LuLoaderCircle, LuBuilding2, LuChartColumn, LuActivity, LuWifiOff, LuInbox, LuStethoscope
 } from "react-icons/lu";
-import NovoEstabelecimentoModal from "@/components/console/NovoEstabelecimentoModal";
-import AlterarPlanoModal from "@/components/console/AlterarPlanoModal";
-import AlterarLayoutModal from "@/components/console/AlterarLayoutModal";
-import AddonsModal from "@/components/console/AddonsModal";
-import PlanosDashboard from "@/components/console/PlanosDashboard";
-import SolicitacoesFila from "@/components/console/SolicitacoesFila";
-import AnalyticsDashboard from "@/components/console/AnalyticsDashboard";
-import SaudeDashboard from "@/components/console/SaudeDashboard";
-import ConfirmarRenovacaoModal from "@/components/console/ConfirmarRenovacaoModal";
-import HistoricoPagamentosModal from "@/components/console/HistoricoPagamentosModal";
-import DefinirMensalidadeModal from "@/components/console/DefinirMensalidadeModal";
+import NovoEstabelecimentoModal from "@/features/console/desktop/NovoEstabelecimentoModal";
+import AlterarPlanoModal from "@/features/console/desktop/AlterarPlanoModal";
+import AlterarLayoutModal from "@/features/console/desktop/AlterarLayoutModal";
+import AddonsModal from "@/features/console/desktop/AddonsModal";
+import PlanosDashboard from "@/features/console/desktop/PlanosDashboard";
+import SolicitacoesFila from "@/features/console/desktop/SolicitacoesFila";
+import AnalyticsDashboard from "@/features/console/desktop/AnalyticsDashboard";
+import SaudeDashboard from "@/features/console/desktop/SaudeDashboard";
+import ConfirmarRenovacaoModal from "@/features/console/desktop/ConfirmarRenovacaoModal";
+import HistoricoPagamentosModal from "@/features/console/desktop/HistoricoPagamentosModal";
+import DefinirMensalidadeModal from "@/features/console/desktop/DefinirMensalidadeModal";
 import { formatarVencimento } from "./apoio";
 import { useConsole } from "@/features/console/hooks/useConsole";
 import AbaEstabelecimentos from "./AbaEstabelecimentos";

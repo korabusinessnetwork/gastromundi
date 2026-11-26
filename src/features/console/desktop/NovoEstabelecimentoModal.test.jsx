@@ -23,13 +23,13 @@ const { mockProvisionar, mockDefinir } = vi.hoisted(() => ({
   mockProvisionar: vi.fn(),
   mockDefinir: vi.fn(),
 }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return { ...real, provisionarEstabelecimento: mockProvisionar, definirMensalidade: mockDefinir };
 });
 
 import NovoEstabelecimentoModal from "./NovoEstabelecimentoModal";
-import { MENSALIDADE_MAXIMA } from "@/lib/console";
+import { MENSALIDADE_MAXIMA } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 
 const PLANOS = [

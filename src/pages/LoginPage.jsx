@@ -6,7 +6,7 @@ import { getSizes } from "@/constants/sizes";
 import { gerarVariaveisTema, aplicarVariaveisTema, limparVariaveisTema, aplicarTituloDocumento, nomeExibicaoTenant, logoUrlTenant, MARCA_PLATAFORMA } from "@/lib/tema";
 import { layoutDoTema, varianteDoHorario, variaveisDoLayout } from "@/layouts";
 import { resolverSlugTenant, slugDoSubdominio } from "@/lib/tenantSlug";
-import { consoleAtivo } from "@/lib/consoleHost";
+import { consoleAtivo } from "@/features/console/regras/consoleHost";
 import { buscarBrandingPorSlug } from "@/lib/tenant";
 import { lerBrandingCache, salvarBrandingCache } from "@/lib/brandingCache";
 import { sanitizeInput, MAX_ATTEMPTS, getAttempts } from "@/utils";

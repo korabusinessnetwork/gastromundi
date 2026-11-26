@@ -34,12 +34,12 @@ import {
   MAX_SLUG as MAX_SLUG_CONSOLE,
   MAX_USERNAME as MAX_USERNAME_CONSOLE,
   validarNovoEstabelecimento,
-} from "./console";
+} from "@/features/console/console";
 import { sanitizeInput } from "@/utils/crypto";
 
 const RAIZ = join(__dirname, "..", "..");
 const BORDA = join(RAIZ, "supabase", "functions", "provisionar-estabelecimento", "index.ts");
-const MODAL = join(RAIZ, "src", "components", "console", "NovoEstabelecimentoModal.jsx");
+const MODAL = join(RAIZ, "src", "features", "console", "desktop", "NovoEstabelecimentoModal.jsx");
 
 /** Corpo mínimo que PASSA — cada teste estraga um campo por vez. */
 function corpoValido(extra = {}) {
@@ -153,7 +153,7 @@ describe("username aceito pela borda é sempre redigitável no login", () => {
 });
 
 describe("a normalização da borda não divergiu da do Console", () => {
-  // Não há como importar src/lib/console.js dentro da Edge Function (o deploy
+  // Não há como importar src/features/console/console.js dentro da Edge Function (o deploy
   // só empacota a pasta da função e _shared/), então a regra existe duas
   // vezes. Este teste é o que impede as duas de andarem em direções opostas.
   const ENTRADAS = [
@@ -467,7 +467,7 @@ describe("os limites da borda estão amarrados a uma fonte independente", () => 
   });
 
   it("os mínimos são os mesmos que o Console já cobrava", () => {
-    // `validarNovoEstabelecimento` (src/lib/console.js) é a validação da tela.
+    // `validarNovoEstabelecimento` (src/features/console/console.js) é a validação da tela.
     // A borda não pode ser MAIS permissiva que ela: um username ou senha que a
     // tela recusa não deve nascer por outro caminho.
     const base = {

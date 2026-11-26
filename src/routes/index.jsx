@@ -5,7 +5,7 @@ import ConsoleRoute   from "./ConsoleRoute";
 import InicioApp      from "./InicioApp";
 import CarregandoApex from "./CarregandoApex";
 import { ehApexInstitucional } from "@/lib/apex";
-import { consoleAtivo, ehConsoleHost } from "@/lib/consoleHost";
+import { consoleAtivo, ehConsoleHost } from "@/features/console/regras/consoleHost";
 
 // Página institucional do apex (kora.codes) — lazy: quem opera o PDV nos
 // subdomínios nunca baixa esse código; só o visitante do apex.

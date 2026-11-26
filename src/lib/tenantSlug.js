@@ -15,7 +15,7 @@
 // VITE_ROOT_DOMAIN e os subdomínios passam a resolver o tenant certo.
 // ──────────────────────────────────────────────────────────────────
 
-import { ehConsoleHost } from "./consoleHost";
+import { ehConsoleHost } from "@/features/console/regras/consoleHost";
 
 const SLUG_FALLBACK = (import.meta.env.VITE_TENANT_SLUG_FALLBACK || "gastromundi").toLowerCase();
 const ROOT_DOMAIN   = (import.meta.env.VITE_ROOT_DOMAIN || "").toLowerCase();

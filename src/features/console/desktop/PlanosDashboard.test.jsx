@@ -30,8 +30,8 @@ vi.mock("@/lib/supabase", async () => {
 // `resumirPlataforma` fica REAL — é ela que decide quem está sem preço.
 // Só a escrita no banco é dublada.
 const { mockDefinir } = vi.hoisted(() => ({ mockDefinir: vi.fn() }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return { ...real, definirMensalidade: mockDefinir };
 });
 

@@ -15,7 +15,7 @@ import {
   cadastroTemDados,
   MENSALIDADE_MAXIMA,
   MAX_SLUG,
-} from "@/lib/console";
+} from "@/features/console/console";
 import { urlDoCardapioPublico } from "@/lib/tenantSlug";
 import { valorDigitado } from "@/features/delivery/delivery";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";

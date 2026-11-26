@@ -1,11 +1,11 @@
-import { supabase } from "../supabase";
+import { supabase } from "@/lib/supabase";
 import { LAYOUT_PADRAO_NOVOS } from "@/layouts";
 import { geocodificarEndereco } from "@/features/delivery/delivery";
 import { ROTULOS_MODULO } from "@/constants/modulos";
 import {
   normalizarSlug
-} from "../slugEstabelecimento";
-import { normalizarUsername } from "./cadastro";
+} from "@/lib/slugEstabelecimento";
+import { normalizarUsername } from "../regras/cadastro";
 import { EDGE_URL } from "./leitura";
 
 // Gravações do Console: criar estabelecimento, trocar plano e layout, mensalidade e add-ons.

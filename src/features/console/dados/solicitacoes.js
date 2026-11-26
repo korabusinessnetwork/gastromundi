@@ -1,4 +1,4 @@
-import { supabase } from "../supabase";
+import { supabase } from "@/lib/supabase";
 
 // Mensagem de primeiro acesso e a fila de pedidos de conta feitos no site.
 /**

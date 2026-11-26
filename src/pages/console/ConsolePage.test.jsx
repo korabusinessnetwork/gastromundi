@@ -43,8 +43,8 @@ const { mockListarEstabelecimentos, mockListarPlanos, mockListarAssinaturas, moc
   // existentes não apagam esta leitura, que toda aba faz.
   banco: { addons: [], erroAddons: null },
 }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return {
     ...real,
     listarEstabelecimentos: mockListarEstabelecimentos,
@@ -101,7 +101,7 @@ vi.mock("@/lib/assinatura", async () => {
   };
 });
 
-import { montarMensagemPrimeiroAcesso } from "@/lib/console";
+import { montarMensagemPrimeiroAcesso } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { setAppMock, renderWithProviders } from "@/test/mockApp";
 import ConsolePage from "./ConsolePage";

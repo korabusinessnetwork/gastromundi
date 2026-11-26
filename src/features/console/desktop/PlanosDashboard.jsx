@@ -3,7 +3,7 @@ import {
   LuTriangleAlert, LuCircleCheck, LuClock, LuBan, LuBuilding2, LuWallet,
   LuChartPie, LuBanknote, LuX, LuReceipt,
 } from "react-icons/lu";
-import { resumirPlataforma } from "@/lib/console";
+import { resumirPlataforma } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import DefinirMensalidadeModal from "./DefinirMensalidadeModal";
 import ConfirmarRenovacaoModal from "./ConfirmarRenovacaoModal";

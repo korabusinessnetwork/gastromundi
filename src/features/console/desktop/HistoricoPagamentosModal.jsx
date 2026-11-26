@@ -6,7 +6,7 @@ import {
 import {
   listarPagamentosAssinatura, estornarPagamentoAssinatura, resumirPagamentos, rotuloCompetencia,
 } from "@/lib/assinatura";
-import { mensagemDeErroDoConsole } from "@/lib/console";
+import { mensagemDeErroDoConsole } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";
 import { useFocoDoModal } from "@/hooks/useFocoDoModal";

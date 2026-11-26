@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { LuX, LuTriangleAlert, LuLoaderCircle, LuWallet } from "react-icons/lu";
-import { mensagemDeErroDoConsole, definirMensalidade, MENSALIDADE_MAXIMA } from "@/lib/console";
+import { mensagemDeErroDoConsole, definirMensalidade, MENSALIDADE_MAXIMA } from "@/features/console/console";
 import { valorDigitado } from "@/features/delivery/delivery";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { useFecharModal } from "@/hooks/useFecharModal";

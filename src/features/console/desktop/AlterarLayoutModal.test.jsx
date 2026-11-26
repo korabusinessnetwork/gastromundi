@@ -21,8 +21,8 @@ vi.mock("@/lib/supabase", async () => {
 // catálogo `@/layouts` também é real (lista fechada, sem I/O). Só a escrita é
 // dublada.
 const { mockAlterarLayout } = vi.hoisted(() => ({ mockAlterarLayout: vi.fn() }));
-vi.mock("@/lib/console", async () => {
-  const real = await vi.importActual("@/lib/console");
+vi.mock("@/features/console/console", async () => {
+  const real = await vi.importActual("@/features/console/console");
   return { ...real, alterarLayout: mockAlterarLayout };
 });
 

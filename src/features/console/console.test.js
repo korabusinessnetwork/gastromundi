@@ -3,12 +3,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // console.js importa ./supabase (que exige VITE_* no import). Como estes
 // testes exercitam só as funções PURAS, mockamos o módulo para não
 // disparar a checagem de env — mesmo padrão de assinatura.test.js.
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   return { supabase: createMockSupabase() };
 });
 
-import { supabase } from "./supabase";
+import { supabase } from "@/lib/supabase";
 import {
   normalizarUsername,
   provisionarEstabelecimento,

@@ -1,6 +1,6 @@
 import {
   MAX_SLUG, SLUGS_RESERVADOS, normalizarSlug, sugerirSlugLivre
-} from "../slugEstabelecimento";
+} from "@/lib/slugEstabelecimento";
 
 // Cadastro de estabelecimento: usuário, endereço, validação do formulário e senha provisória.
 /**

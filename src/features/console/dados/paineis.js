@@ -1,6 +1,6 @@
-import { supabase } from "../supabase";
-import { calcularStatusAssinatura, calcularDiasParaVencimento } from "../assinatura";
-import { URGENCIA_STATUS, precisaAtencao } from "./lista";
+import { supabase } from "@/lib/supabase";
+import { calcularStatusAssinatura, calcularDiasParaVencimento } from "@/lib/assinatura";
+import { URGENCIA_STATUS, precisaAtencao } from "../regras/lista";
 
 // Painéis do Console: resumo da plataforma, uso e saúde dos estabelecimentos.
 /**

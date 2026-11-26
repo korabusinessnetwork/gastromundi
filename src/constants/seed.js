@@ -18,6 +18,6 @@ export const SEED_PRODUCTS = [
  * nenhum ponto do sistema — resquício do protótipo em localStorage,
  * antes do Supabase Auth. Credencial padrão em SaaS
  * multi-estabelecimento é porta destrancada: o primeiro acesso de cada
- * estabelecimento nasce no provisionamento (`src/lib/console.js`), com senha
+ * estabelecimento nasce no provisionamento (`src/features/console/console.js`), com senha
  * provisória sorteada por CSPRNG.
  */

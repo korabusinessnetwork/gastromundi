@@ -3,7 +3,7 @@ import {
   LuTriangleAlert, LuLoaderCircle, LuBanknote, LuChartColumn, LuWallet,
   LuBuilding2, LuStore,
 } from "react-icons/lu";
-import { listarAnalitico, resumirUso, PERIODOS_ANALYTICS } from "@/lib/console";
+import { listarAnalitico, resumirUso, PERIODOS_ANALYTICS } from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import "./AnalyticsDashboard.css";
 

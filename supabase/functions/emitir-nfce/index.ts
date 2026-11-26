@@ -733,7 +733,7 @@ async function registrarReservaComFalha(
  * criptográfica, e a Edge Function fica quente entre requisições, então as
  * notas seguintes saem do mesmo gerador. Aqui o sorteio é do CSPRNG, com a
  * cauda que não fecha um ciclo inteiro descartada — o `% 1e8` cru enviesaria
- * os primeiros códigos. Mesmo padrão de `sortearIndice` em `src/lib/console.js`.
+ * os primeiros códigos. Mesmo padrão de `sortearIndice` em `src/features/console/console.js`.
  */
 function sortearCodigoNumerico(): string {
   const FAIXA = 100_000_000; // 10^8 — o cNF tem 8 dígitos

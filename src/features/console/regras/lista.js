@@ -1,4 +1,4 @@
-import { PERIODOS_ANALYTICS } from "./paineis";
+import { PERIODOS_ANALYTICS } from "../dados/paineis";
 
 // Ordem por urgência, busca e filtros da lista de estabelecimentos, e a leitura dos parâmetros da URL.
 // Ordem de urgência para o "alerta de validade" do Console: sem assinatura

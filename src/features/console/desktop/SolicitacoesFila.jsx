@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   LuInbox, LuTriangleAlert, LuStore, LuPhone, LuMail, LuCircleCheck, LuBan,
 } from "react-icons/lu";
-import { pendentesPrimeiro, resumirPlanoSolicitado } from "@/lib/console";
+import { pendentesPrimeiro, resumirPlanoSolicitado } from "@/features/console/console";
 import { formatarTelefone } from "@/lib/telefone";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import "./SolicitacoesFila.css";

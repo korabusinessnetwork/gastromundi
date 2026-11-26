@@ -3,10 +3,10 @@ import {
 } from "react-icons/lu";
 import {
   FILTROS_SITUACAO, montarMensagemPrimeiroAcesso
-} from "@/lib/console";
+} from "@/features/console/console";
 import { formatarReais } from "@/features/delivery/dados/deliveryPedidos";
 import { urlDoCardapioPublico, urlDeAcessoDoTenant } from "@/lib/tenantSlug";
-import SeloStatus from "@/components/console/SeloStatus";
+import SeloStatus from "@/features/console/desktop/SeloStatus";
 import { ROTULOS_FILTRO, BLOCO_LISTA, formatarData, formatarVencimento, rotularPlano, rotularLayout, rotularAddons } from "./apoio";
 
 // Aba Estabelecimentos: a lista da base de clientes, com busca, recortes e o cartão de primeiro acesso.
