@@ -201,7 +201,7 @@ export function useFinalizarPagamento() {
     }
 
     // Desconta estoque dos itens vendidos (ignora cancelados; apenas itens com id de produto)
-    const itensAtivos = todosItens.filter(i => !i.cancelado && i.id);
+    const itensAtivos = itensNaoCancelados(todosItens).filter((i) => i.id);
     const delta = {};
     for (const item of itensAtivos) {
       delta[item.id] = (delta[item.id] ?? 0) + (item.qty ?? 1);

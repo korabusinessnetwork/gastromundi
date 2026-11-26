@@ -34,6 +34,7 @@ import {
 import { imprimirDocumento } from "@/features/impressao/regras/drivers";
 import { ICONES_METODO, COMANDA_BALCAO, precoDoItem } from "@/pages/mobile/modulos/pdv/apoio";
 import { METODOS_PADRAO, metodoBloqueadoSemRede, trocoEmDinheiro } from "@/features/pdv/regras/pagamento";
+import { nomeBateComBusca } from "@/lib/busca";
 
 // Estado e ações da venda de balcão no celular: catálogo, carrinho, meios de pagamento,
 // troco e os três passos (itens, cobrar, concluído).
@@ -72,9 +73,9 @@ export function usePdvCelular({ onVoltar }) {
       catAtiva === "Todos"
         ? listaProdutos
         : listaProdutos.filter((p) => p.category === catAtiva);
-    const q = busca.trim().toLowerCase();
-    return q
-      ? daCategoria.filter((p) => String(p.name ?? "").toLowerCase().includes(q))
+    // Mesma regra de busca do resto do sistema: sem diferença de acento.
+    return busca.trim()
+      ? daCategoria.filter((p) => nomeBateComBusca(p.name, busca))
       : daCategoria;
   }, [listaProdutos, catAtiva, busca]);
 

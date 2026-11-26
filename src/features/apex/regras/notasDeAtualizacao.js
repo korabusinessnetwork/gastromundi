@@ -22,6 +22,7 @@ export const NOTAS_DE_ATUALIZACAO = [
     titulo: "Cores do seu estabelecimento em todo lugar e datas no dia certo",
     itens: [
       { tipo: "novo", texto: "Página de novidades do sistema, em kora.codes/patchnotes, com tudo o que muda a cada atualização. O link fica no rodapé do site." },
+      { tipo: "corrigido", texto: "No PDV do celular, a busca de produto passou a ignorar acento, como no resto do sistema: digitar \"cafe\" encontra \"Café\"." },
       { tipo: "corrigido", texto: "A data da compra, na Área Admin, aparecia um dia antes do escolhido. Agora mostra o dia certo." },
       { tipo: "corrigido", texto: "O vencimento do fiado, no detalhe do cliente, também aparecia um dia antes. Corrigido." },
       { tipo: "melhoria", texto: "A prévia do cupom em Configurações, Impressão, e a impressão pelo navegador usam as cores do seu estabelecimento." },

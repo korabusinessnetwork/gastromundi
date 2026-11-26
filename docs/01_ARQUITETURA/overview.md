@@ -122,10 +122,12 @@ src/
 
 **Domínios em `src/features/`:** admin, apex (site da Kora), assinatura, auditoria, caixa, cardápio,
 clientes, comandas, configurações, console, cozinha, delivery, estoque, financeiro, fiscal (NFC-e),
-importação, impressão, jarvas, mesas, pautas, pdv, ponte, relatórios e sessão.
+importação, impressão, jarvas, mesas, pautas, pdv, ponte, relatórios, sessão e tenant (dados do
+estabelecimento, plano, add-ons e identidade).
 
-**O que fica em `src/lib/`:** o cliente do Supabase e o prazo de rede, o tema e a marca do
-estabelecimento, a fila offline, o log e a observabilidade, os guardas de SQL e de texto, e funções
+**O que fica em `src/lib/`:** o cliente do Supabase e o prazo de rede, a aplicação do tema e o cache
+da marca na tela (`tema.js`, `brandingCache.js`), a fila offline, a observabilidade, a assinatura de
+mudanças ao vivo (`lib/dados/tempoReal.js`), os guardas de SQL e de texto, e funções
 pequenas usadas por vários domínios (telefone, documento, busca, períodos). É o papel que o ADR-015
 dá a `shared/lib/`; a pasta mantém o nome atual.
 

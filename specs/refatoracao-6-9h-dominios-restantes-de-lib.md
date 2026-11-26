@@ -30,6 +30,10 @@ a exceção, também. A conferência de caminhos lidos pelos testes passa a cobr
 
 ## O que fica em `src/lib/`, e por quê
 
+> Atualizado na fase F (correção 1): `tenant.js` e `identidadeTenant.js` saíram para
+> `src/features/tenant/dados/` e `logger.js` para `src/features/auditoria/dados/`, porque falam com o
+> Supabase. A lista abaixo é a do fim desta rodada.
+
 Só utilidade técnica e de plataforma, sem regra de um domínio: o cliente do Supabase e o prazo de
 rede, o tema e a marca do estabelecimento (`tema`, `tenant`, `tenantSlug`, `identidadeTenant`,
 `brandingCache`, `slugEstabelecimento`), a fila offline (`offline/`), o log de operações e a

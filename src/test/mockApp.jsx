@@ -21,8 +21,8 @@ import { render } from "@testing-library/react";
  * por módulo e hoisted pelo Vitest):
  *
  *   vi.mock("@/context/AppContext", async () => {
- *     const { mockUseApp } = await import("@/test/mockApp");
- *     return { useApp: mockUseApp, AppProvider: ({ children }) => children };
+ *     const { ganchosDoMock } = await import("@/test/mockApp");
+ *     return { ...ganchosDoMock, AppProvider: ({ children }) => children };
  *   });
  *
  *   import { setAppMock } from "@/test/mockApp";

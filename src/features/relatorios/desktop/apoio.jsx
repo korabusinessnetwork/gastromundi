@@ -1,8 +1,6 @@
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuBanknote, LuCreditCard, LuZap, LuSmartphone
-} from "react-icons/lu";
+import { METODOS_CATALOG } from "@/constants/metodosPagamento";
 
 // "Admin" só entra para role admin (visão consolidada/sensível) — B3.
 
@@ -14,7 +12,7 @@ export const PERIODOS = [
   { id: "custom",  label: "Período" },
 ];
 
-export const METODOS_ICON  = { dinheiro: LuBanknote, credito: LuCreditCard, debito: LuSmartphone, pix: LuZap };
+export const METODOS_ICON  = Object.fromEntries(METODOS_CATALOG.map((m) => [m.id, m.Icon]));
 
 export const ACTION_TYPE_META = {
   auth:    { label: "Auth",    color: varColor(C.blue)      },
@@ -33,12 +31,9 @@ export const fmtR = (v) => "R$ " + Number(v ?? 0).toFixed(2);
 
 // ── Componentes auxiliares ────────────────────────────────────────
 
-export const METODOS_DETALHE = [
-  { id: "dinheiro", label: "Dinheiro", Icon: LuBanknote   },
-  { id: "credito",  label: "Crédito",  Icon: LuCreditCard },
-  { id: "debito",   label: "Débito",   Icon: LuSmartphone },
-  { id: "pix",      label: "Pix",      Icon: LuZap        },
-];
+// O catálogo único dos meios de pagamento (refatoração 4.10); o relatório era a
+// quinta cópia dele.
+export const METODOS_DETALHE = METODOS_CATALOG;
 
 // Movidos para a feature na refatoração 4.10; reexportados para as telas.
 export { ABAS_BASE, SALE_PREFIXES, filtrarPorPeriodo, fmtData } from "@/features/relatorios/regras/relatorio";

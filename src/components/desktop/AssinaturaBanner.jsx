@@ -1,6 +1,7 @@
 import { useSessao } from "@/context/AppContext";
 import { LuCircleAlert, LuTriangleAlert } from "react-icons/lu";
 import { DIAS_AVISO_PRE_VENCIMENTO } from "@/features/assinatura/dados/assinatura";
+import { ehGerencia } from "@/constants/roles";
 import "./AssinaturaBanner.css";
 
 /**
@@ -14,7 +15,7 @@ import "./AssinaturaBanner.css";
  */
 export default function AssinaturaBanner() {
   const { assinatura, currentUser } = useSessao();
-  const podeVer = currentUser?.role === "gerente" || currentUser?.role === "admin";
+  const podeVer = ehGerencia(currentUser);
 
   if (!podeVer || !assinatura) return null;
 

@@ -46,6 +46,14 @@ async function cobrarDoisCafes() {
   await clicar(screen.getByRole("button", { name: /Dinheiro/ }));
 }
 
+describe("PDV do celular, busca de produto", () => {
+  it("ignora acento, como a busca do resto do sistema: \"cafe\" acha \"Café\"", () => {
+    render(<PdvModulo onVoltar={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText("Buscar produto"), { target: { value: "cafe" } });
+    expect(document.querySelectorAll(".pdv-modulo__produto")).toHaveLength(1);
+  });
+});
+
 describe("PDV do celular, venda de balcão", () => {
   it("dois cafés em dinheiro, R$ 20 recebidos: registra R$ 12 e mostra R$ 8 de troco", async () => {
     await cobrarDoisCafes();

@@ -234,7 +234,7 @@ só pela rede local (HTTP na porta 8123), com um contrato combinado dos dois lad
   `ID_MINIMO_CARACTERES` em `src/features/ponte/dados/ponte.js` (8 caracteres). É a única constante repetida; se
   mudar de um lado, muda do outro.
 - **Formato dos pedidos e dos trabalhos de impressão:** descrito em
-  `docs/03_REGRAS_DE_NEGOCIO/PONTE.md`, e coberto pelos testes de `ponte/lib/` e de `src/lib/ponte.test.js`.
+  `docs/03_REGRAS_DE_NEGOCIO/PONTE.md`, e coberto pelos testes de `ponte/lib/` e de `src/features/ponte/dados/ponte.test.js`.
 
 Por isso a ponte **não é workspace npm** do app (refatoração 6.11): não há código duplicado entre
 os dois que justifique juntar as dependências.
