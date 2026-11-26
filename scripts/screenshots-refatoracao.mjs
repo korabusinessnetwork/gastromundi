@@ -665,6 +665,19 @@ function roteiro(largura) {
           pedidoCozinha("coz-4", "33", { status_cozinha: "pronto", created_at: "2026-11-20T17:00:00.000Z", em_preparo_em: "2026-11-20T17:10:00.000Z", pronto_em: "2026-11-20T17:40:00.000Z" }),
         ]) })
       : route.fallback())) });
+  // Fase 5: Financeiro (novo lançamento nos dois tipos, filtro e falha de carga).
+  const novoLancamento = (page) => page.getByRole("button", { name: /Novo lançamento/ }).click({ timeout: 3000 });
+  telas.push({ nome: "app-financeiro-novo", perfil: "dono", caminho: "/app/financeiro", passo: novoLancamento });
+  telas.push({ nome: "app-financeiro-novo-receita", perfil: "dono", caminho: "/app/financeiro",
+    passo: async (page) => {
+      await novoLancamento(page);
+      await page.getByRole("button", { name: "Receita", exact: true }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-financeiro-vencidos", perfil: "dono", caminho: "/app/financeiro",
+    passo: (page) => page.getByLabel("Filtrar por status").selectOption("vencido", { timeout: 3000 }) });
+  telas.push({ nome: "app-financeiro-erro", perfil: "dono", caminho: "/app/financeiro",
+    preparar: (contexto) => contexto.route(/\/rest\/v1\/lancamentos/, (route) => route.fulfill({ status: 500, contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" }, body: JSON.stringify({ message: "falha simulada" }) })) });
   // Fase 5: Clientes (cadastro, detalhe com fiado e sem, exclusão, edição).
   const abrirCliente = (nome) => (page) => page.locator(".clientes-view__card", { hasText: nome }).click({ timeout: 3000 });
   const noCliente = (nome, passo) => async (page) => {

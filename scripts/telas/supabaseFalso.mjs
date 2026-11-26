@@ -162,6 +162,13 @@ const tabelas = {
       vencimento: "2026-12-20", descricao: "Fiado, comanda 8", created_at: "2026-11-20T13:10:00.000Z" },
     { id: "lanc-2", cliente_id: "cli-1", tipo: "receita", valor: 12, status: "vencido", competencia: "2026-10-10",
       vencimento: "2026-11-09", descricao: "Fiado, comanda 3", created_at: "2026-10-10T19:00:00.000Z" },
+    // Fase 5: lançamentos do mês sem cliente, um em cada status, para o Financeiro.
+    { id: "lanc-3", tipo: "receita", categoria: "Venda", valor: 120, status: "recebido", competencia: "2026-11-18",
+      vencimento: null, descricao: "Evento de aniversário", created_at: "2026-11-18T20:00:00.000Z" },
+    { id: "lanc-4", tipo: "despesa", categoria: "Fornecedor", valor: 36, status: "pago", competencia: "2026-11-19",
+      vencimento: "2026-11-19", descricao: "Padaria Modelo", created_at: "2026-11-19T10:00:00.000Z" },
+    { id: "lanc-5", tipo: "despesa", categoria: "Aluguel", valor: 900, status: "vencido", competencia: "2026-11-05",
+      vencimento: "2026-11-10", descricao: "Aluguel de novembro", created_at: "2026-11-01T10:00:00.000Z" },
   ],
   vendas: [
     { id: "venda-1", comanda: "8", mesa: null, subtotal: 25, taxa_servico: false, valor_taxa: 0,
