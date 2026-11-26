@@ -50,7 +50,7 @@ export default function DemoRelatorios() {
                   "demo-relatorios__barra" +
                   (h.valor === maiorHora ? " demo-relatorios__barra--pico" : "")
                 }
-                style={{ height: `${Math.round((h.valor / maiorHora) * 100)}%` }}
+                style={{ "--barra": `${Math.round((h.valor / maiorHora) * 100)}%` }}
                 title={formatarBRL(h.valor)}
               />
               <span className="demo-relatorios__hora">{h.hora}</span>
@@ -74,7 +74,7 @@ export default function DemoRelatorios() {
                 <div className="demo-relatorios__top-trilha">
                   <div
                     className="demo-relatorios__top-barra"
-                    style={{ width: `${Math.round((p.total / maiorTop) * 100)}%` }}
+                    style={{ "--barra": `${Math.round((p.total / maiorTop) * 100)}%` }}
                   />
                 </div>
               </li>
@@ -94,7 +94,7 @@ export default function DemoRelatorios() {
                       "demo-relatorios__meio-barra" +
                       (m.meio === "Pix" ? " demo-relatorios__meio-barra--pix" : "")
                     }
-                    style={{ width: `${Math.round(m.pct * 100)}%` }}
+                    style={{ "--barra": `${Math.round(m.pct * 100)}%` }}
                   />
                 </div>
                 <span className="demo-relatorios__meio-pct">

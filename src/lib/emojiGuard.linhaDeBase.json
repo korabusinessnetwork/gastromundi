@@ -27,7 +27,6 @@
   "components/desktop/views/ProdutosView.jsx": 3,
   "components/desktop/views/SubprodutosView.jsx": 3,
   "components/modals/MovimentoCaixaModal.jsx": 1,
-  "components/shared/Notification.jsx": 2,
   "constants/roles.js": 4,
   "lib/importacao/planilha.js": 2,
   "lib/impressao/escposFormatador.js": 2,

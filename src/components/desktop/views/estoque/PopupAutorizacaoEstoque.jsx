@@ -1,8 +1,5 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { createPortal } from "react-dom";
-import C from "@/constants/colors";
-import { varColor } from "@/lib/tema";
-import { alfa } from "@/constants/colorAlfa";
 import {
   LuLock, LuLockOpen, LuEye, LuEyeOff, LuKeyRound
 } from "react-icons/lu";
@@ -20,8 +17,8 @@ export default function PopupAutorizacaoEstoque({ tela }) {
           <div className="estoque-view__auth-modal">
             {/* Título */}
             <div className="estoque-view__auth-topo">
-              <div className="estoque-view__auth-icone" style={{ background: alfa(C.accent, "18"), border: `1.5px solid ${alfa(C.accent, "44")}` }}>
-                <LuKeyRound size={22} color={varColor(C.accent)} />
+              <div className="estoque-view__auth-icone">
+                <LuKeyRound size={22} />
               </div>
               <div>
                 <div className="estoque-view__auth-titulo">Liberar Entrada de Estoque</div>
@@ -43,7 +40,7 @@ export default function PopupAutorizacaoEstoque({ tela }) {
                   onKeyDown={e => { if (e.key === "Enter") confirmarSenha(); }}
                   placeholder="Digite a senha..."
                   className="estoque-view__senha-input"
-                  style={{ borderColor: senhaErro ? varColor(C.red) : "var(--gm-input-border)" }}
+                  aria-invalid={!!senhaErro}
                 />
                 <button
                   type="button"
@@ -72,10 +69,6 @@ export default function PopupAutorizacaoEstoque({ tela }) {
                 onClick={confirmarSenha}
                 disabled={!senha || verificando}
                 className="estoque-view__auth-confirmar"
-                style={{
-                  background: senha && !verificando ? varColor(C.accent) : varColor(C.faint),
-                  cursor: senha && !verificando ? "pointer" : "not-allowed",
-                }}
               >
                 <LuLockOpen size={15} />
                 {verificando ? "Verificando..." : "Liberar"}

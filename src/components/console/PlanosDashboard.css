@@ -379,3 +379,6 @@
   /* O X da faixa de confirmação: 26px é metade de um dedo. */
   .pdash__ok-fechar { width: 44px; height: 44px; }
 }
+
+/* Fase 5: a largura vem da proporção por variável. */
+.pdash__barra-fill { width: var(--barra); }

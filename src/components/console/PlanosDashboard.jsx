@@ -116,7 +116,7 @@ export default function PlanosDashboard({ tenants, planos, assinaturas, confirma
                     <span className="pdash__plano-qtd">{p.quantidade}</span>
                   </div>
                   <div className="pdash__barra" aria-hidden>
-                    <div className="pdash__barra-fill" style={{ width: `${pct}%` }} />
+                    <div className="pdash__barra-fill" style={{ "--barra": `${pct}%` }} />
                   </div>
                 </li>
               );

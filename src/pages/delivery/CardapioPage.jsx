@@ -272,7 +272,7 @@ export default function CardapioPage() {
         <CardapioLista cardapio={cardapio} onAbrirProduto={setProdutoAberto} />
 
         {/* Espaço para a barra fixa da sacola não cobrir o último card */}
-        <div style={{ height: quantidade > 0 && aberto ? 88 : 24 }} />
+        <div className={`vitrine__espaco-final${quantidade > 0 && aberto ? " vitrine__espaco-final--com-sacola" : ""}`} />
       </div>
 
       {/* Barra fixa da sacola — só aparece com itens e loja aberta */}

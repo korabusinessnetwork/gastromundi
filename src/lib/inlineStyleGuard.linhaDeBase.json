@@ -1,10 +1,1 @@
-{
-  "components/console/PlanosDashboard.jsx": 1,
-  "components/desktop/views/delivery/ModalProduto.jsx": 1,
-  "components/desktop/views/estoque/PopupAutorizacaoEstoque.jsx": 3,
-  "components/shared/Notification.jsx": 1,
-  "pages/apex/demo/DemoRelatorios.jsx": 3,
-  "pages/delivery/CardapioPage.jsx": 1,
-  "pages/delivery/SacolaModal.jsx": 4,
-  "pages/mobile/sheets/lancamento/CarrinhoSheet.jsx": 1
-}
+{}

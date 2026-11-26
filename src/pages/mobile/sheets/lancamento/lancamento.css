@@ -815,3 +815,6 @@
     animation: none;
   }
 }
+
+/* Fase 5: enquanto o dedo arrasta, a folha segue sem animação. */
+.carrinho-sheet__painel--arrastando { transition: none; }

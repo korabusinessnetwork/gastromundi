@@ -207,3 +207,8 @@
     gap: 5px;
   }
 }
+
+/* Fase 5: o tamanho de cada barra vem do valor por variável. */
+.demo-relatorios__barra { height: var(--barra); }
+.demo-relatorios__top-barra,
+.demo-relatorios__meio-barra { width: var(--barra); }

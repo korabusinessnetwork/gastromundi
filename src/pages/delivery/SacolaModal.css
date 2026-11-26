@@ -34,3 +34,23 @@
 .linha-sacola--fora .linha-sacola__preco {
   opacity: 0.5;
 }
+
+/* Fase 5: o que estava no JSX da sacola. */
+.linha-sacola__qtd {
+  margin-top: 6px;
+}
+.linha-sacola__direita {
+  text-align: right;
+}
+.sacola-modal__remover {
+  background: none;
+  border: none;
+  color: var(--gm-red);
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 0;
+}
+.sacola-modal__avancar {
+  margin-top: 8px;
+}

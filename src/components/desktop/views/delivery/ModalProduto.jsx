@@ -256,7 +256,7 @@ export default function ModalProduto({
               {menuFotoAberto && (
                 <>
                   <div className="delivery-view__foto-menu-fundo" onClick={() => fecharMenuFoto()} />
-                  <div className="delivery-view__foto-menu" role="menu" style={{ top: menuPos?.top, left: menuPos?.left }}>
+                  <div className="delivery-view__foto-menu" role="menu" style={{ "--menu-topo": menuPos ? `${menuPos.top}px` : "auto", "--menu-esquerda": menuPos ? `${menuPos.left}px` : "auto" }}>
                     <button
                       type="button"
                       role="menuitem"

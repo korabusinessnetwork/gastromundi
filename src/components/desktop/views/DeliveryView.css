@@ -1884,3 +1884,9 @@
   color: var(--gm-accent);
   outline: none;
 }
+
+/* Fase 5: o menu da foto abre junto do botão; a posição vem por variável. */
+.delivery-view__foto-menu {
+  top: var(--menu-topo);
+  left: var(--menu-esquerda);
+}

@@ -570,3 +570,8 @@
   color: var(--gm-muted);
 }
 .vitrine__estado-emoji { font-size: 44px; margin-bottom: 12px; }
+
+/* Fase 5: espaço no fim da lista para a barra fixa da sacola não cobrir o
+   último produto (maior quando a barra aparece). */
+.vitrine__espaco-final { height: 24px; }
+.vitrine__espaco-final--com-sacola { height: 88px; }

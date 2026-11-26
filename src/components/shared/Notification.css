@@ -10,3 +10,21 @@
   font-size: var(--fs-sm);   /* role: corpo/notificação (era 14px inline) */
   line-height: var(--lh-sm);
 }
+
+/* Fase 5: posição e cor, que estavam no JSX. */
+.notification {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 300;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.notification--ok   { background: var(--gm-green); }
+.notification--erro { background: var(--gm-red); }
+.notification__icone {
+  vertical-align: -3px;
+}

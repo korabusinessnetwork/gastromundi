@@ -780,3 +780,24 @@
   background: color-mix(in srgb, var(--estoque-tom) 7%, transparent);
   color: var(--estoque-tom);
 }
+
+/* Fase 5: cor e estado da janela de liberar entrada, que estavam no JSX. */
+.estoque-view__auth-icone {
+  background: color-mix(in srgb, var(--gm-accent) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-accent) 27%, transparent);
+  color: var(--gm-accent);
+}
+.estoque-view__senha-input {
+  border-color: var(--gm-input-border);
+}
+.estoque-view__senha-input[aria-invalid="true"] {
+  border-color: var(--gm-red);
+}
+.estoque-view__auth-confirmar {
+  background: var(--gm-accent);
+  cursor: pointer;
+}
+.estoque-view__auth-confirmar:disabled {
+  background: var(--gm-faint);
+  cursor: not-allowed;
+}

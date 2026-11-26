@@ -71,7 +71,7 @@ export default function SacolaModal({
                           a lugar nenhum. A única saída é "Remover", e ela fica
                           sozinha na linha para não competir com nada. */}
                       {!fora && (
-                        <div className="qtd" style={{ marginTop: 6 }}>
+                        <div className="qtd linha-sacola__qtd">
                           <button
                             className="qtd__botao"
                             onClick={() => onAlterarQtd(item._linha, -1)}
@@ -90,21 +90,12 @@ export default function SacolaModal({
                         </div>
                       )}
                     </div>
-                    <div style={{ textAlign: "right" }}>
+                    <div className="linha-sacola__direita">
                       <span className="linha-sacola__preco">{formatarPreco(precoLinha(item))}</span>
                       <br />
                       <button
                         onClick={() => onRemover(item._linha)}
                         className="sacola-modal__remover"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "var(--gm-red)",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          marginTop: 8,
-                          padding: 0,
-                        }}
                       >
                         Remover
                       </button>
@@ -142,10 +133,9 @@ export default function SacolaModal({
               )}
 
               <button
-                className="btn btn--primario"
+                className="btn btn--primario sacola-modal__avancar"
                 onClick={onAvancar}
                 disabled={abaixoMinimo || temFora}
-                style={{ marginTop: 8 }}
               >
                 <span>Ir para a entrega</span>
                 <span className="btn__preco">{formatarPreco(subtotal)}</span>

@@ -87,11 +87,10 @@ export default function CarrinhoSheet({
 
       <div
         ref={painelRef}
-        className="carrinho-sheet__painel"
+        className={`carrinho-sheet__painel${arrastando ? " carrinho-sheet__painel--arrastando" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label="Carrinho"
-        style={arrastando ? { transition: "none" } : undefined}
       >
         <div
           className="carrinho-sheet__puxador-alvo"
