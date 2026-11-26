@@ -24,7 +24,7 @@ export async function buscarVendaCompleta(vendaId) {
     const [cab, itens, pagamentos] = await Promise.all([
       supabase
         .from("vendas")
-        .select("id, comanda, mesa, subtotal, taxa_servico, valor_taxa, valor_ajuste, total, cashier, at")
+        .select("id, comanda, mesa, subtotal, taxa_servico, valor_taxa, valor_ajuste, total, cashier, at, origem")
         .eq("id", vendaId)
         .maybeSingle(),
       supabase

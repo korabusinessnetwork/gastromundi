@@ -136,8 +136,8 @@ describe("MesaMapView (mapa)", () => {
       ] })],
     );
 
-    expect(screen.getByText("R$ 48.30")).toBeInTheDocument();
-    expect(screen.queryByText("R$ 147.30")).not.toBeInTheDocument();
+    expect(screen.getByText("R$ 48,30")).toBeInTheDocument();
+    expect(screen.queryByText("R$ 147,30")).not.toBeInTheDocument();
   });
 
   it("mesa sem coordenada vai para a faixa própria, fora do mapa posicionado", () => {

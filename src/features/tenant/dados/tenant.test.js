@@ -21,6 +21,16 @@ beforeEach(() => {
   mockSupabase.current.reset();
 });
 
+// Data no calendário local, deslocada de `dias` a partir de hoje. Vencimento
+// escrito à mão vira teste com prazo de validade: passa hoje, quebra sozinho
+// quando a data chega. Mesmo padrão de assinatura.test.js.
+function dataEm(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 describe("buscarTenantAtual", () => {
   it("retorna o tenant (com plano) quando a linha existe", async () => {
     mockSupabase.current.setTableResult("tenants", {
@@ -156,9 +166,9 @@ describe("buscarBootstrapTenant", () => {
     // Vencimento SEMPRE no futuro em relação ao dia em que o teste roda: com
     // data fixa, o teste passava a acusar "bloqueado" assim que o calendário
     // real ultrapassava a data — falha por passagem do tempo, não por bug.
-    const vencimentoFuturo = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const vencimento = dataEm(30);
     mockSupabase.current.setTableResult("assinaturas", {
-      data: { data_vencimento: vencimentoFuturo, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
+      data: { data_vencimento: vencimento, carencia_dias: 3, valor_mensal: 199, status: "ativo" },
       error: null,
     });
 
@@ -176,7 +186,7 @@ describe("buscarBootstrapTenant", () => {
       diasParaVencer: expect.any(Number),
       carenciaDias: 3,
       valorMensal: 199,
-      dataVencimento: vencimentoFuturo,
+      dataVencimento: vencimento,
       statusConfirmado: false,
     });
   });
