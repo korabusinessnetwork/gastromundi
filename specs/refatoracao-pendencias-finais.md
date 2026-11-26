@@ -85,7 +85,11 @@ README dos cenários. Corrigir isso é migration, e a decisão é do dono.
 
 ## Diferenças
 
-DIFERENCAS
+Roteiro completo, agora com 225 telas, contra a última captura feita sem as variáveis do site e
+das pautas: as 16 com diferença são exatamente as 16 fotos novas; as 209 de antes não mudaram (1
+mudança leve de 0,000% nas Reservas, o ruído conhecido). Ou seja, ligar `VITE_ROOT_DOMAIN` e
+`VITE_PAUTAS_SUBDOMAIN` no roteiro não alterou nenhuma tela existente, e as mudanças de código da
+T25 e da T26 também não.
 
 ## Critérios de aceite
 
@@ -100,6 +104,6 @@ DIFERENCAS
 
 ## Revisão
 
-- Spec: ver o resultado da comparação acima. Suíte 273 arquivos e 4465 testes, verde; build
+- Spec: 6 de 6 em sim. Suíte 273 arquivos e 4465 testes, verde; build
   limpo; lint 0 erros e 0 avisos.
 - Qualidade: nenhum crítico ou importante.

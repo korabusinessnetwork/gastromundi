@@ -1,3 +1,10 @@
+## Rodada 161, pendências finais do plano de refatoração, 2026-11-26
+- Spec: specs/refatoracao-pendencias-finais.md
+- Resultado: 6 de 6 critérios em sim, sem crítico nem importante. Ganchos de domínio fora de
+  `utils/`; lint 0 erros e 0 avisos (eram 25); decisão 038 (TanStack Query continua fora); site da
+  Kora e pautas no roteiro (225 telas, as 209 de antes sem diferença); cenários de banco da fase 1
+  contra um Postgres local montado das migrations, 58 conferências e 0 falhas. Suíte 273 arquivos /
+  4465 testes, verde; build limpo. Sem migration.
 ## Rodada 160, fase F passada 2 e encerramento do plano de refatoração, 2026-11-26
 - Spec: specs/fase-f-passada-2-encerramento.md
 - Resultado: F.1 a F.4 sem achado na mesma passada; a fase F sai do laço. F.3 com

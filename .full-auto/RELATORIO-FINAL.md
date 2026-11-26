@@ -92,6 +92,20 @@ A lista completa está em `.full-auto/DECISOES.md`.
 - Fluxo principal testado no navegador: sim. São 13 fluxos com `npm run fluxos`, incluindo abrir o
   caixa, vender, fechar o caixa, lançar pelo Palm e vender sem internet.
 
+## Pendências finais, feitas depois do encerramento (T25 a T29)
+- Os três ganchos de domínio saíram de `src/utils/hooks.js` para as features.
+- O lint ficou com 0 erros e 0 avisos. Eram 25 avisos:
+  - 15 diretivas inúteis saíram;
+  - 1 aviso de dependência foi corrigido;
+  - 8 foram mantidos de propósito, com o motivo escrito ao lado;
+  - 1 diretiva estava na linha errada e foi posta no lugar.
+- A decisão 038 registra que o TanStack Query continua fora, com os gatilhos para reavaliar.
+- O site da Kora e as pautas entraram no roteiro: 225 telas, e as 209 de antes não mudaram.
+- `npm run cenarios-banco` roda, num Postgres local montado das 125 migrations, os cenários das
+  quatro funções atômicas da fase 1: 58 conferências, 0 falhas. Ele também achou uma migration fora
+  de ordem (`20260725` altera uma função que só a `20260748` cria). Não afeta produção, mas montar
+  do zero dá esse aviso.
+
 ## Próximos passos sugeridos
 - Os itens TD021 a TD027 de `docs/09_BACKLOG/tech-debt.md`, achados durante a refatoração.
   - O TD026 deixa fonte serifada nas janelas abertas por portal.
