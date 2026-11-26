@@ -160,6 +160,24 @@ function roteiro(largura) {
       await itens.nth(1).locator(".checkout-view__split-input").fill("10", { timeout: 3000 });
       await page.locator(".checkout-view__pagamento-titulo").click({ timeout: 3000 });
     } });
+  // Fase 5: cancelar comanda com itens, cancelar pedido vazio e escolher mesa.
+  telas.push({ nome: "app-pdv-cancelar-comanda", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByRole("button", { name: /Cancelar Comanda/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-cancelar-pedido", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await page.locator("button.comanda-card", { hasText: "21" }).first().click({ timeout: 3000 });
+      await page.getByPlaceholder(/Ex: 5, Varanda/).fill("9", { timeout: 3000 });
+      await page.getByRole("button", { name: /Entrar na comanda/ }).click({ timeout: 3000 });
+      await page.getByRole("button", { name: /Cancelar Pedido/ }).click({ timeout: 3000 });
+    } });
+  telas.push({ nome: "app-pdv-escolher-mesa", perfil: "dono", caminho: "/app/pdv",
+    passo: async (page) => {
+      await abrirComanda15(page);
+      await page.getByTitle("Editar mesa e apelido").click({ timeout: 3000 });
+    } });
   // Fase 5: mapa de mesas e reservas do PDV (cada situação, hover, busca).
   const abaPdv = (rotulo) => (page) => page.getByRole("button", { name: rotulo, exact: true }).first().click({ timeout: 3000 });
   telas.push({ nome: "app-pdv-mapa", perfil: "dono", caminho: "/app/pdv", passo: abaPdv("Mapa") });
