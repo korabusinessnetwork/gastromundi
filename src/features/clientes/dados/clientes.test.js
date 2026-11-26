@@ -1,19 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("./jarvas", () => ({ emitirEvento: vi.fn() }));
+vi.mock("@/lib/jarvas", () => ({ emitirEvento: vi.fn() }));
 
 const { baixarConta } = vi.hoisted(() => ({ baixarConta: vi.fn() }));
 // Só a gravação é dublê; a regra de "conta em aberto" (contaEmAberto) é a real.
-vi.mock("./financeiro", async (importOriginal) => ({ ...(await importOriginal()), baixarConta }));
+vi.mock("@/lib/financeiro", async (importOriginal) => ({ ...(await importOriginal()), baixarConta }));
 
 const { mockSupabase } = vi.hoisted(() => ({ mockSupabase: { current: null } }));
-vi.mock("./supabase", async () => {
+vi.mock("@/lib/supabase", async () => {
   const { createMockSupabase } = await import("@/test/mockSupabase");
   mockSupabase.current = createMockSupabase();
   return { supabase: mockSupabase.current };
 });
 
-import { emitirEvento } from "./jarvas";
+import { emitirEvento } from "@/lib/jarvas";
 import {
   validarCadastroCliente,
   cadastrarCliente,

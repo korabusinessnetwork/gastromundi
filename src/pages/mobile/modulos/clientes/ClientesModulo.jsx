@@ -22,7 +22,7 @@ import {
   contasDeFiadoEmAberto,
   sanitizarTermoBusca,
   registrarPagamentoFiado,
-} from "@/lib/clientes";
+} from "@/features/clientes/dados/clientes";
 import "../modulos.css";
 import "./ClientesModulo.css";
 
@@ -32,9 +32,9 @@ import "./ClientesModulo.css";
  * Propósito no celular: consultar o cliente e o fiado dele na hora do
  * atendimento — não é o cadastro completo do desktop (ClientesView), é
  * uma lista rápida + detalhe com histórico e baixa de fiado. Reusa
- * inteiramente src/lib/clientes.js (mesma fonte de verdade do desktop);
+ * inteiramente src/features/clientes/dados/clientes.js (mesma fonte de verdade do desktop);
  * a única consulta própria desta tela é o somatório de fiado em aberto
- * por cliente (para ordenar/badge da lista) — src/lib/clientes.js não
+ * por cliente (para ordenar/badge da lista) — src/features/clientes/dados/clientes.js não
  * expõe isso em lote, então busca-se `lancamentos` direto e o resultado
  * passa por `calcularSaldoDevedor` (a mesma regra pura do resto do app)
  * agrupado por cliente, em vez de reimplementar o filtro de status.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LuUser, LuSearch, LuCheck, LuX } from "react-icons/lu";
-import { listarClientes, cadastrarCliente } from "@/lib/clientes";
+import { listarClientes, cadastrarCliente } from "@/features/clientes/dados/clientes";
 import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
 import "./ClienteFiadoSelector.css";
 

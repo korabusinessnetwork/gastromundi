@@ -9,7 +9,7 @@ import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/lib/combos";
-import { buscarClientePorId } from "@/lib/clientes";
+import { buscarClientePorId } from "@/features/clientes/dados/clientes";
 import { imprimirLancamento } from "@/lib/impressao/despacho";
 import { chaveLancamento, registroLancamentos } from "@/lib/impressao/lancamentos";
 import { useEstadoTransferencia } from "@/features/pdv/hooks/useEstadoTransferencia";

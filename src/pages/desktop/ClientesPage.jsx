@@ -1,4 +1,4 @@
-import ClientesView from "@/components/desktop/views/ClientesView";
+import ClientesView from "@/features/clientes/desktop/ClientesView";
 
 export default function ClientesPage() {
   return <ClientesView />;

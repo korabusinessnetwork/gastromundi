@@ -1,8 +1,8 @@
-import { supabase } from "./supabase";
-import { emitirEvento } from "./jarvas";
-import { baixarConta, contaEmAberto } from "./financeiro";
-import { apenasDigitos, validarDocumento } from "./documento";
-import { telefoneValido, apenasDigitosTelefone } from "./telefone";
+import { supabase } from "@/lib/supabase";
+import { emitirEvento } from "@/lib/jarvas";
+import { baixarConta, contaEmAberto } from "@/lib/financeiro";
+import { apenasDigitos, validarDocumento } from "@/lib/documento";
+import { telefoneValido, apenasDigitosTelefone } from "@/lib/telefone";
 
 /**
  * Clientes — F010 (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).

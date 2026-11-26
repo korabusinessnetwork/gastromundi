@@ -5,7 +5,7 @@ import {
 } from "react-icons/lu";
 import {
   buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor, contasDeFiadoEmAberto, anonimizarCliente, registrarAcessoDocumento
-} from "@/lib/clientes";
+} from "@/features/clientes/dados/clientes";
 import { formatarTelefone } from "@/lib/telefone";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
 

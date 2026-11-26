@@ -6,7 +6,7 @@ import {
 } from "react-icons/lu";
 import {
   atualizarCliente, validarCadastroCliente
-} from "@/lib/clientes";
+} from "@/features/clientes/dados/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
 import { mascararTelefone, telefoneValido } from "@/lib/telefone";
 import CampoDocumento from "@/components/shared/CampoDocumento";

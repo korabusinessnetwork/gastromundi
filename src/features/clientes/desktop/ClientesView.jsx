@@ -9,14 +9,14 @@ import {
 } from "react-icons/lu";
 import {
   listarClientes, cadastrarCliente
-} from "@/lib/clientes";
+} from "@/features/clientes/dados/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
 import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
 import CampoDocumento from "@/components/shared/CampoDocumento";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
 import "./ClientesView.css";
-import ClienteDetalhe from "./clientes/ClienteDetalhe";
-import ClienteEdicao from "./clientes/ClienteEdicao";
+import ClienteDetalhe from "./ClienteDetalhe";
+import ClienteEdicao from "./ClienteEdicao";
 import { ehGerencia } from "@/constants/roles";
 
 /**

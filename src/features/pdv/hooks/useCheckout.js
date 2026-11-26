@@ -4,7 +4,7 @@ import { getSizes } from "@/constants/sizes";
 import { LuWallet } from "react-icons/lu";
 import { useSessao, useOffline, useConfig } from "@/context/AppContext";
 import { verificarSenhaAdmin } from "@/lib/adminAuth";
-import { buscarClientePorId } from "@/lib/clientes";
+import { buscarClientePorId } from "@/features/clientes/dados/clientes";
 import { ajusteExigeSenha, validarAjuste } from "@/features/caixa/regras/vendas";
 // TD015: no split, cada entrada de pagamento é adicionada e removida do meio da
 // lista, e cada uma carrega estado próprio de tela (o método selecionado, o campo de
