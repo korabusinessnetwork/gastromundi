@@ -620,3 +620,9 @@
   border-color: var(--gm-border);
   color: var(--gm-muted);
 }
+
+.sidebar__rodape-feedback {
+  padding: 10px 12px;
+  border-top: 1px solid var(--gm-border);
+  flex-shrink: 0;
+}
