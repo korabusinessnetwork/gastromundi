@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { usePedidosDelivery } from "@/features/delivery/hooks/usePedidosDelivery";
 import { LuRefreshCw, LuBell, LuBellOff, LuHourglass, LuWifiOff, LuBike } from "react-icons/lu";
-import {
-  statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido
-} from "@/features/delivery/dados/deliveryPedidos";
+import { statusLabel, ehTerminal, agruparPorStatus, avancarPedido, cancelarPedido, carregarItensPedido, linkWhatsAppDoPedido } from "@/features/delivery/dados/deliveryPedidos";
 import {
   detectarNovosPedidos, alertarPedidosNovos, permissaoNotificacao, pedirPermissaoNotificacao, notificacoesSuportadas
 } from "@/features/delivery/regras/deliveryAlertas";
 import { baseCorStatus, cssCor } from "./corStatus";
 import CardPedido from "./CardPedido";
+import { atribuirEntregadorPedido, entregadoresAtivos } from "@/features/delivery/dados/entregadores";
+import { carregarConfigDelivery } from "@/features/delivery/dados/admin";
+import { useSessao } from "@/context/AppContext";
 
 // Intuitividade (Princípio nº 1): colunas por etapa (kanban) do fluxo, a
 // próxima ação em destaque no cartão, contato do cliente a um toque
@@ -23,9 +24,22 @@ const lerPrefAvisos = () => {
   }
 };
 
-export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
+export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser, entregadores = [] }) {
   const { pedidos, carregando, erro, recarregar } = usePedidosDelivery();
   const [tick, setTick] = useState(0); // recalcula "há X min" de tempos em tempos
+
+  // A config do delivery decide duas coisas desta aba: se a confirmação
+  // no WhatsApp abre ao aceitar, e quanto tempo de preparo prometer na
+  // mensagem. Falha ao carregar não trava nada — as duas são opcionais.
+  const { tenant } = useSessao();
+  const [config, setConfig] = useState(null);
+  useEffect(() => {
+    let ativo = true;
+    carregarConfigDelivery().then(({ data }) => {
+      if (ativo) setConfig(data ?? null);
+    });
+    return () => { ativo = false; };
+  }, []);
 
   // Avisos de pedido novo (Fase 5, Nível 1): som + Notification API. Só
   // alerta o que chega DEPOIS que a tela já carregou a lista base.
@@ -82,13 +96,51 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
 
   const avancar = useCallback(
     async (pedido) => {
-      const { error, proximo } = await avancarPedido(pedido, currentUser?.username);
+      const { error, proximo, etapa } = await avancarPedido(pedido, currentUser?.username);
       if (!proximo) return;
+      if (error && etapa === "venda") {
+        return aviso("Não foi possível registrar a venda deste pedido. Ele continua em rota, tente de novo.", "err");
+      }
       if (error) return aviso("Não foi possível atualizar o pedido. Tente novamente.", "err");
-      aviso(`Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`, "ok");
+
+      // Aceitar é o momento em que o cliente ainda não sabe se a loja viu o
+      // pedido dele — é a angústia dos primeiros minutos. A confirmação
+      // abre escrita, para o operador conferir e enviar num toque. Só abre
+      // quando o dono ligou a chave e quando há telefone utilizável: aba
+      // que se abre sozinha sem nada dentro é pior que aba nenhuma.
+      if (config?.whatsapp_no_aceite && (proximo === "em_preparo" || proximo === "saiu_entrega")) {
+        // A mensagem é a do estado em que o pedido ACABOU de entrar, não a
+        // do estado em que estava — quem acabou de sair para entrega não
+        // pode receber "recebemos seu pedido".
+        //
+        // Os itens são buscados aqui: a confirmação vale muito mais com a
+        // lista do que sem ela, e é justamente na confirmação que o cliente
+        // pega o item trocado enquanto ainda dá para refazer na cozinha.
+        // Falha ao buscar não impede o aviso — ele sai sem a lista.
+        const { data: itensDoPedido } = await carregarItensPedido(pedido.id);
+        const link = linkWhatsAppDoPedido(
+          { ...pedido, status: proximo },
+          {
+            nome: tenant?.nome,
+            tempoPreparo: config?.tempo_preparo_min,
+            entregador: entregadores.find(
+              (e) => String(e.id) === String(pedido.entregador_id),
+            )?.nome,
+          },
+          itensDoPedido ?? [],
+        );
+        if (link) window.open(link, "_blank", "noopener,noreferrer");
+      }
+
+      aviso(
+        proximo === "entregue"
+          ? `Pedido ${pedido.numero} entregue, venda registrada.`
+          : `Pedido ${pedido.numero}: ${statusLabel(proximo).toLowerCase()}.`,
+        "ok",
+      );
       await recarregar();
     },
-    [aviso, recarregar, currentUser]
+    [aviso, recarregar, currentUser, config, tenant, entregadores]
   );
 
   const cancelar = useCallback(
@@ -100,6 +152,23 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
     },
     [aviso, recarregar, currentUser]
   );
+
+  // Atribui/troca entregador (e valor fotografado) num pedido. entregadorId
+  // nulo desatribui. Recarrega pra refletir na hora (o realtime também traz,
+  // mas o clique do operador precisa de resposta imediata).
+  const atribuir = useCallback(
+    async (pedido, entregadorId, valor = null) => {
+      const { error } = await atribuirEntregadorPedido(pedido.id, entregadorId || null, valor);
+      if (error) return aviso("Não foi possível atribuir o entregador. Tente novamente.", "err");
+      await recarregar();
+    },
+    [aviso, recarregar]
+  );
+
+  // Só os ativos no seletor, mas garantindo que o entregador já atribuído a um
+  // pedido apareça mesmo se tiver sido desativado depois (senão o cartão
+  // mostraria "sem entregador" para um pedido que tem um).
+  const ativos = useMemo(() => entregadoresAtivos(entregadores), [entregadores]);
 
   return (
     <>
@@ -141,7 +210,19 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
         <div className="delivery-view__vazio">
           <div className="delivery-view__vazio-emoji"><LuWifiOff aria-hidden="true" /></div>
           <div className="delivery-view__vazio-titulo">Não conseguimos carregar os pedidos</div>
-          <div className="delivery-view__vazio-desc">Verifique a conexão e toque em “Atualizar”.</div>
+          {/* "Verifique a conexão" era um chute, e chute errado manda o
+              operador procurar no lugar errado. O Postgres diz o motivo
+              com todas as letras — repassar o texto dele é o que separa
+              "a internet caiu" de "falta rodar a migração". */}
+          <div className="delivery-view__vazio-desc">
+            {erro?.message || "Verifique a conexão e toque em “Atualizar”."}
+          </div>
+          {/column .* does not exist/i.test(erro?.message ?? "") && (
+            <div className="delivery-view__vazio-desc">
+              O banco está atrás do sistema: falta rodar as migrações pendentes
+              (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -195,8 +276,12 @@ export default function AbaPedidos({ isAdmin, ehAddon, aviso, currentUser }) {
                           pedido={p}
                           isAdmin={isAdmin}
                           ehAddon={ehAddon}
+                          entregadores={entregadores}
+                          entregadoresAtivos={ativos}
+                          loja={{ nome: tenant?.nome, tempoPreparo: config?.tempo_preparo_min }}
                           onAvancar={() => avancar(p)}
                           onCancelar={() => cancelar(p)}
+                          onAtribuirEntregador={atribuir}
                         />
                       ))}
                     </div>

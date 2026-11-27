@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { logAction } from "@/features/auditoria/dados/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
@@ -8,6 +8,7 @@ import {
 } from "@/features/delivery/deliveryAdmin";
 import CardProduto from "./CardProduto";
 import ModalProduto from "./ModalProduto";
+import ModalImportar from "@/features/delivery/desktop/ModalImportar";
 
 // ════════════════════════════════════════════════════════════════
 // ABA 1 — Cardápio (importação no addon / cadastro no standalone)
@@ -17,17 +18,39 @@ export default function AbaCardapio({
   products, linhas, tenant, addProduct, updateProduct, recarregarProdutos, currentUser, aviso, recarregar,
 }) {
   const [importando, setImportando] = useState(false);
+  const [escolhendoImport, setEscolhendoImport] = useState(false);
   const [modal, setModal] = useState(null); // { modo:'novo'|'editar', item? }
+  // Busca e categoria do cardápio já publicado. Com trinta itens numa grade
+  // de cinco colunas, achar "Coca" era rolar a tela procurando com o olho.
+  const [busca, setBusca] = useState("");
+  const [catFiltro, setCatFiltro] = useState("Todas");
 
-  const importar = async () => {
+  const categorias = useMemo(
+    () => ["Todas", ...new Set(itens.map((it) => it.produto?.category).filter(Boolean))].sort(
+      (a, b) => (a === "Todas" ? -1 : b === "Todas" ? 1 : a.localeCompare(b, "pt-BR")),
+    ),
+    [itens],
+  );
+
+  const itensFiltrados = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    return itens.filter(
+      (it) =>
+        (catFiltro === "Todas" || it.produto?.category === catFiltro) &&
+        (!t || (it.produto?.name ?? "").toLowerCase().includes(t)),
+    );
+  }, [itens, busca, catFiltro]);
+
+  const importar = async (ids) => {
     if (importando || faltamImportar.length === 0) return;
     setImportando(true);
-    const { data, error } = await importarProdutosDelivery(products, linhas);
+    const { data, error } = await importarProdutosDelivery(products, linhas, ids);
     setImportando(false);
     if (error) {
       aviso("Não foi possível importar agora. Tente novamente.", "err");
       return;
     }
+    setEscolhendoImport(false);
     logAction(currentUser?.username, "delivery:importar", {
       msg: `Importou ${data.importados} produto(s) do PDV para o delivery`,
       name: currentUser?.name, role: currentUser?.role,
@@ -51,14 +74,27 @@ export default function AbaCardapio({
                 : "Tudo em dia, todos os produtos do PDV já estão no delivery."}
             </div>
           </div>
-          <button
-            onClick={importar}
-            disabled={importando || faltamImportar.length === 0}
-            className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
-          >
-            <LuDownload size={15} />
-            {importando ? "Importando…" : faltamImportar.length > 0 ? `Importar ${faltamImportar.length}` : "Importado"}
-          </button>
+          <div className="delivery-view__import-acoes">
+            <button
+              onClick={() => setEscolhendoImport(true)}
+              disabled={importando || faltamImportar.length === 0}
+              className="delivery-view__btn delivery-view__btn--importar delivery-view__btn--acao-topo"
+            >
+              <LuDownload size={15} />
+              {faltamImportar.length > 0 ? `Escolher e importar (${faltamImportar.length})` : "Importado"}
+            </button>
+            {/* Criar direto daqui, mesmo integrado ao PDV. Um item que só
+                existe no delivery (combo do site, promoção da semana)
+                obrigava a ir ao Cadastro Produtos, criar, voltar e
+                importar. O produto nasce no PDV também — é o mesmo
+                catálogo —, e já entra publicado no cardápio online. */}
+            <button
+              onClick={() => setModal({ modo: "novo" })}
+              className="delivery-view__btn delivery-view__btn--primario delivery-view__btn--acao-topo"
+            >
+              <LuPlus size={15} /> Novo produto
+            </button>
+          </div>
         </div>
       )}
 
@@ -70,6 +106,29 @@ export default function AbaCardapio({
           >
             <LuPlus size={15} /> Novo produto
           </button>
+        </div>
+      )}
+
+      {/* Busca e categoria do que já está publicado. Só aparecem quando há
+          o bastante para valer a pena procurar — num cardápio de cinco
+          itens, dois campos de filtro são mais estorvo do que ajuda. */}
+      {!carregando && itens.length > 8 && (
+        <div className="delivery-view__filtros">
+          <input
+            className="delivery-view__input"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar no cardápio…"
+            aria-label="Buscar no cardápio do delivery"
+          />
+          <select
+            className="delivery-view__input"
+            value={catFiltro}
+            onChange={(e) => setCatFiltro(e.target.value)}
+            aria-label="Filtrar o cardápio por categoria"
+          >
+            {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
         </div>
       )}
 
@@ -91,7 +150,7 @@ export default function AbaCardapio({
         </div>
       ) : (
         <div className="delivery-view__cards">
-          {itens.map((it) => (
+          {itensFiltrados.map((it) => (
             <CardProduto
               key={it.id}
               item={it}
@@ -115,7 +174,21 @@ export default function AbaCardapio({
               }}
             />
           ))}
+          {itensFiltrados.length === 0 && (
+            <div className="delivery-view__hint delivery-view__filtro-vazio">
+              Nenhum produto com esse filtro. Limpe a busca ou troque a categoria.
+            </div>
+          )}
         </div>
+      )}
+
+      {escolhendoImport && (
+        <ModalImportar
+          candidatos={faltamImportar}
+          importando={importando}
+          onFechar={() => setEscolhendoImport(false)}
+          onConfirmar={importar}
+        />
       )}
 
       {modal && (

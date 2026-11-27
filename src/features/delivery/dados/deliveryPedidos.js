@@ -562,11 +562,20 @@ export function linkConfirmacaoWhatsApp(pedido, loja, itens) {
 /**
  * Leva o pedido para o próximo status do fluxo. Pedido em status final não tem
  * próximo: volta `proximo: null` sem chamar o banco.
- * @returns {Promise<{ data: object|null, error: Error|null, proximo: string|null }>}
+ * @returns {Promise<{ data: object|null, error: Error|null, proximo: string|null, etapa?: "venda" }>}
  */
 export async function avancarPedido(pedido, operador) {
   const proximo = proximoStatus(pedido?.status);
   if (!proximo) return { data: null, error: null, proximo: null };
+  // ENTREGUE é o fim do dinheiro: é aqui que o pedido vira venda, com
+  // registro próprio (origem = 'delivery'). A venda vem ANTES do status: se
+  // ela falhar, o pedido continua como estava e o operador tenta de novo.
+  // Ao contrário, um pedido entregue com a venda faltando some do painel
+  // levando o dinheiro junto.
+  if (proximo === "entregue") {
+    const { error: erroVenda } = await registrarVendaDelivery(pedido.id);
+    if (erroVenda) return { data: null, error: erroVenda, proximo, etapa: "venda" };
+  }
   const { data, error } = await atualizarStatusPedido(pedido.id, proximo, {
     de: pedido.status,
     operador,

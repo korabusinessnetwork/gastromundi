@@ -3,13 +3,15 @@ import { createPortal } from "react-dom";
 import { logAction } from "@/features/auditoria/dados/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import { LuPencil, LuTrash2, LuX, LuCheck, LuImage, LuImages, LuUpload, LuRefreshCw, LuTriangleAlert } from "react-icons/lu";
+import { LuPencil, LuTrash2, LuX, LuCheck, LuImage, LuImages, LuUpload, LuRefreshCw, LuTriangleAlert, LuPlus } from "react-icons/lu";
 import {
   salvarProdutoDelivery, formatarReais
 } from "@/features/delivery/deliveryAdmin";
 import { enviarFotoProduto, copiarFotoParaProduto, ACCEPT_IMAGEM } from "@/features/delivery/dados/deliveryFotos";
 import { useGaleriaFotos } from "@/features/delivery/hooks/useGaleriaFotos";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
+import { desvincularGrupoProduto, listarBibliotecaGrupos, vincularGrupoProduto } from "@/features/delivery/dados/admin";
+import NovoGrupoExtrasInline from "@/features/delivery/desktop/NovoGrupoExtrasInline";
 
 // Modal criar/editar item do delivery.
 // Addon: só a camada de delivery (foto/descrição/disponível/ordem) —
@@ -34,7 +36,62 @@ export default function ModalProduto({
   const [fotoGaleriaOrigem, setFotoGaleriaOrigem] = useState(null);
   const fotoInputRef = useRef(null);
   const fotoAlvoRef = useRef(null);
-  const [disponivel, setDisponivel] = useState(item?.disponivel ?? true);
+  // Extras (grupos de complemento) que aparecem NESTE produto. Antes,
+  // criar o produto aqui e dar extras a ele eram duas viagens: salvava,
+  // ia na aba Complementos, abria cada grupo e marcava o produto na lista
+  // "aparece nestes produtos". Agora é a mesma tela, e ao criar já sai com
+  // os extras ligados.
+  const [biblioteca, setBiblioteca] = useState([]);
+  const [carregandoExtras, setCarregandoExtras] = useState(true);
+  // Biblioteca VAZIA e biblioteca que FALHOU não são a mesma coisa: vazia é
+  // "ainda não existe grupo" (dá para criar um); falhou é "não sei o que
+  // existe", e oferecer criar levaria o dono a duplicar um grupo que já tem.
+  const [extrasIndisponiveis, setExtrasIndisponiveis] = useState(false);
+  const [extras, setExtras] = useState(() => new Set());
+  // Painel de criar grupo sem sair daqui. null = fechado.
+  const [criandoGrupo, setCriandoGrupo] = useState(null);
+  // Os vínculos como estavam ao abrir: o salvar aplica só a DIFERENÇA, em
+  // vez de apagar tudo e regravar. Regravar mexeria em vínculos que esta
+  // tela nem mostrou, e cada escrita é uma chance de falhar no meio.
+  const extrasOriginais = useRef(new Set());
+
+  useEffect(() => {
+    let ativo = true;
+    (async () => {
+      const { data, error } = await listarBibliotecaGrupos();
+      if (!ativo) return;
+      setCarregandoExtras(false);
+      // Falha aqui não trava o cadastro do produto: a seção some e o dono
+      // liga os extras depois, pela aba Complementos, como sempre fez.
+      if (error) { setExtrasIndisponiveis(true); return; }
+      setExtrasIndisponiveis(false);
+      setBiblioteca(data ?? []);
+      const meus = new Set(
+        (data ?? [])
+          .filter((g) => (g.produtoIds ?? []).some((id) => String(id) === String(item?.produto_id)))
+          .map((g) => String(g.id)),
+      );
+      setExtras(meus);
+      extrasOriginais.current = meus;
+    })();
+    return () => { ativo = false; };
+  }, [item?.produto_id]);
+
+  const alternarExtra = (id) =>
+    setExtras((prev) => {
+      const nova = new Set(prev);
+      const k = String(id);
+      if (nova.has(k)) nova.delete(k);
+      else nova.add(k);
+      return nova;
+    });
+
+  // Disponibilidade NÃO se edita aqui — o botão mora no card, na grade.
+  // O valor de agora é carregado só para o salvar não zerá-lo: o payload de
+  // `salvarProdutoDelivery` é a linha inteira, então omitir o campo apagaria
+  // o "indisponível" que o dono acabou de marcar na grade. Produto novo
+  // nasce disponível.
+  const disponivel = item?.disponivel ?? true;
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -87,10 +144,17 @@ export default function ModalProduto({
     [products]
   );
 
+  // Produto novo é cadastrado aqui em `products` mesmo no modo integrado:
+  // é o mesmo catálogo do PDV, e obrigar a pessoa a sair para o Cadastro
+  // Produtos e voltar para importar era o caminho torto que existia.
+  // Editar no integrado continua sem tocar em `products` — nome e preço
+  // são do PDV.
+  const criaProduto = !ehAddon || modo === "novo";
+
   const salvar = async () => {
     if (salvando) return;
-    // Standalone precisa de nome+preço (o produto é criado aqui).
-    if (!ehAddon) {
+    // Quem cria o produto precisa de nome+preço.
+    if (criaProduto) {
       if (!nome.trim()) return setErro("Informe o nome do produto.");
       const p = parseFloat(String(preco).replace(",", "."));
       if (isNaN(p) || p <= 0) return setErro("Preço deve ser maior que zero.");
@@ -100,8 +164,8 @@ export default function ModalProduto({
 
     let produtoId = item?.produto_id;
 
-    // Standalone: cria/atualiza o produto em products (este é o cadastro dele).
-    if (!ehAddon) {
+    // Cria/atualiza o produto em products (este é o cadastro dele).
+    if (criaProduto) {
       const payload = {
         name: nome.trim().toUpperCase(),
         price: parseFloat(String(preco).replace(",", ".")),
@@ -160,10 +224,33 @@ export default function ModalProduto({
       disponivel,
       ordem: item?.ordem ?? 0,
     });
-    setSalvando(false);
-    if (error) return setErro(error.message || "Não foi possível salvar no delivery.");
+    if (error) {
+      setSalvando(false);
+      return setErro(error.message || "Não foi possível salvar no delivery.");
+    }
 
-    if (!ehAddon) await recarregarProdutos();
+    // Extras: só o que MUDOU. O produto e a camada de delivery já estão
+    // gravados, então uma falha aqui não desfaz o cadastro — avisa e deixa
+    // o resto salvo, em vez de fingir que nada aconteceu.
+    const antes = extrasOriginais.current;
+    const ligar = [...extras].filter((id) => !antes.has(id));
+    const desligar = [...antes].filter((id) => !extras.has(id));
+    let falhouExtra = false;
+    for (const id of ligar) {
+      const { error: e } = await vincularGrupoProduto(id, produtoId);
+      if (e) falhouExtra = true;
+    }
+    for (const id of desligar) {
+      const { error: e } = await desvincularGrupoProduto(id, produtoId);
+      if (e) falhouExtra = true;
+    }
+
+    setSalvando(false);
+    if (falhouExtra) {
+      return setErro("O produto foi salvo, mas não deu para ajustar os extras. Tente de novo pela aba Complementos.");
+    }
+
+    if (criaProduto) await recarregarProdutos();
     aviso(modo === "novo" ? "Produto adicionado ao delivery." : "Alterações salvas.", "ok");
     onSalvo();
   };
@@ -181,8 +268,9 @@ export default function ModalProduto({
           </button>
         </div>
 
-        {/* Standalone: dados do produto. Addon: só referência do PDV. */}
-        {ehAddon ? (
+        {/* Produto novo: os campos do cadastro. Editando no integrado: só a
+            referência do PDV, porque nome e preço são de lá. */}
+        {!criaProduto ? (
           <div className="delivery-view__aviso delivery-view__aviso--info">
             <strong>{prod?.name || "Produto"}</strong>
             {prod?.price != null ? ` · ${formatarReais(prod.price)}` : ""}, nome e preço vêm do
@@ -206,6 +294,73 @@ export default function ModalProduto({
               <datalist id="delivery-cats">{categorias.map((c) => <option key={c} value={c} />)}</datalist>
             </div>
           </>
+        )}
+
+        {/* Extras deste produto. Mesma biblioteca da aba Complementos — o
+            grupo continua sendo reutilizável em vários produtos; aqui só se
+            marca em quais ele aparece. Sem isto, criar um produto e dar
+            extras a ele eram duas viagens de tela. */}
+        {!carregandoExtras && !extrasIndisponiveis && (
+          <div className="delivery-view__campo">
+            <label className="delivery-view__label">
+              Extras deste produto <span className="delivery-view__hint">(opcional)</span>
+            </label>
+            {/* Biblioteca vazia escondia a seção INTEIRA — quem cadastrava o
+                primeiro produto do delivery não via nem que extras existiam,
+                e tinha de descobrir sozinho a aba Complementos. */}
+            {biblioteca.length === 0 && criandoGrupo == null && (
+              <p className="delivery-view__hint">
+                Nenhum grupo de extras ainda. Crie o primeiro aqui mesmo,
+                depois ele fica disponível para os outros produtos também.
+              </p>
+            )}
+            <div className="delivery-view__extras-lista">
+              {biblioteca.map((g) => {
+                const nItens = (g.itens ?? []).length;
+                const obrigatorio = Number(g.min_escolhas) > 0;
+                return (
+                  <label key={g.id} className="delivery-view__import-item">
+                    <input
+                      type="checkbox"
+                      checked={extras.has(String(g.id))}
+                      onChange={() => alternarExtra(g.id)}
+                    />
+                    <span className="delivery-view__item-nome">{g.nome}</span>
+                    <span className="delivery-view__hint">
+                      {obrigatorio ? "Obrigatório" : "Opcional"} · {nItens}{" "}
+                      {nItens === 1 ? "item" : "itens"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {criandoGrupo == null ? (
+              <button
+                type="button"
+                onClick={() => setCriandoGrupo("")}
+                className="delivery-view__extras-criar"
+              >
+                <LuPlus size={14} /> Criar grupo de extras
+              </button>
+            ) : (
+              <NovoGrupoExtrasInline
+                nomeInicial={criandoGrupo}
+                onCancelar={() => setCriandoGrupo(null)}
+                onCriado={(grupo, avisoParcial) => {
+                  // Entra na lista JÁ marcado: quem acabou de criar o grupo
+                  // para este produto não quer marcá-lo de novo.
+                  setBiblioteca((prev) => [...prev, grupo]);
+                  setExtras((prev) => new Set(prev).add(String(grupo.id)));
+                  setCriandoGrupo(null);
+                  if (avisoParcial) aviso?.(avisoParcial, "err");
+                }}
+              />
+            )}
+            <span className="delivery-view__hint">
+              O mesmo grupo pode aparecer em vários produtos. Para editar as opções
+              de um grupo que já existe, use a aba Complementos.
+            </span>
+          </div>
         )}
 
         {/* Camada de delivery (ambos os modos) — foto do produto (upload) */}
@@ -289,16 +444,6 @@ export default function ModalProduto({
           <label className="delivery-view__label">Descrição</label>
           <textarea className="delivery-view__textarea" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Pão, hambúrguer, queijo, alface e tomate." maxLength={280} />
         </div>
-        <label className="delivery-view__switch">
-          <span>Disponível no cardápio</span>
-          <span className="delivery-view__toggle">
-            <input type="checkbox" checked={disponivel} onChange={(e) => setDisponivel(e.target.checked)} />
-            <span className="delivery-view__toggle-trilho" aria-hidden="true">
-              <span className="delivery-view__toggle-botao" />
-            </span>
-          </span>
-        </label>
-
         {erro && (
           <div className="delivery-view__aviso delivery-view__aviso--erro">
             <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}

@@ -117,3 +117,11 @@ export function fecharDelivery(pedidos) {
     valorEmRota: emRota.reduce((s, p) => s + num(p.total), 0),
   };
 }
+
+// ── Fechamento do dia: quanto pagar cada entregador no período ───────
+export const diaLocalISO = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dia}`;
+};
