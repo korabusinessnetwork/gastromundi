@@ -27,6 +27,9 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
   );
   const [endereco, setEndereco] = useState(cliente.endereco ?? "");
   const [obs, setObs] = useState(cliente.observacoes ?? "");
+  // A coluna é `date`: o Postgres devolve "AAAA-MM-DD", que é exatamente o
+  // que o <input type="date"> espera, sem conversão e sem fuso no meio.
+  const [nascimento, setNascimento] = useState(String(cliente.data_nascimento ?? "").slice(0, 10));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState(null);
 
@@ -47,7 +50,7 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
     setErro(null);
     const { data, error } = await atualizarCliente(
       cliente.id,
-      { nome, telefone, documento, documentoTipo: docTipo, endereco, observacoes: obs },
+      { nome, telefone, documento, documentoTipo: docTipo, endereco, observacoes: obs, dataNascimento: nascimento },
       usuario,
     );
     setSalvando(false);
@@ -97,6 +100,17 @@ export default function ClienteEdicao({ cliente, usuario, onClose, onSalvo }) {
             onValor={setDocumento}
             invalido={docInvalido}
           />
+          <div>
+            <label className="clientes-view__label">Data de nascimento <span className="clientes-view__label-opcional">(opcional)</span></label>
+            <input
+              type="date"
+              value={nascimento}
+              onChange={(e) => setNascimento(e.target.value)}
+              max={new Date().toISOString().slice(0, 10)}
+              aria-label="Data de nascimento"
+              className="clientes-view__input"
+            />
+          </div>
           <div>
             <label className="clientes-view__label">Endereço <span className="clientes-view__label-opcional">(para delivery, opcional)</span></label>
             <input

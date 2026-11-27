@@ -5,19 +5,30 @@ import { useSessao } from "@/context/AppContext";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import {
-  LuUsers, LuSearch, LuPlus, LuPhone, LuMapPin, LuX, LuCircleAlert
+  LuUsers, LuSearch, LuPlus, LuPhone, LuMapPin, LuX, LuCircleAlert,
+  LuStore, LuBike, LuCake, LuFilterX,
 } from "react-icons/lu";
 import {
-  listarClientes, cadastrarCliente
+  listarClientes, cadastrarCliente,
+  filtrarClientes, origemDoCliente, rotuloAniversario, MESES_PT,
 } from "@/features/clientes/dados/clientes";
 import { apenasDigitos, validarDocumento, formatarDocumento } from "@/lib/documento";
 import { mascararTelefone, telefoneValido, formatarTelefone } from "@/lib/telefone";
 import CampoDocumento from "@/components/shared/CampoDocumento";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
+import SeloOrigem from "./SeloOrigem";
+import BotaoOrigem from "./BotaoOrigem";
 import "./ClientesView.css";
 import ClienteDetalhe from "./ClienteDetalhe";
 import ClienteEdicao from "./ClienteEdicao";
 import { ehGerencia } from "@/constants/roles";
+
+/** Hoje em "AAAA-MM-DD" — teto do campo de nascimento (ninguém nasce amanhã). */
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+
 
 /**
  * F010 — Clientes (docs/03_REGRAS_DE_NEGOCIO/CLIENTES.md).
@@ -45,9 +56,16 @@ export default function ClientesView() {
   const [novoDocTipo, setNovoDocTipo] = useState("cpf");
   const [novoDocumento, setNovoDocumento] = useState("");
   const [novoEndereco, setNovoEndereco] = useState("");
+  const [novoNascimento, setNovoNascimento] = useState("");
   const [novoObs, setNovoObs] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erroCadastro, setErroCadastro] = useState(null);
+
+  // Filtros da lista. Ficam na tela (e não na consulta) porque recortam o que
+  // já veio: a busca por nome/telefone é que precisa ir ao servidor.
+  const [filtroOrigem, setFiltroOrigem] = useState("todos");
+  const [filtroMes, setFiltroMes] = useState("todos");
+  const [filtroComEndereco, setFiltroComEndereco] = useState(false);
 
   const [clienteAberto, setClienteAberto] = useState(null);
   const [clienteEditando, setClienteEditando] = useState(null);
@@ -68,9 +86,24 @@ export default function ClientesView() {
 
   const abrirCadastro = () => {
     setNovoNome(""); setNovoTelefone(""); setNovoEndereco(""); setNovoObs("");
-    setNovoDocTipo("cpf"); setNovoDocumento("");
+    setNovoDocTipo("cpf"); setNovoDocumento(""); setNovoNascimento("");
     setErroCadastro(null);
     setShowCadastro(true);
+  };
+
+  const visiveis = filtrarClientes(clientes, {
+    origem: filtroOrigem,
+    mesAniversario: filtroMes,
+    comEndereco: filtroComEndereco,
+  });
+  // Os contadores ficam nos próprios botões: a divisão entre balcão e delivery
+  // aparece antes de clicar, sem precisar filtrar para descobrir.
+  const totalDelivery = clientes.filter((c) => origemDoCliente(c) === "delivery").length;
+  const totalPdv = clientes.length - totalDelivery;
+  const filtrando = filtroOrigem !== "todos" || filtroMes !== "todos" || filtroComEndereco;
+
+  const limparFiltros = () => {
+    setFiltroOrigem("todos"); setFiltroMes("todos"); setFiltroComEndereco(false);
   };
 
   // Ao trocar cpf↔cnpj, remascara os dígitos já digitados no novo formato.
@@ -96,6 +129,7 @@ export default function ClientesView() {
         nome: novoNome, telefone: novoTelefone,
         documento: novoDocumento, documentoTipo: novoDocTipo,
         endereco: novoEndereco, observacoes: novoObs,
+        dataNascimento: novoNascimento,
       },
       currentUser?.username,
     );
@@ -137,6 +171,49 @@ export default function ClientesView() {
             className="clientes-view__busca-input"
           />
         </div>
+
+        {/* Filtros — de onde veio o cliente, mês do aniversário e quem tem
+            endereço. É o recorte que serve para promoção: "delivery que faz
+            aniversário em maio", "quem tem endereço para entrega". */}
+        <div className="clientes-view__filtros" role="group" aria-label="Filtros de clientes">
+          <div className="clientes-view__chips">
+            <BotaoOrigem ativo={filtroOrigem === "todos"} onClick={() => setFiltroOrigem("todos")}>
+              <LuUsers size={13} /> Todos <b>{clientes.length}</b>
+            </BotaoOrigem>
+            <BotaoOrigem ativo={filtroOrigem === "pdv"} onClick={() => setFiltroOrigem("pdv")}>
+              <LuStore size={13} /> Frente de caixa <b>{totalPdv}</b>
+            </BotaoOrigem>
+            <BotaoOrigem ativo={filtroOrigem === "delivery"} onClick={() => setFiltroOrigem("delivery")}>
+              <LuBike size={13} /> Delivery <b>{totalDelivery}</b>
+            </BotaoOrigem>
+          </div>
+
+          <label className="clientes-view__filtro-mes">
+            <LuCake size={13} />
+            <span className="clientes-view__filtro-mes-rotulo">Aniversário em</span>
+            <select
+              value={filtroMes}
+              onChange={(e) => setFiltroMes(e.target.value)}
+              className="clientes-view__select"
+              aria-label="Filtrar por mês de aniversário"
+            >
+              <option value="todos">Qualquer mês</option>
+              {MESES_PT.map((nome, i) => (
+                <option key={nome} value={i + 1}>{nome}</option>
+              ))}
+            </select>
+          </label>
+
+          <BotaoOrigem ativo={filtroComEndereco} onClick={() => setFiltroComEndereco((v) => !v)}>
+            <LuMapPin size={13} /> Com endereço
+          </BotaoOrigem>
+
+          {filtrando && (
+            <button onClick={limparFiltros} className="clientes-view__limpar">
+              <LuFilterX size={13} /> Limpar filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Lista */}
@@ -151,25 +228,47 @@ export default function ClientesView() {
           <div className="clientes-view__estado">
             <div className="clientes-view__msg-estado">Carregando clientes...</div>
           </div>
-        ) : clientes.length === 0 ? (
+        ) : visiveis.length === 0 ? (
           <div className="clientes-view__estado">
             <LuUsers size={44} className="clientes-view__icone-vazio" />
             <div className="clientes-view__titulo-estado">
-              {busca.trim() ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
+              {clientes.length > 0
+                ? "Nenhum cliente com esses filtros"
+                : busca.trim() ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado ainda"}
             </div>
-            {!busca.trim() && (
+            {/* Lista vazia por causa do filtro parece cadastro vazio. O caminho
+                de volta fica aqui mesmo, ao lado da mensagem. */}
+            {clientes.length > 0 ? (
+              <button onClick={limparFiltros} className="clientes-view__limpar">
+                <LuFilterX size={13} /> Limpar filtros
+              </button>
+            ) : !busca.trim() && (
               <div className="clientes-view__msg-vazio">Clique em "Novo Cliente" para cadastrar o primeiro</div>
             )}
           </div>
         ) : (
+          <>
+          {filtrando && (
+            <div className="clientes-view__contagem">
+              Mostrando {visiveis.length} de {clientes.length} clientes
+            </div>
+          )}
           <div className="clientes-view__grid">
-            {clientes.map((c) => (
+            {visiveis.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setClienteAberto(c)}
                 className="clientes-view__card"
               >
-                <div className="clientes-view__card-nome">{c.nome}</div>
+                <div className="clientes-view__card-topo">
+                  <div className="clientes-view__card-nome">{c.nome}</div>
+                  <SeloOrigem cliente={c} />
+                </div>
+                {rotuloAniversario(c) && (
+                  <div className="clientes-view__card-linha">
+                    <LuCake size={13} /> {rotuloAniversario(c)}
+                  </div>
+                )}
                 {c.telefone && (
                   <div className="clientes-view__card-linha">
                     <LuPhone size={13} /> {formatarTelefone(c.telefone)}
@@ -192,6 +291,7 @@ export default function ClientesView() {
               </button>
             ))}
           </div>
+          </>
         )}
       </div>
 
@@ -245,6 +345,18 @@ export default function ClientesView() {
                 onValor={setNovoDocumento}
                 invalido={docInvalido}
               />
+              <div>
+                <label className="clientes-view__label">Data de nascimento <span className="clientes-view__label-opcional">(opcional)</span></label>
+                <input
+                  type="date"
+                  value={novoNascimento}
+                  onChange={(e) => setNovoNascimento(e.target.value)}
+                  max={hojeISO()}
+                  aria-label="Data de nascimento"
+                  className="clientes-view__input"
+                />
+                <div className="clientes-view__ajuda-campo">Serve para separar aniversariantes do mês em promoções.</div>
+              </div>
               <div>
                 <label className="clientes-view__label">Endereço <span className="clientes-view__label-opcional">(para delivery, opcional)</span></label>
                 <input
