@@ -63,7 +63,9 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  flex: 1;
+  /* Base no tamanho do conteúdo: sem espaço na linha, o grupo inteiro desce
+     em vez de encolher até cada botão ficar numa linha. */
+  flex: 1 1 auto;
 }
 
 .aba-vendas__metodo-icone {

@@ -133,7 +133,7 @@ function roteiro(largura) {
   }
   // Fase 5: o carrinho e a finalização só aparecem com uma comanda aberta.
   const abrirComanda15 = (page) =>
-    page.locator("button.comanda-card", { hasText: "R$ 32.00" }).first().click({ timeout: 3000 });
+    page.locator("button.comanda-card", { hasText: /R\$ 32[.,]00/ }).first().click({ timeout: 3000 });
 
   telas.push({
     nome: "app-pdv-comanda", perfil: "dono", caminho: "/app/pdv",
@@ -232,11 +232,11 @@ function roteiro(largura) {
   telas.push({ nome: "app-pdv-hover-livre", perfil: "dono", caminho: "/app/pdv",
     passo: (page) => page.locator("button.comanda-card", { hasText: "Disponível" }).first().hover({ timeout: 3000 }) });
   telas.push({ nome: "app-pdv-hover-comanda", perfil: "dono", caminho: "/app/pdv",
-    passo: (page) => page.locator("button.comanda-card", { hasText: "R$ 28.50" }).first().hover({ timeout: 3000 }) });
+    passo: (page) => page.locator("button.comanda-card", { hasText: /R\$ 28[.,]50/ }).first().hover({ timeout: 3000 }) });
   telas.push({ nome: "app-pdv-abertas", perfil: "dono", caminho: "/app/pdv",
     passo: async (page) => {
       await page.getByRole("button", { name: "Comandas abertas", exact: true }).click({ timeout: 3000 });
-      await page.locator(".comanda-grid__item-busca", { hasText: "R$ 28.50" }).hover({ timeout: 3000 });
+      await page.locator(".comanda-grid__item-busca", { hasText: /R\$ 28[.,]50/ }).hover({ timeout: 3000 });
     } });
   telas.push({ nome: "app-pdv-busca-livre", perfil: "dono", caminho: "/app/pdv",
     passo: (page) => page.getByPlaceholder("Buscar comanda...").fill("30", { timeout: 3000 }) });
