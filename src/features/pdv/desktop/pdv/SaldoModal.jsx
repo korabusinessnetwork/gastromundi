@@ -1,3 +1,4 @@
+import { comandasDoSalao } from "@/features/delivery/dados/deliveryPedidos";
 import { useState, useEffect } from "react";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useResponsive } from "@/utils/hooks";
@@ -30,7 +31,7 @@ export default function SaldoModal({ onClose, senha, setSenha, senhaErro, setSen
   const totalVendas = vendasHoje.reduce((s, v) => s + (v.total ?? 0), 0);
   const qtdVendas   = vendasHoje.length;
 
-  const abertas = (pending ?? []).filter(p => p.status !== "closed");
+  const abertas = comandasDoSalao(pending).filter(p => p.status !== "closed");
   const totalAberto = abertas.reduce((s, p) => {
     const ativos = itensNaoCancelados(p.items);
     return s + ativos.reduce((x, i) => x + (i.price ?? 0) * (i.qty ?? 1), 0);

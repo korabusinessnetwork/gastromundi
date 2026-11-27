@@ -12,12 +12,14 @@ import AbaFechamentos from "./AbaFechamentos";
 import AbaLogs from "./AbaLogs";
 import AbaCredenciais from "./AbaCredenciais";
 import AbaAdmin from "./AbaAdmin";
+import DeliveryReport from "./DeliveryReport";
+import ExportBar from "./ExportBar";
 import "./RelatorioView.css";
 
 export default function RelatorioView() {
   const tela = useRelatorios();
   const {
-    aba, setAba, periodo, setPeriodo, customInicio, setCustomInicio, customFim, setCustomFim, fechDetalhe, setFechDetalhe, customLabels, sz, isAdmin, isSuperAdmin, ABAS,
+    aba, setAba, periodo, setPeriodo, customInicio, setCustomInicio, customFim, setCustomFim, fechDetalhe, setFechDetalhe, customLabels, sz, isAdmin, isSuperAdmin, ABAS, sales, guardarDadosDelivery, exportDelivery,
   } = tela;
 
   return (
@@ -93,6 +95,24 @@ export default function RelatorioView() {
 
         {/* ══ VENDAS ══ */}
         {aba === "Vendas" && <AbaVendas tela={tela} />}
+
+        {/* ══ DELIVERY (comparação com a frente de caixa) ══ */}
+        {aba === "Delivery" && (
+          <div className="relatorio-view__delivery">
+            <div className="relatorio-view__delivery-barra">
+              <ExportBar onPDF={() => exportDelivery("pdf")} onXLSX={() => exportDelivery("xlsx")} />
+            </div>
+            <div className="relatorio-view__delivery-conteudo">
+              <DeliveryReport
+                vendas={sales}
+                periodo={periodo}
+                customInicio={customInicio}
+                customFim={customFim}
+                onExportar={guardarDadosDelivery}
+              />
+            </div>
+          </div>
+        )}
 
         {/* ══ DESEMPENHO (vendas, margem — F011) ══ */}
         {aba === "Desempenho" && !isAdmin && (

@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { logAction } from "@/features/auditoria/dados/logger";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuTrash2, LuPlus, LuTruck, LuLock, LuLockOpen
-} from "react-icons/lu";
+import { LuTrash2, LuPlus, LuTruck, LuLock, LuLockOpen, LuMessageCircle, LuStore, LuZap } from "react-icons/lu";
 import {
   carregarConfigDelivery, salvarConfigDelivery, faixaResumo, validarFaixa, formatarCep, temFaixasKm
 } from "@/features/delivery/deliveryAdmin";
@@ -55,13 +53,25 @@ export default function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
   const [faixaKmAte, setFaixaKmAte] = useState("");
   const [faixaTaxa, setFaixaTaxa] = useState("");
 
+  // O motivo da falha fica NA TELA, não num toast que some. Sem ele, uma
+  // coluna que o banco ainda não tem deixava esta aba em "Carregando…"
+  // para sempre, sem uma palavra sobre o que faltava — e a taxa de entrega
+  // simplesmente não abria.
+  const [erroConfig, setErroConfig] = useState("");
+  const [tentativa, setTentativa] = useState(0);
+
   useEffect(() => {
     let ativo = true;
     (async () => {
+      setCarregando(true);
       const { data, error } = await carregarConfigDelivery();
       if (!ativo) return;
       setCarregando(false);
-      if (error) return aviso("Não foi possível carregar as configurações.", "err");
+      if (error) {
+        setErroConfig(error.message || "Não foi possível carregar as configurações.");
+        return;
+      }
+      setErroConfig("");
       const cfg =
         data || { aberto: false, pedido_minimo: 0, tempo_preparo_min: 30, horario: {}, faixas_taxa: [] };
       setConfig({ ...cfg, faixas_taxa: comUid(cfg.faixas_taxa ?? []) });
@@ -69,7 +79,7 @@ export default function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
       setModoTaxa(temFaixasKm(cfg.faixas_taxa) ? "km" : "area");
     })();
     return () => { ativo = false; };
-  }, [aviso]);
+  }, [tentativa]);
 
   const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
 
@@ -205,8 +215,35 @@ export default function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
     [config?.origem_lat, config?.origem_lng]
   );
 
-  if (carregando || !config) {
+  if (carregando) {
     return <div className="delivery-view__carregando delivery-view__carregando--bloco">Carregando…</div>;
+  }
+
+  if (erroConfig || !config) {
+    // Coluna que o banco ainda não tem é o caso mais comum aqui, e o
+    // Postgres diz isso com todas as letras ("column ... does not exist").
+    // Repassar o texto dele é o que transforma "não funciona" em "faltou
+    // rodar a migração" sem ninguém precisar abrir o console.
+    const faltaColuna = /column .* does not exist/i.test(erroConfig);
+    return (
+      <div className="delivery-view__aviso delivery-view__aviso--erro">
+        <div>Não foi possível carregar a configuração de entrega.</div>
+        {erroConfig && <div className="delivery-view__hint">{erroConfig}</div>}
+        {faltaColuna && (
+          <div className="delivery-view__hint">
+            O banco está atrás do sistema: falta rodar as migrações pendentes
+            (supabase/APLICAR_MIGRACOES_PENDENTES.sql) no SQL Editor do Supabase.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setTentativa((n) => n + 1)}
+          className="delivery-view__btn delivery-view__btn--sm"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    );
   }
 
   const readOnly = !isAdmin;
@@ -229,6 +266,118 @@ export default function AbaEntrega({ isAdmin, tenant, currentUser, aviso }) {
           <label className="delivery-view__label">Tempo de preparo (min)</label>
           <input className="delivery-view__input" type="number" min="0" value={config.tempo_preparo_min ?? 30} disabled={readOnly} onChange={(e) => set({ tempo_preparo_min: e.target.value })} onBlur={() => salvar()} />
         </div>
+      </div>
+
+      {/* Retirada no local — vem ANTES da taxa de propósito: é o caminho
+          que não depende de faixa nenhuma configurada, e quem está abrindo
+          a loja hoje consegue vender por ele antes de desenhar as áreas
+          de entrega. */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuStore size={16} color={varColor(C.accent)} /> Retirada no local
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O cliente escolhe buscar no balcão e não paga taxa. Aparece como opção
+              na página do cardápio.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.permite_retirada}
+              disabled={readOnly}
+              onChange={(e) => salvar({ permite_retirada: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+
+        {/* Ligado sem endereço, o cliente leria "retire no local" sem saber
+            onde é o local — então o servidor não oferece a opção e aqui a
+            tela diz por quê, em vez de o dono achar que ligou e não ligou. */}
+        {config.permite_retirada && !String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint delivery-view__hint--erro">
+            Falta o endereço do estabelecimento: sem ele a retirada não aparece
+            para o cliente. Preencha em “Endereço do estabelecimento”, no modo de
+            taxa por distância.
+          </div>
+        )}
+        {config.permite_retirada && String(config.endereco_origem || "").trim() && (
+          <div className="delivery-view__hint">
+            O cliente vai buscar em: <strong>{config.endereco_origem}</strong>
+          </div>
+        )}
+      </div>
+
+      {/* Aceite automático de pedidos */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuZap size={16} color={varColor(C.accent)} /> Aceitar pedidos automaticamente
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              O pedido já entra em <strong>Em preparo</strong>, sem alguém precisar
+              apertar &quot;Aceitar&quot;. Para cozinha que faz tudo o que entra.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.aceite_automatico}
+              disabled={readOnly}
+              onChange={(e) => salvar({ aceite_automatico: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.aceite_automatico && (
+          <div className="delivery-view__hint">
+            Você continua podendo cancelar um pedido. O que muda é que ninguém
+            precisa estar olhando a tela para ele começar a ser feito. O aviso
+            sonoro de pedido novo continua tocando igual.
+          </div>
+        )}
+      </div>
+
+      {/* Confirmação no WhatsApp ao aceitar o pedido */}
+      <div className="delivery-view__retirada">
+        <label className="delivery-view__switch">
+          <span>
+            <span className="delivery-view__entrega-titulo">
+              <LuMessageCircle size={16} color={varColor(C.accent)} /> Confirmar no WhatsApp
+            </span>
+            <span className="delivery-view__hint delivery-view__retirada-hint">
+              Ao aceitar um pedido e ao marcar que saiu para entrega, abre o
+              WhatsApp do cliente com a mensagem já escrita, você confere e
+              envia. Grátis, sem integração.
+            </span>
+          </span>
+          <span className="delivery-view__toggle">
+            <input
+              type="checkbox"
+              checked={!!config.whatsapp_no_aceite}
+              disabled={readOnly}
+              onChange={(e) => salvar({ whatsapp_no_aceite: e.target.checked })}
+            />
+            <span className="delivery-view__toggle-trilho" aria-hidden="true">
+              <span className="delivery-view__toggle-botao" />
+            </span>
+          </span>
+        </label>
+        {config.whatsapp_no_aceite && (
+          <div className="delivery-view__hint">
+            Abre uma aba a cada aceite e a cada saída para entrega. Se você move
+            vários de uma vez, talvez prefira deixar desligado. O botão do
+            WhatsApp no cartão do pedido continua ali para mandar quando quiser.
+          </div>
+        )}
       </div>
 
       {/* Taxa de entrega */}

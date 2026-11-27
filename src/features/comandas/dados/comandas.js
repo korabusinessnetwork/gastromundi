@@ -26,6 +26,20 @@ export function excluirComanda(id) {
   return supabase.from("pending").delete().eq("id", id);
 }
 
+/**
+ * TD013, gravação atômica dos itens: o Postgres lê, mescla e grava numa
+ * transação só, com a linha travada (migration 20260922). `baseUids` são os
+ * uids do snapshot de onde a tela derivou `items`.
+ */
+export function gravarItensComanda({ id, items, baseUids, total }) {
+  return supabase.rpc("gravar_itens_comanda", {
+    p_id: id,
+    p_items: items,
+    p_base_uids: baseUids,
+    p_total: total,
+  });
+}
+
 /** Os itens como estão no banco agora, para mesclar com a edição local. */
 export function lerItensDaComanda(id) {
   return supabase.from("pending").select("items").eq("id", id).maybeSingle();

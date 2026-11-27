@@ -63,7 +63,9 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  flex: 1;
+  /* Base no tamanho do conteúdo: sem espaço na linha, o grupo inteiro desce
+     em vez de encolher até cada botão ficar numa linha. */
+  flex: 1 1 auto;
 }
 
 .aba-vendas__metodo-icone {
@@ -270,4 +272,23 @@
 .aba-vendas__obs-icone {
   vertical-align: -1px;
   margin-right: 2px;
+}
+
+.aba-vendas__origens {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aba-vendas__oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.aba-vendas__rodape-comanda {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gm-border);
 }

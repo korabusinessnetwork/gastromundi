@@ -6,7 +6,7 @@ import { emitirDocumentoFiscal } from "@/features/fiscal/dados/fiscal";
 import { destDoCliente } from "@/features/fiscal/regras/nfceVenda";
 import { processarPagamentoTef, metodoUsaTef } from "@/features/pdv/regras/tef";
 import { consumoParaEstoque } from "@/utils/conversaoUnidades";
-import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo } from "@/features/cardapio/regras/combos";
+import { calcularBaixasSubprodutos, calcularBaixasProdutosCombo, calcularBaixasEscolhas } from "@/features/cardapio/regras/combos";
 import { isErroDeRede } from "@/lib/offline/rede";
 import { round2 } from "@/features/caixa/regras/vendas";
 import { reportarFalha, resumoErro } from "@/lib/observabilidade";
@@ -211,6 +211,13 @@ export function useFinalizarPagamento() {
     // Entram no mesmo delta para ganhar a conversão de unidade e a agregação
     // com vendas avulsas do mesmo produto.
     for (const b of calcularBaixasProdutosCombo(itensAtivos)) {
+      delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
+    }
+    // Grupos de escolha (combo flexível ou produto com seleção, PR #32): cada
+    // opção escolhida é um produto REAL e baixa o próprio estoque. O combo
+    // flexível tem id nulo e não entra no delta de cima, por isso a fonte aqui
+    // é `todosItens` (a função já ignora os cancelados).
+    for (const b of calcularBaixasEscolhas(todosItens)) {
       delta[b.produtoId] = (delta[b.produtoId] ?? 0) + b.qtd;
     }
     // Baixas recusadas pelo servidor (RLS, constraint...). Offline não conta:

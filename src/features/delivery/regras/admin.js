@@ -1,3 +1,6 @@
+import { formatarReais } from "@/lib/dinheiro";
+
+export { formatarReais };
 import { normalizarTexto } from "@/features/importacao/regras/planilha";
 import { ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";
 import { normalizarHorario } from "@/features/delivery/regras/deliveryHorario";
@@ -226,6 +229,33 @@ export function sanitizarConfig(config) {
     // Cadeado da UI: trava a edição do endereço de origem depois de salvo.
     // Só afeta a escrita no painel — nada no cálculo da taxa.
     endereco_origem_bloqueado: !!config?.endereco_origem_bloqueado,
+    // Retirada no local. O endereço mostrado ao cliente é o `endereco_origem`
+    // — e é o servidor que só oferece a opção quando ele existe, para a
+    // vitrine nunca dizer "retire no local" sem dizer onde é o local.
+    permite_retirada: !!config?.permite_retirada,
+    // Confirmação no WhatsApp ao aceitar o pedido. Desligado por padrão:
+    // é uma aba que se abre sozinha, e isso só pode acontecer para quem
+    // pediu. Quem aceita dez pedidos seguidos não quer dez abas.
+    whatsapp_no_aceite: !!config?.whatsapp_no_aceite,
+    // Pedido novo já nasce aceito, sem o clique de "Aceitar". Desligado
+    // por padrão: aceitar é uma decisão, e ligá-la sozinha para todo mundo
+    // tiraria de quem confere pedido a pedido a única chance de recusar.
+    // Quem aplica é o servidor (20261012) — o pedido NASCE em_preparo, em
+    // vez de ser movido depois, para não existir janela nem corrida.
+    aceite_automatico: !!config?.aceite_automatico,
+    // Desabilitar o produto no cadastro do PDV também o tira do cardápio
+    // online. Desligado por padrão: "acabou para entrega mas tem no balcão"
+    // é situação de todo dia, e ligar isso sozinho mudaria o comportamento
+    // de quem usa as duas chaves de propósito. Quem aplica é um gatilho no
+    // banco (20261005) — a regra vale para toda escrita em products, não só
+    // para a tela que a originou.
+    espelhar_desabilitado: !!config?.espelhar_desabilitado,
+    // Produto novo do PDV entra sozinho no cardápio online. Desligado por
+    // padrão: ligar sozinho publicaria na internet tudo o que fosse
+    // cadastrado a partir de agora, e há quem mantenha de propósito o
+    // cardápio online menor que o do salão. Quem aplica é um gatilho no
+    // banco (20261007) — produto nasce de mais de um lugar.
+    sincronizar_automatico: !!config?.sincronizar_automatico,
   };
 }
 
@@ -328,11 +358,6 @@ export function formatarCep(bruto) {
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
 
-/** Número → "R$ 5,00" (pt-BR). */
-export function formatarReais(valor) {
-  const n = Number(valor) || 0;
-  return `R$ ${n.toFixed(2).replace(".", ",")}`;
-}
 
 /** Km sem casas inúteis: 3 → "3", 2.5 → "2,5". */
 export function formatarKm(valor) {

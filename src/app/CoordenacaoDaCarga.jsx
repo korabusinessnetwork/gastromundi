@@ -17,7 +17,7 @@ import {
 } from "@/features/caixa/dados/vendas";
 import { listarFechamentos, listarMovimentosRecentes } from "@/features/caixa/dados/caixa";
 import { listarComandas } from "@/features/comandas/dados/comandas";
-import { listarProdutosAtivos } from "@/features/cardapio/dados/produtos";
+import { listarProdutos } from "@/features/cardapio/dados/produtos";
 import { listarGruposCategoria, listarCategoriaGrupos } from "@/features/cardapio/dados/gruposCategoria";
 import {
   listarUsuariosAtivos, listarPermissoesDosCargos
@@ -126,10 +126,10 @@ export function CoordenacaoDaCarga({ children, tenantIdRef, lockIndisponivelRef,
       const lerVendas = (colunas) => listarVendasDesde(colunas, desde);
 
       let { data: vendasData, error: eVendas } = await lerVendas(
-        `${COLUNAS_BASE},cancelada,motivo_cancelamento,cancelada_por,cancelada_em`
+        `${COLUNAS_BASE},origem,cancelada,motivo_cancelamento,cancelada_por,cancelada_em`
       );
-      // Migration 20260920 ainda não aplicada: relê sem as colunas de
-      // cancelamento em vez de cair no fallback de `sales`, que hoje só tem
+      // Migration 20260920 (cancelamento) ou 20261002 (origem da venda) ainda
+      // não aplicada: relê sem essas colunas em vez de cair no fallback de `sales`, que hoje só tem
       // o histórico antigo — sem isso, um banco desatualizado sumiria com as
       // vendas do dia na tela do caixa.
       if (eVendas?.code === PG_COLUNA_INEXISTENTE) {
@@ -264,7 +264,7 @@ export function CoordenacaoDaCarga({ children, tenantIdRef, lockIndisponivelRef,
         { data: rolePermsData },
         { data: movimentosData, error: eMovimentos },
       ] = await Promise.all([
-        listarProdutosAtivos(),
+        listarProdutos(),
         buscarPendingData(),
         // Bootstrap limitado a 90 dias — relatórios de período maior devem consultar sob demanda.
         buscarSalesData(),

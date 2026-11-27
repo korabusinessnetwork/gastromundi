@@ -9,6 +9,7 @@ import ModalSenhaRelatorio from "./sidebar/ModalSenhaRelatorio";
 import ModalComandasFechadas from "./sidebar/ModalComandasFechadas";
 import ConfirmarCancelamentoVenda from "./sidebar/ConfirmarCancelamentoVenda";
 import ModalUpgradePlano from "./sidebar/ModalUpgradePlano";
+import BotaoFeedback from "@/components/shared/BotaoFeedback";
 import "./Sidebar.css";
 
 export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovimentoCaixa, onLogout, onBackToChoice, onClose }) {
@@ -159,6 +160,13 @@ export default function Sidebar({ caixaAberto, onFechamento, onAbertura, onMovim
           )}
         </div>
       )}
+
+      {/* Reportar algo, no pé do menu: longe do caminho de operar, mas
+          alcançável de qualquer tela. Quem vê o problema é quem está no
+          balcão, e até aqui não havia caminho entre essa pessoa e o dono. */}
+      <div className="sidebar__rodape-feedback">
+        <BotaoFeedback usuario={currentUser?.username} />
+      </div>
 
       {/* Modal — módulo fora do plano atual (convite a upgrade, princípio nº 1) */}
       {upgradeInfo && <ModalUpgradePlano tela={tela} />}

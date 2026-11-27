@@ -272,3 +272,37 @@
 
 /* Decisão 037: o ícone do cabeçalho segue o tom do movimento. */
 .movimento-caixa__icone-header { color: var(--mov-tom); }
+
+/* Passo de sucesso: registrado, agora o comprovante. */
+.movimento-caixa__sucesso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.movimento-caixa__sucesso-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+  color: var(--gm-green);
+}
+.movimento-caixa__sucesso-titulo { font-weight: 800; }
+.movimento-caixa__sucesso-sub {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+.movimento-caixa__concluir {
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-green);
+  color: #fff;   /* literal: sem token para texto sobre a marca */
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}

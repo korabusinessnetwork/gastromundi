@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { carregarGruposDoProduto, salvarGrupos } from "@/features/cardapio/dados/gruposEscolha";
 import { useSessao, useCatalogo } from "@/context/AppContext";
 import { lerCategoriasExtra, salvarCategoriasExtra } from "@/features/cardapio/dados/categorias";
 import { listarUnidadesMedida } from "@/features/estoque/dados/unidadesMedida";
@@ -28,6 +29,8 @@ export function useProdutos() {
   const carregando = loading && products.length === 0;
 
   const [modal,     setModal]     = useState(null);
+  // Grupos de escolha do produto (produto com seleção: qual refrigerante).
+  const [grupos,    setGrupos]    = useState([]);
   const [form,      setForm]      = useState(EMPTY_FORM);
   const [editId,    setEditId]    = useState(null);
   const [salvando,  setSalvando]  = useState(false);
@@ -164,6 +167,7 @@ export function useProdutos() {
     setForm({ ...EMPTY_FORM, category: insumo ? "Insumo" : producao ? "Produção" : "" });
     setErro("");
     setEditId(null);
+    setGrupos([]);
     setModal("novo");
   };
 
@@ -196,7 +200,14 @@ export function useProdutos() {
     });
     setErro("");
     setEditId(p.id);
+    setGrupos([]);
     setModal("editar");
+    // Grupos de escolha só existem para produto comum (não insumo/produção).
+    if (!insumo && !producao) {
+      carregarGruposDoProduto(p.id).then(({ data, error }) => {
+        if (!error && Array.isArray(data)) setGrupos(data);
+      });
+    }
   };
 
   const fecharModal = () => {
@@ -251,6 +262,25 @@ export function useProdutos() {
     return null;
   };
 
+  // Ligar e desligar a venda de um produto sem abrir o cadastro. O produto
+  // desabilitado continua na lista (é onde se religa); quem deixa de
+  // oferecê-lo são as telas de venda.
+  const [alternandoId, setAlternandoId] = useState(null);
+  const [erroVenda, setErroVenda] = useState("");
+  const alternarVenda = async (p) => {
+    if (!isAdmin || alternandoId != null) return;
+    const ligando = p.active === false;
+    setAlternandoId(p.id);
+    setErroVenda("");
+    const { error } = await updateProduct(p.id, { active: ligando });
+    setAlternandoId(null);
+    if (error) {
+      setErroVenda(
+        `Não deu para ${ligando ? "voltar a vender" : "desabilitar"} "${p.name}". Nada foi alterado. Tente de novo.`,
+      );
+    }
+  };
+
   const salvar = async () => {
     const err = validar();
     if (err) { setErro(err); return; }
@@ -282,10 +312,18 @@ export function useProdutos() {
       proxima_validade: form.proxima_validade || null,
     };
     let dbError = null;
+    let produtoId = editId;
     if (modal === "novo") {
-      const { error } = await addProduct({ id: crypto.randomUUID(), ...payload });
+      const { data, error } = await addProduct({ id: crypto.randomUUID(), ...payload });
       dbError = error;
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
+      if (!error) {
+        // A partir daqui é edição: se os grupos falharem, salvar de novo
+        // atualiza este produto em vez de criar um segundo.
+        produtoId = data?.id;
+        setEditId(produtoId);
+        setModal("editar");
+      }
       if (!error) logAction(currentUser?.username, isInsumo ? "insumo:criar" : isProducao ? "producao:criar" : "produto:criar", { msg: `${tipo} cadastrado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     } else {
       const tipo = isInsumo ? "Insumo" : isProducao ? "Item de Produção" : "Produto";
@@ -293,8 +331,17 @@ export function useProdutos() {
       dbError = error;
       if (!error) logAction(currentUser?.username, isInsumo ? "insumo:editar" : isProducao ? "producao:editar" : "produto:editar", { msg: `${tipo} editado: ${payload.name}`, name: currentUser?.name, role: currentUser?.role });
     }
+    if (dbError) { setSalvando(false); setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
+
+    if (!isInsumo && !isProducao && produtoId != null) {
+      const { error: erroGrupos } = await salvarGrupos({ produtoId, grupos });
+      if (erroGrupos) {
+        setSalvando(false);
+        setErro("O produto foi salvo, mas não deu para salvar as opções de escolha. Clique em salvar de novo.");
+        return;
+      }
+    }
     setSalvando(false);
-    if (dbError) { setErro(dbError.message ?? "Erro ao salvar. Verifique o console."); return; }
     fecharModal();
   };
 
@@ -394,6 +441,12 @@ export function useProdutos() {
     salvar,
     confirmarDelete,
     isAdmin,
+    alternandoId,
+    erroVenda,
+    setErroVenda,
+    alternarVenda,
+    grupos,
+    setGrupos,
     unidadesEstoque,
     unidadesCompra,
     unidadesConsumo,

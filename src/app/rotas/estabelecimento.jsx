@@ -8,6 +8,7 @@ import PDVPage from "@/pages/desktop/PDVPage";
 import ProdutosPage from "@/pages/desktop/ProdutosPage";
 import DeliveryPage from "@/pages/desktop/DeliveryPage";
 import RelatorioPage from "@/pages/desktop/RelatorioPage";
+import FeedbacksPage from "@/pages/desktop/FeedbacksPage";
 import ConfiguracoesPage from "@/pages/desktop/ConfiguracoesPage";
 import EstoquePage from "@/pages/desktop/EstoquePage";
 import FinanceiroPage from "@/pages/desktop/FinanceiroPage";
@@ -70,6 +71,10 @@ export const rotasEstabelecimento = [
       telaDoApp("cozinha", CozinhaPage, "cozinha", MODULOS.COZINHA, "Cozinha"),
       telaDoApp("clientes", ClientesPage, "clientes", MODULOS.CLIENTES, "Clientes"),
       telaDoApp("admin", AdminPage, "configuracoes"),
+      // Feedbacks: o que a equipe relatou e o que o cliente avaliou. Mora na
+      // Área Admin, com a permissão de Configurações porque é relato interno
+      // e o nome do autor vai junto.
+      telaDoApp("feedbacks", FeedbacksPage, "configuracoes"),
       // Histórico fiscal: consulta do gestor (reimpressão e cancelamento),
       // fora do fluxo do caixa (Leva 12).
       telaDoApp("notas-fiscais", HistoricoNfcePage, "relatorio"),

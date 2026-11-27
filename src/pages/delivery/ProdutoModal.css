@@ -1,0 +1,151 @@
+/**
+ * F018 — Decisão 018 (CSS separado do JSX) + decisão 023 / ADR-007
+ * (`.css` puro co-localizado, cor sempre via CSS Custom Property --gm-*).
+ *
+ * As classes base deste modal (.grupo, .opcao, .campo) moram em
+ * vitrine.css, importado pelo PAI (CardapioPage). O Vite não garante que o
+ * arquivo do filho entre depois no bundle, então toda regra que sobrescreve
+ * uma propriedade já declarada lá usa SELETOR DE DUAS CLASSES: quem decide
+ * é a especificidade, não a ordem de concatenação.
+ */
+
+/* ── Cabeçalho do grupo ─────────────────────────────────────────────
+   Nome e selos à esquerda, "Passo 2 de 4" à direita. O passo existe
+   porque um produto com quatro grupos parecia um formulário sem fim:
+   rolar não dizia se faltava muito, e o cliente desistia no meio. */
+.grupo__titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.grupo__selos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* "Obrigatório" separado do selo de regra: é a informação que decide se a
+   pessoa pode simplesmente pular o grupo, e ela precisa saltar aos olhos
+   antes de qualquer contagem. */
+.grupo__obrigatorio {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 14%, transparent);
+}
+
+.grupo__passo {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--gm-muted);
+}
+
+/* ── Busca dentro do grupo ──────────────────────────────────────────
+   Só aparece em grupo grande (ver MUITAS_OPCOES). Achar um corte de
+   frango no meio de vinte, rolando, é o tipo de trabalho que faz a
+   pessoa pedir outra coisa. */
+.grupo__busca {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--gm-border);
+  border-radius: 10px;
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.grupo__busca:focus {
+  outline: none;
+  border-color: var(--gm-accent);
+}
+
+.grupo__vazio {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  color: var(--gm-muted);
+}
+
+/* ── Linha da opção: o que é + quantas ──────────────────────────────
+   A opção deixou de ser marcado/desmarcado. Duas de calabresa e uma de
+   portuguesa é um pedido de três fatias, e era o que a vitrine não sabia
+   dizer — o PDV já sabia. O contador fica FORA do botão da opção porque
+   botão dentro de botão é marcação inválida. */
+.opcao-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.opcao-linha:last-child {
+  border-bottom: none;
+}
+
+/* A borda passou para a linha; sem isto sairia uma risca dupla, e a
+   largura tem de ser a que sobra do contador. */
+.opcao-linha .opcao {
+  flex: 1;
+  min-width: 0;
+  border-bottom: none;
+}
+
+/* Alvo de dedo: a vitrine é usada quase toda no celular, e um contador
+   apertado faz o cliente somar três quando queria dois. */
+.opcao-qtd {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.opcao-qtd__botao {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.opcao-qtd__botao:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.opcao-qtd__valor {
+  min-width: 24px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gm-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zero é cinza, escolhido é a cor da marca: dá para varrer a lista de
+   olho e ver o que já entrou, sem ler número por número. */
+.opcao-qtd__valor--ativa {
+  color: var(--gm-accent);
+}

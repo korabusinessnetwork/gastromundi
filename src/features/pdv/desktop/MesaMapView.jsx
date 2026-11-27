@@ -2,6 +2,7 @@ import { LuArmchair } from "react-icons/lu";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
+import { formatarReais } from "@/lib/dinheiro";
 import "./MesaMapView.css";
 
 /**
@@ -187,7 +188,7 @@ function CardMesa({ mesa, abertas, onClick }) {
       <div className="card-mesa__numero">{mesa.numero}</div>
       <div className="card-mesa__status">{s.label}</div>
       {total > 0 && (
-        <div className="card-mesa__valor">R$ {total.toFixed(2)}</div>
+        <div className="card-mesa__valor">{formatarReais(total)}</div>
       )}
       {pedido?.garcom && (
         <div className="card-mesa__garcom">{pedido.garcom}</div>

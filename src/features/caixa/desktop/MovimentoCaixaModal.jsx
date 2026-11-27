@@ -1,8 +1,12 @@
 import { useState } from "react";
-import { LuBanknote } from "react-icons/lu";
+import { LuBanknote, LuCheck } from "react-icons/lu";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { verificarSenhaUsuario } from "@/features/sessao/dados/adminAuth";
 import { validarMovimento, exigeAutorizacao, limiteSangriaValido, lerValor } from "@/features/caixa/regras/caixaMovimentos";
+import { useSessao } from "@/context/AppContext";
+import { round2 } from "@/features/caixa/regras/vendas";
+import { montarComprovanteMovimento } from "@/features/impressao/dados/impressao";
+import ImprimirComprovanteCaixa from "./ImprimirComprovanteCaixa";
 import "./MovimentoCaixaModal.css";
 
 const fmtR = (v) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`;
@@ -26,6 +30,7 @@ export default function MovimentoCaixaModal({
   onConfirm,
   onClose,
 }) {
+  const { tenant, currentUser } = useSessao();
   const [tipo,    setTipo]    = useState("sangria");
   const [valor,   setValor]   = useState("");
   const [motivo,  setMotivo]  = useState("");
@@ -34,6 +39,10 @@ export default function MovimentoCaixaModal({
   const [senhaErro, setSenhaErro] = useState("");
   const [erro,    setErro]    = useState("");
   const [salvando, setSalvando] = useState(false);
+  // Passo de sucesso: registrado o movimento, a tela vira o comprovante
+  // (com botão de imprimir) em vez de fechar direto — o operador tem o
+  // que anexar à gaveta. `null` = ainda no formulário.
+  const [registrado, setRegistrado] = useState(null);
 
   const limiteEfetivo = limiteSangriaValido(limite);
 
@@ -63,9 +72,10 @@ export default function MovimentoCaixaModal({
         }
         autorizadoPor = autorizador;
       }
+      const v = lerValor(valor);
       const { error } = await onConfirm({
         tipo,
-        valor: lerValor(valor),
+        valor: v,
         motivo: motivo.trim(),
         autorizadoPor,
         disponivel,
@@ -76,7 +86,14 @@ export default function MovimentoCaixaModal({
         setErro(error.message || "Não foi possível registrar agora. Tente novamente.");
         return;
       }
-      onClose();
+      // Sucesso: avança para o comprovante em vez de fechar.
+      setRegistrado({
+        tipo,
+        valor: v,
+        motivo: motivo.trim(),
+        autorizadoPor,
+        disponivelDepois: round2(tipo === "sangria" ? disponivel - v : disponivel + v),
+      });
     } finally {
       setSalvando(false);
     }
@@ -92,6 +109,42 @@ export default function MovimentoCaixaModal({
         aria-label="Movimentar dinheiro do caixa"
         className={`movimento-caixa__caixa movimento-caixa--${tipo}`}
       >
+        {registrado ? (
+          <>
+            {/* Passo de sucesso — registrado, agora o comprovante */}
+            <div className="movimento-caixa__sucesso">
+              <div className="movimento-caixa__sucesso-icone">
+                <LuCheck size={22} aria-hidden="true" />
+              </div>
+              <div>
+                <div className="movimento-caixa__sucesso-titulo">
+                  {registrado.tipo === "sangria" ? "Retirada registrada" : "Entrada registrada"}
+                </div>
+                <div className="movimento-caixa__sucesso-sub">
+                  {fmtR(registrado.valor)} · dinheiro na gaveta agora {fmtR(registrado.disponivelDepois)}
+                </div>
+              </div>
+            </div>
+
+            <ImprimirComprovanteCaixa
+              montarDocumento={(configImpressao) => montarComprovanteMovimento({
+                ...registrado,
+                autor: currentUser?.name,
+                tenant,
+                configImpressao,
+              })}
+            />
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="movimento-caixa__concluir"
+            >
+              Concluir
+            </button>
+          </>
+        ) : (
+        <>
         {/* Header */}
         <div className="movimento-caixa__topo">
           <div className="movimento-caixa__icone-header">
@@ -248,6 +301,8 @@ export default function MovimentoCaixaModal({
               : tipo === "sangria" ? "✓ Registrar retirada" : "✓ Registrar entrada"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

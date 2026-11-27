@@ -39,6 +39,12 @@
   --gm-color-scheme: light;
   color-scheme: light;
 
+  /* O `body` (tema.css) declara a cor de texto do documento com o --gm-text
+     ESCURO do PDV. Esta superfície é clara e redeclara o token acima, mas o
+     `color` já veio calculado lá de cima: sem repetir a declaração aqui, todo
+     texto sem `color` próprio desceria claro sobre o papel claro. */
+  color: var(--gm-text);
+
   /* Campos de formulário. Precisa estar AQUI, e não bastam --gm-text/--gm-card
      acima: `--gm-input-*` é declarado em `:root` (tema.css) como color-mix dos
      tokens de marca, e as var() de dentro de um custom property resolvem no

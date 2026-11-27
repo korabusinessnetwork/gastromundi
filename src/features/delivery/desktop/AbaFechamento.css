@@ -1,0 +1,227 @@
+/**
+ * Fechamento do delivery. Decisão 018 (CSS separado do JSX) + tokens
+ * --gm-* (ADR-007) — nenhuma cor de marca cravada, o acento vem do tema
+ * do estabelecimento (white-label, decisão 017).
+ */
+
+.fech-delivery {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.fech-delivery__estado {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--gm-muted);
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+}
+
+/* ── Período ── */
+
+.fech-delivery__filtros {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.fech-delivery__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fech-delivery__campo-label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.fech-delivery__data {
+  /* alvo de toque generoso (princípio nº 1) */
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  outline: none;
+}
+
+.fech-delivery__retry {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-text);
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.fech-delivery__retry:hover {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+/* ── Avisos ── */
+
+.fech-delivery__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in srgb, var(--gm-red) 45%, transparent);
+  background: color-mix(in srgb, var(--gm-red) 10%, transparent);
+  color: var(--gm-red);
+}
+
+.fech-delivery__aviso--neutro {
+  border-color: var(--gm-border);
+  background: var(--gm-surface);
+  color: var(--gm-muted);
+}
+
+.fech-delivery__aviso div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fech-delivery__aviso strong {
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 800;
+}
+
+.fech-delivery__aviso span {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+/* ── Números ── */
+
+.fech-delivery__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.fech-delivery__kpi {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+}
+
+.fech-delivery__kpi--destaque {
+  border-color: var(--gm-accent);
+  background: color-mix(in srgb, var(--gm-accent) 8%, var(--gm-card));
+}
+
+.fech-delivery__kpi-topo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gm-muted);
+}
+
+.fech-delivery__kpi-label {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fech-delivery__kpi-valor {
+  margin-top: 6px;
+  font-size: var(--fs-xl);
+  line-height: var(--lh-xl);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--gm-text);
+}
+.fech-delivery__kpi--destaque .fech-delivery__kpi-valor {
+  color: var(--gm-accent);
+}
+
+/* ── Como entrou ── */
+
+.fech-delivery__secao {
+  margin: 0 0 10px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.fech-delivery__tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--gm-card);
+  border: 1px solid var(--gm-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.fech-delivery__tabela th,
+.fech-delivery__tabela td {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  border-bottom: 1px solid var(--gm-border);
+}
+
+.fech-delivery__tabela th {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  font-weight: 700;
+  color: var(--gm-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--gm-surface);
+}
+
+.fech-delivery__tabela td {
+  color: var(--gm-text);
+}
+
+.fech-delivery__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.fech-delivery__tabela tfoot td {
+  font-weight: 800;
+  border-bottom: none;
+  border-top: 2px solid var(--gm-border);
+}
+
+.fech-delivery__vazio {
+  padding: 18px 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-muted);
+}
+
+.fech-delivery__nota {
+  margin: 10px 0 0;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+  color: var(--gm-muted);
+}

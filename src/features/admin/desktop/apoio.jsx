@@ -1,5 +1,5 @@
 import {
-  LuClipboardList, LuTruck, LuShoppingCart, LuPercent, LuFileText, LuWallet, LuReceipt, LuFileCheck
+  LuClipboardList, LuTruck, LuShoppingCart, LuPercent, LuFileText, LuWallet, LuReceipt, LuFileCheck, LuMessageSquare,
 } from "react-icons/lu";
 
 export const uid   = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -46,4 +46,5 @@ export const SECOES = [
   { id: "financeiro",     label: "Financeiro",          desc: "Fluxo de caixa, contas e lucro",                    Icon: LuWallet,        tom: "verde", to: "/app/financeiro",    perm: "financeiro"    },
   { id: "notas_emitidas", label: "Notas Emitidas",      desc: "Consulta, reimpressão e cancelamento de NFC-e",     Icon: LuReceipt,       tom: "azul",  to: "/app/notas-fiscais", perm: "relatorio"     },
   { id: "config_fiscal",  label: "Configuração Fiscal", desc: "CNPJ, série, ambiente e certificado do emissor",    Icon: LuFileCheck,     tom: "laranja", to: "/app/fiscal",        perm: "configuracoes" },
+  { id: "feedbacks",      label: "Feedbacks",           desc: "O que a equipe relatou e o que os clientes acharam", Icon: LuMessageSquare, tom: "destaque", to: "/app/feedbacks",   perm: "configuracoes" },
 ];

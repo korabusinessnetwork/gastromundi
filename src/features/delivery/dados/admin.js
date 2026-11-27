@@ -12,7 +12,7 @@ import { produtosParaImportar, sanitizarConfig } from "../regras/admin";
 export async function carregarConfigDelivery() {
   const { data, error } = await supabase
     .from("config_delivery")
-    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, updated_at")
+    .select("tenant_id, aberto, pedido_minimo, tempo_preparo_min, horario, faixas_taxa, origem_lat, origem_lng, endereco_origem, endereco_origem_bloqueado, permite_retirada, whatsapp_no_aceite, aceite_automatico, espelhar_desabilitado, sincronizar_automatico, updated_at")
     .maybeSingle();
   return { data, error };
 }
@@ -87,8 +87,17 @@ export async function removerProdutoDelivery(id) {
  * @param {Array} jaPublicados - linhas atuais de produto_delivery
  * @returns {{ data:{importados:number}, error:any }}
  */
-export async function importarProdutosDelivery(products, jaPublicados) {
-  const faltantes = produtosParaImportar(products, jaPublicados);
+export async function importarProdutosDelivery(products, jaPublicados, idsEscolhidos = null) {
+  let faltantes = produtosParaImportar(products, jaPublicados);
+  // `idsEscolhidos` null = importa tudo o que falta (o comportamento antigo,
+  // que continua valendo para quem chama sem escolher). Com uma lista, só
+  // ela entra — e o filtro é aplicado DEPOIS de produtosParaImportar, então
+  // um id já publicado ou não publicável não volta pela porta dos fundos
+  // mesmo que a tela mande.
+  if (Array.isArray(idsEscolhidos)) {
+    const querem = new Set(idsEscolhidos.map((id) => String(id)));
+    faltantes = faltantes.filter((p) => querem.has(String(p.id)));
+  }
   if (faltantes.length === 0) return { data: { importados: 0 }, error: null };
   const linhas = faltantes.map((p, i) => ({
     produto_id: p.id,
@@ -310,7 +319,10 @@ export async function salvarGrupoComplemento(grupo) {
   const payload = {
     nome: String(grupo.nome ?? "").trim(),
     min_escolhas: Math.max(0, Number(grupo.min_escolhas) || 0),
-    max_escolhas: Math.max(1, Number(grupo.max_escolhas) || 1),
+    // 0 = SEM LIMITE (o cliente escolhe quantas quiser). O piso era 1, e
+    // por isso a vitrine sabia ler "sem limite" — grupoSatisfeito só cobra
+    // teto com `max > 0` — mas não havia como cadastrar um.
+    max_escolhas: Math.max(0, Number(grupo.max_escolhas) || 0),
     ordem: Number(grupo.ordem) || 0,
   };
   if (grupo.id) payload.id = grupo.id;

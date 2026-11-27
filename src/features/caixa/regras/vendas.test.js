@@ -202,6 +202,11 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
   // por pagamento não sobrevivem ao schema novo — nenhum consumidor
   // de `sales` os lê depois de finalizada a venda, então os objetos
   // originais aqui só incluem os campos que de fato persistem.
+  //
+  // `origem` (20261002) entra na volta e não na ida: quem grava por este
+  // caminho é a frente de caixa, e o valor vem do DEFAULT da coluna. A
+  // venda de delivery nasce por outro caminho (a RPC
+  // registrar_venda_delivery), que marca 'delivery' no servidor.
 
   it("venda completa (itens + split de pagamento) volta equivalente ao original", () => {
     const original = {
@@ -215,6 +220,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       total: 53,
       cashier: "Maria",
       clienteId: null,
+      origem: "pdv",
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Hambúrguer", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -243,6 +249,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       total: 10,
       cashier: null,
       clienteId: null,
+      origem: "pdv",
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Água", price: 5, qty: 2, cancelado: false, motivoCancelamento: null, canceladoPor: null },
@@ -267,6 +274,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       total: 0,
       cashier: "joao",
       clienteId: null,
+      origem: "pdv",
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 4, name: "Pizza", price: 40, qty: 1, cancelado: true, motivoCancelamento: "Pedido errado", canceladoPor: "joao" },
@@ -277,6 +285,19 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
     const reconstruida = montarVendaLegada(mapearVendaParaLinhas(original));
 
     expect(reconstruida).toEqual(original);
+  });
+
+  it("venda de delivery lida do banco volta marcada como delivery", () => {
+    // Quem grava esta linha é a RPC registrar_venda_delivery (20261002);
+    // aqui só garantimos que a leitura não a transforma em venda de balcão,
+    // que faria o relatório somar tudo do lado errado.
+    const venda = { id: "vd1", total: 40, cashier: null, at: "2026-07-04T12:00:00.000Z", origem: "delivery" };
+    expect(montarVendaLegada({ venda, itens: [], pagamentos: [] }).origem).toBe("delivery");
+  });
+
+  it("origem desconhecida não vira uma terceira categoria", () => {
+    const venda = { id: "vd2", total: 40, at: "2026-07-04T12:00:00.000Z", origem: "ifood" };
+    expect(montarVendaLegada({ venda, itens: [], pagamentos: [] }).origem).toBe("pdv");
   });
 
   it("preserva o vínculo com o cliente (F010) na ida e volta", () => {
@@ -291,6 +312,7 @@ describe("montarVendaLegada (ida e volta com mapearVendaParaLinhas)", () => {
       total: 30,
       cashier: "joao",
       clienteId: "cli-123",
+      origem: "pdv",
       at: "2026-07-04T12:00:00.000Z",
       items: [
         { id: 1, name: "Suco", price: 30, qty: 1, cancelado: false, motivoCancelamento: null, canceladoPor: null },

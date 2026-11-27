@@ -1,14 +1,15 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { useEffect, useState } from "react";
 import {
-  LuPhone, LuMapPin, LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil, LuTrash2
-} from "react-icons/lu";
+  LuPhone, LuMapPin, LuX, LuCircleAlert, LuBadgeCheck, LuArrowLeft, LuPencil, LuTrash2, LuCake } from "react-icons/lu";
 import {
   buscarHistoricoCliente, registrarPagamentoFiado, calcularSaldoDevedor, contasDeFiadoEmAberto, anonimizarCliente, registrarAcessoDocumento
 } from "@/features/clientes/dados/clientes";
 import { formatarTelefone } from "@/lib/telefone";
 import DocumentoProtegido from "@/components/shared/DocumentoProtegido";
 import { rotuloDiaBR } from "@/utils/datas";
+import { rotuloAniversario } from "@/features/clientes/dados/clientes";
+import SeloOrigem from "./SeloOrigem";
 
 export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerDocumento, onClose, onEditar, onExcluido }) {
   const [vendas, setVendas] = useState([]);
@@ -77,9 +78,13 @@ export default function ClienteDetalhe({ cliente, usuario, podeExcluir, podeVerD
             <LuArrowLeft size={18} />
           </button>
           <div className="cliente-detalhe__identificacao">
-            <div className="cliente-detalhe__nome">{cliente.nome}</div>
+            <div className="cliente-detalhe__nome-linha">
+              <div className="cliente-detalhe__nome">{cliente.nome}</div>
+              <SeloOrigem cliente={cliente} />
+            </div>
             <div className="cliente-detalhe__contato">
               {cliente.telefone && <span><LuPhone size={12} className="cliente-detalhe__icone-contato" /> {formatarTelefone(cliente.telefone)}</span>}
+              {rotuloAniversario(cliente) && <span><LuCake size={12} className="cliente-detalhe__icone-contato" /> {rotuloAniversario(cliente)}</span>}
               {cliente.documento && (
                 <DocumentoProtegido
                   documento={cliente.documento}

@@ -4,6 +4,7 @@ import { getSizes } from "@/constants/sizes";
 import { LuUser, LuClock, LuLock, LuTriangleAlert, LuArmchair, LuCircleCheck, LuSearchX } from "react-icons/lu";
 import { totalItensAtivos, comandaEsquecida, HORAS_COMANDA_ESQUECIDA, itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
 import "./ComandaGrid.css";
+import { formatarReais } from "@/lib/dinheiro";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 
 const TOTAL = 1000;
@@ -179,7 +180,7 @@ export default function ComandaGrid({ abertas, visitadas = new Set(), selected, 
 
                   <div className="comanda-grid__item-lado">
                     <div className={`comanda-grid__item-valor${hasItems ? "" : " comanda-grid__item-valor--vazio"}`}>
-                      {hasItems ? `R$ ${total.toFixed(2)}` : "Vazio"}
+                      {hasItems ? formatarReais(total) : "Vazio"}
                     </div>
                     <div className={`comanda-grid__item-tempo comanda-tempo--${elapsed.tom}`}>
                       <LuClock size={10} /> {elapsed.label}
@@ -351,7 +352,7 @@ function ComandaCard({ num, order, isSelected, isVisitada, emUso = null, esqueci
           {hasItems ? `${qtdTotal} ${qtdTotal === 1 ? "item" : "itens"}` : "Vazio"}
         </span>
         <span className={`comanda-card__rodape-total${hasItems ? "" : " comanda-card__rodape-total--vazio"}`}>
-          {hasItems ? `R$ ${total.toFixed(2)}` : "—"}
+          {hasItems ? formatarReais(total) : "—"}
         </span>
       </div>
     </button>

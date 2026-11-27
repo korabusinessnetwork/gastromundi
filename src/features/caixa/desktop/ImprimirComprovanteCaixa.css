@@ -1,0 +1,53 @@
+/* F005 — botão de imprimir comprovante de caixa. Decisão 018 (CSS
+   separado do JSX) + tokens --gm-* — vive na árvore React do app. */
+
+.imprimir-comprovante-caixa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.imprimir-comprovante-caixa__botao {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  border-radius: 10px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 15px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.imprimir-comprovante-caixa__botao:hover:not(:disabled) {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.imprimir-comprovante-caixa__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.imprimir-comprovante-caixa__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.imprimir-comprovante-caixa__status--erro {
+  color: var(--gm-red);
+}
+
+.imprimir-comprovante-caixa__status--sucesso {
+  color: var(--gm-green);
+}

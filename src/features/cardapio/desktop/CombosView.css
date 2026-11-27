@@ -793,3 +793,10 @@
   background: var(--gm-faint);
   cursor: not-allowed;
 }
+
+.combos-view__ajuda {
+  margin-top: 4px;
+  color: var(--gm-muted);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-xs);
+}

@@ -22,7 +22,8 @@ export function argumentosSalvarCombo({ comboId, nome, principal, modo, precoTot
   return {
     p_combo_id: comboId ?? null,
     p_nome: nome.trim(),
-    p_item_principal_id: Number(principal.id),
+    // Combo flexível (só grupos de escolha) não tem principal: vai nulo.
+    p_item_principal_id: principal ? Number(principal.id) : null,
     p_modo: modo,
     p_preco_total: precoTotal,
     p_subprodutos: itens.map((it) => ({

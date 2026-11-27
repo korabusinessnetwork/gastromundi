@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 import {
   salvarCombo, carregarSubprodutosDoCombo, carregarProdutosDoCombo
 } from "@/features/cardapio/dados/combos";
+import { carregarGruposDoCombo, salvarGrupos } from "@/features/cardapio/dados/gruposEscolha";
+import EditorGruposEscolha from "../EditorGruposEscolha";
 import { LuPlus, LuX, LuMinus, LuSearch, LuLayers, LuToggleRight, LuTriangleAlert, LuPackage } from "react-icons/lu";
 import Toggle from "./Toggle";
 import { CATS_NAO_VENDAVEIS, fmtBRL } from "./apoio";
@@ -17,6 +19,18 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
     combo ? products.find(p => p.id === combo.item_principal_id) ?? null : null
   );
   const [modo,       setModo]      = useState(combo?.modo ?? "combo");
+  // Combo flexível: grupos de escolha (o cliente monta). Coexistem com
+  // principal, produtos e subprodutos. O que "já vem junto" é a lista de
+  // outros produtos (combo_produtos), gravada com o combo numa transação só.
+  const [grupos,     setGrupos]    = useState([]);
+  // Preço fixo opcional: substitui o total calculado. Combo só com grupos
+  // não tem o que calcular, e ali ele é obrigatório.
+  const [precoFixo,  setPrecoFixo] = useState(
+    combo && combo.item_principal_id == null && combo.preco_total != null ? String(combo.preco_total) : ""
+  );
+  // Depois do primeiro salvar, o combo já existe: salvar de novo (quando os
+  // grupos falharam) atualiza este, não cria outro.
+  const [comboIdSalvo, setComboIdSalvo] = useState(combo?.id ?? null);
   const [itens,      setItens]     = useState([]); // [{ subproduto, quantidade, precoCustom, usarCustom }]
   const [salvando,   setSalvando]  = useState(false);
   const [erro,       setErro]      = useState("");
@@ -48,6 +62,15 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
           usarCustom:  r.preco_customizado != null,
         })));
       });
+  }, [combo]);
+
+  // ao editar, carrega os grupos de escolha
+  useEffect(() => {
+    if (!combo) return;
+    carregarGruposDoCombo(combo.id).then(({ data, error }) => {
+      if (error) setErro("Não deu para carregar os grupos de escolha deste combo.");
+      if (Array.isArray(data)) setGrupos(data);
+    });
   }, [combo]);
 
   // ao editar — carrega combo_produtos (produtos adicionais do catálogo)
@@ -157,17 +180,31 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
     return base + subs + prods;
   }, [principal, itens, itensProd]);
 
+  const precoFixoNum = parseFloat(String(precoFixo).replace(",", ".")) || 0;
+  const precoFinal = precoFixoNum > 0 ? precoFixoNum : precoTotal;
+
   const salvar = async () => {
     if (!nome.trim())  { setErro("Informe o nome do combo.");         return; }
-    if (!principal)    { setErro("Selecione o produto principal.");   return; }
-    if (itens.length + itensProd.length === 0) { setErro("Adicione ao menos um produto ou subproduto ao combo."); return; }
+    if (modo === "substituir" && !principal) { setErro("Para substituir um produto, escolha o produto principal."); return; }
+    if (!principal && itens.length + itensProd.length + grupos.length === 0) {
+      setErro("Escolha o produto principal ou adicione ao combo produtos, subprodutos ou grupos de escolha.");
+      return;
+    }
+    if (precoFinal <= 0) { setErro("Informe o preço do combo."); return; }
     setSalvando(true);
     setErro("");
     try {
       // Combo e composição numa transação só (tarefa 1.1 do plano de
       // refatoração): antes eram até cinco chamadas soltas, e uma queda de
       // rede depois dos deletes deixava o combo gravado sem itens.
-      await salvarCombo({ comboId: combo?.id, nome, principal, modo, precoTotal, itens, itensProd });
+      const comboId = await salvarCombo({ comboId: comboIdSalvo, nome, principal, modo, precoTotal: precoFinal, itens, itensProd });
+      const idGravado = comboId ?? comboIdSalvo;
+      setComboIdSalvo(idGravado);
+      const { error: errG } = await salvarGrupos({ comboId: idGravado, grupos });
+      if (errG) {
+        setErro("O combo foi salvo, mas não deu para salvar as escolhas. Clique em salvar de novo.");
+        return;
+      }
       onSalvo();
     } catch (e) {
       setErro(e.message ?? "Erro ao salvar.");
@@ -204,7 +241,7 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
 
         {/* Produto principal */}
         <div className="combos-view__principal-wrap">
-          <div className="combos-view__label">Produto principal *</div>
+          <div className="combos-view__label">Produto principal <span className="combos-view__opcional">(opcional no combo de montar)</span></div>
           {principal ? (
             <div className="combos-view__principal-selecionado">
               <span className="combos-view__principal-emoji"><LuPackage aria-hidden="true" /></span>
@@ -425,10 +462,28 @@ export default function ModalCombo({ combo, products, subprodutos, onClose, onSa
           </div>
         </div>
 
+        {/* Grupos de escolha: o cliente monta o combo */}
+        <div>
+          <div className="combos-view__label">O cliente escolhe <span className="combos-view__opcional">(opcional)</span></div>
+          <EditorGruposEscolha grupos={grupos} onChange={setGrupos} products={products} />
+        </div>
+
         {/* Preço total */}
         <div className="combos-view__preco-total">
           <div className="combos-view__preco-total-label">Preço total calculado</div>
           <div className="combos-view__preco-total-valor">{fmtBRL(precoTotal)}</div>
+        </div>
+        <div>
+          <label className="combos-view__label" htmlFor="combo-preco-fixo">Preço fixo do combo <span className="combos-view__opcional">(substitui o calculado; obrigatório no combo só de escolhas)</span></label>
+          <input
+            id="combo-preco-fixo"
+            className="combos-view__input"
+            inputMode="decimal"
+            placeholder="Ex.: 29,90"
+            value={precoFixo}
+            onChange={(e) => setPrecoFixo(e.target.value)}
+          />
+          <div className="combos-view__ajuda">Opções com acréscimo somam a este valor na venda.</div>
         </div>
 
         {erro && <div className="combos-view__erro"><LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}</div>}

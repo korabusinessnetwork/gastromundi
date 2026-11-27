@@ -11,6 +11,7 @@ import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import SeletorProdutoComplemento from "./SeletorProdutoComplemento";
 import SeletorSubgrupo from "./SeletorSubgrupo";
 import SeletorProdutosMulti from "./SeletorProdutosMulti";
+import { explicarEscolhas } from "@/features/delivery/regras/escolhasDoGrupo";
 
 // Menu de edição LIMPO de um grupo. Abre a partir de um card da grade
 // (GrupoCardMini). Header com "voltar" + nome; corpo com regras (mín/máx),
@@ -54,7 +55,7 @@ export default function GrupoEditor({ isAdmin, grupo, biblioteca = [], products,
   const sujo = useMemo(() => {
     if ((nome ?? "").trim() !== (grupo.nome ?? "")) return true;
     if ((Number(min) || 0) !== (Number(grupo.min_escolhas) || 0)) return true;
-    if ((Number(max) || 1) !== (Number(grupo.max_escolhas) || 1)) return true;
+    if ((Number(max) || 0) !== (Number(grupo.max_escolhas) || 0)) return true;
     if (itens.some((i) => !i.id)) return true; // itens novos ainda não salvos
     // Ordem importa (reordenar arrastando também é alteração a salvar):
     // compara os ids preservando a sequência, não como conjunto ordenado.
@@ -170,7 +171,8 @@ export default function GrupoEditor({ isAdmin, grupo, biblioteca = [], products,
     // 1) Config do grupo (nome, mín, máx).
     const g = await salvarGrupoComplemento({
       id: grupo.id, nome: nome.trim() || grupo.nome,
-      min_escolhas: Number(min) || 0, max_escolhas: Number(max) || 1, ordem: grupo.ordem,
+      // Máximo 0 (ou em branco) é "sem limite" — ver o campo lá embaixo.
+      min_escolhas: Number(min) || 0, max_escolhas: Math.max(0, Number(max) || 0), ordem: grupo.ordem,
     });
     if (g.error) { setSalvando(false); return aviso("Não foi possível salvar o grupo.", "err"); }
 
@@ -314,9 +316,20 @@ export default function GrupoEditor({ isAdmin, grupo, biblioteca = [], products,
             );
           })}
         </div>
+        {/* Máximo 0 (ou em branco) = sem limite. O que o zero significa não
+            fica escondido no campo: a frase logo abaixo já diz "quantas
+            quiser" enquanto se digita, antes de salvar. */}
         <label className="delivery-view__hint delivery-view__editor-max">
           máx
-          <input className="delivery-view__input delivery-view__input--qtd" type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} disabled={!isAdmin} />
+          <input
+            className="delivery-view__input delivery-view__input--qtd"
+            type="number"
+            min="0"
+            value={max}
+            onChange={(e) => setMax(e.target.value)}
+            disabled={!isAdmin}
+            title="0 = sem limite"
+          />
         </label>
         {isAdmin && (
           <button
@@ -329,9 +342,7 @@ export default function GrupoEditor({ isAdmin, grupo, biblioteca = [], products,
         )}
       </div>
       <div className="delivery-view__hint delivery-view__editor-explica">
-        {Number(min) > 0
-          ? `Obrigatório, o cliente precisa escolher ${Number(max) > 1 ? `de ${min || 1} a ${max}` : "1 opção"}`
-          : `Opcional, o cliente pode escolher ${Number(max) > 1 ? `até ${max}` : "1, se quiser"}`}
+        {explicarEscolhas(Number(min) || 0, Math.max(0, Number(max) || 0))}
       </div>
 
       {/* Itens do grupo — arraste pela alça (⠿) para reordenar (cima/baixo).

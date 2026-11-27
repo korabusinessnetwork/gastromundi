@@ -25,7 +25,7 @@ import "./PDVView.css";
 export default function PDVView({ notify }) {
   const tela = usePdv({ notify });
   const {
-    mode, setMode, selected, cartItems, toast, alertaAberto, setAlertaAberto, cupomNfce, setCupomNfce, alertaValidadeAberto, setAlertaValidadeAberto, buscaComanda, setBuscaComanda, currentUser, users, bootstrapLoading, metodosCustom, diasAlertaValidade, products, estoque, estoqueMinimos, pending, lancadas, caixaAberto, sales, mesas, mesasLoading, atualizarStatusMesa, showNova, confirmCancelar, showTransferir, showSaldo, setShowSaldo, saldoSenha, setSaldoSenha, saldoSenhaErro, setSaldoSenhaErro, saldoAutorizado, setSaldoAutorizado, saldoSenhaVis, setSaldoSenhaVis, showCancelarComanda, showMesa, mesaPendingOrder, showCliente, setShowCliente, clientePendingOrder, setClientePendingOrder, clienteSel, setClienteSel, salvandoCliente, sz, emPainel, painelEnxuto, abertas, emUsoPorOutro, handleSelectComanda, handleConfirmarClienteComanda, handleConfirmPayment, handleRemoverItemCheckout, handleOpenEmpty,
+    mode, setMode, selected, cartItems, toast, alertaAberto, setAlertaAberto, cupomNfce, setCupomNfce, alertaValidadeAberto, setAlertaValidadeAberto, buscaComanda, setBuscaComanda, currentUser, users, bootstrapLoading, metodosCustom, diasAlertaValidade, products, estoque, estoqueMinimos, pending, lancadas, caixaAberto, sales, mesas, mesasLoading, atualizarStatusMesa, showNova, confirmCancelar, showTransferir, showSaldo, setShowSaldo, saldoSenha, setSaldoSenha, saldoSenhaErro, setSaldoSenhaErro, saldoAutorizado, setSaldoAutorizado, saldoSenhaVis, setSaldoSenhaVis, showCancelarComanda, showMesa, mesaPendingOrder, showCliente, setShowCliente, clientePendingOrder, setClientePendingOrder, clienteSel, setClienteSel, salvandoCliente, sz, emPainel, painelEnxuto, abertas, emUsoPorOutro, handleSelectComanda, handleConfirmarClienteComanda, handleConfirmPayment, handleRemoverItemCheckout, handleBack, handleOpenEmpty,
   } = tela;
 
   if (bootstrapLoading) {
@@ -266,6 +266,7 @@ export default function PDVView({ notify }) {
             ]}
             onConfirm={handleConfirmPayment}
             onBack={() => setMode("pedido")}
+            onConcluir={handleBack}
             onRemoverItem={handleRemoverItemCheckout}
           />
         )}

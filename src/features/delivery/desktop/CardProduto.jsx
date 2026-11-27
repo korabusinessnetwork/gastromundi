@@ -19,7 +19,35 @@ export default function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemove
           <div className="delivery-view__card-emoji"><LuUtensils aria-hidden="true" /></div>
         )}
         <div className="delivery-view__card-corpo">
-          <div className="delivery-view__card-nome">{nome}</div>
+          {/* Disponibilidade fica AQUI, ao lado do nome, e não dentro do
+              "Editar". Tirar um item do ar é a coisa mais frequente do dia
+              (acabou o ingrediente) e precisa ser um clique na grade, não
+              abrir modal, achar a chave, salvar e fechar. Dentro do editar
+              ela também virava rascunho: só valia depois do "Salvar". */}
+          <div className="delivery-view__card-nome-linha">
+            <div className="delivery-view__card-nome">{nome}</div>
+            <button
+              onClick={onToggle}
+              disabled={!isAdmin}
+              role="switch"
+              aria-checked={!!item.disponivel}
+              aria-label={`Oferecer ${nome} no cardápio online`}
+              title={item.disponivel
+                ? "Está no cardápio online. Clique para tirar do ar."
+                : "Fora do cardápio online. Clique para voltar a oferecer."}
+              className={`delivery-view__disp delivery-view__disp--compacto delivery-view__disp--${item.disponivel ? "on" : "off"}`}
+            >
+              {/* Só o trilho e a bolinha, sem a palavra. Aqui o card tem
+                  300px e a chave com texto comia 130 deles: "Hmaburguer de
+                  cheedar" virava "Hmabur…", e cardápio em que não se lê o
+                  nome do produto não serve. O estado continua dito por
+                  extenso no title e no aria-label; na tabela de Produtos,
+                  que tem coluna própria, a palavra aparece. */}
+              <span className="delivery-view__disp-trilho" aria-hidden="true">
+                <span className="delivery-view__disp-bola" />
+              </span>
+            </button>
+          </div>
           {item.descricao ? (
             <div className="delivery-view__card-desc">{item.descricao}</div>
           ) : (
@@ -36,15 +64,6 @@ export default function CardProduto({ item, isAdmin, ehAddon, onEditar, onRemove
         <span className="delivery-view__card-preco">
           {preco != null ? formatarReais(preco) : "—"}
         </span>
-        <button
-          onClick={onToggle}
-          disabled={!isAdmin}
-          className={`delivery-view__pill delivery-view__pill--${item.disponivel ? "on" : "off"}`}
-          title="Ligar/desligar no cardápio"
-        >
-          <span className="delivery-view__card-dot" />
-          {item.disponivel ? "Disponível" : "Indisponível"}
-        </button>
       </div>
 
       {isAdmin && (

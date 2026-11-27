@@ -1,0 +1,61 @@
+/* Reimpressão de comprovante no histórico de vendas. Decisão 018
+   (CSS separado do JSX) + tokens --gm-* — o botão vive na árvore React
+   do app e herda o :root normalmente. */
+
+.reimprimir-comprovante {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reimprimir-comprovante__botao {
+  background: var(--gm-surface);
+  border: 1.5px solid var(--gm-border);
+  border-radius: 10px;
+  color: var(--gm-text);
+  cursor: pointer;
+  padding: 9px 14px;
+  font-weight: 700;
+  font-size: 14px;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.reimprimir-comprovante__botao:hover:not(:disabled) {
+  border-color: var(--gm-accent);
+  color: var(--gm-accent);
+}
+
+.reimprimir-comprovante__botao:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Variante compacta (linha da tabela resumida): só o ícone, alvo de
+   toque ainda confortável. */
+.reimprimir-comprovante__botao--compacto {
+  padding: 7px;
+  border-radius: 8px;
+}
+
+.reimprimir-comprovante__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reimprimir-comprovante__status--erro {
+  color: var(--gm-red);
+}
+
+.reimprimir-comprovante__status--sucesso {
+  color: var(--gm-green);
+}

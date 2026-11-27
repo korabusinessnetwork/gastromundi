@@ -1,7 +1,7 @@
 // Abas, recorte de período e formato de data dos Relatórios, usados pelo gancho
 // e pelas abas da tela (refatoração 4.10).
 
-export const ABAS_BASE = ["Vendas", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
+export const ABAS_BASE = ["Vendas", "Delivery", "Desempenho", "Cancelamentos", "Fechamentos", "Logs", "Credenciais"];
 
 export const SALE_PREFIXES = new Set(["comanda", "itens", "produto"]);
 

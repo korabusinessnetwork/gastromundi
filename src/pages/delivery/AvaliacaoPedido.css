@@ -1,0 +1,95 @@
+/**
+ * Avaliação do cliente na confirmação do pedido. Decisão 018 (CSS separado
+ * do JSX) + tokens --gm-* (ADR-007).
+ */
+
+.avaliacao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--gm-border);
+}
+
+.avaliacao--pronta {
+  gap: 2px;
+  color: var(--gm-green);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+}
+.avaliacao--pronta span {
+  color: var(--gm-muted);
+}
+
+.avaliacao__pergunta {
+  margin: 0;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.avaliacao__estrelas {
+  display: flex;
+  gap: 4px;
+}
+
+.avaliacao__estrela {
+  /* alvo grande de propósito: é tocado com o polegar, no celular, de pé
+     na porta de casa (princípio nº 1) */
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--gm-border);
+  transition: color 0.12s, transform 0.12s;
+}
+.avaliacao__estrela:hover {
+  transform: scale(1.1);
+}
+.avaliacao__estrela--cheia {
+  color: var(--gm-warn);
+}
+
+.avaliacao__rotulo {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  font-weight: 700;
+  color: var(--gm-text);
+}
+
+.avaliacao__texto {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--gm-border);
+  color: var(--gm-text);
+  font-family: inherit;
+  font-size: var(--fs-base);
+  line-height: var(--lh-base);
+  resize: vertical;
+  outline: none;
+}
+
+.avaliacao__erro {
+  margin: 0;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-sm);
+  color: var(--gm-red);
+  font-weight: 600;
+}
+
+.avaliacao__enviar {
+  width: 100%;
+}

@@ -7,9 +7,11 @@ import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
 import { verificarSenhaAdmin } from "@/features/sessao/dados/adminAuth";
 import { LuMinus, LuPlus, LuFileText, LuTrash2, LuCheck, LuWallet, LuUser, LuX, LuLock, LuEye, LuEyeOff } from "react-icons/lu";
+import BotaoReimprimirVia from "./BotaoReimprimirVia";
 import "./CartPanel.css";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 import { itensNaoCancelados } from "@/features/comandas/regras/comandaItens";
+import { formatarReais } from "@/lib/dinheiro";
 
 
 export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, onLancar, onFinalizar, salvando, onRemoveAcumulado }) {
@@ -41,13 +43,16 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
 
   const getObs = (item) => Array.isArray(item.obs) ? item.obs : (item.obs ? [item.obs] : []);
 
-  // B4 — composição do combo visível no carrinho (o operador confere o que
-  // acompanha sem precisar decorar a receita)
+  // Composição visível no carrinho: o que já vem no combo (produtos e
+  // subprodutos) e as escolhas que o operador fez no combo ou no produto com
+  // seleção. Ele confere o que vai sem decorar a receita.
   const resumoCombo = (item) => {
-    const fmt = (x) => (Number(x?.quantidade ?? 1) > 1 ? `${x.quantidade}× ${x.nome}` : x.nome);
-    const prods = (item?.combo?.produtos ?? []).filter(p => p?.nome).map(fmt);
-    const subs  = (item?.combo?.subprodutos ?? []).filter(s => s?.nome).map(fmt);
-    const partes = [...prods, ...subs];
+    const fmt = (x, qtd) => (Number(qtd ?? 1) > 1 ? `${qtd}× ${x}` : x);
+    const partes = [
+      ...(item?.combo?.produtos ?? []).filter(p => p?.nome).map(p => fmt(p.nome, p.quantidade)),
+      ...(item?.combo?.subprodutos ?? []).filter(s => s?.nome).map(s => fmt(s.nome, s.quantidade)),
+      ...(item?.combo?.escolhas ?? []).filter(e => e?.nome).map(e => fmt(e.nome, e.qtd)),
+    ];
     return partes.length ? partes.join(" + ") : null;
   };
 
@@ -114,6 +119,13 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
             <LuUser size={12} /> {comanda.garcom}
           </div>
         )}
+        {/* Reimpressão da via de produção — só faz sentido quando já há
+            itens lançados (mandados para a cozinha). */}
+        {itensAtivos.length > 0 && (
+          <div className="cart-panel__header-acoes cart-panel__header-acoes--via">
+            <BotaoReimprimirVia pedido={comanda} />
+          </div>
+        )}
       </div>
 
       {/* Lista de itens */}
@@ -163,7 +175,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                       </div>
                       <div className="cart-panel__item-acoes">
                         <div className="cart-panel__item-preco-cancelado">
-                          R$ {(item.price * qty).toFixed(2)}
+                          {formatarReais((item.price * qty))}
                         </div>
                         {onRemoveAcumulado && !cancelado && (
                           <button
@@ -238,10 +250,10 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
                 {/* Linha 2: preço · subtotal */}
                 <div className="cart-panel__preco-linha">
                   <span className="cart-panel__preco-unitario">
-                    R$ {Number(item.price).toFixed(2)} cada
+                    {formatarReais(Number(item.price))} cada
                   </span>
                   <span className="cart-panel__subtotal-item">
-                    R$ {(item.price * item.qty).toFixed(2)}
+                    {formatarReais((item.price * item.qty))}
                   </span>
                 </div>
 
@@ -294,14 +306,14 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               Novos itens (a lançar)
             </span>
             <span className="cart-panel__subtotal-valor">
-              R$ {total.toFixed(2)}
+              {formatarReais(total)}
             </span>
           </div>
         )}
         <div className="cart-panel__total-linha">
           <span className="cart-panel__total-label">Total da comanda</span>
           <span className="cart-panel__total-valor">
-            R$ {totalGeral.toFixed(2)}
+            {formatarReais(totalGeral)}
           </span>
         </div>
 
@@ -319,7 +331,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
           className={`cart-panel__btn-finalizar${temItens ? " cart-panel__btn-finalizar--pode" : ""}`}
         >
           <LuWallet size={15} className="cart-panel__icone-botao" />
-          Finalizar Comanda{totalGeral > 0 ? ` · R$ ${totalGeral.toFixed(2)}` : ""}
+          Finalizar Comanda{totalGeral > 0 ? ` · ${formatarReais(totalGeral)}` : ""}
         </button>
       </div>
 
@@ -491,7 +503,7 @@ export default function CartPanel({ comanda, items, onChangeQty, onChangeObs, on
               </div>
               <div className="cart-panel__resumo-total">
                 <div className="cart-panel__resumo-total-label">Total</div>
-                <div className="cart-panel__resumo-total-valor">R$ {totalGeral.toFixed(2)}</div>
+                <div className="cart-panel__resumo-total-valor">{formatarReais(totalGeral)}</div>
               </div>
             </div>
 

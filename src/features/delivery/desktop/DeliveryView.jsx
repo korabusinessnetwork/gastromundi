@@ -21,7 +21,7 @@
 // com texto humano. Nada de jargão técnico na tela.
 // ──────────────────────────────────────────────────────────────────
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useSessao, useCatalogo } from "@/context/AppContext";
+import { useSessao, useCatalogo, useCaixa } from "@/context/AppContext";
 import { logAction } from "@/features/auditoria/dados/logger";
 import MODULOS from "@/constants/modulos";
 import C from "@/constants/colors";
@@ -39,8 +39,10 @@ import "./DeliveryView.css";
 
 const ABAS = [
   { id: "pedidos",      label: "Pedidos" },
+  { id: "fechamento",   label: "Fechamento" },
   { id: "cardapio",     label: "Cardápio" },
   { id: "complementos", label: "Complementos" },
+  { id: "entregadores", label: "Entregadores" },
   { id: "entrega",      label: "Entrega e taxas" },
 ];
 
@@ -49,10 +51,17 @@ import AbaCardapio from "./AbaCardapio";
 import AbaComplementos from "./AbaComplementos";
 import AbaEntrega from "./AbaEntrega";
 import { ehGerencia } from "@/constants/roles";
+import AbaEntregadores from "@/features/delivery/desktop/AbaEntregadores";
+import { dinheiroDisponivel, movimentosDaSessao } from "@/features/caixa/regras/caixaMovimentos";
+import { inicioSessao } from "@/features/caixa/desktop/FechamentoModal";
+import { listarEntregadores } from "@/features/delivery/dados/entregadores";
+import { totalPorMetodo } from "@/utils/pagamentos";
+import AbaFechamento from "@/features/delivery/desktop/AbaFechamento";
 
 export default function DeliveryView({ notify } = {}) {
   const { tenant, currentUser, moduloHabilitado } = useSessao();
   const { products, addProduct, updateProduct, recarregarProdutos } = useCatalogo();
+  const { caixaAberto, registrarMovimentoCaixa, fundoAtual, sales, sessaoAbertaEm, movimentosCaixa } = useCaixa();
 
   // Modo derivado do plano: tem PDV → addon; só delivery → standalone.
   const ehAddon = moduloHabilitado(MODULOS.PDV);
@@ -74,6 +83,11 @@ export default function DeliveryView({ notify } = {}) {
   // sem obrigar o operador a entrar na aba "Entrega e taxas".
   const [configDelivery, setConfigDelivery] = useState(null);
   const [salvandoAberto, setSalvandoAberto] = useState(false);
+
+  // Entregadores do tenant (cadastro + atribuição no pedido). Fica aqui no
+  // topo porque duas abas dependem da MESMA lista: "Pedidos" usa no seletor
+  // de atribuição do cartão e "Entregadores" no cadastro/fechamento.
+  const [entregadores, setEntregadores] = useState([]);
 
   const aviso = useCallback(
     (msg, tipo) => (typeof notify === "function" ? notify(msg, tipo) : undefined),
@@ -101,6 +115,16 @@ export default function DeliveryView({ notify } = {}) {
       ativo = false;
     };
   }, [carregarLinhas]);
+
+  const carregarEntregadores = useCallback(async () => {
+    const { data, error } = await listarEntregadores();
+    if (error) return; // silencioso: a aba mostra o próprio estado de erro
+    setEntregadores(data);
+  }, []);
+
+  useEffect(() => {
+    carregarEntregadores();
+  }, [carregarEntregadores]);
 
   // Carrega a config só pra saber se a loja está aberta (botão do topo).
   useEffect(() => {
@@ -137,6 +161,22 @@ export default function DeliveryView({ notify } = {}) {
   );
 
   const isAdmin = ehGerencia(currentUser);
+
+  // Dinheiro na gaveta AGORA — mesma conta do PDV (DesktopLayout): fundo de
+  // troco + vendas em dinheiro da sessão − sangrias + suprimentos. É o teto do
+  // que dá pra pagar ao entregador sem estourar o caixa. Recalcula quando
+  // vendas/movimentos/fundo/sessão mudam.
+  const dinheiroNaGaveta = useMemo(() => {
+    const inicio = inicioSessao(sessaoAbertaEm);
+    const vendasDinheiro = (sales ?? [])
+      .filter((s) => s && !s.cancelada && new Date(s.at).getTime() >= inicio)
+      .reduce((soma, v) => soma + (totalPorMetodo(v).dinheiro ?? 0), 0);
+    return dinheiroDisponivel({
+      fundo: fundoAtual,
+      vendasDinheiro,
+      movimentos: movimentosDaSessao(movimentosCaixa, inicio),
+    });
+  }, [sales, fundoAtual, sessaoAbertaEm, movimentosCaixa]);
 
   // Abrir/fechar a loja direto do topo. Otimista: vira na hora e reverte se
   // o Supabase recusar. Só admin/gerente mexe.
@@ -304,8 +344,16 @@ export default function DeliveryView({ notify } = {}) {
         )}
 
         {aba === "pedidos" && (
-          <AbaPedidos isAdmin={isAdmin} ehAddon={ehAddon} aviso={aviso} currentUser={currentUser} />
+          <AbaPedidos
+            isAdmin={isAdmin}
+            ehAddon={ehAddon}
+            aviso={aviso}
+            currentUser={currentUser}
+            entregadores={entregadores}
+          />
         )}
+
+        {aba === "fechamento" && <AbaFechamento aviso={aviso} />}
 
         {aba === "cardapio" && (
           <AbaCardapio
@@ -328,6 +376,19 @@ export default function DeliveryView({ notify } = {}) {
 
         {aba === "complementos" && (
           <AbaComplementos isAdmin={isAdmin} itens={itensCardapio} products={products} aviso={aviso} />
+        )}
+
+        {aba === "entregadores" && (
+          <AbaEntregadores
+            isAdmin={isAdmin}
+            entregadores={entregadores}
+            recarregar={carregarEntregadores}
+            aviso={aviso}
+            currentUser={currentUser}
+            caixaAberto={caixaAberto}
+            dinheiroNaGaveta={dinheiroNaGaveta}
+            registrarMovimentoCaixa={registrarMovimentoCaixa}
+          />
         )}
 
         {aba === "entrega" && (

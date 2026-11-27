@@ -1,0 +1,68 @@
+# Integração contínua — roda em máquina limpa, do zero, a cada push.
+#
+# Existe porque "passa na minha máquina" não é garantia: até hoje os testes
+# só rodavam quando alguém lembrava, e um deles dependia do fuso do
+# computador (verde em Brasília, vermelho em UTC). Aqui todo commit passa
+# pelos mesmos quatro portões, sempre no mesmo ambiente.
+#
+# Repositório público → GitHub Actions é gratuito e ilimitado (Restrições de
+# Custo do CLAUDE.md): não há decisão de investimento nenhuma aqui.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+# Push novo cancela a execução anterior do mesmo branch — não adianta
+# esperar o resultado de um commit que já foi substituído.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Lint, testes e build
+    runs-on: ubuntu-latest
+    # Sem isso, um pull request do próprio repositório rodaria duas vezes
+    # (uma pelo push, outra pelo PR). De fork continua rodando pelo PR,
+    # que é o único evento que chega.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # `npm ci` (e não `install`) instala exatamente o que está no
+      # package-lock.json: se o lock estiver fora de sincronia, falha aqui.
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # As variáveis VITE_* de teste vêm fixas do vitest.config.js — nenhum
+      # segredo é necessário, e nenhum teste consegue falar com um Supabase
+      # de verdade.
+      - name: Testes
+        run: npm test
+
+      # O build pega o que o teste não pega: import quebrado, sintaxe que só
+      # o bundler enxerga, arquivo que sumiu.
+      - name: Build de produção
+        run: npm run build
+
+      # Trava só em CRITICAL. As 5 vulnerabilidades conhecidas hoje
+      # (vite/esbuild só no servidor de desenvolvimento, react-router sem
+      # caminho alcançável neste app, xlsx sem correção publicada) estão
+      # avaliadas e acompanhadas — travar a CI nelas ensinaria todo mundo a
+      # ignorar o vermelho. Uma crítica nova, essa sim, para a fila.
+      - name: Auditoria de dependências
+        run: npm audit --audit-level=critical

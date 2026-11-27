@@ -1,6 +1,7 @@
 import {
   LuChevronRight
 } from "react-icons/lu";
+import { faixaEscolhas } from "@/features/delivery/regras/escolhasDoGrupo";
 
 // Card médio, clicável, da grade da biblioteca. Só LEITURA: mostra o nome,
 // resumo (obrigatório/opcional), quantos itens tem e em quantos produtos
@@ -28,7 +29,11 @@ export default function GrupoCardMini({ grupo, onAbrir }) {
       <span
         className={`delivery-view__grupo-selo delivery-view__grupo-selo--${obrigatorio ? "obrigatorio" : "opcional"}`}
       >
-        {obrigatorio ? "Obrigatório" : "Opcional"} · {grupo.min_escolhas ?? 0}–{grupo.max_escolhas ?? 1}
+        {obrigatorio ? "Obrigatório" : "Opcional"} ·{" "}
+        {faixaEscolhas(
+          Math.max(0, Number(grupo.min_escolhas) || 0),
+          Math.max(0, Number(grupo.max_escolhas ?? 1) || 0),
+        )}
       </span>
 
       <div className="delivery-view__grupo-stats">

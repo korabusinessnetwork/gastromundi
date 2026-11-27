@@ -8,6 +8,7 @@ import { getSizes } from "@/constants/sizes";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
+import { carregarTodosGrupos } from "@/features/cardapio/dados/gruposEscolha";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/features/cardapio/regras/combos";
 import { buscarClientePorId } from "@/features/clientes/dados/clientes";
@@ -20,6 +21,7 @@ import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/features/comandas/regras/comandaLock";
 import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 import { useCancelarComanda } from "./useCancelarComanda";
+import { comandasDoSalao } from "@/features/delivery/dados/deliveryPedidos";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 import { useEstadoJanelasPdv } from "./useEstadoJanelasPdv";
 import { useEstadoCancelamentoComanda } from "./useEstadoCancelamentoComanda";
@@ -115,20 +117,36 @@ export function usePdv({ notify }) {
   const [barcodeValue,      setBarcodeValue]      = useState("");
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
-  const abertas = pending.filter(o => o.status !== "closed");
+  // Comanda criada pelo delivery não é do salão: ela é cuidada no painel do
+  // delivery e só polui a grade de quem atende as mesas.
+  const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
 
   // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
   // Carrega uma vez por entrada na tela; a receita (subprodutos com
   // controla_estoque) viaja junto no item do carrinho para a baixa de
   // estoque dos componentes na finalização.
+  //
+  // Junto vêm os grupos de escolha (combo flexível e produto com seleção),
+  // que abrem o seletor antes do carrinho. O que já vem no combo é
+  // combo_produtos, que viaja na própria linha do combo.
   const [combos, setCombos] = useState([]);
+  const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
     let ativo = true;
-    listarCombosParaVenda()
-      .then(({ data, error }) => {
-        if (error) { console.error("[pdv] erro ao carregar combos:", resumoErro(error)); return; }
-        if (ativo) setCombos(data ?? []);
-      });
+    Promise.all([
+      listarCombosParaVenda(),
+      carregarTodosGrupos(),
+    ]).then(([combosRes, gruposRes]) => {
+      if (!ativo) return;
+      if (combosRes.error) console.error("[pdv] erro ao carregar combos:", resumoErro(combosRes.error));
+      if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", resumoErro(gruposRes.error));
+      const porCombo = gruposRes.porCombo ?? {};
+      setCombos((combosRes.data ?? []).map(c => ({
+        ...c,
+        grupos: porCombo[c.id] ?? [],
+      })));
+      setGruposPorProduto(gruposRes.porProduto ?? {});
+    });
     return () => { ativo = false; };
   }, []);
 
@@ -438,7 +456,8 @@ export function usePdv({ notify }) {
         onNfce: ({ estado, resultado, venda }) =>
           setCupomNfce({ aberta: true, estado, resultado, venda }),
       });
-      handleBack();
+      // Não volta sozinho: o checkout mostra a venda concluída, com o botão
+      // de imprimir o comprovante, e só sai quando o operador toca Concluir.
       return { error: null };
     } catch (err) {
       // Só o resumo mascarado: o objeto cru leva o payload da cobrança
@@ -573,7 +592,7 @@ export function usePdv({ notify }) {
     abaAtiva, setAbaAtiva, toast, setToast, alertaAberto, setAlertaAberto, cupomNfce,
     setCupomNfce, alertaValidadeAberto, setAlertaValidadeAberto, buscaComanda, setBuscaComanda,
     barcodeInputOpen, setBarcodeInputOpen, barcodeValue, setBarcodeValue, barcodeFeedback,
-    setBarcodeFeedback, combos, setCombos, currentUser, users, bootstrapLoading, metodosCustom,
+    setBarcodeFeedback, combos, setCombos, gruposPorProduto, currentUser, users, bootstrapLoading, metodosCustom,
     diasAlertaValidade, products, estoque, estoqueMinimos, pending, addPending, updatePending,
     removePending, lancadas, addLancada, caixaAberto, sales, finalizarPagamento, cancelarComanda,
     width, mesas, mesasLoading, atualizarStatusMesa, showNova, setShowNova, nomeComanda,

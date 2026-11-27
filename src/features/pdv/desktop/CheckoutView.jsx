@@ -12,13 +12,27 @@ import PopupAjuste from "./checkout/PopupAjuste";
 import PopupRemocao from "./checkout/PopupRemocao";
 import ResumoPedido from "./checkout/ResumoPedido";
 import PainelPagamento from "./checkout/PainelPagamento";
+import VendaConcluida from "./checkout/VendaConcluida";
 import "./CheckoutView.css";
 
-export default function CheckoutView({ comanda, items, onConfirm, onBack, onRemoverItem }) {
-  const tela = useCheckout({ comanda, items, onConfirm, onBack, onRemoverItem });
+export default function CheckoutView({ comanda, items, onConfirm, onBack, onConcluir, onRemoverItem }) {
+  const tela = useCheckout({ comanda, items, onConfirm, onBack, onConcluir, onRemoverItem });
   const {
     confirmando, clienteFiado, cpfNotaAberto, setCpfNotaAberto, showAjuste, ajusteAplicado, modoRemocao, setModoRemocao, remocao, itensVisiveis, total, abrirAjuste, confirmarCpfNota, montarVendaParaImpressao, isMob,
+    vendaConcluida, statusImpressao, erroImpressao, imprimirComprovanteConcluido, concluir,
   } = tela;
+
+  if (vendaConcluida) {
+    return (
+      <VendaConcluida
+        venda={vendaConcluida}
+        statusImpressao={statusImpressao}
+        erroImpressao={erroImpressao}
+        onImprimir={imprimirComprovanteConcluido}
+        onConcluir={concluir}
+      />
+    );
+  }
 
   return (
     <>

@@ -37,11 +37,11 @@ describe("escolherRotas, uma superfície por endereço", () => {
     expect(elementoDe(rotas, "/console").props.to).toBe("/login");
   });
 
-  it("o app do computador mantém a tela inicial e as 12 telas", () => {
+  it("o app do computador mantém a tela inicial e as 13 telas", () => {
     const app = escolherRotas({ naHostDoConsole: false, consoleForaDoHost: false, noApex: false }).find((r) => r.path === "/app");
     expect(app.children.map((r) => (r.index ? "(inicial)" : r.path))).toEqual([
       "(inicial)", "pdv", "produtos", "delivery", "relatorio", "configuracoes", "estoque",
-      "financeiro", "cozinha", "clientes", "admin", "notas-fiscais", "fiscal",
+      "financeiro", "cozinha", "clientes", "admin", "feedbacks", "notas-fiscais", "fiscal",
     ]);
   });
 });

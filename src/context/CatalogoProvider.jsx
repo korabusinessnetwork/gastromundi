@@ -7,7 +7,7 @@ import {
   listarSaldos, garantirLinhaDeSaldo, gravarSaldo, gravarMinimo, baixarEstoqueNoBanco,
   entradaEstoqueNoBanco, baixarEstoqueSubprodutoNoBanco, assinarSaldos,
 } from "@/features/estoque/dados/saldos";
-import { listarProdutosAtivos, criarProduto, atualizarProduto, excluirProduto } from "@/features/cardapio/dados/produtos";
+import { listarProdutos, criarProduto, atualizarProduto, excluirProduto } from "@/features/cardapio/dados/produtos";
 import { removerGrupoDaCategoria, definirGrupoDaCategoria } from "@/features/cardapio/dados/gruposCategoria";
 import { emitirEvento } from "@/features/jarvas/dados/jarvas";
 import { processarBaixaEstoque, gerarAlertaBaixaFalhou, isRpcAusente } from "@/features/estoque/regras/estoque";
@@ -121,7 +121,7 @@ export function CatalogoProvider({ children }) {
   // Recarrega o cardápio inteiro do banco — usado após operações em lote
   // que gravam fora das actions acima (ex.: importação de planilha).
   const recarregarProdutos = async () => {
-    const { data, error } = await listarProdutosAtivos();
+    const { data, error } = await listarProdutos();
     if (!error && data) setProductsLocal(data);
     return { error };
   };
