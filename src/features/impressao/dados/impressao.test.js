@@ -94,7 +94,7 @@ describe("montarComprovantePagamento (itens, totais, troco, identidade)", () => 
     const comprovante = montarComprovantePagamento({ venda: vendaBase });
 
     // Decisão 037: o emoji do produto não vai para o cupom, mesmo que o item o traga.
-    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, obs: [] }]);
+    expect(comprovante.itens).toEqual([{ nome: "X-Burguer", qty: 2, preco: 30, obs: [], escolhas: [] }]);
     expect(comprovante.subtotal).toBe(60);
   });
 
@@ -162,7 +162,7 @@ describe("montarCupomPreNota (base para o futuro add-on fiscal, F019)", () => {
 
     const cupom = montarCupomPreNota({ venda });
 
-    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, obs: [] }]);
+    expect(cupom.itens).toEqual([{ nome: "Suco", qty: 1, preco: 10, obs: [], escolhas: [] }]);
     expect(cupom.total).toBe(10);
   });
 
