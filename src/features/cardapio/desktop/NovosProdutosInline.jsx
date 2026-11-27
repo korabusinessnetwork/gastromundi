@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "@/context/AppContext";
+import { useCatalogo } from "@/context/AppContext";
 import { LuPlus, LuX, LuCircleAlert } from "react-icons/lu";
 import "@/styles/chave.css";
 import "./NovosProdutosInline.css";
@@ -30,7 +30,7 @@ const CATEGORIA_INTERNA = "Insumo";
 const linhaVazia = () => ({ nome: "", preco: "" });
 
 export default function NovosProdutosInline({ nomeInicial = "", categorias = [], onCriados, onCancelar }) {
-  const { addProduct } = useApp();
+  const { addProduct } = useCatalogo();
 
   const [linhas, setLinhas] = useState([{ nome: nomeInicial, preco: "" }]);
   const [vendeAvulso, setVendeAvulso] = useState(true);

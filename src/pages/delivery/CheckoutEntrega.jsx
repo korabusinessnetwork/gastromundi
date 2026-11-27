@@ -37,6 +37,7 @@ import {
 } from "@/features/delivery/delivery";
 import { entregaLembrada } from "@/features/delivery/regras/deliveryDispositivo";
 import { useSairDoModal } from "./useSairDoModal";
+import { LuBike, LuStore } from "react-icons/lu";
 import "./CheckoutEntrega.css";
 
 const MESES = [
@@ -300,8 +301,8 @@ export default function CheckoutEntrega({
           {permiteRetirada && (
             <div className="entrega-tipo" role="group" aria-label="Como você quer receber">
               {[
-                { id: "entrega", emoji: "🛵", titulo: "Receber em casa", desc: "Levamos no seu endereço" },
-                { id: "retirada", emoji: "🏪", titulo: "Retirar no local", desc: "Você busca no balcão · sem taxa" },
+                { id: "entrega", Icone: LuBike, titulo: "Receber em casa", desc: "Levamos no seu endereço" },
+                { id: "retirada", Icone: LuStore, titulo: "Retirar no local", desc: "Você busca no balcão · sem taxa" },
               ].map((o) => {
                 const ativo = (dados.tipo ?? "entrega") === o.id;
                 return (
@@ -312,7 +313,7 @@ export default function CheckoutEntrega({
                     aria-pressed={ativo}
                     onClick={() => escolherTipo(o.id)}
                   >
-                    <span className="entrega-tipo__emoji" aria-hidden="true">{o.emoji}</span>
+                    <span className="entrega-tipo__emoji" aria-hidden="true"><o.Icone /></span>
                     <span className="entrega-tipo__titulo">{o.titulo}</span>
                     <span className="entrega-tipo__desc">{o.desc}</span>
                   </button>

@@ -13,6 +13,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { formatarPreco } from "@/features/delivery/delivery";
 import { useSairDoModal } from "./useSairDoModal";
+import { LuReceipt } from "react-icons/lu";
 import "./MeusPedidos.css";
 
 // Os mesmos estados do painel do estabelecimento (lib/deliveryPedidos.js),
@@ -155,7 +156,7 @@ export default function MeusPedidos({
 
           {vazio && (
             <div className="vitrine__estado">
-              <div className="vitrine__estado-emoji">🧾</div>
+              <div className="vitrine__estado-emoji"><LuReceipt aria-hidden="true" /></div>
               <p>
                 Seus pedidos aparecem aqui assim que você fizer o primeiro, sem
                 precisar criar conta.

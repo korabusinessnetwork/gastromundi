@@ -394,7 +394,7 @@ export function mensagemPedidoAceito(pedido, loja = {}, itens = []) {
   const saudacao = cliente ? `Oi, ${cliente.split(" ")[0]}!` : "Oi!";
   const linhas = [`${saudacao} ${nome ? `Aqui é do ${nome}.` : "Tudo certo por aqui."}`];
   linhas.push("");
-  linhas.push(`Recebemos seu pedido *${pedido?.numero ?? ""}* e já começamos a preparar. ✅`);
+  linhas.push(`Recebemos seu pedido *${pedido?.numero ?? ""}* e já começamos a preparar.`);
 
   if (preparo > 0) {
     linhas.push(
@@ -487,8 +487,8 @@ export function mensagemPedidoEmRota(pedido, loja = {}) {
   linhas.push("");
   linhas.push(
     entregador
-      ? `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega com ${entregador}. 🛵`
-      : `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega. 🛵`,
+      ? `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega com ${entregador}.`
+      : `Seu pedido *${pedido?.numero ?? ""}* saiu para entrega.`,
   );
 
   const onde = resumoEndereco(pedido);

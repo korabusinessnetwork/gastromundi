@@ -144,6 +144,10 @@
   font-size: var(--fs-base);
   line-height: var(--lh-base);
 }
+.feedback__btn-confirmar {
+  cursor: pointer;
+}
 .feedback__btn-confirmar:disabled {
   background: var(--gm-faint);
+  cursor: not-allowed;
 }

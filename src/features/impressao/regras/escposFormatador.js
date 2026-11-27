@@ -100,7 +100,7 @@ function linhasDoItemEmColunas(item, larg, mostrarUnitario) {
   // papel parecer ter mais itens do que tem.
   for (const parte of partes.slice(1)) linhas.push(celula(parte, larg.nome));
   linhas.push(...linhasDaComposicao(item, larg.nome + larg.qtd));
-  for (const obs of item.obs ?? []) linhas.push(...quebrarLinha(`  📝 ${obs}`, larg.nome + larg.qtd));
+  for (const obs of item.obs ?? []) linhas.push(...quebrarLinha(`  Obs.: ${obs}`, larg.nome + larg.qtd));
   return linhas;
 }
 

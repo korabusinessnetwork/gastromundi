@@ -130,7 +130,6 @@ export default function BotaoFeedback({ usuario }) {
                     onClick={enviar}
                     disabled={bloqueado}
                     className="feedback__btn-confirmar"
-                    style={{ cursor: bloqueado ? "not-allowed" : "pointer" }}
                   >
                     {enviando ? "Enviando…" : "Enviar"}
                   </button>
