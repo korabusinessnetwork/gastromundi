@@ -20,6 +20,25 @@ export const TIPOS_DE_NOTA = {
 
 export const NOTAS_DE_ATUALIZACAO = [
   {
+    data: "2026-11-27",
+    titulo: "Combos de montar, entregadores, feedback e origem de cada venda",
+    itens: [
+      { tipo: "novo", texto: "Opções de escolha no produto e no combo: o cliente escolhe o refrigerante, o acompanhamento ou o sabor na hora da venda, e cada opção baixa o próprio estoque. No PDV, o produto com escolhas abre uma janela para montar o pedido antes de ir para a comanda." },
+      { tipo: "novo", texto: "Combo de montar, sem produto principal, com preço fixo do combo. O combo de sempre, com produto principal, outros produtos e subprodutos, continua igual." },
+      { tipo: "novo", texto: "Cadastro de entregadores no Delivery, com o valor de cada entrega e o fechamento do que cada um tem a receber no dia." },
+      { tipo: "novo", texto: "O pedido do delivery vira venda quando é marcado como entregue, e aparece nos relatórios com a origem \"Delivery\". Os relatórios ganharam o filtro por origem e uma aba que compara o delivery com a frente de caixa." },
+      { tipo: "novo", texto: "Botão \"Reportar algo\" no rodapé do menu, para a equipe avisar de um problema, e a tela de Feedbacks na Área Admin, com o que a equipe relatou e a nota que os clientes deram ao pedido." },
+      { tipo: "novo", texto: "Depois de receber o pagamento, o PDV mostra a venda concluída com o botão de imprimir o comprovante, e só volta para a grade quando você toca em Concluir. Fechar o caixa e retirar ou colocar dinheiro também oferecem o comprovante." },
+      { tipo: "novo", texto: "Desabilitar a venda de um produto direto na lista do Cadastro Produtos, sem apagar o cadastro. Ele some do PDV e volta quando você religa." },
+      { tipo: "novo", texto: "Clientes mostram de onde vieram (frente de caixa ou delivery) e a data de aniversário, com filtros para separar os aniversariantes do mês." },
+      { tipo: "novo", texto: "Reimprimir a via da produção pela comanda, o pedido pelo Delivery e o comprovante pelos Relatórios." },
+      { tipo: "melhoria", texto: "Os valores em reais passaram a sair no formato brasileiro, com vírgula, no PDV e no cadastro de produtos." },
+      { tipo: "melhoria", texto: "As comandas criadas pelo delivery não aparecem mais na grade do salão: elas são cuidadas no painel do Delivery." },
+      { tipo: "melhoria", texto: "Cancelar uma venda passa a guardar o lançamento no Financeiro como cancelado, com quem cancelou e por quê, em vez de apagar." },
+      { tipo: "interno", texto: "Integração das novidades de combos, delivery e feedback que estavam paradas desde setembro, trazidas para a organização atual do sistema, sem emoji e com as cores do estabelecimento. Elas dependem de atualizações no banco de dados que ainda serão aplicadas." },
+    ],
+  },
+  {
     data: "2026-11-26",
     titulo: "Cores do seu estabelecimento em todo lugar e datas no dia certo",
     itens: [
