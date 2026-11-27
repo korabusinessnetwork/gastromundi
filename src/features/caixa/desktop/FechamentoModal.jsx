@@ -5,7 +5,9 @@ import { round2 } from "@/features/caixa/regras/vendas";
 import { TOLERANCIA_CENTAVO, situacaoCaixa, ROTULO_SITUACAO } from "@/features/caixa/regras/caixa";
 import { movimentosDaSessao, totalPorTipo, ajusteEsperadoDinheiro } from "@/features/caixa/regras/caixaMovimentos";
 import { LuLock, LuBanknote, LuPencil, LuTriangleAlert } from "react-icons/lu";
-import { useConfig, useCaixa } from "@/context/AppContext";
+import { useConfig, useCaixa, useSessao } from "@/context/AppContext";
+import { montarComprovanteFechamento } from "@/features/impressao/dados/impressao";
+import ImprimirComprovanteCaixa from "./ImprimirComprovanteCaixa";
 import "./FechamentoModal.css";
 import { METODOS_POR_ID } from "@/constants/metodosPagamento";
 
@@ -68,6 +70,7 @@ function buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa)
 export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onConfirm, onClose }) {
   const { meiosPagamento, metodosCustom } = useConfig();
   const { movimentosCaixa } = useCaixa();
+  const { tenant, currentUser } = useSessao();
   const meios = meiosPagamento?.length ? meiosPagamento : Object.keys(METODOS_POR_ID);
   const customLabels = useMemo(
     () => Object.fromEntries((metodosCustom ?? []).map(m => [m.id, m.label])),
@@ -76,6 +79,9 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
 
   const [salvando,    setSalvando]    = useState(false);
   const [observacao,  setObservacao]  = useState("");
+  // Passo de sucesso: fechado o caixa, a tela vira o comprovante (com
+  // botão de imprimir) em vez de fechar direto. `null` = ainda no form.
+  const [registrado,  setRegistrado]  = useState(null);
 
   const { hoje, m: sistema, naoMapeados, sangrias, suprimentos } = useMemo(
     () => buildSistema(sales, fundoAtual, sessaoAbertaEm, meios, movimentosCaixa),
@@ -116,8 +122,28 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
       // `totalEsperado` é o que o relatório, a exportação e o Jarvas precisam
       // para não recalcularem `totalVendas + fundo` e ressuscitarem a falsa
       // falta dos métodos sem linha de conferência.
-      await onConfirm({
+      const resultado = await onConfirm({
         totalVendas, totalEsperado: totalSistema, totalConferido, conferidoPorMetodo,
+        observacao: observacao.trim() || null,
+      });
+      // Quem chama mantém o modal aberto no erro; aqui só avançamos para o
+      // comprovante quando o fechamento foi de fato gravado.
+      if (resultado?.error) return;
+      const porMetodo = meios.map(metodo => ({
+        rotulo: METODOS_POR_ID[metodo]?.label ?? rotuloMetodo(metodo, customLabels),
+        sistema: sistema[metodo] ?? 0,
+        conferido: parsVal(confDe(metodo)),
+      }));
+      setRegistrado({
+        totalVendas,
+        fundo: fundoAtual,
+        suprimentos,
+        sangrias,
+        totalEsperado: totalSistema,
+        totalConferido,
+        diferenca: diferencaTotal,
+        situacao,
+        porMetodo,
         observacao: observacao.trim() || null,
       });
     } finally {
@@ -135,6 +161,40 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
     >
       <div className="fechamento-modal__caixa">
 
+        {registrado ? (
+          <>
+            {/* Passo de sucesso — caixa fechado, agora o comprovante */}
+            <div className="fechamento-modal__sucesso">
+              <div className="fechamento-modal__sucesso-icone">
+                <LuLock size={22} />
+              </div>
+              <div>
+                <div className="fechamento-modal__sucesso-titulo">Caixa fechado</div>
+                <div className="fechamento-modal__sucesso-sub">
+                  {ROTULO_SITUACAO[registrado.situacao]} · conferido {fmtR(registrado.totalConferido)}
+                </div>
+              </div>
+            </div>
+
+            <ImprimirComprovanteCaixa
+              montarDocumento={(configImpressao) => montarComprovanteFechamento({
+                ...registrado,
+                autor: currentUser?.name,
+                tenant,
+                configImpressao,
+              })}
+            />
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="fechamento-modal__concluir"
+            >
+              Concluir
+            </button>
+          </>
+        ) : (
+        <>
         {/* Header */}
         <div className="fechamento-modal__topo">
           <div className="fechamento-modal__icone">
@@ -301,6 +361,8 @@ export default function FechamentoModal({ sales, fundoAtual, sessaoAbertaEm, onC
             {salvando ? "Fechando..." : <><LuLock size={14} />Confirmar Fechamento</>}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

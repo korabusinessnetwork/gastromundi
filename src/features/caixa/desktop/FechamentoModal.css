@@ -414,3 +414,37 @@
   background: var(--gm-faint);
   cursor: not-allowed;
 }
+
+/* Passo de sucesso: caixa fechado, agora o comprovante. */
+.fechamento-modal__sucesso {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.fechamento-modal__sucesso-icone {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--gm-green) 9%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--gm-green) 27%, transparent);
+  color: var(--gm-green);
+}
+.fechamento-modal__sucesso-titulo { font-weight: 800; }
+.fechamento-modal__sucesso-sub {
+  color: var(--gm-muted);
+  margin-top: 2px;
+}
+.fechamento-modal__concluir {
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gm-accent);
+  color: #fff;   /* literal: sem token para texto sobre a marca */
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
