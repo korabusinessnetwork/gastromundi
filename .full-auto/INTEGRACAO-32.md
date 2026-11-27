@@ -45,3 +45,21 @@ delivery, T36 feedback, clientes e relatórios, T37 impressão e o resto.
 
 O dono confirma se as 24 migrations do #32 estão em produção (consulta de leitura entregue na
 conversa de 2026-11-26). Sem essa confirmação, nada desta integração vai para a main.
+
+## Estado do banco de produção (medido em 2026-11-27)
+
+Consulta só de leitura pela API do Supabase. O banco não tem a tabela de controle da CLI
+(`supabase_migrations.schema_migrations`): as migrations são aplicadas à mão no editor SQL, então a
+conferência foi pelo que cada uma cria (tabela, função, coluna, índice, gatilho, política).
+
+- Nenhuma das 24 migrations do #32 está aplicada. Faltam todos os objetos novos (grupos_escolha,
+  delivery_entregadores, feedbacks, comandas_arquivadas, gravar_itens_comanda,
+  lancamentos.cancelado_por, as colunas novas do delivery e de clientes), e as colunas de dinheiro
+  continuam sem precisão fixa. Os poucos acertos parciais são funções que já existiam antes e que a
+  migration só substitui (criar_pedido_delivery e parecidas), o que não prova aplicação.
+- As 4 migrations mais recentes da main (20261123 a 20261126) estão aplicadas.
+
+Consequência: mesclar a integração na main sobe código que chama objetos que não existem. As
+migrations do #32 precisam ser aplicadas antes, em ordem, com aprovação do dono. Como nenhuma foi
+aplicada, renomeá-las para datas novas (depois de 20261126) é seguro e evita a colisão de prefixo;
+fica como proposta para a hora de mesclar.

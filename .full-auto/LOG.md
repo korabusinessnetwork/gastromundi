@@ -36,3 +36,9 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26, T24 passada 1: F.1 (Supabase fora de dados/ 10 para 0), F.2 (subagente, 88 specs, sem regressão), F.4 (migrations e cor da impressão) com 3 achados corrigidos; `npm test` 273 arquivos e 4465 testes verdes, build limpo, lint 0 erros, roteiro 209 telas sem diferença. F.3 pendente.
 - 2026-11-26, T24 (fase F, passada 2 e encerramento): `npm run fluxos` 13 fluxos, 0 falha; F.1 a F.4 sem achado; `npm test` 273 arquivos e 4465 testes verdes, build limpo, lint 0 erros. Plano encerrado.
 - 2026-11-26, T25 a T29 (pendências finais): `npm test` 273 arquivos e 4465 testes verdes, build limpo, lint 0 erros e 0 avisos, roteiro 225 telas (209 antigas sem diferença), `npm run cenarios-banco` 58 conferências e 0 falhas.
+
+- 2026-11-26T18:57:50.194Z limite de uso atingido (rate_limit), vigia ligado
+
+- 2026-11-26T18:57:50.502Z limite de uso atingido (rate_limit), vigia ligado
+
+- 2026-11-26T19:54:48.636Z limite de uso atingido (rate_limit), vigia ligado
