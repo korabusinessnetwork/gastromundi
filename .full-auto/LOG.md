@@ -42,3 +42,4 @@ Uma linha por tarefa concluída: data, tarefa, commit, comando de verificação 
 - 2026-11-26T18:57:50.502Z limite de uso atingido (rate_limit), vigia ligado
 
 - 2026-11-26T19:54:48.636Z limite de uso atingido (rate_limit), vigia ligado
+- 2026-11-27 · T30 a T36 · integração do #32 portada por assunto na cópia /home/user/gm-integra-32 (branch local integra-32, 17 commits). `npx vitest run`: 316 arquivos, 5250 testes verdes; `npx eslint .`: 0 erros; `npx vite build`: exit 0. T37 em andamento: fotos das telas contra a main e a decisão do dono sobre as migrations.

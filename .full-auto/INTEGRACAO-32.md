@@ -75,7 +75,16 @@ escolha no produto e no combo, desabilitar venda, principal opcional, preço fix
 (composição do combo, largura das colunas, sem emoji). Migration nova: 20261127 (índices de tenant
 nos subprodutos).
 
-Falta (suíte verde não cobre porque os testes desses arquivos também estão fora da árvore):
+Atualização (2026-11-27, fim do dia): também portados delivery no painel (entregadores, fechamento
+dos entregadores, venda ao entregar dentro de `avancarPedido`, aceite automático e WhatsApp,
+importar escolhendo, grupo de extras no produto, reimprimir pedido), configurações (publicar
+produto novo e espelhar desabilitado), relatórios (origem da venda, aba Delivery, reimprimir
+comprovante), feedbacks (tela, rota `/app/feedbacks`, entrada no admin, botão "Reportar algo" no
+menu), PDV (comandas do delivery fora do salão, reimprimir via, composição completa do combo) e a
+coluna `origem` na carga das vendas. Suíte 316 arquivos e 5250 testes verdes, lint 0, build limpo.
+Estoque, cozinha e `utils/hooks`: o #32 só mudou espaçamento e comentário, nada a portar.
+
+Lista original do que faltava (agora feito; mantida como registro) (suíte verde não cobre porque os testes desses arquivos também estão fora da árvore):
 - Telas novas fora da árvore (`/home/user/gm-novos-fora32.txt`): FeedbacksView e rota, AbaFechamento
   e NovoGrupoExtrasInline do delivery, DeliveryReport, BotaoReimprimirPedido/Via/Comprovante,
   ClientesFiltroSelect.
