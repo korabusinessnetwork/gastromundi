@@ -43,6 +43,10 @@ import AnalyticsDashboard from "./AnalyticsDashboard";
 // quebrava sozinho nessa faixa (TD019 — suíte refém do relógio). Ancorar na
 // meia-noite local do dia desejado dá a mesma intenção sem depender da hora em
 // que a suíte roda.
+function horasAtras(n) {
+  return new Date(Date.now() - n * 3600 * 1000).toISOString();
+}
+
 function diasAtras(n) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);

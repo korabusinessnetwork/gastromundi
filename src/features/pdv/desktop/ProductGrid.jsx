@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useResponsive } from "@/utils/hooks";
 import { getSizes } from "@/constants/sizes";
-import { montarItemCombo, montarItemProdutoEscolhas } from "@/features/cardapio/regras/combos";
+import { montarItemCombo, montarItemProdutoEscolhas, itensQueVemNoCombo } from "@/features/cardapio/regras/combos";
 import { formatarReais } from "@/lib/dinheiro";
 import SeletorEscolhas from "./SeletorEscolhas";
 import "./ProductGrid.css";
@@ -40,7 +40,7 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
       if (item) onAdd({ ...item, category: produto?.category });
       return;
     }
-    setSeletor({ tipo: "combo", combo, produto, grupos, titulo: combo.nome, precoBase: Number(combo.preco_total) || 0, escolhasFixas: combo.escolhasFixas ?? [] });
+    setSeletor({ tipo: "combo", combo, produto, grupos, titulo: combo.nome, precoBase: Number(combo.preco_total) || 0, jaVemCom: itensQueVemNoCombo(combo, produto) });
   };
 
   const confirmarEscolhas = (escolhas) => {
@@ -175,7 +175,7 @@ export default function ProductGrid({ products, combos = [], gruposPorProduto = 
           precoBase={seletor.precoBase}
           grupos={seletor.grupos}
           products={products}
-          escolhasFixas={seletor.escolhasFixas ?? []}
+          jaVemCom={seletor.jaVemCom ?? []}
           onConfirmar={confirmarEscolhas}
           onClose={() => setSeletor(null)}
         />

@@ -1,5 +1,6 @@
 import { labelEstoque, getUnidadesCompra } from "@/utils/conversaoUnidades";
-import { LuTag, LuHourglass, LuPackage } from "react-icons/lu";
+import { LuTag, LuHourglass, LuPackage, LuX } from "react-icons/lu";
+import { formatarReais } from "@/lib/dinheiro";
 import SubprodutosView from "./SubprodutosView";
 import CombosView from "./CombosView";
 import CategoriasComBusca from "./produtos/CategoriasComBusca";
@@ -13,7 +14,7 @@ import "./ProdutosView.css";
 export default function ProdutosView() {
   const tela = useProdutos();
   const {
-    modal, deleteId, setDeleteId, catFiltro, setCatFiltro, busca, setBusca, abaAtiva, setAbaAtiva, products, showCatModal, setShowCatModal, catConfirmDelete, sz, carregando, categorias, produtosFiltrados, abrirNovo, abrirEditar, isAdmin, ABAS,
+    modal, deleteId, setDeleteId, catFiltro, setCatFiltro, busca, setBusca, abaAtiva, setAbaAtiva, products, showCatModal, setShowCatModal, catConfirmDelete, sz, carregando, categorias, produtosFiltrados, abrirNovo, abrirEditar, isAdmin, ABAS, alternandoId, erroVenda, setErroVenda, alternarVenda,
   } = tela;
 
   return (
@@ -71,6 +72,17 @@ export default function ProdutosView() {
 
       {/* Produtos — Categorias + Busca + Tabela */}
       {abaAtiva === "produtos" && <>
+      {/* Falha ao ligar/desligar a venda. Fica na tela até a pessoa fechar:
+          um aviso que some sozinho deixaria o produto num estado diferente
+          do que a lista mostra, sem ninguém saber. */}
+      {erroVenda && (
+        <div role="alert" className="produtos-view__erro produtos-view__erro--lista">
+          <span>{erroVenda}</span>
+          <button type="button" onClick={() => setErroVenda("")} aria-label="Fechar aviso" className="produtos-view__erro-fechar">
+            <LuX size={14} />
+          </button>
+        </div>
+      )}
 
       <CategoriasComBusca
         categorias={categorias}
@@ -98,7 +110,7 @@ export default function ProdutosView() {
           <table className="produtos-view__tabela">
             <thead>
               <tr className="produtos-view__thead-tr">
-                {["", "Nome", "Categoria", "Unidade", "Preço", ""].map((h, i) => (
+                {["", "Nome", "Categoria", "Unidade", "Preço", "Situação", ""].map((h, i) => (
                   // TD015: cabeçalho literal da tabela de produtos, não vem de dado.
                   <th key={i} className={`produtos-view__th produtos-view__th--${i >= 4 ? "direita" : "esquerda"}${i === 0 ? " produtos-view__th--primeira" : ""}`}>{h}</th>
                 ))}
@@ -107,8 +119,9 @@ export default function ProdutosView() {
             <tbody>
               {produtosFiltrados.map(p => {
                 const units = getUnidadesCompra(p);
+                const vendendo = p.active !== false;
                 return (
-                  <tr key={p.id} className="produtos-view__tr">
+                  <tr key={p.id} className={`produtos-view__tr${vendendo ? "" : " produtos-view__tr--parado"}`}>
                     <td className="produtos-view__td-emoji">
                       <div className="produtos-view__emoji-box"><LuPackage aria-hidden="true" /></div>
                     </td>
@@ -128,7 +141,30 @@ export default function ProdutosView() {
                       <span className="produtos-view__tag-unidade">{labelEstoque(p)}</span>
                     </td>
                     <td className="produtos-view__td produtos-view__td--direita">
-                      <span className="produtos-view__preco">R$ {Number(p.price).toFixed(2)}</span>
+                      <span className="produtos-view__preco">{formatarReais(Number(p.price))}</span>
+                    </td>
+                    {/* Situação: o selo é o próprio botão. Mostra o estado de
+                        agora em palavra, e o título diz o que o clique faz. */}
+                    <td className="produtos-view__td produtos-view__td--direita produtos-view__td--situacao">
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={vendendo}
+                        aria-label={`Vender ${p.name} no PDV`}
+                        disabled={!isAdmin || alternandoId != null}
+                        onClick={() => alternarVenda(p)}
+                        title={vendendo
+                          ? "Está sendo vendido no PDV. Clique para desabilitar, o cadastro continua salvo."
+                          : "Não aparece no PDV. Clique para voltar a vender."}
+                        className={`produtos-view__disp produtos-view__disp--${vendendo ? "on" : "off"}`}
+                      >
+                        <span className="produtos-view__disp-texto">
+                          {alternandoId === p.id ? "Salvando…" : vendendo ? "À venda" : "Desabilitado"}
+                        </span>
+                        <span className="produtos-view__disp-trilho" aria-hidden="true">
+                          <span className="produtos-view__disp-bola" />
+                        </span>
+                      </button>
                     </td>
                     <td className="produtos-view__td produtos-view__td--acoes">
                       {isAdmin && (

@@ -117,9 +117,9 @@ export function precoDasEscolhas(escolhas) {
  *   escolhas (ver calcularBaixasEscolhas);
  * - um combo pode ter as duas coisas, e as baixas somam.
  *
- * O preço é o `preco_total` mais os acréscimos das escolhas. Os itens FIXOS
- * entram sempre, antes do que o cliente escolheu, com preço 0: existem para
- * baixar estoque e sair na comanda (src/features/cardapio/regras/comboItensFixos.js).
+ * O preço é o `preco_total` mais os acréscimos das escolhas. `escolhasFixas`,
+ * quando vier, entra antes do que o cliente escolheu. O PDV não manda: o que
+ * já vem no combo é `combo_produtos`, que tem baixa própria.
  *
  * @param {object} combo - linha de `combos`, com `combo_subprodutos(quantidade, subprodutos(id, nome, controla_estoque))`, `combo_produtos(quantidade, products(id, name))` e `escolhasFixas` quando houver
  * @param {Array<object>} escolhas - produtos escolhidos nos grupos
@@ -322,4 +322,30 @@ export function mesmoItemDeVenda(a, b) {
   if (a.id !== b.id) return false;
   if ((a.combo?.comboId ?? null) !== (b.combo?.comboId ?? null)) return false;
   return assinaturaEscolhas(a.combo) === assinaturaEscolhas(b.combo);
+}
+
+/**
+ * Frase do que o combo já inclui, em português do balcão ("Hambúrguer,
+ * Batata e Coca"). Só para mostrar no seletor do PDV: sabendo que a batata
+ * já está no combo, o operador não oferece outra.
+ *
+ * @param {Array<{nome: string, qtd: number}>} itens
+ * @returns {string}
+ */
+export function resumoDoQueVemNoCombo(itens) {
+  const partes = (itens ?? [])
+    .filter((e) => e?.nome)
+    .map((e) => (Number(e.qtd) > 1 ? `${e.qtd}× ${e.nome}` : e.nome));
+  if (partes.length === 0) return "";
+  if (partes.length === 1) return partes[0];
+  return `${partes.slice(0, -1).join(", ")} e ${partes[partes.length - 1]}`;
+}
+
+/** O que já vem no combo, para mostrar: principal, outros produtos e subprodutos. */
+export function itensQueVemNoCombo(combo, principal) {
+  return [
+    ...(principal?.name ? [{ nome: principal.name, qtd: 1 }] : []),
+    ...(combo?.combo_produtos ?? []).filter((cp) => cp?.products?.name).map((cp) => ({ nome: cp.products.name, qtd: Number(cp.quantidade ?? 1) })),
+    ...(combo?.combo_subprodutos ?? []).filter((cs) => cs?.subprodutos?.nome).map((cs) => ({ nome: cs.subprodutos.nome, qtd: Number(cs.quantidade ?? 1) })),
+  ];
 }

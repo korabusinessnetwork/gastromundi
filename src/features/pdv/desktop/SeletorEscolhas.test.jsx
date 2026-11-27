@@ -336,14 +336,14 @@ describe("SeletorEscolhas — itens fixos do combo", () => {
     { produtoId: 9, nome: "Batata frita", qtd: 1, preco: 0, grupoId: "fixos", regra: "soma", fixo: true },
   ];
 
-  function montarComFixos(escolhasFixas) {
+  function montarComFixos(jaVemCom) {
     render(
       <SeletorEscolhas
         titulo="Combo Lanche"
         precoBase={35}
         grupos={[grupo()]}
         products={PRODUTOS}
-        escolhasFixas={escolhasFixas}
+        jaVemCom={jaVemCom}
         onConfirmar={vi.fn()}
         onClose={vi.fn()}
       />,

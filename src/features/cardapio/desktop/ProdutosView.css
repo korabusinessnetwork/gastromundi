@@ -773,6 +773,8 @@
 /* O mesmo aviso, mas fora do modal: fica sobre a lista, com o botão de
    fechar, porque nada o dispensa automaticamente. */
 .produtos-view__erro--lista {
+  background: color-mix(in srgb, var(--gm-red) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gm-red) 27%, transparent);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1407,3 +1409,7 @@
   color: #fff;
 }
 .categorias-busca__input { padding: 9px 16px; }
+
+.produtos-view__td--situacao {
+  white-space: nowrap;
+}

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { resolverOpcoes, instrucaoGrupo, textoRegra, regraValida } from "@/features/cardapio/dados/gruposEscolha";
 import { precoDasEscolhas } from "@/features/cardapio/regras/combos";
-import { resumoItensFixos } from "@/features/cardapio/dados/comboItensFixos";
+import { resumoDoQueVemNoCombo } from "@/features/cardapio/regras/combos";
 import { formatarReais as fmtBRL } from "@/lib/dinheiro";
 import { LuX, LuCheck, LuMinus } from "react-icons/lu";
 import "./SeletorEscolhas.css";
@@ -34,7 +34,7 @@ const tetoDe = (grupo) => {
   return max === 0 ? Infinity : max;
 };
 
-export default function SeletorEscolhas({ titulo, precoBase = 0, grupos = [], products = [], escolhasFixas = [], onConfirmar, onClose }) {
+export default function SeletorEscolhas({ titulo, precoBase = 0, grupos = [], products = [], jaVemCom = [], onConfirmar, onClose }) {
   // opções resolvidas por grupo, uma vez
   const gruposResolvidos = useMemo(
     () => grupos.map((g) => ({ ...g, opcoes: resolverOpcoes(g, products) })),
@@ -129,10 +129,10 @@ export default function SeletorEscolhas({ titulo, precoBase = 0, grupos = [], pr
         {/* O que já vem junto. Aparece ANTES das perguntas porque muda o
             que o operador precisa perguntar: sabendo que a batata já está
             no combo, ele não oferece outra. */}
-        {resumoItensFixos(escolhasFixas) && (
+        {resumoDoQueVemNoCombo(jaVemCom) && (
           <div className="seletor-escolhas__fixos">
             <span className="seletor-escolhas__fixos-rotulo">Já vem com</span>
-            <span className="seletor-escolhas__fixos-lista">{resumoItensFixos(escolhasFixas)}</span>
+            <span className="seletor-escolhas__fixos-lista">{resumoDoQueVemNoCombo(jaVemCom)}</span>
           </div>
         )}
 

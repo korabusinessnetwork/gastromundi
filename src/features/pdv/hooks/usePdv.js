@@ -9,7 +9,6 @@ import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import { useBarcodeScanner } from "@/utils/useBarcodeScanner";
 import { listarCombosParaVenda } from "@/features/cardapio/dados/combos";
 import { carregarTodosGrupos } from "@/features/cardapio/dados/gruposEscolha";
-import { carregarTodosItensFixos, resolverItensFixos } from "@/features/cardapio/dados/comboItensFixos";
 import { resumoErro } from "@/lib/observabilidade";
 import { mesmoItemDeVenda } from "@/features/cardapio/regras/combos";
 import { buscarClientePorId } from "@/features/clientes/dados/clientes";
@@ -124,8 +123,9 @@ export function usePdv({ notify }) {
   // controla_estoque) viaja junto no item do carrinho para a baixa de
   // estoque dos componentes na finalização.
   //
-  // Junto vêm os grupos de escolha (combo flexível e produto com seleção) e
-  // os itens fixos de cada combo, que abrem o seletor antes do carrinho.
+  // Junto vêm os grupos de escolha (combo flexível e produto com seleção),
+  // que abrem o seletor antes do carrinho. O que já vem no combo é
+  // combo_produtos, que viaja na própria linha do combo.
   const [combos, setCombos] = useState([]);
   const [gruposPorProduto, setGruposPorProduto] = useState({});
   useEffect(() => {
@@ -133,23 +133,19 @@ export function usePdv({ notify }) {
     Promise.all([
       listarCombosParaVenda(),
       carregarTodosGrupos(),
-      carregarTodosItensFixos(),
-    ]).then(([combosRes, gruposRes, fixosRes]) => {
+    ]).then(([combosRes, gruposRes]) => {
       if (!ativo) return;
       if (combosRes.error) console.error("[pdv] erro ao carregar combos:", resumoErro(combosRes.error));
       if (gruposRes.error) console.error("[pdv] erro ao carregar grupos de escolha:", resumoErro(gruposRes.error));
-      if (fixosRes.error) console.error("[pdv] erro ao carregar itens fixos dos combos:", resumoErro(fixosRes.error));
       const porCombo = gruposRes.porCombo ?? {};
-      const fixosPorCombo = fixosRes.porCombo ?? {};
       setCombos((combosRes.data ?? []).map(c => ({
         ...c,
         grupos: porCombo[c.id] ?? [],
-        escolhasFixas: resolverItensFixos(fixosPorCombo[c.id] ?? [], products),
       })));
       setGruposPorProduto(gruposRes.porProduto ?? {});
     });
     return () => { ativo = false; };
-  }, [products]);
+  }, []);
 
   // ── Ressincroniza a comanda aberta com o realtime ─────────────
   // Sem isto, `selected` fica congelado no snapshot de quando a comanda

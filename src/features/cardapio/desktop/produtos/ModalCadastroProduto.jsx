@@ -1,7 +1,8 @@
 import { fecharAoClicarFora } from "@/lib/overlayFechar";
 import { chaveCategoria, ehCategoriaFixa } from "@/features/cardapio/regras/categoriasProduto";
 import { fmtQtd } from "@/utils/conversaoUnidades";
-import { LuPencil, LuX as LuXIcon, LuRuler, LuTriangleAlert } from "react-icons/lu";
+import { LuPencil, LuX as LuXIcon, LuRuler, LuTriangleAlert, LuTag } from "react-icons/lu";
+import EditorGruposEscolha from "../EditorGruposEscolha";
 import { FEATURE_BARCODE_SCANNER } from "@/constants/features";
 import Label from "./Label";
 import Input from "./Input";
@@ -9,7 +10,7 @@ import Input from "./Input";
 // Janela de cadastro e edição do produto, do insumo e do item de produção.
 export default function ModalCadastroProduto({ tela }) {
   const {
-    modal, form, salvando, erro, editingCompra, setEditingCompra, isInsumo, isProducao, categoriasProduto, fecharModal, setField, addCompra, setCompra, removeCompra, salvar, unidadesEstoque, unidadesCompra, unidadesConsumo,
+    modal, form, salvando, erro, editingCompra, setEditingCompra, isInsumo, isProducao, categoriasProduto, fecharModal, setField, addCompra, setCompra, removeCompra, salvar, unidadesEstoque, unidadesCompra, unidadesConsumo, grupos, setGrupos, products,
   } = tela;
   return (
         <div {...fecharAoClicarFora(fecharModal)} className="produtos-view__modal-overlay">
@@ -256,6 +257,26 @@ export default function ModalCadastroProduto({ tela }) {
             </div>
 
             {/* Erro */}
+            {/* ── Seção: Opções de escolha (produto com seleção) ──
+                Ex.: "Refrigerante" onde o cliente escolhe Coca ou Fanta, e
+                cada opção é um produto real que baixa o próprio estoque. Só
+                faz sentido para produto comum, não insumo/item de produção. */}
+            {!isInsumo && !isProducao && (
+              <div className="produtos-view__secao-escolhas">
+                <div className="produtos-view__secao-titulo">
+                  <LuTag size={15} className="produtos-view__secao-icone" />
+                  <span>Opções de escolha</span>
+                </div>
+                <div className="produtos-view__secao-ajuda">
+                  Use quando o cliente escolhe entre variações na hora da venda
+                  (ex.: qual refrigerante, qual acompanhamento). Cada opção é um
+                  produto do catálogo e baixa o próprio estoque. Deixe vazio se
+                  o produto é vendido direto.
+                </div>
+                <EditorGruposEscolha grupos={grupos} onChange={setGrupos} products={products} />
+              </div>
+            )}
+
             {erro && (
               <div className="produtos-view__erro produtos-view__erro--caixa">
                 <LuTriangleAlert size={14} className="gm-icone-texto" aria-hidden="true" /> {erro}
