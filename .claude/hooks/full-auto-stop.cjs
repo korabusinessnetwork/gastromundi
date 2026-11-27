@@ -53,8 +53,8 @@ process.stdin.on("end", () => {
     liberar();
   }
 
-  const pendentes = (tarefas.match(/^\s*[-*]\s*\[( |~)\]/gm) || []).length;
-  const bloqueadas = (tarefas.match(/^\s*[-*]\s*\[!\]/gm) || []).length;
+  const pendentes = (tarefas.match(/^\s*(?:[-*]|\|)\s*\[( |~)\]/gm) || []).length;
+  const bloqueadas = (tarefas.match(/^\s*(?:[-*]|\|)\s*\[!\]/gm) || []).length;
 
   // Proteção contra loop infinito: se nada mudou entre bloqueios seguidos, deixa parar.
   const hash = crypto.createHash("sha1").update(estado + "\n" + tarefas).digest("hex");
