@@ -17,6 +17,9 @@
 // ──────────────────────────────────────────────────────────────────
 
 /** Origem de uma venda: 'delivery' quando marcada assim, senão 'pdv'. */
+/** Rótulo de cada origem, o mesmo na tela e na planilha. */
+export const ROTULO_ORIGEM = { pdv: "Frente de caixa", delivery: "Delivery" };
+
 export function origemDaVenda(venda) {
   return venda?.origem === "delivery" ? "delivery" : "pdv";
 }

@@ -271,3 +271,22 @@
   vertical-align: -1px;
   margin-right: 2px;
 }
+
+.aba-vendas__origens {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aba-vendas__oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.aba-vendas__rodape-comanda {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid var(--gm-border);
+}

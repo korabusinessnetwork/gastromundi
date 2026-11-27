@@ -1,11 +1,9 @@
+import { LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuCalendar, LuNotebookPen, LuStore, LuBike } from "react-icons/lu";
 import { Fragment } from "react";
 import { normalizarPagamentos, rotuloMetodo } from "@/utils/pagamentos";
 import { rotuloDiaBR } from "@/utils/datas";
 import C from "@/constants/colors";
 import { varColor } from "@/lib/tema";
-import {
-  LuBanknote, LuReceipt, LuChartBar, LuCreditCard, LuCalendar, LuNotebookPen
-} from "react-icons/lu";
 import KpiCard from "./KpiCard";
 import Th from "./Th";
 import Td from "./Td";
@@ -13,12 +11,14 @@ import Empty from "./Empty";
 import ChipBtn from "./ChipBtn";
 import ExportBar from "./ExportBar";
 import { METODOS_ICON, fmtData, fmtR } from "./apoio";
+import SeloOrigemVenda from "./SeloOrigemVenda";
+import BotaoReimprimirComprovante from "./BotaoReimprimirComprovante";
 import "./AbaVendas.css";
 
 // Aba Vendas: indicadores, vendas por dia e a lista do período.
 export default function AbaVendas({ tela }) {
   const {
-    periodo, setPeriodo, metodoFilt, setMetodoFilt, buscaComanda, setBuscaComanda, subVendas, setSubVendas, width, customLabels, sz, vendasFiltradas, kpis, vendasPorDia, exportVendas,
+    periodo, setPeriodo, origemFilt, setOrigemFilt, metodoFilt, setMetodoFilt, buscaComanda, setBuscaComanda, subVendas, setSubVendas, width, customLabels, sz, vendasFiltradas, kpis, vendasPorDia, exportVendas,
   } = tela;
   return (
           <div className="aba-vendas" style={{ "--vendas-gap": `${sz.gap}px`, "--vendas-pad": `${sz.pad}px`, "--vendas-pad-sm": `${sz.padSm}px` }}>
@@ -55,6 +55,21 @@ export default function AbaVendas({ tela }) {
                 ))}
               </div>
 
+              {/* Filtro de origem, de onde veio a venda. Fica ANTES do
+                  método porque é o corte mais grosso: primeiro "de onde",
+                  depois "como pagou". */}
+              <div className="aba-vendas__origens" role="group" aria-label="Filtrar por origem da venda">
+                {[
+                  ["todos",    "Tudo",             null],
+                  ["pdv",      "Frente de caixa",  LuStore],
+                  ["delivery", "Delivery",         LuBike],
+                ].map(([id, label, OI]) => (
+                  <ChipBtn key={id} active={origemFilt === id} onClick={() => setOrigemFilt(id)} sz={sz}>
+                    {OI && <OI size={13} className="aba-vendas__metodo-icone" />}{label}
+                  </ChipBtn>
+                ))}
+              </div>
+
               {/* Filtro método */}
               <div className="aba-vendas__metodos">
                 {["todos", "dinheiro", "credito", "debito", "pix"].map(m => (
@@ -88,11 +103,13 @@ export default function AbaVendas({ tela }) {
                     <thead>
                       <tr className="aba-vendas__linha">
                         <Th>Comanda</Th>
+                        <Th>Origem</Th>
                         <Th>Caixa</Th>
                         <Th right>Itens</Th>
                         <Th right>Método</Th>
                         <Th right>Total</Th>
                         <Th right>Data / Hora</Th>
+                        <Th right><span className="aba-vendas__oculto">Reimprimir</span></Th>
                       </tr>
                     </thead>
                     <tbody>
@@ -102,6 +119,7 @@ export default function AbaVendas({ tela }) {
                           className="aba-vendas__linha aba-vendas__linha--destaque"
                         >
                           <Td sz={sz}><span className="aba-vendas__forte">{v.comanda ?? "—"}</span></Td>
+                          <Td sz={sz} nowrap><SeloOrigemVenda venda={v} /></Td>
                           <Td sz={sz}>{v.cashier ?? "—"}</Td>
                           <Td sz={sz} right>
                             {Array.isArray(v.items) ? v.items.reduce((s, it) => s + (it.qty ?? 1), 0) : "—"}
@@ -124,6 +142,9 @@ export default function AbaVendas({ tela }) {
                             <span className="aba-vendas__mais-forte">{fmtR(v.total)}</span>
                           </Td>
                           <Td sz={sz} right muted nowrap>{fmtData(v.at)}</Td>
+                          <Td sz={sz} right>
+                            <BotaoReimprimirComprovante venda={v} compacto />
+                          </Td>
                         </tr>
                       ))}
                     </tbody>
@@ -237,6 +258,11 @@ export default function AbaVendas({ tela }) {
                               </tbody>
                             </table>
                           )}
+
+                          {/* Rodapé da comanda: reimpressão manual do comprovante */}
+                          <div className="aba-vendas__rodape-comanda">
+                            <BotaoReimprimirComprovante venda={v} />
+                          </div>
                         </div>
                       );
                     })}
