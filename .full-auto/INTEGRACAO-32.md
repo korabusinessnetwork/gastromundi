@@ -63,3 +63,22 @@ Consequência: mesclar a integração na main sobe código que chama objetos que
 migrations do #32 precisam ser aplicadas antes, em ordem, com aprovação do dono. Como nenhuma foi
 aplicada, renomeá-las para datas novas (depois de 20261126) é seguro e evita a colisão de prefixo;
 fica como proposta para a hora de mesclar.
+
+## Progresso (2026-11-27)
+
+Branch local `integra-32`, 11 commits sobre o merge. Suíte 310 arquivos e 5212 testes verdes, lint
+0 erros, build limpo. Portado: vitrine, delivery (regras, pedido, endereços, admin, operação),
+clientes (origem, aniversário, filtros), PDV (gravação atômica da comanda, cancelamento rastreável,
+produto desabilitado, seletor de escolhas, venda concluída, valores em reais), caixa (cancelamento
+que marca o lançamento, comprovante de fechamento e de sangria/suprimento), cardápio (grupos de
+escolha no produto e no combo, desabilitar venda, principal opcional, preço fixo), impressão
+(composição do combo, largura das colunas, sem emoji). Migration nova: 20261127 (índices de tenant
+nos subprodutos).
+
+Falta (suíte verde não cobre porque os testes desses arquivos também estão fora da árvore):
+- Telas novas fora da árvore (`/home/user/gm-novos-fora32.txt`): FeedbacksView e rota, AbaFechamento
+  e NovoGrupoExtrasInline do delivery, DeliveryReport, BotaoReimprimirPedido/Via/Comprovante,
+  ClientesFiltroSelect.
+- Mudanças do #32 em telas que a main dividiu: DeliveryView (entregadores, aceite automático,
+  WhatsApp), ConfiguracoesView, AdminView, EstoqueView, RelatorioView, CozinhaView, PDV
+  (`comandasDoSalao`), Sidebar, rotas, `utils/hooks`, coluna `origem` nas vendas.
