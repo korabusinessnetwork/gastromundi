@@ -945,3 +945,5 @@
   font-weight: 900;
   color: var(--gm-green);
 }
+
+.cart-panel__header-acoes--via { margin-top: 10px; }

@@ -21,6 +21,7 @@ import { useTravaComanda } from "@/hooks/useTravaComanda";
 import { travadaPorOutro, nomeTrava } from "@/features/comandas/regras/comandaLock";
 import { totalItensAtivos } from "@/features/comandas/regras/comandaItens";
 import { useCancelarComanda } from "./useCancelarComanda";
+import { comandasDoSalao } from "@/features/delivery/dados/deliveryPedidos";
 import { fmtComanda } from "@/features/comandas/regras/rotuloComanda";
 import { useEstadoJanelasPdv } from "./useEstadoJanelasPdv";
 import { useEstadoCancelamentoComanda } from "./useEstadoCancelamentoComanda";
@@ -116,7 +117,9 @@ export function usePdv({ notify }) {
   const [barcodeValue,      setBarcodeValue]      = useState("");
   const [barcodeFeedback,   setBarcodeFeedback]   = useState(null); // null | "ok" | "notfound"
 
-  const abertas = pending.filter(o => o.status !== "closed");
+  // Comanda criada pelo delivery não é do salão: ela é cuidada no painel do
+  // delivery e só polui a grade de quem atende as mesas.
+  const abertas = comandasDoSalao(pending).filter(o => o.status !== "closed");
 
   // ── Combos ativos (B4) — vendáveis no PDV ─────────────────────
   // Carrega uma vez por entrada na tela; a receita (subprodutos com
