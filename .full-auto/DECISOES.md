@@ -173,3 +173,16 @@ dentro dela ainda perde a última op. Está registrado como pendência residual 
 - 2026-11-26, T20h acrescentada: o "pronto quando" da fase 6 exige `src/lib/` sem regra de negócio. Jarvas, importação, assinatura, ponte e sessão vão para `features/`; o resto de `src/lib/` é utilidade técnica e de plataforma e fica com o nome atual (renomear para `shared/lib/` mexeria em mais de 140 imports sem ganho).
 
 - 2026-11-26, integração do #32 (decisão do dono): **subprodutos e grupos de escolha convivem.** O #32 trocava os subprodutos pelos grupos de escolha sem converter os combos existentes; a integração mantém os subprodutos (tela, combos e baixa de estoque) e acrescenta os grupos de escolha. Produção: o dono ainda não confirmou se as migrations do #32 estão aplicadas; a integração fica na branch de trabalho até lá.
+
+## 2026-11-27, integração do #32: itens fixos do combo
+
+Os "itens fixos" do #32 (editor "Já vem com") gravavam em `combo_produtos`, a mesma tabela que a
+main usa para "Outros produtos" do combo, gravada junto com o combo pela RPC `salvar_combo`. Com as
+duas telas, uma apagaria a lista da outra, e o PDV baixaria o estoque desses itens duas vezes (uma
+pela baixa de `combo_produtos`, outra pela das escolhas). Ficou a versão da main; o editor de itens
+fixos e a camada `comboItensFixos` do #32 saíram. O "Já vem com" do seletor do PDV continua, só para
+mostrar, alimentado pelo principal, outros produtos e subprodutos do combo.
+
+Também: o produto principal do combo passou a ser opcional (a migration 20260918 do #32 tira o NOT
+NULL), exigido só no modo "substituir"; e entrou um "Preço fixo do combo" opcional que substitui o
+total calculado, obrigatório no combo só de grupos de escolha.
